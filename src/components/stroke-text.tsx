@@ -59,6 +59,8 @@ type StrokeTextProps = {
   fontWeight?: number
   fontFamily?: string
   letterSpacing?: number
+  /** Extra px before each character after the first — per-gap kerning the font lacks. */
+  kerning?: number[]
   reverse?: boolean
   strokeStyle?: StrokeStyle
   dashLength?: number
@@ -88,6 +90,7 @@ const StrokeText = ({
   fontWeight = 800,
   fontFamily = "inherit",
   letterSpacing = -4,
+  kerning = [],
   reverse = false,
   strokeStyle = "solid",
   dashLength = 10,
@@ -367,7 +370,7 @@ const StrokeText = ({
       style={fontStyle}
     >
       {characters.map((char, index) => (
-        <tspan data-stroke-char={dashArray ? undefined : true} key={`s-${index}`}>
+        <tspan dx={index > 0 ? kerning[index - 1] : undefined} data-stroke-char={dashArray ? undefined : true} key={`s-${index}`}>
           {char}
         </tspan>
       ))}
@@ -421,14 +424,14 @@ const StrokeText = ({
                 style={fontStyle}
               >
                 {characters.map((char, index) => (
-                  <tspan data-stroke-char key={`m-${index}`}>
+                  <tspan dx={index > 0 ? kerning[index - 1] : undefined} data-stroke-char key={`m-${index}`}>
                     {char}
                   </tspan>
                 ))}
               </text>
               <text x="0" y="0" fill="#000" stroke="none" filter={`url(#${erodeId})`} style={fontStyle}>
                 {characters.map((char, index) => (
-                  <tspan key={`e-${index}`}>{char}</tspan>
+                  <tspan dx={index > 0 ? kerning[index - 1] : undefined} key={`e-${index}`}>{char}</tspan>
                 ))}
               </text>
             </mask>
@@ -461,7 +464,7 @@ const StrokeText = ({
             clipPath={fillMode === "wipe" && wipeStart ? `url(#${wipeId})` : undefined}
           >
             {characters.map((char, index) => (
-              <tspan data-fill-char key={`f-${index}`}>
+              <tspan dx={index > 0 ? kerning[index - 1] : undefined} data-fill-char key={`f-${index}`}>
                 {char}
               </tspan>
             ))}
