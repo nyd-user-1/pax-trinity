@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { CameraIcon, FileTextIcon, FilmIcon, LayoutGridIcon, LayoutTemplateIcon, ScissorsIcon } from "lucide-react"
+import { CameraIcon, FileTextIcon, FilmIcon, LayoutGridIcon, LayoutTemplateIcon, PlayIcon, ScissorsIcon } from "lucide-react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@govblock/ui/components/nova/avatar"
 import { Button } from "@govblock/ui/components/nova/button"
@@ -16,7 +16,9 @@ import type { Creator } from "./store"
 
 export type CreatorRow = Creator & { count: number }
 
-export function Creators({ rows, selected, onSelect, you, onRecord, onUpload, onGenerate, className }: { rows: CreatorRow[]; selected: string; onSelect: (id: string) => void; you: CreatorRow | null; onRecord: () => void; onUpload?: () => void; onGenerate?: () => void; className?: string }) {
+export type ClipRow = { id: string; title: string; sub: string; poster?: string | null }
+
+export function Creators({ clips, activeId, onOpenClip, selected, onSelect, you, onRecord, onUpload, onGenerate, className }: { clips: ClipRow[]; activeId: string | null; onOpenClip: (id: string) => void; selected: string; onSelect: (id: string) => void; you: CreatorRow | null; onRecord: () => void; onUpload?: () => void; onGenerate?: () => void; className?: string }) {
   const Item = ({ id, name, sub, image, fallback }: { id: string; name: string; sub: string; image?: string | null; fallback: React.ReactNode }) => (
     <button type="button" onClick={() => onSelect(id)} className={cn("flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-accent", selected === id && "bg-accent")}>
       <Avatar className="size-9">
@@ -29,15 +31,25 @@ export function Creators({ rows, selected, onSelect, you, onRecord, onUpload, on
       </span>
     </button>
   )
-  const total = rows.reduce((s, r) => s + r.count, 0)
+  const total = clips.length
   return (
     <div className={cn("flex h-full flex-col", className)}>
       {/* h-14: the center toolbar's row, so this label sits on the "46 clips" line and the first row lands at the grid's top. */}
-      <p className="flex h-14 items-center px-2 text-xs font-medium text-muted-foreground">Creators</p>
+      <p className="flex h-14 items-center px-2 text-xs font-medium text-muted-foreground">Clips</p>
       <div className="flex flex-col gap-0.5">
         <Item id="all" name="All clips" sub={`${total} clips`} fallback={<LayoutGridIcon className="size-4" />} />
-        {rows.map((r) => (
-          <Item key={r.id} id={r.id} name={r.name} sub={`@${r.handle} · ${r.count}`} image={r.image} fallback={r.name.slice(0, 1)} />
+        {/* One row per video (Brendan, 2026-10-25): pressing one brings the single-video view into focus. */}
+        {clips.map((c) => (
+          <button key={c.id} type="button" onClick={() => onOpenClip(c.id)} className={cn("flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-accent", activeId === c.id && "bg-accent")}>
+            <Avatar className="size-9">
+              {c.poster && <AvatarImage src={c.poster} alt="" className="object-cover" />}
+              <AvatarFallback className="bg-muted"><PlayIcon className="size-4" /></AvatarFallback>
+            </Avatar>
+            <span className="flex min-w-0 flex-col">
+              <span className="truncate text-sm font-medium">{c.title}</span>
+              <span className="truncate text-xs text-muted-foreground">{c.sub}</span>
+            </span>
+          </button>
         ))}
         {you && (
           <>

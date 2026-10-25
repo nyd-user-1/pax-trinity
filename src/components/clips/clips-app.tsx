@@ -154,7 +154,8 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
     return published.filter((c) => c.creatorId === creator)
   }, [creator, mine, published])
 
-  const rows: CreatorRow[] = CREATORS.map((c) => ({ ...c, count: published.filter((x) => x.creatorId === c.id).length }))
+  // The rail lists the videos themselves (Brendan, 2026-10-25), not the desks.
+  const clipRows = published.map((c) => ({ id: c.id, title: c.title, sub: `${c.duration}s · @${c.author.handle}`, poster: c.poster }))
   const youRow: CreatorRow | null = signedIn ? { id: "you", name: you.name, handle: you.handle, image: you.image, kind: "user", count: mine.length } : null
 
   // The first clip plays on arrival, or the one the address names.
@@ -296,7 +297,7 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
       <div className="px-2 lg:grid lg:grid-cols-[240px_minmax(0,1fr)_340px] lg:gap-6 lg:px-4">
         <aside className="hidden lg:block">
           <div className={cn("sticky top-4 overflow-y-auto pb-4", COLUMN_HEIGHT[frame])}>
-            <Creators rows={rows} selected={creator} onSelect={setCreator} you={youRow} onRecord={record} onUpload={upload} onGenerate={() => setMode("generate")} />
+            <Creators clips={clipRows} activeId={view === "feed" ? activeId : null} onOpenClip={(id) => { const c = published.find((x) => x.id === id); if (c) goToPost(c) }} selected={creator} onSelect={setCreator} you={youRow} onRecord={record} onUpload={upload} onGenerate={() => setMode("generate")} />
           </div>
         </aside>
 
