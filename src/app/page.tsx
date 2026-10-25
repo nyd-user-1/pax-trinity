@@ -16,7 +16,7 @@ import "./paper.css"
 export default async function HomePage() {
   const digest = await getDigest()
   return (
-    <div className="nysgpt-app relative min-h-dvh" style={PAPER_BRIDGE}>
+    <div className="nysgpt-app relative min-h-dvh" style={{ backgroundColor: "var(--paper)", ...PAPER_BRIDGE }}>
       <LandingGrid />
       <SwitchboardProvider cards={CARDS} digest={digest}>
         <div className="relative mx-auto w-full max-w-[1360px] px-6 pt-8 pb-16 sm:px-10 md:px-14">
