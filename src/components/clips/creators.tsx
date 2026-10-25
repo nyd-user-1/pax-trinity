@@ -43,7 +43,7 @@ export function Creators({ clips, partners, activeId, onOpenClip, selected, onSe
         {/* The context switcher: whose shelf the page shows (Brendan, 2026-10-25). */}
         <Select value={selected} onValueChange={(v) => v && onSelect(String(v))}>
           <SelectTrigger className="h-auto w-full justify-start gap-3 rounded-lg border-0 bg-accent px-2 py-2 shadow-none" aria-label="Partner">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-background"><LayoutGridIcon className="size-4" /></span>
+            <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-background"><LayoutGridIcon className="size-5" /></span>
             <span className="flex min-w-0 flex-1 flex-col text-left">
               <span className="truncate text-sm font-medium">{current?.name}</span>
               <span className="truncate text-xs text-muted-foreground">{current?.count} clips</span>
@@ -60,8 +60,8 @@ export function Creators({ clips, partners, activeId, onOpenClip, selected, onSe
         {/* One row per video: pressing one brings the single-video view into focus. */}
         {clips.map((c) => (
           <button key={c.id} type="button" onClick={() => onOpenClip(c.id)} className={cn("group flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-accent", activeId === c.id && "bg-accent")}>
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-[#dc2626] bg-white text-[#dc2626] transition-colors group-hover:bg-[#dc2626] group-hover:text-white">
-              <PlayIcon className="size-4" fill="currentColor" />
+            <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-muted/60 text-muted-foreground">
+              <PlayIcon className="size-5" />
             </span>
             <span className="flex min-w-0 flex-col">
               <span className="truncate text-sm font-medium">{c.title}</span>
