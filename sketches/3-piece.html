@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>A-02 · Maria — clinic story</title><style>
+*{box-sizing:border-box;margin:0}
+body{font-family:ui-sans-serif,system-ui,sans-serif;background:#fff;color:#16181d;padding:40px 20px;display:flex;justify-content:center}
+.page{width:100%;max-width:1200px}
+h1{font-size:26px;font-weight:650;letter-spacing:-.025em;color:#1e3a8a;margin:0 0 22px}
+.k{font-family:ui-monospace,SFMono-Regular,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.2em;color:rgba(22,24,29,.45)}
+.plate{border:1px solid #16181d;border-radius:16px;background:#fff;overflow:hidden}
+.pad{padding:16px 20px}
+.head{padding:14px 20px;border-bottom:1px solid #16181d}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;padding:8px 14px;font-size:10px;font-family:ui-monospace,monospace;text-transform:uppercase;letter-spacing:.14em;color:rgba(22,24,29,.45);border-bottom:1px solid #16181d;font-weight:500}
+td{padding:9px 14px;border-top:1px solid rgba(22,24,29,.08);white-space:nowrap}
+tr:first-child td{border-top:none}
+.num{font-variant-numeric:tabular-nums;text-align:right}
+th.num{text-align:right}
+.layout{display:grid;grid-template-columns:260px 1fr 420px;gap:16px;align-items:start}
+.video{aspect-ratio:9/16;background:#16181d;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:16px 16px 10px}
+.score{font-size:64px;font-weight:650;letter-spacing:-.03em;line-height:1;color:#1e3a8a}
+.chip{display:inline-block;border-radius:999px;padding:2px 10px;font-size:11px;font-weight:600}
+.pers{background:#f0fdf4;color:#16a34a}
+.none{background:rgba(22,24,29,.06);color:rgba(22,24,29,.6)}
+.small{font-style:italic;background:#fee2e2;color:#991b1b}
+.formula{font-family:ui-monospace,monospace;font-size:12px;line-height:1.7;background:rgba(22,24,29,.03);border-radius:10px;padding:12px 14px;margin:12px 20px}
+.note{font-size:12px;color:rgba(22,24,29,.55);padding:12px 20px;border-top:1px solid rgba(22,24,29,.08)}
+.sub{font-size:13px;color:rgba(22,24,29,.55)}
+.total td{border-top:1px solid #16181d;font-weight:650}
+.sg i{font-style:italic;color:#991b1b}
+</style></head><body><div class="page">
+<h1>A-02 · Maria — clinic story</h1>
+
+<div class="layout">
+
+  <div class="plate">
+    <div class="video"><svg width="46" height="46" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg></div>
+    <div class="pad" style="padding-top:0">
+      <div style="font-weight:650">Maria — clinic story</div>
+      <div class="sub">34s · vertical · Test 1, October 2026</div>
+      <div class="sub" style="margin-top:6px">Forced exposure · randomized against placebo · 490 weighted in this arm</div>
+    </div>
+  </div>
+
+  <div style="display:grid;gap:16px">
+    <div class="plate">
+      <div class="pad" style="display:flex;align-items:baseline;gap:16px">
+        <span class="score">65</span>
+        <div>
+          <div class="k">Resonance · formula v1</div>
+          <div class="sub">Movement against this test's placebo · scored Oct 24, 2026</div>
+        </div>
+      </div>
+      <table>
+        <tr><th>Outcome</th><th class="num">Baseline (placebo)</th><th class="num">This video</th><th class="num">Lift</th><th>Effect</th></tr>
+        <tr><td>Support — % choosing Yes</td><td class="num">46%</td><td class="num">60%</td><td class="num">+14 pp</td><td><span class="chip pers">Persuasive</span></td></tr>
+        <tr><td>Comprehension — % identifying the change</td><td class="num">44%</td><td class="num">53%</td><td class="num">+9 pp</td><td><span class="chip pers">Persuasive</span></td></tr>
+      </table>
+      <div class="note">Effect labels use the test's 90% statistical criterion against the placebo. "No measurable effect" would mean not detected — not proof of zero.</div>
+    </div>
+
+    <div class="plate sg">
+      <div class="head"><span class="k">Strongest subgroup cells · % Yes vs that cell's placebo</span></div>
+      <table>
+        <tr><th>Subgroup</th><th class="num">This video</th><th class="num">Placebo</th><th>Effect</th></tr>
+        <tr><td>Adults 18–34</td><td class="num">68%</td><td class="num">47%</td><td><span class="chip pers">Persuasive</span></td></tr>
+        <tr><td>High school or less</td><td class="num">66%</td><td class="num">49%</td><td><span class="chip pers">Persuasive</span></td></tr>
+        <tr><td>2022 non-voters</td><td class="num">64%</td><td class="num">45%</td><td><span class="chip pers">Persuasive</span></td></tr>
+        <tr><td>Rural</td><td class="num"><i>63%</i></td><td class="num"><i>39%</i></td><td><span class="chip small">Small cell — too few to judge</span></td></tr>
+      </table>
+      <div class="note">Detectable in 21 of 34 cells. Each cell compares this video with the placebo inside that cell only — never with other videos, and with no adjustment for the number of comparisons: some cells will be chance. Hypotheses to test, not targeting.</div>
+    </div>
+  </div>
+
+  <div class="plate">
+    <div class="head"><span class="k">Formula · v1</span></div>
+    <div class="formula">
+      support = %Yes − placebo %Yes<br>
+      understanding = %Correct − placebo %Correct<br>
+      breadth = detectable cells / judged cells<br><br>
+      Resonance = 50·min(support/20, 1)<br>
+      &nbsp;&nbsp;+ 30·min(understanding/15, 1)<br>
+      &nbsp;&nbsp;+ 20·breadth
+    </div>
+    <table>
+      <tr><th>Step</th><th class="num">Value</th></tr>
+      <tr><td>support = 60% − 46%</td><td class="num">+14 pp</td></tr>
+      <tr><td>50 × 14/20</td><td class="num">35.0</td></tr>
+      <tr><td>understanding = 53% − 44%</td><td class="num">+9 pp</td></tr>
+      <tr><td>30 × 9/15</td><td class="num">18.0</td></tr>
+      <tr><td>breadth = 21/34</td><td class="num">0.62</td></tr>
+      <tr><td>20 × 0.62</td><td class="num">12.4</td></tr>
+      <tr class="total"><td>Resonance</td><td class="num">65</td></tr>
+    </table>
+    <div class="note">The anchors (+20 pp fills the support scale, +15 pp the understanding scale) are stated choices, held fixed across tests so a 65 means the same thing next time. The baseline is this test's own placebo — never another video.</div>
+  </div>
+
+</div>
+</div></body></html>

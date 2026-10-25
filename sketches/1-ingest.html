@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Supplied records</title><style>
+*{box-sizing:border-box;margin:0}
+body{font-family:ui-sans-serif,system-ui,sans-serif;background:#fff;color:#16181d;padding:40px 20px;display:flex;justify-content:center}
+.page{width:100%;max-width:1120px}
+h1{font-size:26px;font-weight:650;letter-spacing:-.025em;color:#1e3a8a;margin:0 0 22px}
+.k{font-family:ui-monospace,SFMono-Regular,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.2em;color:rgba(22,24,29,.45)}
+.plate{border:1px solid #16181d;border-radius:16px;background:#fff;overflow:hidden}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:10px 14px;font-size:10px;font-family:ui-monospace,monospace;text-transform:uppercase;letter-spacing:.16em;color:rgba(22,24,29,.45);border-bottom:1px solid #16181d;font-weight:500}
+td{padding:10px 14px;border-top:1px solid rgba(22,24,29,.08);white-space:nowrap}
+tr:first-child td{border-top:none}
+.num{font-variant-numeric:tabular-nums;text-align:right}
+th.num{text-align:right}
+.chip{display:inline-block;border-radius:999px;padding:2px 10px;font-size:11px;font-weight:600}
+.ok{background:#f0fdf4;color:#16a34a}
+.inc{background:rgba(22,24,29,.06);color:rgba(22,24,29,.6)}
+.flag{background:#fee2e2;color:#991b1b}
+.placebo{background:#dbeafe;color:#1e3a8a}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:0 0 16px}
+.tile{border:1px solid #16181d;border-radius:16px;padding:16px 20px}
+.tile b{display:block;font-size:30px;font-weight:650;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.defs{display:grid;grid-template-columns:repeat(2,1fr)}
+.def{padding:14px 20px;border-top:1px solid rgba(22,24,29,.08);font-size:13px}
+.def:nth-child(-n+2){border-top:none}
+.def b{font-weight:650}
+.head{padding:14px 20px;border-bottom:1px solid #16181d}
+.sub{font-size:13px;color:rgba(22,24,29,.55);margin:-16px 0 16px}
+</style></head><body><div class="page">
+<h1>Supplied records</h1>
+<p class="sub">Test 1 · randomized, placebo-controlled · fielded October 2026 · general adults, weighted</p>
+
+<div class="tiles">
+  <div class="tile"><span class="k">Videos supplied</span><b>6</b></div>
+  <div class="tile"><span class="k">Scorable</span><b style="color:#16a34a">4</b></div>
+  <div class="tile"><span class="k">Flagged</span><b style="color:#991b1b">2</b></div>
+</div>
+
+<div class="plate" style="margin-bottom:16px">
+<table>
+<tr><th>Arm</th><th>Video</th><th class="num">Weighted n</th><th class="num">% Yes</th><th class="num">Support vs placebo</th><th class="num">% Correct</th><th class="num">Comprehension vs placebo</th><th>Status</th></tr>
+<tr><td>A-00</td><td>Placebo — control video</td><td class="num">480</td><td class="num">46%</td><td class="num">reference</td><td class="num">44%</td><td class="num">reference</td><td><span class="chip placebo">Control arm</span></td></tr>
+<tr><td>A-01</td><td>Front porch ask · 27s</td><td class="num">470</td><td class="num">58%</td><td class="num">+12 pp</td><td class="num">45%</td><td class="num">+1 pp</td><td><span class="chip ok">Scorable</span></td></tr>
+<tr><td>A-02</td><td>Maria — clinic story · 34s</td><td class="num">490</td><td class="num">60%</td><td class="num">+14 pp</td><td class="num">53%</td><td class="num">+9 pp</td><td><span class="chip ok">Scorable</span></td></tr>
+<tr><td>A-03</td><td>Coach Reyes · 28s</td><td class="num">455</td><td class="num">55%</td><td class="num">+9 pp</td><td class="num">50%</td><td class="num">+6 pp</td><td><span class="chip ok">Scorable</span></td></tr>
+<tr><td>A-04</td><td>Two neighbors · 52s</td><td class="num" style="font-style:italic">130</td><td class="num" style="font-style:italic">52%</td><td class="num" style="font-style:italic">+6 pp</td><td class="num" style="font-style:italic">47%</td><td class="num" style="font-style:italic">+3 pp</td><td><span class="chip flag">Flagged · arm under 150 — too small to judge</span></td></tr>
+<tr><td>A-05</td><td>Rally cut · 22s</td><td class="num">465</td><td class="num">48%</td><td class="num">+2 pp</td><td class="num">44%</td><td class="num">0 pp</td><td><span class="chip ok">Scorable</span></td></tr>
+<tr><td>—</td><td>Union hall · 30s</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td><span class="chip flag">Flagged · fielded without a placebo — no randomized comparison</span></td></tr>
+</table>
+</div>
+
+<div class="plate">
+  <div class="head"><span class="k">Definitions</span></div>
+  <div class="defs">
+    <div class="def"><b>Support</b> — the share choosing Yes after watching, compared with the share after the placebo.</div>
+    <div class="def"><b>Comprehension</b> — the share correctly identifying what the measure would change, compared with placebo.</div>
+    <div class="def"><b>Lift</b> — the video's percentage minus the placebo's, in percentage points. Every comparison is against the same test's placebo, never another video.</div>
+    <div class="def"><b>Detectable</b> — meets the test's 90% statistical criterion. <b>Inconclusive</b> — not detected; not proof of zero effect.</div>
+    <div class="def"><b>Weighted n</b> — respondents weighted to population benchmarks; not an effective sample size.</div>
+    <div class="def"><b>Flagged</b> — kept in the record, kept out of the score: an arm too small to judge, or no placebo to compare against.</div>
+  </div>
+</div>
+
+</div></body></html>

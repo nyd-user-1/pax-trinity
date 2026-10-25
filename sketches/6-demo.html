@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>The working loop</title><style>
+*{box-sizing:border-box;margin:0}
+body{font-family:ui-sans-serif,system-ui,sans-serif;background:#fff;color:#16181d;padding:40px 20px;display:flex;justify-content:center}
+.page{width:100%;max-width:1120px}
+h1{font-size:26px;font-weight:650;letter-spacing:-.025em;color:#1e3a8a;margin:0 0 22px}
+.k{font-family:ui-monospace,SFMono-Regular,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.2em;color:rgba(22,24,29,.45)}
+.plate{border:1px solid #16181d;border-radius:16px;background:#fff;overflow:hidden;margin-bottom:16px}
+.loopwrap{display:flex;justify-content:center;padding:28px 0 8px}
+.cap{text-align:center;font-size:12px;color:rgba(22,24,29,.55);padding:0 20px 22px}
+.stations{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:1px solid #16181d}
+.stn{padding:16px 20px;border-top:1px solid rgba(22,24,29,.08);font-size:13.5px;line-height:1.5}
+.stn:nth-child(-n+3){border-top:none}
+.stn:nth-child(3n+2),.stn:nth-child(3n){border-left:1px solid rgba(22,24,29,.08)}
+.stn b{display:block;margin-bottom:3px}
+.stn .n{display:inline-flex;width:20px;height:20px;border-radius:999px;background:#1e3a8a;color:#fff;font-size:11px;font-weight:700;align-items:center;justify-content:center;margin-right:8px;vertical-align:-4px}
+svg text{font-family:ui-sans-serif,system-ui,sans-serif;font-size:13px;fill:#16181d}
+svg .st{font-weight:650}
+svg .n{font-family:ui-monospace,monospace;font-size:11px;fill:#fff;font-weight:700}
+</style></head><body><div class="page">
+<h1>The working loop — the demo, run live</h1>
+
+<div class="plate">
+  <div class="loopwrap">
+  <svg width="700" height="520" viewBox="0 0 700 520">
+    <circle cx="350" cy="260" r="175" fill="none" stroke="rgba(22,24,29,.25)" stroke-width="1.5"/>
+    <g fill="#dc2626">
+      <polygon points="0,-5 9,0 0,5" transform="translate(501.5,172.5) rotate(60)"/>
+      <polygon points="0,-5 9,0 0,5" transform="translate(501.5,347.5) rotate(120)"/>
+      <polygon points="0,-5 9,0 0,5" transform="translate(350,435) rotate(180)"/>
+      <polygon points="0,-5 9,0 0,5" transform="translate(198.5,347.5) rotate(240)"/>
+      <polygon points="0,-5 9,0 0,5" transform="translate(198.5,172.5) rotate(300)"/>
+      <polygon points="0,-5 9,0 0,5" transform="translate(350,85) rotate(0)"/>
+    </g>
+    <g>
+      <circle cx="350" cy="85" r="14" fill="#1e3a8a"/><text class="n" x="350" y="89" text-anchor="middle">1</text>
+      <text class="st" x="350" y="57" text-anchor="middle">Open the raw records</text>
+      <circle cx="501.5" cy="172.5" r="14" fill="#1e3a8a"/><text class="n" x="501.5" y="176.5" text-anchor="middle">2</text>
+      <text class="st" x="531.5" y="168">Walk the formula</text>
+      <circle cx="501.5" cy="347.5" r="14" fill="#1e3a8a"/><text class="n" x="501.5" y="351.5" text-anchor="middle">3</text>
+      <text class="st" x="531.5" y="352">PAX feedback</text>
+      <circle cx="350" cy="435" r="14" fill="#1e3a8a"/><text class="n" x="350" y="439" text-anchor="middle">4</text>
+      <text class="st" x="350" y="471" text-anchor="middle">Save a next step</text>
+      <circle cx="198.5" cy="347.5" r="14" fill="#1e3a8a"/><text class="n" x="198.5" y="351.5" text-anchor="middle">5</text>
+      <text class="st" x="168.5" y="352" text-anchor="end">Load the later results</text>
+      <circle cx="198.5" cy="172.5" r="14" fill="#1e3a8a"/><text class="n" x="198.5" y="176.5" text-anchor="middle">6</text>
+      <text class="st" x="168.5" y="168" text-anchor="end">Carry it forward</text>
+    </g>
+    <text x="350" y="252" text-anchor="middle" style="font-size:15px;font-weight:650">Run on the supplied records</text>
+    <text x="350" y="276" text-anchor="middle" style="fill:rgba(22,24,29,.55)">the audience drives; nothing staged</text>
+  </svg>
+  </div>
+
+  <div class="stations">
+    <div class="stn"><b><span class="n">1</span>Open the raw records</b>The supplied videos and the Test 1 arms table, flags included — the same screen as the ingest page.</div>
+    <div class="stn"><b><span class="n">2</span>Walk the formula</b>A-02 traced from arm percentages to 65, anchors stated, on the piece page's formula drawer.</div>
+    <div class="stn"><b><span class="n">3</span>PAX feedback</b>The takeaway, each statement typed observed, interpretation or hypothesis, evidence one tap deep.</div>
+    <div class="stn"><b><span class="n">4</span>Save a next step</b>Approve the re-cut proposal; watch it bind to the piece, score version and records, marked proposed.</div>
+    <div class="stn"><b><span class="n">5</span>Load the later results</b>Test 2 arrives: re-score on v1, the score moves, the registered prediction stays locked and open.</div>
+    <div class="stn"><b><span class="n">6</span>Carry it forward</b>Open a related review: the prior finding and its limits surface first, supported, challenged or unresolved.</div>
+  </div>
+</div>
+
+</div></body></html>

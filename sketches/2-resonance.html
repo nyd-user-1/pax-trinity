@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Resonance v1</title><style>
+*{box-sizing:border-box;margin:0}
+body{font-family:ui-sans-serif,system-ui,sans-serif;background:#fff;color:#16181d;padding:40px 20px;display:flex;justify-content:center}
+.page{width:100%;max-width:1120px}
+h1{font-size:26px;font-weight:650;letter-spacing:-.025em;color:#1e3a8a;margin:0 0 22px}
+.k{font-family:ui-monospace,SFMono-Regular,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.2em;color:rgba(22,24,29,.45)}
+.plate{border:1px solid #16181d;border-radius:16px;background:#fff;overflow:hidden;margin-bottom:16px}
+.head{padding:14px 20px;border-bottom:1px solid #16181d}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:10px 14px;font-size:10px;font-family:ui-monospace,monospace;text-transform:uppercase;letter-spacing:.16em;color:rgba(22,24,29,.45);border-bottom:1px solid #16181d;font-weight:500}
+td{padding:10px 14px;border-top:1px solid rgba(22,24,29,.08)}
+tr:first-child td{border-top:none}
+.num{font-variant-numeric:tabular-nums;text-align:right}
+th.num{text-align:right}
+.def{display:grid;grid-template-columns:160px 1fr;gap:12px;padding:12px 20px;border-top:1px solid rgba(22,24,29,.08);font-size:13px;align-items:baseline}
+.def:first-child{border-top:none}
+.total td{border-top:1px solid #16181d;font-weight:650}
+.note{font-size:12px;color:rgba(22,24,29,.55);padding:12px 20px;border-top:1px solid rgba(22,24,29,.08)}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+</style></head><body><div class="page">
+<h1>Resonance v1</h1>
+
+<div class="plate">
+  <div class="def"><span class="k">Assesses</span><span>How much a video moved people, measured in a randomized test: the change in stated support and in comprehension versus the same test's placebo.</span></div>
+  <div class="def"><span class="k">Higher means</span><span>Larger movement against placebo, on more fronts, across more of the audience. 0–100.</span></div>
+  <div class="def"><span class="k">Reference</span><span>The video's own placebo arm — never other videos. The scale's anchors are stated below, so a score means the same thing in a later test.</span></div>
+  <div class="def"><span class="k">Is not</span><span>A forecast for an unpublished video, a measure of lasting opinion change, or proof of what caused the result.</span></div>
+</div>
+
+<div class="plate">
+  <div class="head"><span class="k">Components</span></div>
+  <table>
+    <tr><th>Component</th><th>Measured as</th><th>Put on the scale by</th><th class="num">Max points</th></tr>
+    <tr><td><b>Support movement</b></td><td>% Yes lift vs placebo</td><td>0 pp = 0 · +20 pp = 50 · linear, capped</td><td class="num">50</td></tr>
+    <tr><td><b>Understanding movement</b></td><td>% correct lift vs placebo</td><td>0 pp = 0 · +15 pp = 30 · linear, capped</td><td class="num">30</td></tr>
+    <tr><td><b>Breadth</b></td><td>Share of subgroup cells detectable vs their own placebo</td><td>Share of cells × 20</td><td class="num">20</td></tr>
+  </table>
+  <div class="note">Inconclusive lifts enter at face value with their classification carried alongside — the score never upgrades an inconclusive result to a finding. Flagged arms are not scored at all.</div>
+</div>
+
+<div class="plate">
+  <div class="head"><span class="k">One video, traced — A-02 · Maria — clinic story</span></div>
+  <table>
+    <tr><th>Component</th><th class="num">Measured</th><th class="num">Classification</th><th class="num">On the scale</th><th class="num">Points</th></tr>
+    <tr><td>Support movement</td><td class="num">60% vs 46% · +14 pp</td><td class="num">detectable</td><td class="num">14 / 20 × 50</td><td class="num">35.0</td></tr>
+    <tr><td>Understanding movement</td><td class="num">53% vs 44% · +9 pp</td><td class="num">detectable</td><td class="num">9 / 15 × 30</td><td class="num">18.0</td></tr>
+    <tr><td>Breadth</td><td class="num">21 of 34 subgroup cells</td><td class="num">—</td><td class="num">0.62 × 20</td><td class="num">12.4</td></tr>
+    <tr class="total"><td>Resonance</td><td></td><td></td><td></td><td class="num">65</td></tr>
+  </table>
+</div>
+
+<div class="cols">
+<div class="plate" style="margin:0">
+  <div class="head"><span class="k">Sensitivity</span></div>
+  <table>
+    <tr><th>Change</th><th class="num">A-02 score</th></tr>
+    <tr><td>As designed</td><td class="num"><b>65</b></td></tr>
+    <tr><td>Support anchor moved to +16 pp = 50</td><td class="num">62–69 band</td></tr>
+    <tr><td>Breadth component removed, points to support</td><td class="num">67</td></tr>
+    <tr><td>Lifts nudged ±1 pp (rounding wobble)</td><td class="num">62–68</td></tr>
+  </table>
+  <div class="note">A-02 stays ahead of A-01 and A-03 under every change listed.</div>
+</div>
+<div class="plate" style="margin:0">
+  <div class="head"><span class="k">Beyond one measure</span></div>
+  <table>
+    <tr><th>Video</th><th class="num">By % Yes alone</th><th class="num">By Resonance</th></tr>
+    <tr><td>A-02 · Maria</td><td class="num">60% · 1st</td><td class="num">65 · 1st</td></tr>
+    <tr><td>A-01 · Front porch ask</td><td class="num">58% · 2nd</td><td class="num">44 · 2nd</td></tr>
+    <tr><td>A-03 · Coach Reyes</td><td class="num">55% · 3rd</td><td class="num">42 · 3rd, within a point</td></tr>
+  </table>
+  <div class="note">% Yes alone hides that A-03 moved understanding (+6 pp, detectable) and A-01 did not (+1 pp, inconclusive). The score carries both outcomes; the single measure carries one.</div>
+</div>
+</div>
+
+</div></body></html>

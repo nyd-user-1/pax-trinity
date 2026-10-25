@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>The ledger</title><style>
+*{box-sizing:border-box;margin:0}
+body{font-family:ui-sans-serif,system-ui,sans-serif;background:#fff;color:#16181d;padding:40px 20px;display:flex;justify-content:center}
+.page{width:100%;max-width:1120px}
+h1{font-size:26px;font-weight:650;letter-spacing:-.025em;color:#1e3a8a;margin:0 0 22px}
+.k{font-family:ui-monospace,SFMono-Regular,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.2em;color:rgba(22,24,29,.45)}
+.plate{border:1px solid #16181d;border-radius:16px;background:#fff;overflow:hidden;margin-bottom:16px}
+.head{padding:14px 20px;border-bottom:1px solid #16181d}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:10px 14px;font-size:10px;font-family:ui-monospace,monospace;text-transform:uppercase;letter-spacing:.16em;color:rgba(22,24,29,.45);border-bottom:1px solid #16181d;font-weight:500}
+td{padding:11px 14px;border-top:1px solid rgba(22,24,29,.08);vertical-align:top}
+tr:first-child td{border-top:none}
+.date{white-space:nowrap;font-variant-numeric:tabular-nums;color:rgba(22,24,29,.55)}
+.loopwrap{display:flex;justify-content:center;padding:28px 0 12px}
+.cap{text-align:center;font-size:12px;color:rgba(22,24,29,.55);padding:0 20px 22px}
+.note{font-size:12px;color:rgba(22,24,29,.55);padding:12px 20px;border-top:1px solid rgba(22,24,29,.08)}
+b.v{font-variant-numeric:tabular-nums}
+.chip{display:inline-block;border-radius:999px;padding:1px 9px;font-size:10.5px;font-weight:650;margin-left:6px}
+.v1{background:#dbeafe;color:#1e3a8a}
+.v2{background:#fee2e2;color:#991b1b}
+svg text{font-family:ui-sans-serif,system-ui,sans-serif;font-size:13px;fill:#16181d}
+svg .st{font-weight:650}
+svg .n{font-family:ui-monospace,monospace;font-size:11px;fill:#fff;font-weight:700}
+</style></head><body><div class="page">
+<h1>The ledger</h1>
+
+<div class="plate">
+  <div class="loopwrap">
+  <svg width="700" height="560" viewBox="0 0 700 560">
+    <circle cx="350" cy="280" r="190" fill="none" stroke="rgba(22,24,29,.25)" stroke-width="1.5"/>
+    <!-- clockwise direction marks -->
+    <g fill="#1e3a8a">
+      <polygon points="0,-5 9,0 0,5" transform="translate(514.5,185) rotate(60)"/>
+      <polygon points="0,-5 9,0 0,5" transform="translate(514.5,375) rotate(120)"/>
+      <polygon points="0,-5 9,0 0,5" transform="translate(350,470) rotate(180)"/>
+      <polygon points="0,-5 9,0 0,5" transform="translate(185.5,375) rotate(240)"/>
+      <polygon points="0,-5 9,0 0,5" transform="translate(185.5,185) rotate(300)"/>
+      <polygon points="0,-5 9,0 0,5" transform="translate(350,90) rotate(0)"/>
+    </g>
+    <!-- stations -->
+    <g>
+      <circle cx="350" cy="90" r="14" fill="#1e3a8a"/><text class="n" x="350" y="94" text-anchor="middle">1</text>
+      <text class="st" x="350" y="62" text-anchor="middle">Content and test results</text>
+      <circle cx="514.5" cy="185" r="14" fill="#1e3a8a"/><text class="n" x="514.5" y="189" text-anchor="middle">2</text>
+      <text class="st" x="544.5" y="180">Resonance score</text>
+      <circle cx="514.5" cy="375" r="14" fill="#1e3a8a"/><text class="n" x="514.5" y="379" text-anchor="middle">3</text>
+      <text class="st" x="544.5" y="380">PAX finding</text>
+      <circle cx="350" cy="470" r="14" fill="#1e3a8a"/><text class="n" x="350" y="474" text-anchor="middle">4</text>
+      <text class="st" x="350" y="506" text-anchor="middle">Partner decision</text>
+      <circle cx="185.5" cy="375" r="14" fill="#1e3a8a"/><text class="n" x="185.5" y="379" text-anchor="middle">5</text>
+      <text class="st" x="155.5" y="380" text-anchor="end">Later evidence</text>
+      <circle cx="185.5" cy="185" r="14" fill="#1e3a8a"/><text class="n" x="185.5" y="189" text-anchor="middle">6</text>
+      <text class="st" x="155.5" y="180" text-anchor="end">Updated learning</text>
+    </g>
+    <text x="350" y="272" text-anchor="middle" style="font-size:15px;font-weight:650">A-02 · Maria — clinic story</text>
+    <text x="350" y="296" text-anchor="middle" style="fill:rgba(22,24,29,.55)">cycle 1 complete · cycle 2 open</text>
+  </svg>
+  </div>
+  <div class="cap">Every pass around the loop is one row set below; the sixth station feeds the first of the next cycle.</div>
+</div>
+
+<div class="plate">
+  <div class="head"><span class="k">A-02 · history — saved together: score, formula version, records, finding, decision</span></div>
+  <table>
+    <tr><th style="width:110px">Date</th><th>Entry</th></tr>
+    <tr><td class="date">Oct 24, 2026</td><td>Scored <b class="v">65</b><span class="chip v1">formula v1</span> on the Test 1 arms record. Finding saved: detectable movement on both outcomes; the explanation passage identified as the plausible comprehension source — an interpretation, not a result.</td></tr>
+    <tr><td class="date">Oct 24, 2026</td><td>Decision: <b>approved</b> the re-cut test (explanation before 0:08). Status: <b>proposed</b> — no record yet shows the re-cut was made.</td></tr>
+    <tr><td class="date">Oct 24, 2026</td><td>Prediction registered, before any later results: the re-cut's comprehension lift exceeds +9 pp. Locked against Test 2.</td></tr>
+    <tr><td class="date">Nov 7, 2026</td><td>Test 2 loaded (new sample, own placebo). A-02 unchanged cut, re-scored on <span class="chip v1">formula v1</span>: <b class="v">61</b>. The score changed; the earlier finding stands unresolved — the re-cut has not shipped, so the prediction remains open.</td></tr>
+    <tr><td class="date">Nov 12, 2026</td><td><span class="chip v2">formula v2</span> published (support anchor revised). Labeled as a model change: 65 and 61 remain v1 figures; v2 figures are listed beside them, never over them.</td></tr>
+  </table>
+  <div class="note">Loading Test 1 again adds nothing — the record is already here. "The score changed" and "the evidence supports a different conclusion" are separate entries, never one.</div>
+</div>
+
+</div></body></html>
