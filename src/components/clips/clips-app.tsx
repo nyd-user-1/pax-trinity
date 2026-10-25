@@ -1,0 +1,454 @@
+"use client"
+
+import * as React from "react"
+import dynamic from "next/dynamic"
+import Link from "next/link"
+import { CameraIcon, LayoutGridIcon, LockIcon, PlaySquareIcon } from "lucide-react"
+
+import { Button } from "@govblock/ui/components/nova/button"
+import { Drawer, DrawerContent, DrawerTitle } from "@govblock/ui/components/nova/drawer"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@govblock/ui/components/nova/select"
+import { cn } from "@govblock/ui/lib/utils"
+
+import { Capture } from "./capture"
+import { CommentsPanel } from "./comments"
+import { Creators, type CreatorRow } from "./creators"
+import { DEFAULT_AVATAR } from "@/lib/auth/use-account"
+import { LoadingFlag } from "@/components/loading-flag"
+import { Feed, type Reactions } from "./feed"
+import { Grid } from "./grid"
+import { ReportDialog } from "./report"
+import { Upload } from "./upload"
+import { CREATORS, PUBLISHED, SEED_COMMENTS, deleteClip, loadFeed, takeDown, loadFollows, loadLikes, loadMyComments, loadSaves, saveClip, storeFollows, storeLikes, storeMyComments, storeSaves, updateClip, type Clip, type Comment, type Feed as FeedData, type Upload as UploadRow } from "./store"
+
+// Clips: short vertical video, recorded on a phone or a laptop, kept private
+// until its owner says otherwise. A mock of the whole experience (Brendan,
+// 2026-09-07) so the shape can be judged before Stream is wired in.
+//
+// The page is the site's centred layout with both rails (Brendan, 2026-09-07):
+// creators on the left, the clip in the middle, and the comments on the
+// right. The middle scrolls down, one clip a screen, the way every other
+// page here scrolls; a grid of the same clips is one toggle away and opens
+// into the feed at the tile you chose. On a phone the rails fold away: the
+// creators become a select in the toolbar and the comments a sheet that
+// rises from the foot.
+
+type Account = { name?: string | null; email?: string | null; image?: string | null; admin?: boolean } | null
+
+function useAccount(): { account: Account; ready: boolean } {
+  const [account, setAccount] = React.useState<Account>(null)
+  const [ready, setReady] = React.useState(false)
+  React.useEffect(() => {
+    let live = true
+    try {
+      const raw = sessionStorage.getItem("govblock:account")
+      if (raw) setAccount(JSON.parse(raw) as Account)
+    } catch {}
+    fetch("/api/auth/session", { credentials: "same-origin" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((s: { user?: NonNullable<Account> } | null) => {
+        if (!live) return
+        setAccount(s?.user?.email || s?.user?.name ? s.user : null)
+        setReady(true)
+      })
+      .catch(() => live && setReady(true))
+    return () => {
+      live = false
+    }
+  }, [])
+  return { account, ready }
+}
+
+/** Recording and the sign-in gate: the whole screen on a phone, a phone on a desktop. */
+function Frame({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+  React.useEffect(() => {
+    const prev = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [])
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black md:bg-black/85 md:p-6" onClick={onClose}>
+      <div className="relative h-full w-full overflow-hidden bg-black md:aspect-[9/16] md:h-[min(100%,880px)] md:w-auto md:rounded-3xl md:shadow-2xl md:ring-1 md:ring-white/10" onClick={(e) => e.stopPropagation()}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+// Remotion loads only when Generate opens.
+const Generate = dynamic(() => import("./generate").then((m) => m.Generate), { ssr: false })
+
+// The feed, the creators and the comments fit the page under the header, or the right rail's sheet (Brendan, 2026-09-14): the sheet is 1.2rem shorter than the page and its content sits in 0.5rem of padding. The page's feed gives back a rem so its foot is never cut.
+type Frame = "page" | "sheet"
+const FEED_HEIGHT: Record<Frame, string> = { page: "h-[calc(100svh-var(--header-height)-4.5rem)]", sheet: "h-[calc(100svh-var(--header-height)-5.2rem)]" }
+const COLUMN_HEIGHT: Record<Frame, string> = { page: "h-[calc(100svh-var(--header-height))]", sheet: "h-[calc(100svh-var(--header-height)-1.7rem)]" }
+
+export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
+  const { account, ready } = useAccount()
+  const signedIn = !!account
+  const [mine, setMine] = React.useState<Clip[]>([])
+  /** Published clips from Aurora, every origin, other than the reader's own. */
+  const [live, setLive] = React.useState<Clip[]>([])
+  const [uploads, setUploads] = React.useState<UploadRow[]>([])
+  const [reporting, setReporting] = React.useState<Clip | null>(null)
+  const [creator, setCreator] = React.useState("all")
+  // The grid first (Brendan, 2026-09-14); a clip opens the feed.
+  const [view, setView] = React.useState<"feed" | "grid">("grid")
+  const [activeId, setActiveId] = React.useState<string | null>(null)
+  const [muted, setMuted] = React.useState(true)
+  const [liked, setLiked] = React.useState<Set<string>>(new Set())
+  const [saved, setSaved] = React.useState<Set<string>>(new Set())
+  const [following, setFollowing] = React.useState<Set<string>>(new Set())
+  const [likedComments, setLikedComments] = React.useState<Set<string>>(new Set())
+  const [myComments, setMyComments] = React.useState<Comment[]>([])
+  const [mode, setMode] = React.useState<"capture" | "upload" | "generate" | "gate" | null>(null)
+  const [sheet, setSheet] = React.useState(false)
+  const [focusKey, setFocusKey] = React.useState(0)
+  // Until the feed has been read, the gallery shows the loader rather than a
+  // sentence about having nothing (Brendan, 2026-09-15).
+  const [loaded, setLoaded] = React.useState(false)
+  const pendingId = React.useRef<string | null>(null)
+
+  // A take just sent keeps playing from the browser's copy until Stream's MP4 is ready.
+  const applyFeed = React.useCallback((feed: FeedData) => {
+    setLoaded(true)
+    setLive(feed.published)
+    setUploads(feed.uploads)
+    setMine((prev) =>
+      feed.mine.map((c) => {
+        const local = prev.find((p) => p.id === c.id)
+        return !c.src && local?.blob ? { ...c, src: local.src, blob: local.blob, poster: local.poster, duration: c.duration ?? local.duration } : c
+      })
+    )
+  }, [])
+
+  // While a take is still processing, the feed is read again every eight seconds.
+  const processing = mine.some((c) => c.status === "processing")
+  React.useEffect(() => {
+    if (!processing) return
+    const id = setInterval(() => void loadFeed().then(applyFeed), 8000)
+    return () => clearInterval(id)
+  }, [processing, applyFeed])
+
+  React.useEffect(() => {
+    void loadFeed().then(applyFeed)
+    setLiked(loadLikes())
+    setSaved(loadSaves())
+    setFollowing(loadFollows())
+    setMyComments(loadMyComments())
+    const c = new URLSearchParams(window.location.search).get("c")
+    if (c) pendingId.current = c
+  }, [])
+
+  const you: Clip["author"] = { name: account?.name ?? account?.email ?? "You", handle: (account?.email ?? "you").split("@")[0], image: account?.image || DEFAULT_AVATAR }
+
+  // What is on offer: the published set (the reader's own public ones, then
+  // every published clip in Aurora whether recorded, cut or generated, then
+  // the stock), narrowed to a creator when one is picked.
+  const published = React.useMemo(() => [...mine.filter((c) => c.visibility === "public" && c.status !== "processing"), ...live, ...PUBLISHED], [mine, live])
+  const clips = React.useMemo(() => {
+    if (creator === "you") return mine
+    if (creator === "all") return published
+    return published.filter((c) => c.creatorId === creator)
+  }, [creator, mine, published])
+
+  const rows: CreatorRow[] = CREATORS.map((c) => ({ ...c, count: published.filter((x) => x.creatorId === c.id).length }))
+  const youRow: CreatorRow | null = signedIn ? { id: "you", name: you.name, handle: you.handle, image: you.image, kind: "user", count: mine.length } : null
+
+  // The first clip plays on arrival, or the one the address names.
+  React.useEffect(() => {
+    if (!clips.length) return
+    const want = pendingId.current && clips.find((c) => c.id === pendingId.current) ? pendingId.current : null
+    if (want) {
+      pendingId.current = null
+      setActiveId(want)
+      setTimeout(() => document.querySelector(`[data-id="${CSS.escape(want)}"]`)?.scrollIntoView({ block: "start" }), 50)
+    } else if (!activeId || !clips.some((c) => c.id === activeId)) {
+      setActiveId(clips[0].id)
+    }
+  }, [clips, activeId])
+
+  const active = clips.find((c) => c.id === activeId) ?? null
+  const commentsFor = React.useCallback((id: string) => [...SEED_COMMENTS.filter((c) => c.clipId === id), ...myComments.filter((c) => c.clipId === id)], [myComments])
+
+  const toggleIn = (set: Set<string>, id: string) => {
+    const next = new Set(set)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    return next
+  }
+  const record = () => setMode("capture")
+  const upload = () => setMode("upload")
+  const admin = account?.admin === true
+  // An admin's takedown hides the clip everywhere at once; the row and the video stay for the record.
+  const takeDownClip = async (clip: Clip) => {
+    if (!window.confirm(`Take down “${clip.title}”? It leaves the feed for everyone.`)) return
+    await takeDown(clip.id)
+    setLive((l) => l.filter((c) => c.id !== clip.id))
+    setMine((m) => m.filter((c) => c.id !== clip.id))
+  }
+  const goToPost = (clip: Clip) => {
+    window.history.replaceState(null, "", `/clips?c=${encodeURIComponent(clip.id)}`)
+    setView("feed")
+    setActiveId(clip.id)
+    setTimeout(() => document.querySelector(`[data-id="${CSS.escape(clip.id)}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 30)
+  }
+
+  const reactions: Reactions = {
+    liked,
+    saved,
+    following,
+    commentCount: (id) => commentsFor(id).length,
+    onDelete: (clip) => void remove(clip),
+    onReport: (clip) => setReporting(clip),
+    onTakeDown: admin ? (clip) => void takeDownClip(clip) : undefined,
+    onLike: (clip) => {
+      setLiked((s) => {
+        const n = toggleIn(s, clip.id)
+        storeLikes(n)
+        return n
+      })
+    },
+    onSave: (clip) => {
+      setSaved((s) => {
+        const n = toggleIn(s, clip.id)
+        storeSaves(n)
+        return n
+      })
+    },
+    onFollow: (creatorId) => {
+      setFollowing((s) => {
+        const n = toggleIn(s, creatorId)
+        storeFollows(n)
+        return n
+      })
+    },
+    onComment: (clip) => {
+      setActiveId(clip.id)
+      if (window.matchMedia("(min-width: 64rem)").matches) setFocusKey((k) => k + 1)
+      else setSheet(true)
+    },
+    onGoToPost: goToPost,
+  }
+
+  const post = (text: string) => {
+    if (!active) return
+    const row: Comment = { id: `mc-${Date.now().toString(36)}`, clipId: active.id, author: you, text, at: new Date().toISOString(), likes: 0, mine: true }
+    setMyComments((m) => {
+      const n = [...m, row]
+      storeMyComments(n)
+      return n
+    })
+  }
+
+  const saveRecording = async (clip: Clip, onProgress: (fraction: number) => void) => {
+    const saved = await saveClip(clip, onProgress)
+    setMine((m) => [saved, ...m])
+    setCreator("you")
+    setView("feed")
+    setMode(null)
+    pendingId.current = saved.id
+  }
+
+  const remove = async (clip: Clip) => {
+    await deleteClip(clip.id)
+    setMine((m) => m.filter((c) => c.id !== clip.id))
+  }
+  const publish = async (clip: Clip) => {
+    const visibility = clip.visibility === "public" ? "private" : "public"
+    await updateClip(clip.id, { visibility })
+    // The MP4's address changes with it (a private one plays through a token), so the row is read again.
+    setMine((m) => m.map((c) => (c.id === clip.id ? { ...c, visibility } : c)))
+    void loadFeed().then(applyFeed)
+  }
+
+  const panel = (className?: string) =>
+    active ? (
+      <CommentsPanel
+        clip={active}
+        comments={commentsFor(active.id)}
+        liked={liked.has(active.id)}
+        saved={saved.has(active.id)}
+        following={following.has(active.creatorId)}
+        signedIn={signedIn}
+        onLike={() => reactions.onLike(active)}
+        onSave={() => reactions.onSave(active)}
+        onDelete={active.mine ? () => void remove(active) : undefined}
+        onReport={!active.mine ? () => setReporting(active) : undefined}
+        onTakeDown={admin && active.origin ? () => void takeDownClip(active) : undefined}
+        onFollow={() => reactions.onFollow?.(active.creatorId)}
+        onGoToPost={() => goToPost(active)}
+        onPost={post}
+        onLikeComment={(id) => setLikedComments((s) => toggleIn(s, id))}
+        likedComments={likedComments}
+        focusKey={focusKey}
+        className={className}
+      />
+    ) : null
+
+  const creatorLabel = creator === "all" ? "All clips" : creator === "you" ? "Your library" : (CREATORS.find((c) => c.id === creator)?.name ?? creator)
+
+  return (
+    // The slot hides the site footer (Brendan, 2026-09-11): the page is the clip.
+    <div data-slot="clips" className="container-wrapper">
+      <div className="px-2 lg:grid lg:grid-cols-[240px_minmax(0,1fr)_340px] lg:gap-6 lg:px-4">
+        <aside className="hidden lg:block">
+          <div className={cn("sticky top-(--header-height) overflow-y-auto py-4", COLUMN_HEIGHT[frame])}>
+            <Creators rows={rows} selected={creator} onSelect={setCreator} you={youRow} onRecord={record} onUpload={upload} onGenerate={() => setMode("generate")} />
+          </div>
+        </aside>
+
+        <main className="min-w-0">
+          <div className="flex h-14 items-center gap-2">
+            {/* The count leads and the layout toggle sits beside it, at the
+                left of the column, where a reader's eye starts (Brendan,
+                2026-09-08). */}
+            <span className="text-xs text-muted-foreground tabular-nums">{clips.length} clips</span>
+            <div className="flex items-center rounded-full bg-muted p-0.5">
+              <button type="button" onClick={() => setView("feed")} className={cn("flex size-8 items-center justify-center rounded-full", view === "feed" ? "bg-background shadow-sm" : "text-muted-foreground")} aria-label="Feed">
+                <PlaySquareIcon className="size-4" />
+              </button>
+              <button type="button" onClick={() => setView("grid")} className={cn("flex size-8 items-center justify-center rounded-full", view === "grid" ? "bg-background shadow-sm" : "text-muted-foreground")} aria-label="Grid">
+                <LayoutGridIcon className="size-4" />
+              </button>
+            </div>
+            <Select value={creator} onValueChange={(v) => v && setCreator(String(v))}>
+              <SelectTrigger className="h-8 w-max min-w-36 lg:hidden" size="sm" aria-label="Creator">
+                <SelectValue>{() => creatorLabel}</SelectValue>
+              </SelectTrigger>
+              <SelectContent className="w-max min-w-44">
+                <SelectItem value="all" className="whitespace-nowrap">
+                  All clips
+                </SelectItem>
+                {CREATORS.map((c) => (
+                  <SelectItem key={c.id} value={c.id} className="whitespace-nowrap">
+                    {c.name}
+                  </SelectItem>
+                ))}
+                {signedIn && (
+                  <SelectItem value="you" className="whitespace-nowrap">
+                    Your library
+                  </SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+            <span className="ml-auto hidden text-sm font-medium lg:inline">{creatorLabel}</span>
+          </div>
+
+          {creator === "you" && signedIn && uploads.length > 0 && (
+            <ul className="flex flex-col gap-1 pb-3 text-sm">
+              {uploads.map((u) => (
+                <li key={u.id} className="flex items-center gap-2">
+                  <span className="truncate font-medium">{u.title}</span>
+                  <span className="shrink-0 text-muted-foreground" title={u.error ?? undefined}>{u.status === "queued" ? "waiting for the worker box" : u.status === "running" ? "being cut" : u.status === "failed" ? "could not be cut" : `${u.clips ?? 0} clips`}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {creator === "you" && ready && !signedIn ? (
+            <Empty icon={<LockIcon className="size-6" />} text="Your library is yours. Sign in to see it.">
+              <Button render={<Link href="/sign-in" />} size="sm">
+                Sign in
+              </Button>
+            </Empty>
+          ) : clips.length === 0 && !loaded ? (
+            <div className="flex justify-center py-16">
+              <LoadingFlag />
+            </div>
+          ) : clips.length === 0 ? (
+            <Empty icon={<CameraIcon className="size-6" />} text={creator === "you" ? "Nothing recorded yet." : "Nothing published yet."}>
+              {creator === "you" && (
+                <Button size="sm" onClick={record}>
+                  Record the first one
+                </Button>
+              )}
+            </Empty>
+          ) : view === "grid" ? (
+            <Grid clips={clips} onOpen={goToPost} className="-mx-2 lg:mx-0" />
+          ) : (
+            <Feed clips={clips} activeId={activeId} onActive={setActiveId} muted={muted} onMuted={setMuted} reactions={reactions} className={cn(FEED_HEIGHT[frame], "-mx-2 lg:mx-0")} />
+          )}
+
+          {creator === "you" && active?.mine && view === "feed" && (
+            <div className="flex items-center gap-2 py-3 text-sm lg:pr-16">
+              <span className="text-muted-foreground">{active.visibility === "public" ? "Everyone can see this." : "Only you can see this."}</span>
+              <Button variant="outline" size="sm" className="ml-auto" onClick={() => void publish(active)}>
+                {active.visibility === "public" ? "Make private" : "Publish"}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => void remove(active)}>
+                Delete
+              </Button>
+            </div>
+          )}
+        </main>
+
+        <aside className="hidden lg:block">
+          <div className={cn("sticky top-(--header-height) py-4", COLUMN_HEIGHT[frame])}>
+            <div className="h-full overflow-hidden rounded-xl border bg-card">{panel()}</div>
+          </div>
+        </aside>
+      </div>
+
+      <button type="button" onClick={record} aria-label="Record" className="fixed right-4 bottom-6 z-40 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg ring-4 ring-background lg:hidden">
+        <CameraIcon className="size-6" />
+      </button>
+
+      <Drawer open={sheet} onOpenChange={setSheet} showSwipeHandle>
+        <DrawerContent className="h-[75dvh]">
+          <DrawerTitle className="sr-only">Comments</DrawerTitle>
+          {panel("h-full")}
+        </DrawerContent>
+      </Drawer>
+
+      {reporting && <ReportDialog clip={reporting} open={!!reporting} onOpenChange={(o) => !o && setReporting(null)} defaultContact={account?.email ?? ""} />}
+
+      {mode === "capture" && (
+        <Frame onClose={() => setMode(null)}>
+          <Capture author={you} onSaved={saveRecording} onClose={() => setMode(null)} onUpload={() => setMode("upload")} />
+        </Frame>
+      )}
+      {mode === "upload" && (
+        <Frame onClose={() => setMode(null)}>
+          <Upload onClose={() => setMode(null)} onUploaded={(u) => setUploads((list) => [{ ...list.find((x) => x.id === u.id), ...u } as UploadRow, ...list.filter((x) => x.id !== u.id)])} onCut={() => void loadFeed().then(applyFeed)} />
+        </Frame>
+      )}
+      {mode === "generate" && (
+        <Frame onClose={() => setMode(null)}>
+          <Generate
+            signedIn={signedIn}
+            onClose={() => setMode(null)}
+            onPosted={(clip) => {
+              setMine((m) => [clip, ...m.filter((c) => c.id !== clip.id)])
+              pendingId.current = clip.id
+            }}
+          />
+        </Frame>
+      )}
+      {mode === "gate" && (
+        <Frame onClose={() => setMode(null)}>
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background p-8 text-center">
+            <CameraIcon className="size-8 text-muted-foreground" />
+            <p className="text-base font-medium">Sign in to take part</p>
+            <p className="text-sm text-muted-foreground">Recording, clipping, liking and commenting are yours once you're signed in. What you record is private until you publish it.</p>
+            <Button render={<Link href="/sign-in" />}>Sign in</Button>
+            <Button variant="ghost" size="sm" onClick={() => setMode(null)}>
+              Not now
+            </Button>
+          </div>
+        </Frame>
+      )}
+    </div>
+  )
+}
+
+function Empty({ icon, text, children }: { icon: React.ReactNode; text: string; children?: React.ReactNode }) {
+  return (
+    <div className="flex flex-col items-center gap-3 px-6 py-20 text-center text-muted-foreground">
+      {icon}
+      <p className="text-sm">{text}</p>
+      {children}
+    </div>
+  )
+}

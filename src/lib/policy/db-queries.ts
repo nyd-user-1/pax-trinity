@@ -1,0 +1,3471 @@
+// Ported from livingston-v3 lib/policy/queries.ts — the same schema, so the SQL
+// carries over unchanged. This is the raw database layer: it throws rather than
+// falling back, because the caller decides what an empty jurisdiction means
+// (see the route, and §0.2 of the lane J prompt). The snapshot fallbacks live in
+// lib/policy/queries.ts and in use-policy.
+//
+// Reached over the RDS Data API through db.ts's q()/one(). Three limits that
+// Neon did not have and that this file was not written against: results cap at
+// 1 MB, an INTERVAL column cannot be returned at all, and a JS integer binds as
+// bigint (so left(text, $1) needs $1::int).
+
+import "server-only"
+import { cleanBillText } from "@/lib/policy/texts"
+import { actionOfRecord } from "@/lib/policy/date-of-record"
+
+import { n, one, q } from "@/lib/policy/db"
+// Citation is one implementation, in the client-safe module: the page prints
+// through billCitation, the server joins through these. See congress.ts.
+import { BILL_TYPE, LEGISCAN_PREFIX_BY_TYPE, citationOf, congressCitation, congressKey, congressOf } from "@/lib/policy/congress"
+import { DEFAULT_STATE, type Filters } from "@/lib/filters"
+
+// Calendar rows carry a few impossible dates (2106-…); cap at a year out.
+export const DATE_CAP = "to_char(now() + interval '1 year', 'YYYY-MM-DD')"
+
+// govblock's Filters types every key as a string, so a plain intersection
+// collapses `session` to never. Override the two keys instead.
+export type Resolved = Omit<Filters, "state" | "session"> & { state: string; session: number }
+
+// ---------------------------------------------------------------------------
+// Jurisdictions and sessions
+
+export async function getStates() {
+  return q<{
+    state: string
+    bills: number
+    latest_year: number
+    sessions: number
+  }>(
+    `select state, sum(bills)::int bills, max(year)::int latest_year, count(*)::int sessions
+     from "LegiscanDatasets" group by 1 order by 1`
+  )
+}
+
+// Bills.session_id is the session's first year (2025 for New York's
+// 2025-2026), which is LegiscanDatasets.year — so the session list comes from
+// the 998-row dataset ledger alone: ~100 ms for every jurisdiction.
+//
+// LegiScan's real `session_title` lives in "Bills", where a cold read costs
+// 0.2–15 s depending on the state (Texas was the 15 s case, and the header's
+// scope hook waited on it). Titles are therefore fetched only where one is
+// actually shown — `getSessionTitles`, behind `?titles=1`.
+export async function getSessions(state: string) {
+  const years = await q<{
+    session_id: number
+    bills: number
+    datasets: number
+  }>(
+    `select year::int as session_id, sum(bills)::int as bills, count(*)::int as datasets
+     from "LegiscanDatasets" where state = $1 group by 1 order by 1 desc`,
+    [state]
+  )
+  const titleOf = sessionTitleCache.get(state)?.value
+  return years.map((y) => ({
+    session_id: n(y.session_id),
+    bills: n(y.bills),
+    // Never guessed into a span: Texas's 2025 session is one year and New
+    // York's is two, and the ledger cannot tell them apart. The real title
+    // replaces this once it has been fetched.
+    title: titleOf?.get(n(y.session_id)) ?? `${y.session_id} Session`,
+  }))
+}
+
+// Session titles change once a year; memoised per function instance so a warm
+// lambda serves them free, and only ever paid for by a surface that shows one.
+const sessionTitleCache = new Map<string, { value: Map<number, string>; at: number }>()
+
+export async function getSessionTitles(state: string) {
+  const cached = sessionTitleCache.get(state)
+  if (cached && Date.now() - cached.at < 3_600_000) return cached.value
+  // The lowest bill numbers of a state exist in every session, so the first
+  // rows of the (state, bill_number, session_id) index name them all.
+  const rows = await q<{ session_id: number; title: string }>(
+    `select session_id, session_title as title from "Bills"
+     where state = $1 and coalesce(session_title, '') <> '' order by bill_number limit 60`,
+    [state]
+  )
+  const value = new Map<number, string>()
+  for (const row of rows) {
+    if (!value.has(n(row.session_id))) value.set(n(row.session_id), row.title)
+  }
+  sessionTitleCache.set(state, { value, at: Date.now() })
+  return value
+}
+
+// The list with LegiScan's own titles — for the pickers that show them.
+export async function getSessionsWithTitles(state: string) {
+  const titles = await getSessionTitles(state)
+  const sessions = await getSessions(state)
+  return sessions.map((row) => ({
+    ...row,
+    title: titles.get(row.session_id) ?? row.title,
+  }))
+}
+
+// Memoised per function instance: the latest session for a state changes
+// once a year, and `resolve` runs on every request.
+const latestSessionCache = new Map<string, { value: number; at: number }>()
+
+export async function latestSession(state: string) {
+  const cached = latestSessionCache.get(state)
+  if (cached && Date.now() - cached.at < 3_600_000) return cached.value
+  // The newest session that actually has bills, so a state sitting between
+  // sessions lands on its most recent one instead of an empty shell. The
+  // filter falls back to the plain maximum for a state whose ledger rows
+  // carry no counts yet.
+  const row = await one<{ year: number }>(
+    `select coalesce(max(year) filter (where bills > 0), max(year))::int as year
+     from "LegiscanDatasets" where state = $1`,
+    [state]
+  )
+  const value = n(row?.year) || new Date().getFullYear()
+  latestSessionCache.set(state, { value, at: Date.now() })
+  return value
+}
+
+export async function resolve(filters: Filters): Promise<Resolved> {
+  const state = filters.state || DEFAULT_STATE
+  const session = filters.session ? Number(filters.session) : await latestSession(state)
+  return { ...filters, state, session }
+}
+
+// The filter → SQL translation, shared by every bills query. `params` is
+// mutated; `$n` placeholders index into it. `withSession = false` spans the
+// state's sessions (the component charts' session grain).
+export function billWhere(f: Resolved, params: unknown[], b = "b", withSession = true) {
+  const where = [`${b}.state = $${params.push(f.state)}`]
+  if (withSession) where.push(`${b}.session_id = $${params.push(f.session)}`)
+  if (f.chamber) where.push(`${b}.body = $${params.push(f.chamber)}`)
+  if (f.committee) where.push(`${b}.committee = $${params.push(f.committee)}`)
+  if (f.status) where.push(`${b}.status_desc = $${params.push(f.status)}`)
+  if (f.party) {
+    // Per bill: one probe of the sponsors index against the (hashed, ~300
+    // row) set of the party's people. No People lookups per bill.
+    where.push(
+      `exists (select 1 from "Sponsors" s where s.bill_id = ${b}.bill_id and s.sponsor_type_id = 1
+               and s.people_id in (select p.people_id from "People" p
+                                   where p.state = $${params.push(f.state)} and coalesce(nullif(p.party, ''), 'I') = $${params.push(f.party)}))`
+    )
+  }
+  if (f.member && f.vote) {
+    // A member plus a vote position: the bills they voted that way on. Walks
+    // the member's votes (people index) once, then the roll calls by key.
+    where.push(
+      `${b}.bill_id in (select r.bill_id from "Votes" v join "Roll Call" r using (roll_call_id)
+               where v.people_id = $${params.push(Number(f.member))} and v.vote_desc = $${params.push(f.vote)})`
+    )
+  } else if (f.member) {
+    where.push(`exists (select 1 from "Sponsors" s where s.bill_id = ${b}.bill_id and s.people_id = $${params.push(Number(f.member))})`)
+  }
+  if (f.subject) {
+    // LegiScan's subject for every jurisdiction; under Congress the CRS term
+    // as well — a policy area as CRS spells it, or any legislative subject —
+    // so the subject pages and the API read the same record (2026-09-05).
+    const at = params.push(f.subject)
+    where.push(
+      f.state === "US"
+        ? `(exists (select 1 from "Subjects" sj where sj.bill_id = ${b}.bill_id and sj.subject = $${at})
+            or exists (select 1 from congress_bill_subjects cs where cs.bill_id = ${b}.bill_id and cs.name = $${at}))`
+        : `exists (select 1 from "Subjects" sj where sj.bill_id = ${b}.bill_id and sj.subject = $${at})`
+    )
+  }
+  return where.join(" and ")
+}
+
+// ---------------------------------------------------------------------------
+// Options for the rail
+
+// Subjects are three million rows; their own resource, fetched lazily.
+export async function getSubjects(f: Resolved) {
+  return q<{ value: string; count: number }>(
+    `select sj.subject value, count(*)::int count
+     from "Subjects" sj join "Bills" b using (bill_id)
+     where b.state = $1 and b.session_id = $2 group by 1 order by 2 desc limit 80`,
+    [f.state, f.session]
+  )
+}
+
+export async function getOptions(f: Resolved) {
+  const [chambers, committees, statuses, parties, sessions] = await Promise.all([
+    q<{ value: string; count: number }>(
+      `select body value, count(*)::int count from "Bills"
+         where state = $1 and session_id = $2 and coalesce(body, '') <> '' group by 1 order by 2 desc`,
+      [f.state, f.session]
+    ),
+    q<{ value: string; count: number }>(
+      `select committee value, count(*)::int count from "Bills"
+         where state = $1 and session_id = $2 and coalesce(committee, '') <> '' group by 1 order by 1`,
+      [f.state, f.session]
+    ),
+    // The statuses narrow to a chamber when one is asked for — the Total
+    // Bills card's pills (Brendan, 2026-09-07).
+    f.chamber
+      ? q<{ value: string; count: number }>(
+          `select status_desc value, count(*)::int count from "Bills"
+             where state = $1 and session_id = $2 and body = $3 and coalesce(status_desc, '') <> '' group by 1 order by 2 desc`,
+          [f.state, f.session, f.chamber]
+        )
+      : q<{ value: string; count: number }>(
+          `select status_desc value, count(*)::int count from "Bills"
+             where state = $1 and session_id = $2 and coalesce(status_desc, '') <> '' group by 1 order by 2 desc`,
+          [f.state, f.session]
+        ),
+    q<{ value: string; count: number }>(
+      `select coalesce(nullif(party, ''), 'I') value, count(*)::int count from "People"
+         where state = $1 and not coalesce(archived, false) group by 1 order by 2 desc`,
+      [f.state]
+    ),
+    getSessions(f.state),
+  ])
+  return {
+    chambers,
+    committees,
+    statuses,
+    parties,
+    subjects: [] as { value: string; count: number }[],
+    sessions,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Bills
+
+export type BillRow = {
+  bill_id: number
+  bill_number: string
+  title: string
+  description: string | null
+  status_desc: string | null
+  last_action: string | null
+  last_action_date: string | null
+  committee: string | null
+  body: string | null
+  url: string | null
+  state_link: string | null
+  text_chars: number | null
+  sponsor: string | null
+  sponsor_party: string | null
+  sponsor_id: number | null
+}
+
+export const BILL_COLUMNS = `b.bill_id, b.bill_number, b.title, b.description, b.status_desc, b.last_action, b.last_action_date,
+  b.committee, b.body, b.url, b.state_link, b.text_chars,
+  sp.name sponsor, sp.party sponsor_party, sp.people_id sponsor_id`
+
+export const PRIME_SPONSOR = `left join lateral (
+  select p.name, p.party, p.people_id from "Sponsors" s join "People" p using (people_id)
+  where s.bill_id = b.bill_id and s.sponsor_type_id = 1 order by s.position limit 1) sp on true`
+
+// The newest text on file rides on a page of bills since 2026-09-03: in the
+// repository view a bill's versions are its commits, and the folder table
+// shows the last one the way GitHub shows a file's last commit. One query for
+// the page, after the page is known — a lateral join per row took the
+// Amplify build past the Data API's limit the first time it was tried
+// (job 193, 2026-09-03), so nothing here runs per bill.
+export async function withLatestTexts<T extends { bill_id: number; status_date?: string | null; last_action_date: string | null; last_action: string | null }>(
+  rows: T[]
+): Promise<(T & { latest_version: string | null; latest_document_id: number | null; latest_fetched_at: string | null; latest_action: string | null; latest_date: string | null; versions: number | null })[]> {
+  const ids = rows.map((r) => r.bill_id)
+  const empty = { latest_version: null, latest_document_id: null, latest_fetched_at: null, latest_action: null, latest_date: null, versions: null }
+  if (!ids.length) return rows.map((r) => ({ ...r, ...empty }))
+  const [latest, history] = await Promise.all([
+    q<{ bill_id: number; version: string | null; document_id: number; fetched_at: string | null; versions: number }>(
+      `select distinct on (bill_id) bill_id, version, document_id, fetched_at, count(*) over (partition by bill_id)::int versions
+       from "BillTexts" where bill_id = any($1::bigint[]) and text is not null
+       order by bill_id, document_id desc`,
+      [ids]
+    ),
+    // The bills' records, so the latest version gets the action that produced
+    // it as its commit message (Brendan, 2026-09-04: the commit column must
+    // describe the change, not the bill).
+    q<{ bill_id: number; date: string; action: string; sequence: number }>(`select bill_id, date, action, sequence from "History Table" where bill_id = any($1::bigint[]) order by bill_id, date, sequence`, [ids]),
+  ])
+  const by = new Map(latest.map((t) => [n(t.bill_id), t]))
+  const record = new Map<number, { date: string; action: string; sequence: number }[]>()
+  for (const h of history) {
+    const id = n(h.bill_id)
+    record.set(id, [...(record.get(id) ?? []), h])
+  }
+  return rows.map((r) => {
+    const t = by.get(r.bill_id)
+    if (!t) return { ...r, ...empty }
+    const of = actionOfRecord({ version: t.version }, { history: record.get(r.bill_id) ?? [], status_date: r.status_date ?? null, last_action_date: r.last_action_date })
+    return { ...r, latest_version: t.version, latest_document_id: n(t.document_id), latest_fetched_at: t.fetched_at, latest_action: of.action ?? r.last_action, latest_date: of.date, versions: n(t.versions) }
+  })
+}
+
+export type BillSort = "newest" | "number-desc" | "number-asc"
+
+export async function getBills(f: Resolved, limit = 40, offset = 0, sort: BillSort = "newest") {
+  const params: unknown[] = []
+  const where = billWhere(f, params)
+  // Congress moves on congress.gov days before it moves on LegiScan: the
+  // nightly dp-congress sync writes congress_bills every day, and the LegiScan
+  // feed sat at Aug 27 while the House acted on Sep 1. Under Congress the
+  // latest action is the mirror's where it has one, so "newest first" is true
+  // on the day it is read — Brendan, 2026-09-02: "I've been looking at the
+  // same 12 bills for 3 days". Both dates read as text so the coalesce holds
+  // whatever type each table gives them.
+  const congress = f.state === "US"
+  const newest = congress ? "coalesce(c.latest_action_date::text, b.last_action_date::text)" : "b.last_action_date"
+  const columns = congress ? BILL_COLUMNS.replace("b.last_action, b.last_action_date", `coalesce(c.latest_action, b.last_action) last_action, ${newest} last_action_date`) : BILL_COLUMNS
+  const join = congress ? "left join congress_bills c on c.bill_id = b.bill_id" : ""
+  // congress.gov's "document number" sort: the type, then the number within
+  // it, so H.R. 10 sits beside H.R. 9 and not beside H.R. 1000.
+  const order = sort === "newest" ? `${newest} desc nulls last, b.bill_id desc` : `substring(b.bill_number from '^[A-Z]+'), substring(b.bill_number from '[0-9]+')::int ${sort === "number-desc" ? "desc" : "asc"}, b.bill_number`
+  const [rows, count] = await Promise.all([
+    q<BillRow>(
+      `select ${columns} from "Bills" b ${join} ${PRIME_SPONSOR}
+       where ${where}
+       order by ${order}
+       limit $${params.push(limit)} offset $${params.push(offset)}`,
+      params
+    ),
+    one<{ total: number }>(`select count(*)::int total from "Bills" b where ${where}`, params.slice(0, -2)),
+  ])
+  return {
+    rows: await withLatestTexts(rows.map((r) => ({ ...r, bill_id: n(r.bill_id) }))),
+    total: n(count?.total),
+  }
+}
+
+export async function getBillByNumber(state: string, session: number, number: string) {
+  return one<{ bill_id: number }>(`select bill_id from "Bills" where state = $1 and session_id = $2 and bill_number = $3 order by special limit 1`, [state, session, number])
+}
+
+/* ---- Congress is cited the way congress.gov writes it ---------------------
+ * LegiScan numbers every jurisdiction in one universal scheme: HB is a house
+ * bill, HR a house resolution, SB and SR likewise. Congress is written the
+ * other way round — H.R. 155 is the Let America Vote Act and H.Res. 155 is a
+ * Ukraine measure — so a reader who types the citation congress.gov prints,
+ * and every news story quotes, was handed a different document under the
+ * number they asked for (found 2026-09-07).
+ *
+ * The fix routes a US number through `congress_bills`, which files a bill
+ * under congress.gov's own type and number and carries our bill_id beside it.
+ * That is the better of the two fixes the defect allowed: congress.gov leads
+ * the LegiScan mirror by about 120 House bills, and the same row already
+ * carries the current title, sponsor and latest action that the rest of this
+ * lane's tools read. LegiScan stays the record for the 50 states and for the
+ * congresses before the 119th, which is all `congress_bills` holds.
+ *
+ * Punctuation is what disambiguates, so the parse happens before it is
+ * stripped: `H.R.` and `H.Res.` differ by two characters and one bill. A bare
+ * `HR155` with no punctuation at all is read as congress.gov reads it — a
+ * house bill — because that is what a person typing it means.
+ * ------------------------------------------------------------------------- */
+
+// The two schemes live in congress.ts, which the browser reads too. Named here
+// so the route and the agent tools keep importing them from one place.
+export { citationOf, congressCitation, congressKey, congressOf }
+
+/**
+ * One US bill by the number a reader typed, in the order that gets it right:
+ * congress.gov's own filing first, then LegiScan's spelling of the same
+ * citation for the congresses the mirror is all we hold, then the bare string
+ * for anything else.
+ *
+ * `bill_id` may be null — congress.gov holds ~137 bills the LegiScan mirror
+ * has not picked up, and they are the newest ones, which is exactly what
+ * someone asks about. The caller answers those from `congress_bills` alone.
+ */
+export async function getUsBill(session: number, raw: string) {
+  const cite = congressCitation(raw)
+  if (cite) {
+    const row = await one<{ key: string; bill_id: number | null; bill_number: string }>(
+      `select key, bill_id, bill_number from congress_bills where congress = $1 and bill_type = $2 and number = $3`,
+      [congressOf(session), cite.type, cite.number]
+    )
+    if (row) return { key: row.key, bill_id: row.bill_id == null ? null : n(row.bill_id), citation: citationOf(cite.type, cite.number) }
+    const legiscan = await getBillByNumber("US", session, `${LEGISCAN_PREFIX_BY_TYPE[cite.type] ?? cite.type}${cite.number}`)
+    if (legiscan) return { key: null, bill_id: n(legiscan.bill_id), citation: citationOf(cite.type, cite.number) }
+  }
+  const bare = await getBillByNumber("US", session, String(raw ?? "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase())
+  return bare ? { key: null, bill_id: n(bare.bill_id), citation: null } : null
+}
+
+/**
+ * The bill congress.gov has and the mirror does not, in the shape getBill
+ * answers in — so a reader asking for last week's bill gets last week's bill
+ * with a line saying what is missing, rather than "no such number".
+ */
+export async function getCongressOnlyBill(key: string) {
+  const row = await one<{
+    bill_number: string
+    bill_type: string
+    number: string
+    display_title: string | null
+    popular_title: string | null
+    origin_chamber: string | null
+    introduced_date: string | null
+    policy_area: string | null
+    latest_action: string | null
+    latest_action_date: string | null
+    sponsor_name: string | null
+    sponsor_party: string | null
+    sponsor_state: string | null
+    sponsor_district: string | null
+    sponsor_people_id: number | null
+    congress: number
+  }>(
+    `select bill_number, bill_type, number, display_title, popular_title, origin_chamber, introduced_date,
+            policy_area, latest_action, latest_action_date, sponsor_name, sponsor_party, sponsor_state,
+            sponsor_district, sponsor_people_id, congress
+       from congress_bills where key = $1`,
+    [key]
+  )
+  if (!row) return null
+  const actions = await q<{ action_date: string | null; text: string | null; action_type: string | null }>(
+    `select action_date, text, action_type from congress_bill_actions where bill_number = $1 and congress = $2
+      order by action_date desc nulls last, sequence desc limit 25`,
+    [row.bill_number, row.congress]
+  )
+  return {
+    bill_id: null,
+    bill_number: row.bill_number,
+    citation: citationOf(row.bill_type, row.number),
+    state: "US",
+    session_id: 1789 + (n(row.congress) - 1) * 2,
+    title: row.display_title,
+    description: row.popular_title ?? row.display_title,
+    status_desc: null,
+    last_action: row.latest_action,
+    last_action_date: row.latest_action_date,
+    introduced_date: row.introduced_date,
+    body: row.origin_chamber,
+    policy_area: row.policy_area,
+    url: `https://www.congress.gov/bill/${row.congress}th-congress/${row.bill_type === "HR" ? "house-bill" : row.bill_type === "S" ? "senate-bill" : row.bill_type.toLowerCase()}/${row.number}`,
+    sponsors: row.sponsor_name
+      ? [{ name: row.sponsor_name, party: row.sponsor_party, district: row.sponsor_district, people_id: row.sponsor_people_id == null ? null : n(row.sponsor_people_id), type: 1 }]
+      : [],
+    history: actions.map((a) => ({ date: a.action_date, action: a.text, chamber: a.action_type })),
+    rollCalls: [],
+    referrals: [],
+    progress: [],
+    sameAs: [],
+    documents: [],
+    subjects: [],
+    texts: [],
+    hearings: [],
+    source: "congress.gov",
+    note: "This bill's text, roll calls and subjects have not arrived yet; only the details above are on file.",
+  }
+}
+
+export async function getBill(billId: number) {
+  const bill = await one<
+    BillRow & {
+      state: string
+      session_id: number
+      session_title: string | null
+      status_date: string | null
+      /** LegiScan's standard status, 1 to 6, where the jurisdiction's loader sets it: one of the progress bar's three sources. */
+      status_code: number | null
+      bill_type: string | null
+      created_at: string
+    }
+  >(
+    `select ${BILL_COLUMNS}, b.state, b.session_id, b.session_title, b.status_date, b.status::int as status_code, b.bill_type, b.created_at
+     from "Bills" b ${PRIME_SPONSOR} where b.bill_id = $1`,
+    [billId]
+  )
+  if (!bill) return null
+  const [sponsors, history, rollCalls, referrals, progress, sameAs, documents, subjects, texts, hearings, congress] = await Promise.all([
+    q<{
+      people_id: number
+      name: string
+      party: string
+      role: string
+      district: string
+      chamber: string
+      type: number
+      photo_url: string | null
+    }>(
+      `select p.people_id, p.name, p.party, p.role, p.district, p.chamber, s.sponsor_type_id type, p.photo_url
+         from "Sponsors" s join "People" p using (people_id) where s.bill_id = $1 order by s.sponsor_type_id, s.position`,
+      [billId]
+    ),
+    q<{ date: string; chamber: string; action: string; sequence: number }>(`select date, chamber, action, sequence from "History Table" where bill_id = $1 order by date, sequence`, [billId]),
+    q<{
+      roll_call_id: number
+      date: string
+      chamber: string
+      description: string
+      yea: number
+      nay: number
+      nv: number
+      absent: number
+      total: number
+    }>(
+      `select roll_call_id, date, chamber, description, yea::int yea, nullif(nay, '')::int nay, nullif(nv, '')::int nv,
+                nullif(absent, '')::int absent, total::int total
+         from "Roll Call" where bill_id = $1 order by date`,
+      [billId]
+    ),
+    q<{ date: string; chamber: string; name: string }>(`select date, chamber, name from "Referrals" where bill_id = $1 order by seq`, [billId]),
+    q<{ date: string; event: string }>(`select date, event from "Progress" where bill_id = $1 order by seq`, [billId]),
+    q<{ sast_type: string; sast_bill_id: number; sast_bill_number: string }>(`select sast_type, sast_bill_id, sast_bill_number from "SameAs" where bill_id = $1 order by sast_type_id`, [billId]),
+    q<{
+      document_id: number
+      document_type: string
+      document_desc: string
+      url: string | null
+      state_link: string | null
+      document_size: number | null
+    }>(
+      `select document_id, document_type, document_desc, url, state_link, document_size
+         from "Documents" where bill_id = $1 order by document_type, document_id`,
+      [billId]
+    ),
+    q<{ subject: string }>(`select subject from "Subjects" where bill_id = $1 order by subject`, [billId]),
+    q<{
+      document_id: number
+      version: string | null
+      chars: number
+      fetched_at: string | null
+      source: string | null
+      date: string | null
+    }>(
+      // The document's own date, where LegiScan gave one; read through
+      // to_jsonb so a copy of the database without the column still answers.
+      `select t.document_id, t.version, t.chars, t.fetched_at, t.source, (to_jsonb(d) ->> 'date') as date
+         from "BillTexts" t left join "Documents" d on d.document_id = t.document_id and d.document_type = 'text'
+         where t.bill_id = $1 and t.text is not null order by t.document_id desc`,
+      [billId]
+    ),
+    q<{
+      date: string
+      time: string
+      type: string
+      description: string
+      location: string
+    }>(`select date, time, type, description, location from "Calendar" where bill_id = $1 and date <= ${DATE_CAP} order by date desc, seq`, [billId]),
+    // Congress's own row for the same bill. It carries the citation people
+    // write and read — H.R. 155, not LegiScan's HB155 — and an action that is
+    // days ahead of the mirror's, which is the same reason getBills coalesces
+    // it on the bills board.
+    bill.state === "US"
+      ? one<{ bill_type: string; number: string; latest_action: string | null; latest_action_date: string | null; introduced_date: string | null; policy_area: string | null; popular_title: string | null; display_title: string | null }>(
+          `select bill_type, number, latest_action, latest_action_date, introduced_date, policy_area, popular_title, display_title
+             from congress_bills where bill_id = $1`,
+          [billId]
+        )
+      : Promise.resolve(null),
+  ])
+  return {
+    ...bill,
+    bill_id: n(bill.bill_id),
+    // The congresses before the 119th have no congress_bills row, so the
+    // citation comes off the mirror's own prefix there rather than being null.
+    citation:
+      bill.state === "US"
+        ? congress
+          ? citationOf(congress.bill_type, congress.number)
+          : citationOf(BILL_TYPE[String(bill.bill_number).replace(/[0-9].*$/, "")] ?? "", String(bill.bill_number).replace(/^[A-Z]+/, ""))
+        : null,
+    // congress.gov's title, not the mirror's. LegiScan had H.R. 1 titled "FEHB
+    // Protection Act of 2025" — a short title congress.gov files for one
+    // subtitle of the act — and the agent read it out under that name. The
+    // popular title is the one people write; the display title is the official
+    // one; the mirror is the fallback for the congresses we have not harvested.
+    // Same coalesce as lib/policy/queries.ts, which is the page's read.
+    title: congress ? (congress.popular_title ?? congress.display_title ?? bill.title) : bill.title,
+    description: bill.description ?? congress?.display_title ?? null,
+    popular_title: congress?.popular_title ?? null,
+    policy_area: congress?.policy_area ?? null,
+    introduced_date: congress?.introduced_date ?? null,
+    last_action: congress?.latest_action ?? bill.last_action,
+    last_action_date: congress?.latest_action_date ?? bill.last_action_date,
+    sponsors: sponsors.map((s) => ({ ...s, people_id: n(s.people_id) })),
+    history,
+    rollCalls: rollCalls.map((r) => ({
+      ...r,
+      roll_call_id: n(r.roll_call_id),
+    })),
+    referrals,
+    progress,
+    sameAs,
+    documents,
+    subjects: subjects.map((s) => s.subject),
+    texts: texts.map((t) => ({ ...t, document_id: n(t.document_id) })),
+    hearings,
+  }
+}
+
+/**
+ * One version of a bill's text.
+ *
+ * `excerpt` slices in the database rather than here, and that is not an
+ * optimisation: the Data API caps a result at 1 MB and the record holds bills
+ * of six million characters, so a whole-text read of the longest ones fails
+ * outright (bill 1137434: 503, "the result exceeds the size limit"). A caller
+ * that only needs a window — every agent, which has a thirty-second round and
+ * an eight-kilobyte tool result — asks for one and is told how much more there
+ * is.
+ */
+export async function getBillText(billId: number, documentId?: number, excerpt?: { chars: number; from?: number }) {
+  const params: unknown[] = [billId]
+  const doc = documentId ? `and t.document_id = $${params.push(documentId)}` : ""
+  // The shim binds a JS integer as bigint and substr(text, bigint, bigint) is
+  // not a function Postgres has — the same ::int the texts loader carries.
+  const from = Math.max(0, Math.floor(excerpt?.from ?? 0))
+  const body = excerpt
+    ? `substr(t.text, $${params.push(from + 1)}::int, $${params.push(Math.max(1, Math.floor(excerpt.chars)))}::int) as text, length(t.text) as full_chars`
+    : `t.text, length(t.text) as full_chars`
+  const row = await one<{
+    document_id: number
+    version: string | null
+    chars: number
+    fetched_at: string | null
+    text: string
+    full_chars: number
+    document_desc: string | null
+  }>(
+    `select t.document_id, t.version, t.chars, t.fetched_at, ${body}, d.document_desc
+     from "BillTexts" t left join "Documents" d on d.document_id = t.document_id and d.document_type = 'text'
+     where t.bill_id = $1 and t.text is not null ${doc} order by t.document_id desc limit 1`,
+    params
+  )
+  if (!row) return null
+  const text = cleanBillText(row.text)
+  const full = n(row.full_chars) || text.length
+  if (!excerpt) return { ...row, document_id: n(row.document_id), text, chars: text.length, full_chars: full }
+  return {
+    ...row,
+    document_id: n(row.document_id),
+    text,
+    // `chars` stays what it has always been — the length of the text in hand —
+    // and `full_chars` is the document, so a reader can tell an excerpt from
+    // the whole thing and ask for the next window with `from`.
+    chars: text.length,
+    full_chars: full,
+    from,
+    truncated: from + text.length < full,
+  }
+}
+
+export async function getBillVotes(billId: number) {
+  const rollCalls = await q<{
+    roll_call_id: number
+    date: string
+    chamber: string
+    description: string
+    yea: number
+    nay: number
+    nv: number
+    absent: number
+    total: number
+  }>(
+    `select roll_call_id, date, chamber, description, yea::int yea, nullif(nay, '')::int nay, nullif(nv, '')::int nv,
+            nullif(absent, '')::int absent, total::int total
+     from "Roll Call" where bill_id = $1 order by date`,
+    [billId]
+  )
+  if (!rollCalls.length) return { rollCalls: [], votes: [] }
+  const votes = await q<{
+    roll_call_id: number
+    vote_desc: string
+    people_id: number
+    name: string
+    party: string
+    district: string
+    chamber: string
+  }>(
+    `select v.roll_call_id, v.vote_desc, p.people_id, p.name, p.party, p.district, p.chamber
+     from "Votes" v join "People" p using (people_id)
+     where v.roll_call_id = any($1::bigint[]) order by v.roll_call_id, p.last_name, p.first_name`,
+    [rollCalls.map((r) => n(r.roll_call_id))]
+  )
+  return {
+    rollCalls: rollCalls.map((r) => ({
+      ...r,
+      roll_call_id: n(r.roll_call_id),
+    })),
+    votes: votes.map((v) => ({
+      ...v,
+      roll_call_id: n(v.roll_call_id),
+      people_id: n(v.people_id),
+    })),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// The committee joins that were missing (Brendan, 2026-09-03)
+
+// A roll call is a committee's when the source says so: the description names
+// a committee ("Senate Health Committee Vote", "Assembly Rules Committee:
+// Favorable", a bare "COMMITTEE"), or it is a tally sheet of one of
+// Connecticut's joint committees, whose chamber is recorded as "J".
+export const COMMITTEE_ROLL_CALL = `(r.description ilike '%committee%' or r.description ilike '%tally sheet%' or r.chamber = 'J')`
+
+/**
+ * A committee's roster, derived: whoever cast a vote on a roll call that names
+ * the committee, this session. Nothing in the source publishes rosters for
+ * most states, but every committee vote records its voters, so the roster is
+ * the set of them. New York's Health committee comes out at 18, Finance at
+ * 22, Rules at 24 — the committees' real sizes.
+ */
+export async function getCommitteeRoster(f: Resolved, name: string) {
+  const rows = await q<{
+    people_id: number
+    name: string
+    party: string
+    role: string
+    chamber: string
+    district: string
+    photo_url: string | null
+    bioguide_id: string | null
+    leadership_title: string | null
+    votes: number
+    last_vote: string | null
+  }>(
+    `select p.people_id, p.name, p.party, p.role, p.chamber, p.district, p.photo_url, p.bioguide_id, p.leadership_title,
+            count(distinct r.roll_call_id)::int votes, max(r.date) last_vote
+     from "Roll Call" r
+     join "Bills" b using (bill_id)
+     join "Votes" v using (roll_call_id)
+     join "People" p on p.people_id = v.people_id
+     where b.state = $1 and b.session_id = $2 and r.description ilike $3
+     group by p.people_id, p.name, p.party, p.role, p.chamber, p.district, p.photo_url, p.bioguide_id, p.leadership_title
+     order by votes desc, p.last_name, p.first_name`,
+    [f.state, f.session, `%${name}%`]
+  )
+  return rows.map((r) => ({ ...r, people_id: n(r.people_id), votes: n(r.votes) }))
+}
+
+/**
+ * A committee's bills: every bill referred to it this session, from
+ * "Referrals" (which records each committee a bill passed through), plus
+ * whatever sits before it now. `Bills.committee` alone forgets what a
+ * committee sent to the floor.
+ */
+export async function getCommitteeBills(f: Resolved, name: string, limit = 50, offset = 0) {
+  const params: unknown[] = [f.state, f.session, name]
+  const where = `b.state = $1 and b.session_id = $2 and (b.committee = $3 or exists (select 1 from "Referrals" rf where rf.bill_id = b.bill_id and rf.name = $3))`
+  const [rows, count] = await Promise.all([
+    q<BillRow>(
+      `select ${BILL_COLUMNS} from "Bills" b ${PRIME_SPONSOR}
+       where ${where}
+       order by b.last_action_date desc nulls last, b.bill_id desc
+       limit $${params.push(limit)} offset $${params.push(offset)}`,
+      params
+    ),
+    one<{ total: number }>(`select count(*)::int total from "Bills" b where ${where}`, params.slice(0, 3)),
+  ])
+  return { rows: await withLatestTexts(rows.map((r) => ({ ...r, bill_id: n(r.bill_id) }))), total: n(count?.total) }
+}
+
+/** One roll call: the tally, the bill it was on, and every member's position. */
+export async function getRollCall(rollCallId: number) {
+  const rollCall = await one<{
+    roll_call_id: number
+    bill_id: number
+    date: string
+    chamber: string
+    description: string
+    yea: number
+    nay: number
+    nv: number
+    absent: number
+    total: number
+    bill_number: string
+    title: string
+    state: string
+    session_id: number
+  }>(
+    `select r.roll_call_id, r.bill_id, r.date, r.chamber, r.description,
+            r.yea::int yea, nullif(r.nay, '')::int nay, nullif(r.nv, '')::int nv, nullif(r.absent, '')::int absent, r.total::int total,
+            b.bill_number, b.title, b.state, b.session_id
+     from "Roll Call" r join "Bills" b using (bill_id) where r.roll_call_id = $1`,
+    [rollCallId]
+  )
+  if (!rollCall) return null
+  const votes = await q<{ vote_desc: string; people_id: number; name: string; party: string; district: string; chamber: string; role: string; photo_url: string | null; bioguide_id: string | null }>(
+    `select v.vote_desc, p.people_id, p.name, p.party, p.district, p.chamber, p.role, p.photo_url, p.bioguide_id
+     from "Votes" v join "People" p using (people_id)
+     where v.roll_call_id = $1 order by p.last_name, p.first_name`,
+    [rollCallId]
+  )
+  return {
+    rollCall: { ...rollCall, roll_call_id: n(rollCall.roll_call_id), bill_id: n(rollCall.bill_id), session_id: n(rollCall.session_id) },
+    votes: votes.map((v) => ({ ...v, people_id: n(v.people_id) })),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Members
+
+// `active` = sponsored something this session. The People table keeps former
+// members (518 for New York against 213 seats), so the rail lists actives
+// first and the widgets default to them.
+export async function getMembers(f: Resolved) {
+  // The people actually sitting this session, from `"SessionPeople"` —
+  // LegiScan's `getSessionPeople` roster, 8,064 rows across all 52
+  // jurisdictions, `year` matching `Bills.session_id`.
+  //
+  // What this replaces, and why it mattered: `active` used to mean "on
+  // `member_vote_tallies`", which only exists for New York, so every other
+  // jurisdiction showed *everyone* as sitting — 205 for Alaska against 62
+  // seats, 1,273 for Congress against 553. Worse, LegiScan models a sponsor
+  // committee as a row in `"People"`, so Alaska's directory opened on
+  // "Fisheries", "Labor & Commerce" and "State Affairs" instead of
+  // legislators. Those rows carry `committee_id`, and they are excluded here.
+  //
+  // Former members are kept, after the roster: they sponsored the bills the
+  // rest of the app links to, and a grey dot is a better answer than a dead
+  // name. `active` is now exactly "on this session's roster".
+  const params: unknown[] = [f.state]
+  const sitting = await sittingClause(f, params)
+  let filters = ""
+  if (f.chamber) filters += ` and p.chamber = $${params.push(f.chamber)}`
+  if (f.party) filters += ` and coalesce(nullif(p.party, ''), 'I') = $${params.push(f.party)}`
+
+  const rows = await q<{
+    people_id: number
+    name: string
+    first_name: string
+    last_name: string
+    party: string
+    role: string
+    chamber: string
+    district: string
+    photo_url: string | null
+    leadership_title: string | null
+    active: boolean
+  }>(
+    `select p.people_id, p.name, p.first_name, p.last_name, p.party, p.role,
+            p.chamber, p.district, p.photo_url, p.leadership_title, p.bioguide_id,
+            (${sitting}) as active
+     from "People" p
+     where p.state = $1
+       and p.committee_id is null
+       and not coalesce(p.archived, false)
+       and p.role in ('Rep', 'Sen')
+       ${filters}
+     order by active desc, p.last_name, p.first_name`,
+    params
+  )
+  return rows.map((r) => ({ ...r, people_id: n(r.people_id) }))
+}
+
+/** How many people are sitting this session — the number a roster prints. */
+export async function getSeatCount(f: Resolved) {
+  const row = await one<{ seats: number }>(
+    `select count(*)::int as seats
+     from "SessionPeople" sp join "People" p using (people_id)
+     where sp.state = $1 and sp.year = $2 and p.committee_id is null`,
+    [f.state, f.session]
+  )
+  return n(row?.seats)
+}
+
+// A member's jurisdiction, on its own. The member page is keyed by
+// `people_id` alone (they are globally unique), so it has to learn the state
+// before it can resolve a session.
+export async function getMemberState(peopleId: number) {
+  const row = await one<{ state: string }>(`select state from "People" where people_id = $1`, [peopleId])
+  return row?.state ?? null
+}
+
+/**
+ * Whether a person still sits (Brendan, 2026-09-16): anyone not on their
+ * state's current session roster is retired, and "People".archived says so —
+ * set from "SessionPeople" against each state's newest roster. A retired
+ * member's page opens on their last session as a sitting member.
+ */
+export async function getMemberStanding(peopleId: number) {
+  const row = await one<{ state: string; archived: boolean | null; last_roster: number | null }>(
+    `select state, coalesce(archived, false) as archived,
+            (select max(year) from "SessionPeople" sp where sp.people_id = p.people_id)::int as last_roster
+       from "People" p where people_id = $1`,
+    [peopleId]
+  )
+  return row ? { state: row.state, retired: Boolean(row.archived), lastRoster: row.last_roster == null ? null : n(row.last_roster) } : null
+}
+
+/**
+ * Where a retired state legislator serves now, when that is Congress
+ * (Brendan, 2026-09-16): LegiScan gives a person a new id when they move from
+ * a statehouse to Congress, so Hakeem Jeffries is 1323 in the New York
+ * Assembly and 14137 in the House. The old record points to the new one when
+ * exactly one sitting member of Congress has the same name and represents the
+ * same state. Same-state namesakes are never linked — fathers and sons, two
+ * Louisiana Mike Johnsons.
+ */
+export async function getMemberSuccessor(peopleId: number) {
+  const rows = await q<{ people_id: number; name: string; role: string | null; chamber: string | null; district: string | null }>(
+    `select c.people_id, c.name, c.role, c.chamber, c.district
+       from "People" r
+       join "People" c on lower(c.name) = lower(r.name) and c.people_id <> r.people_id
+        and c.state = 'US' and not coalesce(c.archived, false)
+        and c.district ~ ('-' || r.state || '(-|$)')
+      where r.people_id = $1 and r.state <> 'US' and coalesce(r.archived, false)`,
+    [peopleId]
+  )
+  return rows.length === 1 ? rows[0]! : null
+}
+
+/**
+ * The offices a sitting member of Congress held before, where we hold that
+ * record (Brendan, 2026-09-16): the reverse of getMemberSuccessor — retired
+ * statehouse records with the same name in a state the member now represents,
+ * with the last session each one served.
+ */
+export async function getMemberPriorOffices(peopleId: number) {
+  return q<{ people_id: number; name: string; state: string; chamber: string | null; role: string | null; district: string | null; last_session: number | null; session_title: string | null }>(
+    `select r.*, (select b.session_title from "Bills" b where b.state = r.state and b.session_id = r.last_session and b.session_title is not null limit 1) as session_title
+       from (
+     select r.people_id, r.name, r.state, r.chamber, r.role, r.district,
+            coalesce(
+              (select max(sp.year) from "SessionPeople" sp where sp.people_id = r.people_id),
+              (select max(b.session_id) from "Sponsors" s join "Bills" b using (bill_id) where s.people_id = r.people_id)
+            )::int as last_session
+       from "People" c
+       join "People" r on lower(r.name) = lower(c.name) and r.people_id <> c.people_id
+        and r.state <> 'US' and coalesce(r.archived, false)
+        and c.district ~ ('-' || r.state || '(-|$)')
+      where c.people_id = $1 and c.state = 'US'
+     ) r
+      order by last_session desc nulls last`,
+    [peopleId]
+  )
+}
+
+export async function getMember(peopleId: number, session: number) {
+  const person = await one<Record<string, unknown> & { people_id: number; name: string; state: string }>(
+    `select people_id, name, first_name, last_name, party, role, chamber, district, bio_long, photo_url, email,
+            phone_capitol, phone_district, address, leadership_title, state, legiscan_legislation_url, nys_bio_url, bio_url,
+            votesmart_id, opensecrets_id, ballotpedia, bioguide_id, fec_candidate_ids, committee_ids, coalesce(archived, false) as archived
+     from "People" where people_id = $1`,
+    [peopleId]
+  )
+  if (!person) return null
+  const [counts, votes, bills, fec] = await Promise.all([
+    one<{ prime: number; cosponsor: number }>(
+      `select count(*) filter (where s.sponsor_type_id = 1)::int prime,
+              count(*) filter (where s.sponsor_type_id <> 1)::int cosponsor
+       from "Sponsors" s join "Bills" b using (bill_id) where s.people_id = $1 and b.session_id = $2`,
+      [peopleId, session]
+    ),
+    // Career tallies from the precomputed table (the live count over a
+    // member's 30k votes takes seconds on this compute).
+    one<{ yea: number; nay: number; updated_at: string }>(`select yea_count::int as yea, no_count::int as nay, updated_at from member_vote_tallies where people_id = $1`, [peopleId]),
+    q<BillRow & { type: number }>(
+      `select ${BILL_COLUMNS}, s.sponsor_type_id type from "Sponsors" s join "Bills" b using (bill_id) ${PRIME_SPONSOR}
+       where s.people_id = $1 and b.session_id = $2 order by b.last_action_date desc nulls last limit 12`,
+      [peopleId, session]
+    ),
+    one<{
+      cycle: number
+      receipts: number
+      disbursements: number
+      cash_on_hand_end: number
+      individual_contributions: number
+      coverage_end: string | null
+    }>(
+      `select cycle, receipts, disbursements, cash_on_hand_end, individual_contributions, coverage_end
+       from "FecTotals" where people_id = $1 order by cycle desc, receipts desc nulls last limit 1`,
+      [peopleId]
+    ),
+  ])
+  return {
+    ...person,
+    people_id: n(person.people_id),
+    prime: n(counts?.prime),
+    cosponsor: n(counts?.cosponsor),
+    votes: votes ? { yea: n(votes.yea), nay: n(votes.nay), updated_at: votes.updated_at } : null,
+    bills: bills.map((b) => ({ ...b, bill_id: n(b.bill_id) })),
+    fec,
+  }
+}
+
+export async function getTopSponsors(f: Resolved, limit = 8) {
+  // `role` rides along so the widgets can title a member correctly outside
+  // New York (Sen. / Asm. / Rep.) instead of assuming an Assembly.
+  return q<{
+    people_id: number
+    name: string
+    party: string
+    role: string
+    chamber: string
+    district: string
+    photo_url: string | null
+    bioguide_id: string | null
+    prime: number
+  }>(
+    `select p.people_id, p.name, p.party, p.role, p.chamber, p.district, p.photo_url, p.bioguide_id, count(*)::int prime
+     from "Sponsors" s join "Bills" b using (bill_id) join "People" p using (people_id)
+     where b.state = $1 and b.session_id = $2 and s.sponsor_type_id = 1 ${f.chamber ? "and b.body = $4" : ""}
+     group by 1, 2, 3, 4, 5, 6, 7, 8 order by 9 desc limit $3`,
+    f.chamber ? [f.state, f.session, limit, f.chamber] : [f.state, f.session, limit]
+  ).then((rows) => rows.map((r) => ({ ...r, people_id: n(r.people_id) })))
+}
+
+// Precomputed career vote tallies (New York's current members).
+export async function getTallies(state: string) {
+  return q<{
+    people_id: number
+    name: string
+    party: string
+    chamber: string
+    district: string
+    photo_url: string | null
+    yea: number
+    nay: number
+  }>(
+    `select p.people_id, p.name, p.party, p.chamber, p.district, p.photo_url, t.yea_count::int as yea, t.no_count::int as nay
+     from member_vote_tallies t join "People" p using (people_id)
+     where p.state = $1 order by (t.yea_count + t.no_count) desc, p.last_name`,
+    [state]
+  ).then((rows) => rows.map((r) => ({ ...r, people_id: n(r.people_id) })))
+}
+
+/**
+ * Who sat in a session: the "SessionPeople" roster where LegiScan filed one
+ * for that year, else everyone who sponsored a bill in it. The roster exists
+ * for the current session alone, so the Party and Members cards read the
+ * 119th's seats under the 118th until this (Brendan, 2026-09-05: "party and
+ * members do not" follow the session).
+ */
+async function sittingClause(f: Resolved, params: unknown[], p = "p") {
+  const rostered = await one<{ n: number }>(`select count(*)::int as n from "SessionPeople" where state = $1 and year = $2`, [f.state, f.session])
+  const s = params.push(f.state)
+  const y = params.push(f.session)
+  return n(rostered?.n) > 0
+    ? `exists (select 1 from "SessionPeople" sp where sp.people_id = ${p}.people_id and sp.state = $${s} and sp.year = $${y})`
+    : `exists (select 1 from "Sponsors" sx join "Bills" bx using (bill_id) where sx.people_id = ${p}.people_id and bx.state = $${s} and bx.session_id = $${y})`
+}
+
+export async function getPartySeats(f: Resolved) {
+  const params: unknown[] = []
+  const sitting = await sittingClause(f, params)
+  return q<{ chamber: string; party: string; seats: number }>(
+    // Seats are the sitting roster, not everyone the record has ever known:
+    // without the session join this counted former members and the 511
+    // committee rows as seats ("1,053 seats in the House" against 553 sitting).
+    `select p.chamber, coalesce(nullif(p.party, ''), 'I') party, count(*)::int seats from "People" p
+     where p.state = $${params.push(f.state)} and p.committee_id is null and not coalesce(p.archived, false) and p.role in ('Rep', 'Sen')
+       and ${sitting}
+     group by 1, 2 order by 1, 3 desc`,
+    params
+  )
+}
+
+// A member's record in one session: the bills they put their name to, and the
+// bills they voted for and against.
+//
+// `distinct on (bill_id)` is the point. A bill gets several roll calls — a
+// committee vote, a floor vote, a re-passage — so joining Votes → Roll Call →
+// Bills without it lists the same bill once per vote (the directory showed
+// A08932 six times). One row per bill, carrying its most recent vote.
+//
+// Limited in SQL, not in the caller. A long-serving senator's full record is
+// 4,273 bills and 2.2 MB of JSON; rendering that into one page produced a
+// 2.9 MB response and a 500. The counts come from their own cheap aggregate,
+// so the page can say "the latest 50 of 2,844" honestly.
+export async function getMemberRecord(f: Resolved, peopleId: number, limit = 50, offset = 0) {
+  const scope = [peopleId, f.state, f.session]
+  // Each list is a window of `limit` rows from `offset`, per side, so "See
+  // more" on the member page can ask for the next ten of one list.
+  const lo = Math.max(0, Number(offset) || 0)
+  const hi = lo + (Number(limit) || 50)
+
+  const [counts, sponsored, votes] = await Promise.all([
+    one<{ sponsored: number; prime: number; cosponsor: number; aye: number; nay: number }>(
+      `select
+         (select count(distinct s.bill_id) from "Sponsors" s join "Bills" b using (bill_id)
+           where s.people_id = $1 and b.state = $2 and b.session_id = $3)::int as sponsored,
+         (select count(distinct s.bill_id) from "Sponsors" s join "Bills" b using (bill_id)
+           where s.people_id = $1 and b.state = $2 and b.session_id = $3 and s.sponsor_type_id = 1)::int as prime,
+         (select count(distinct s.bill_id) from "Sponsors" s join "Bills" b using (bill_id)
+           where s.people_id = $1 and b.state = $2 and b.session_id = $3 and s.sponsor_type_id <> 1)::int as cosponsor,
+         (select count(distinct r.bill_id) from "Votes" v join "Roll Call" r using (roll_call_id)
+           join "Bills" b on b.bill_id = r.bill_id
+           where v.people_id = $1 and b.state = $2 and b.session_id = $3 and v.vote_desc = 'Yea')::int as aye,
+         (select count(distinct r.bill_id) from "Votes" v join "Roll Call" r using (roll_call_id)
+           join "Bills" b on b.bill_id = r.bill_id
+           where v.people_id = $1 and b.state = $2 and b.session_id = $3 and v.vote_desc = 'Nay')::int as nay`,
+      scope
+    ),
+    q<BillRow & { role: number }>(
+      // Prime (sponsor_type_id 1) and co-sponsored apart, up to `limit` each,
+      // the way the votes below keep `limit` Yea and `limit` Nay.
+      `select * from (
+         select t.*, row_number() over (partition by (t.role = 1)
+                  order by t.last_action_date desc nulls last, t.bill_id desc) as rn
+         from (
+           select distinct on (b.bill_id)
+                  b.bill_id, b.bill_number, b.title, b.status_desc, b.last_action, b.last_action_date,
+                  b.committee, b.body, b.url, b.state_link, s.sponsor_type_id as role
+           from "Sponsors" s join "Bills" b using (bill_id)
+           where s.people_id = $1 and b.state = $2 and b.session_id = $3
+           order by b.bill_id, s.sponsor_type_id
+         ) t
+       ) ranked where rn > ${lo} and rn <= ${hi}
+       order by last_action_date desc nulls last, bill_id desc`,
+      scope
+    ),
+    q<BillRow & { vote_desc: string; vote_date: string }>(
+      // Both directions in one pass, then split — the join is the expensive
+      // part and doing it twice doubles it.
+      // Bounded in SQL, not just in JS: the Data API caps a response at 1 MB,
+      // and a prolific member's full vote history blew it before the slice
+      // below ever ran (found live by the agents lane: record?id=1326).
+      // row_number per side keeps up to `limit` Yea AND `limit` Nay.
+      `select * from (
+         select t.*, row_number() over (partition by t.vote_desc
+                  order by t.last_action_date desc nulls last, t.bill_id desc) as rn
+         from (
+           select distinct on (b.bill_id, v.vote_desc)
+                  b.bill_id, b.bill_number, b.title, b.status_desc, b.last_action, b.last_action_date,
+                  b.committee, b.body, b.url, b.state_link,
+                  v.vote_desc, r.date as vote_date
+           from "Votes" v
+           join "Roll Call" r using (roll_call_id)
+           join "Bills" b on b.bill_id = r.bill_id
+           where v.people_id = $1 and b.state = $2 and b.session_id = $3
+             and v.vote_desc in ('Yea', 'Nay')
+           order by b.bill_id, v.vote_desc, r.date desc
+         ) t
+       ) ranked where rn > ${lo} and rn <= ${hi}
+       order by last_action_date desc nulls last, bill_id desc`,
+      scope
+    ),
+  ])
+
+  const clean = <T extends { bill_id: number }>(rows: T[]) => rows.map((row) => ({ ...row, bill_id: n(row.bill_id) }))
+  const aye = clean(votes.filter((v) => v.vote_desc === "Yea")).slice(0, limit)
+  const nay = clean(votes.filter((v) => v.vote_desc === "Nay")).slice(0, limit)
+  const prime = clean(sponsored.filter((b) => n(b.role) === 1)).slice(0, limit)
+  const cosponsor = clean(sponsored.filter((b) => n(b.role) !== 1)).slice(0, limit)
+
+  return {
+    sponsored: clean(sponsored),
+    prime,
+    cosponsor,
+    aye,
+    nay,
+    counts: {
+      sponsored: n(counts?.sponsored),
+      prime: n(counts?.prime),
+      cosponsor: n(counts?.cosponsor),
+      aye: n(counts?.aye),
+      nay: n(counts?.nay),
+    },
+    limit,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Committees
+
+export async function getCommittees(f: Resolved) {
+  const counts = await q<{ committee: string; bills: number; chamber: string }>(
+    `select committee, count(*)::int bills, min(body) chamber from "Bills"
+     where state = $1 and session_id = $2 and coalesce(committee, '') <> '' group by 1 order by 1`,
+    [f.state, f.session]
+  )
+  if (f.state !== "NY") {
+    return counts.map((c) => ({
+      committee_name: c.committee,
+      chamber: c.chamber,
+      bills: c.bills,
+    }))
+  }
+  const rows = await q<{
+    committee_id: number
+    committee_name: string
+    slug: string
+    chamber: string
+    chair_name: string | null
+    member_count: string | null
+    meeting_schedule: string | null
+    committee_url: string | null
+    description: string | null
+  }>(
+    `select committee_id, committee_name, slug, chamber, chair_name, member_count, meeting_schedule, committee_url, description
+     from "Committees" order by chamber, committee_name`
+  )
+  const byName = new Map(counts.map((c) => [c.committee, c.bills]))
+  return rows.map((r) => ({
+    ...r,
+    committee_id: n(r.committee_id),
+    bills: byName.get(r.committee_name) ?? 0,
+  }))
+}
+
+export async function getCommittee(f: Resolved, name: string) {
+  const [meta, statuses, bills, hearings] = await Promise.all([
+    f.state === "NY"
+      ? one<Record<string, unknown>>(
+          `select committee_id, committee_name, slug, chamber, description, meeting_schedule, chair_name, chair_email,
+                  member_count, committee_members, committee_url, committee_type, address
+           from "Committees" where committee_name = $1 limit 1`,
+          [name]
+        )
+      : Promise.resolve(null),
+    q<{ status: string; bills: number }>(
+      `select coalesce(nullif(status_desc, ''), 'Unknown') status, count(*)::int bills from "Bills"
+       where state = $1 and session_id = $2 and committee = $3 group by 1 order by 2 desc`,
+      [f.state, f.session, name]
+    ),
+    q<BillRow>(
+      `select ${BILL_COLUMNS} from "Bills" b ${PRIME_SPONSOR}
+       where b.state = $1 and b.session_id = $2 and b.committee = $3
+       order by b.last_action_date desc nulls last, b.bill_id desc limit 25`,
+      [f.state, f.session, name]
+    ),
+    q<{
+      date: string
+      time: string
+      description: string
+      bill_id: number
+      bill_number: string
+      title: string
+    }>(
+      // Calendar carries no state, so the old form found every calendar row in
+      // every legislature that named the committee, then probed Bills once per
+      // row to keep this state's — the committee page's slow query (2.2 s
+      // cold). Scoping to the session's bills first lets the planner hash that
+      // set once and drop the other states in memory. Brendan, 2026-09-05.
+      `with scope as (
+         select bill_id, bill_number, title from "Bills" where state = $1 and session_id = $2
+       )
+       select c.date, c.time, c.description, s.bill_id, s.bill_number, s.title
+       from "Calendar" c join scope s using (bill_id)
+       where c.description ilike $3 and c.date <= ${DATE_CAP}
+       order by c.date desc, c.time limit 60`,
+      [f.state, f.session, `%${name} Committee%`]
+    ),
+  ])
+  return {
+    meta,
+    statuses,
+    bills: bills.map((b) => ({ ...b, bill_id: n(b.bill_id) })),
+    hearings: hearings.map((h) => ({ ...h, bill_id: n(h.bill_id) })),
+  }
+}
+
+// The text versions we hold, newest fetch first — the Documents tree and its
+// "Changes" list. A bill collects versions as it moves (Original, Amended A,
+// Amended B, Enrolled), which is exactly what a file tree with a changes
+// panel is for.
+export async function getRecentTexts(f: Resolved, limit = 60) {
+  const rows = await q<{
+    document_id: number
+    version: string | null
+    chars: number
+    fetched_at: string | null
+    bill_id: number
+    bill_number: string
+    title: string
+    body: string | null
+    status_desc: string | null
+    last_action_date: string | null
+    committee: string | null
+  }>(
+    // `committee` rides along since 2026-09-03: the Documents block files its
+    // tree under the committee a bill sits before, the way a repository files
+    // under folders.
+    `select t.document_id, t.version, t.chars, t.fetched_at,
+            b.bill_id, b.bill_number, b.title, b.body, b.status_desc, b.last_action_date, b.committee
+     from "BillTexts" t join "Bills" b using (bill_id)
+     where b.state = $1 and b.session_id = $2 and t.text is not null
+     order by t.fetched_at desc nulls last, t.document_id desc
+     limit $3`,
+    [f.state, f.session, limit]
+  )
+  return rows.map((row) => ({
+    ...row,
+    document_id: n(row.document_id),
+    bill_id: n(row.bill_id),
+    chars: n(row.chars),
+  }))
+}
+
+// ---------------------------------------------------------------------------
+// Hearings (the committee calendars)
+
+const HEARING_RE = /^(Senate|Assembly|House|Joint)\s+(.+?)\s+Committee(?:\s+Hearing)?$/i
+
+export function parseHearing(description: string) {
+  const match = description?.match(HEARING_RE)
+  if (!match) return { chamber: null as string | null, committee: description ?? "" }
+  return { chamber: match[1], committee: match[2] }
+}
+
+// Hearings are scoped to a session so the planner hashes the (small) bill set
+// instead of probing Bills for every calendar row in the date window.
+export async function getHearings(state: string, session: number, from: string, to: string, committee?: string, limit = 3000) {
+  const params: unknown[] = [from, to, state, session]
+  const filter = committee ? `and c.description ilike $${params.push(`%${committee} Committee%`)}` : ""
+  const rows = await q<{
+    date: string
+    time: string
+    type: string
+    description: string
+    location: string
+    bill_id: number
+    bill_number: string
+    title: string
+    committee: string | null
+    body: string | null
+    status_desc: string | null
+  }>(
+    `select c.date, c.time, c.type, c.description, c.location, b.bill_id, b.bill_number, b.title, b.committee, b.body, b.status_desc
+     from "Calendar" c join "Bills" b using (bill_id)
+     where c.date >= $1 and c.date <= $2 and b.state = $3 and b.session_id = $4 ${filter}
+     order by c.date, c.time, c.description, b.bill_number limit $${params.push(limit)}`,
+    params
+  )
+  return rows.map((r) => ({
+    ...r,
+    bill_id: n(r.bill_id),
+    ...parseHearing(r.description),
+  }))
+}
+
+export async function getHearingDays(state: string, session: number, from: string, to: string) {
+  return q<{ date: string; hearings: number; committees: number }>(
+    `select c.date, count(*)::int as hearings, count(distinct c.description)::int as committees
+     from "Calendar" c join "Bills" b using (bill_id)
+     where c.date >= $1 and c.date <= $2 and b.state = $3 and b.session_id = $4 group by 1 order by 1`,
+    [from, to, state, session]
+  )
+}
+
+// The default window is [today-30, today+60], and between sessions every
+// jurisdiction is honestly empty in it — on 2026-09-01 Texas returns nothing
+// there and 3,000 rows over 2025-2026. For the surfaces that mean "what the
+// committees have been doing" rather than "this month", fall back to the 60 days
+// before the jurisdiction's last hearing and say which date that runs through,
+// so it reads as most recent rather than as upcoming. /calendar keeps its own
+// URL date: an empty September is the truth for September.
+export async function getRecentHearings(state: string, session: number, from: string, to: string, limit = 200) {
+  const rows = await getHearings(state, session, from, to, undefined, limit)
+  // Congress's own calendar as well: every committee meeting congress.gov
+  // lists with a date, back through the Congress, each opening its meeting
+  // page (Brendan, 2026-09-07: "wire this to many years").
+  if (state === "US") {
+    const meetings = await q<{ event_id: string; date: string | null; title: string | null; type: string | null; committee: string | null; chamber: string | null }>(
+      `select m.event_id, to_char((m.meeting_date::timestamptz) at time zone 'America/New_York', 'YYYY-MM-DD HH24:MI') as date, m.title,
+              m.payload->>'type' as type, m.payload->'committees'->0->>'name' as committee, m.chamber
+         from congress_committee_meetings m
+        where m.meeting_date is not null and left(m.meeting_date, 10) >= $1 and left(m.meeting_date, 10) <= $2
+        order by m.meeting_date desc limit $3`,
+      [from, to, limit]
+    ).catch(() => [])
+    const extra = meetings.map((m) => {
+      const [date, time] = String(m.date ?? "").split(" ")
+      return {
+        date,
+        time: time && time !== "00:00" ? time : null,
+        type: m.type ?? "Meeting",
+        description: m.title ?? m.type ?? "Meeting",
+        location: null,
+        bill_id: null,
+        bill_number: null,
+        title: m.title ?? "",
+        committee: m.committee,
+        body: m.chamber,
+        href: `/meetings/${m.event_id}`,
+      }
+    })
+    const merged = [...rows.map((r) => ({ ...r, href: null as string | null })), ...extra].sort((a, b) => `${b.date} ${b.time ?? ""}`.localeCompare(`${a.date} ${a.time ?? ""}`))
+    if (merged.length) return { rows: merged, through: null as string | null }
+  }
+  if (rows.length) return { rows, through: null as string | null }
+
+  const latest = await latestHearingDate(state, session)
+  if (!latest) return { rows: [], through: null as string | null }
+  const start = new Date(`${latest}T00:00:00Z`)
+  start.setUTCDate(start.getUTCDate() - 60)
+  return {
+    rows: await getHearings(state, session, start.toISOString().slice(0, 10), latest, undefined, limit),
+    through: latest,
+  }
+}
+
+/**
+ * What is on a jurisdiction's calendar in a window.
+ *
+ * Two sources, because Congress keeps two. `"Calendar"` is LegiScan's, for all
+ * 52 and with the bill on each row — which is what makes "when is this bill
+ * heard" answerable at all. Under Congress the committee meetings congress.gov
+ * publishes ride beside it: they carry the witnesses and the room, they list
+ * the meetings that are not about a single bill, and they are days fresher.
+ * Merged, sorted by date, and the rows say which source each came from so a
+ * reader is never told a meeting has a bill it does not.
+ */
+export async function getCalendar(
+  f: Resolved,
+  { from, to, committee, bill, limit = 40 }: { from: string; to: string; committee?: string | null; bill?: number | null; limit?: number }
+) {
+  const cap = Math.min(Math.max(1, limit), 200)
+  const params: unknown[] = [from, to, f.state, f.session]
+  const where = [`c.date >= $1 and c.date <= $2 and b.state = $3 and b.session_id = $4`]
+  if (committee) where.push(`c.description ilike $${params.push(`%${committee}%`)}`)
+  if (bill) where.push(`c.bill_id = $${params.push(bill)}`)
+  const sittings = await q<{ date: string; time: string | null; type: string; description: string; location: string | null; bill_id: number; bill_number: string; title: string }>(
+    `select c.date, c.time, c.type, c.description, c.location, b.bill_id, b.bill_number, b.title
+       from "Calendar" c join "Bills" b using (bill_id)
+      where ${where.join(" and ")}
+      order by c.date, c.time, c.description limit $${params.push(cap)}`,
+    params
+  )
+  type CalendarRow = {
+    date: string
+    time: string | null
+    type: string
+    what: string
+    chamber: string | null
+    committee: string | null
+    location: string | null
+    bill_id: number | null
+    bill_number: string | null
+    title: string
+    source: string
+  }
+  const rows: CalendarRow[] = sittings.map((r) => ({
+    date: r.date,
+    time: r.time && r.time !== "00:00" ? r.time : null,
+    type: r.type,
+    what: r.description,
+    ...parseHearing(r.description),
+    location: r.location || null,
+    bill_id: n(r.bill_id),
+    bill_number: r.bill_number,
+    title: r.title,
+    source: "legiscan",
+  }))
+
+  if (f.state === "US") {
+    const p: unknown[] = [from, to]
+    const filter = committee ? `and (m.payload->'committees'->0->>'name' ilike $${p.push(`%${committee}%`)} or m.payload->'committees'->0->>'systemCode' = $${p.push(String(committee).toLowerCase())})` : ""
+    const meetings = await q<{ event_id: string; date: string | null; title: string | null; type: string | null; committee: string | null; chamber: string | null; room: string | null }>(
+      `select m.event_id, to_char((m.meeting_date::timestamptz) at time zone 'America/New_York', 'YYYY-MM-DD HH24:MI') as date,
+              m.title, m.payload->>'type' as type, m.payload->'committees'->0->>'name' as committee, m.chamber,
+              m.payload->'location'->>'room' as room
+         from congress_committee_meetings m
+        where m.meeting_date is not null and left(m.meeting_date, 10) >= $1 and left(m.meeting_date, 10) <= $2 ${filter}
+        order by m.meeting_date limit $${p.push(cap)}`,
+      p
+    ).catch(() => [])
+    for (const m of meetings) {
+      const [date, time] = String(m.date ?? "").split(" ")
+      rows.push({
+        date,
+        time: time && time !== "00:00" ? time : null,
+        type: m.type ?? "Meeting",
+        what: m.title ?? m.type ?? "Meeting",
+        chamber: m.chamber,
+        committee: m.committee,
+        location: m.room || null,
+        // A congress.gov meeting is not filed against one bill; saying so beats
+        // implying it has none.
+        bill_id: null,
+        bill_number: null,
+        title: m.title ?? "",
+        source: `congress.gov/${m.event_id}`,
+      })
+    }
+  }
+
+  rows.sort((a, b) => `${a.date} ${a.time ?? ""}`.localeCompare(`${b.date} ${b.time ?? ""}`))
+  return { state: f.state, session: f.session, from, to, count: rows.length, rows: rows.slice(0, cap) }
+}
+
+export async function latestHearingDate(state: string, session: number) {
+  const row = await one<{ date: string }>(
+    `select max(c.date) as date from "Calendar" c join "Bills" b using (bill_id)
+     where b.state = $1 and b.session_id = $2 and c.date <= to_char(now(), 'YYYY-MM-DD')`,
+    [state, session]
+  )
+  return row?.date ?? null
+}
+
+// The roll calls of a session, newest first — the Votes board, and anything
+// else that wants the votes themselves rather than a count of them.
+export async function getRollCalls(f: Resolved, limit = 120) {
+  const rows = await q<{
+    roll_call_id: number
+    date: string
+    chamber: string
+    description: string
+    yea: number
+    nay: number
+    total: number
+    bill_id: number
+    bill_number: string
+    title: string
+  }>(
+    `select r.roll_call_id, r.date, r.chamber, r.description,
+            r.yea::int as yea, coalesce(nullif(r.nay, '')::int, 0) as nay,
+            r.total::int as total, b.bill_id, b.bill_number, b.title
+     from "Roll Call" r join "Bills" b using (bill_id)
+     where b.state = $1 and b.session_id = $2 and r.date <= ${DATE_CAP}
+     order by r.date desc, r.roll_call_id desc limit $3`,
+    [f.state, f.session, limit]
+  )
+  return rows.map((row) => ({
+    ...row,
+    roll_call_id: n(row.roll_call_id),
+    bill_id: n(row.bill_id),
+  }))
+}
+
+// The News Room: one round trip for the whole front page.
+//
+// Sera's placeholder concepts map onto what a legislature actually produces —
+// a lead story, sections, a sidebar of other desks. Here the lead is the most
+// recent bill to become law (or to be vetoed), the sections are what moved
+// this week, and the sidebar is the other jurisdictions.
+export async function getNewsroom(f: Resolved, days = 14) {
+  const since = new Date(Date.now() - days * 864e5).toISOString().slice(0, 10)
+  const params: unknown[] = []
+  const where = billWhere(f, params)
+  // Filter first, order second, and never join back to "Bills" for the ordering.
+  //
+  // Left to itself the planner walks bills_last_action_idx backwards and stops at
+  // the limit — right where matches are dense, catastrophic where they are not.
+  // Congress's 2025 session holds two enacted bills, so it scanned the whole
+  // index looking for six: 2.9 s, against 3 ms for New York. Two rewrites that
+  // did *not* fix it, because both let the ordered index scan back in: putting
+  // order by/limit inside the CTE, and materialising only bill_id and joining
+  // "Bills" again (the planner then sorted 886k rows and looped against a CTE it
+  // estimated at 1036 rows when it holds 2). Carrying the columns through the CTE
+  // and ordering the matched set alone is what works.
+  //
+  // Measured: US 2.9 s -> 28 ms, NY 400 ms, TX 69 ms, CA 117 ms — bounded by the
+  // match count rather than open-ended.
+  const withSince = (extra: string) =>
+    `with matched as materialized (
+       select b.bill_id, b.bill_number, b.title, b.description, b.status_desc, b.last_action,
+              b.last_action_date, b.committee, b.body, b.url, b.state_link, b.text_chars
+       from "Bills" b
+       where ${where} and coalesce(b.last_action_date, '') <> '' ${extra}
+     )
+     select m.*, sp.name sponsor, sp.party sponsor_party, sp.people_id sponsor_id
+     from matched m
+     left join lateral (
+       select p.name, p.party, p.people_id from "Sponsors" s join "People" p using (people_id)
+       where s.bill_id = m.bill_id and s.sponsor_type_id = 1 order by s.position limit 1) sp on true
+     order by m.last_action_date desc, m.bill_id desc limit $${params.length + 1}`
+
+  const [enacted, passed, committee, introduced, rollCalls, hearings] = await Promise.all([
+    // Signed, vetoed or delivered — the things that finish.
+    q<BillRow>(withSince(`and b.status_desc ~* '(signed|veto|chaptered|enacted)'`), [...params, 6]),
+    q<BillRow>(withSince(`and b.status_desc ~* '(passed|delivered|adopted)' and b.last_action_date >= '${since}'`), [...params, 8]),
+    q<BillRow>(withSince(`and coalesce(b.committee, '') <> '' and b.last_action_date >= '${since}'`), [...params, 8]),
+    q<BillRow>(withSince(`and b.status_desc ~* 'introduc' and b.last_action_date >= '${since}'`), [...params, 8]),
+    q<{
+      roll_call_id: number
+      date: string
+      chamber: string
+      description: string
+      yea: number
+      nay: number
+      bill_id: number
+      bill_number: string
+      title: string
+    }>(
+      `select r.roll_call_id, r.date, r.chamber, r.description,
+                r.yea::int as yea, coalesce(nullif(r.nay, '')::int, 0) as nay,
+                b.bill_id, b.bill_number, b.title
+         from "Roll Call" r join "Bills" b using (bill_id)
+         where b.state = $1 and b.session_id = $2 and r.date <= ${DATE_CAP}
+         order by r.date desc, r.roll_call_id desc limit 6`,
+      [f.state, f.session]
+    ),
+    getHearings(f.state, f.session, new Date().toISOString().slice(0, 10), new Date(Date.now() + 60 * 864e5).toISOString().slice(0, 10), undefined, 200),
+  ])
+
+  const clean = (rows: BillRow[]) => rows.map((row) => ({ ...row, bill_id: n(row.bill_id) }))
+
+  return {
+    lead: clean(enacted)[0] ?? clean(passed)[0] ?? null,
+    enacted: clean(enacted),
+    passed: clean(passed),
+    committee: clean(committee),
+    introduced: clean(introduced),
+    rollCalls: rollCalls.map((r) => ({
+      ...r,
+      bill_id: n(r.bill_id),
+      roll_call_id: n(r.roll_call_id),
+    })),
+    hearings: hearings.slice(0, 6),
+    since,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Aggregates for the charts and stat cards
+
+export async function getActivity(f: Resolved) {
+  const params: unknown[] = []
+  const where = billWhere(f, params)
+  const [monthly, daily, rollCalls, statuses, committees] = await Promise.all([
+    q<{ ym: string; bills: number; senate: number; assembly: number }>(
+      `select substr(b.last_action_date, 1, 7) ym, count(*)::int bills,
+              count(*) filter (where b.body = 'Senate')::int senate,
+              count(*) filter (where b.body <> 'Senate')::int assembly
+       from "Bills" b where ${where} and coalesce(b.last_action_date, '') <> '' group by 1 order by 1`,
+      params
+    ),
+    q<{ date: string; bills: number }>(
+      `select b.last_action_date as date, count(*)::int as bills
+       from "Bills" b where ${where} and b.last_action_date >= to_char(now() - interval '21 days', 'YYYY-MM-DD')
+       group by 1 order by 1`,
+      params
+    ),
+    q<{ ym: string; roll_calls: number; yea: number; nay: number }>(
+      `select substr(r.date, 1, 7) ym, count(*)::int roll_calls, sum(r.yea)::int yea, sum(nullif(r.nay, '')::int)::int nay
+       from "Roll Call" r where r.state = $1 and r.date >= $2 and r.date <= ${DATE_CAP} group by 1 order by 1`,
+      [f.state, `${f.session}-01-01`]
+    ),
+    q<{ status: string; bills: number }>(
+      `select coalesce(nullif(b.status_desc, ''), 'Unknown') status, count(*)::int bills
+       from "Bills" b where ${where} group by 1 order by 2 desc`,
+      params
+    ),
+    q<{ committee: string; bills: number }>(
+      `select b.committee, count(*)::int bills from "Bills" b where ${where} and coalesce(b.committee, '') <> ''
+       group by 1 order by 2 desc limit 10`,
+      params
+    ),
+  ])
+  const total = statuses.reduce((sum, s) => sum + s.bills, 0)
+  return { monthly, daily, rollCalls, statuses, committees, total }
+}
+
+// The bills that landed most recently, per jurisdiction — the stream.
+export async function getStream(states: string[], limit = 12) {
+  const groups = await Promise.all(
+    states.map(async (state) => {
+      const session = await latestSession(state)
+      const rows = await q<BillRow>(
+        `select ${BILL_COLUMNS} from "Bills" b ${PRIME_SPONSOR}
+         where b.state = $1 and b.session_id = $2 and coalesce(b.last_action_date, '') <> '' and b.title <> ''
+           -- An action dated after today ("Effective" in October) has not happened yet (Brendan, 2026-09-15).
+           and b.last_action_date <= to_char(current_date, 'YYYY-MM-DD')
+         order by b.last_action_date desc, b.bill_id desc limit $3`,
+        [state, session, limit]
+      )
+      return {
+        state,
+        session,
+        bills: rows.map((r) => ({ ...r, bill_id: n(r.bill_id) })),
+      }
+    })
+  )
+  return groups
+}
+
+// ---------------------------------------------------------------------------
+// Money: member items, contracts, capital appropriations, school aid, FEC,
+// federal lobbying. New York holds the first four; FEC and LDA are federal.
+//
+// The first four are New York's own tables — scraped from the state budget,
+// with no state column to filter on. `NY_ONLY` names them so a caller under
+// another jurisdiction gets nothing rather than New York's rows under that
+// state's name; the API route turns that into an empty payload with the
+// scope on it.
+export const NY_ONLY = [
+  // member_vote_tallies exists for New York alone. Audited 2026-09-01 against
+  // every resource this route serves: seats, activity, sponsors, committees and
+  // the rest all scope through "Bills" and were verified to return different
+  // rows per jurisdiction. This is the only one that does not.
+  "tallies",
+  "discretionary",
+  "contracts",
+  "capital",
+  "counties",
+  "school-funding",
+] as const
+
+const MONEY = (col: string) => `nullif(regexp_replace(${col}, '[^0-9.]', '', 'g'), '')::numeric`
+
+export async function getDiscretionary() {
+  const years = await q<{ year: number; grants: number; total: number }>(
+    `select year::int as year, count(*)::int as grants, coalesce(sum(${MONEY('"Grant Amount"')}), 0)::float as total
+     from "Discretionary" group by 1 order by 1 desc`
+  )
+  const latest = years[0]?.year
+  const grants = latest
+    ? await q<{
+        grantee: string
+        sponsor: string
+        amount: number
+        description: string
+        approved: string
+      }>(
+        `select "Grantee" grantee, "Sponsor" sponsor, ${MONEY('"Grant Amount"')}::float amount,
+                "Description of Grant" description, "Approval Date" approved
+         from "Discretionary" where year = $1 order by 3 desc nulls last limit 8`,
+        [latest]
+      )
+    : []
+  return { years, latest, grants }
+}
+
+export async function getContracts(limit = 8) {
+  return q<{
+    vendor: string
+    department: string
+    amount: number
+    start: string
+    end: string
+    description: string
+  }>(
+    `select vendor_name vendor, department_facility department, current_contract_amount::float amount,
+            contract_start_date start, contract_end_date "end", contract_description description
+     from "Contracts" where current_contract_amount is not null order by current_contract_amount desc limit $1`,
+    [limit]
+  )
+}
+
+export async function getCapital(limit = 8) {
+  return q<{
+    agency: string
+    program: string
+    amount: number
+    reappropriation: number
+    encumbrance: number
+    description: string
+    fund: string
+  }>(
+    `select "Agency Name" agency, "Program Name" program,
+            coalesce(${MONEY('"Appropriations Recommended 2026-27"')}, 0)::float amount,
+            coalesce(${MONEY('"Reappropriations Recommended 2026-27"')}, 0)::float reappropriation,
+            coalesce(${MONEY('"Encumbrance as of 1/16/2026"')}, 0)::float encumbrance,
+            "Description" description, "Fund Name" fund
+     from budget_2027_capital_aprops
+     where coalesce(${MONEY('"Appropriations Recommended 2026-27"')}, 0) > 0
+     order by 3 desc limit $1`,
+    [limit]
+  )
+}
+
+export async function getCounties() {
+  return q<{ county: string; districts: number }>(`select "County" county, count(*)::int districts from school_funding where coalesce("County", '') <> '' group by 1 order by 1`)
+}
+
+export async function getSchoolFunding(county: string) {
+  return q<{ district: string; categories: unknown }>(`select "District" district, categories from school_funding where "County" = $1 order by 1`, [county])
+}
+
+export async function getLobbying(billId: number) {
+  const [summary, filings] = await Promise.all([
+    one<{ filings: number; clients: number; registrants: number }>(
+      `select count(distinct lb.filing_uuid)::int filings, count(distinct f.client_name)::int clients, count(distinct f.registrant_name)::int registrants
+       from "LobbyingBills" lb join "LobbyingFilings" f using (filing_uuid) where lb.bill_id = $1`,
+      [billId]
+    ),
+    q<{
+      client: string
+      registrant: string
+      income: number | null
+      expenses: number | null
+      year: number
+      period: string
+      url: string
+    }>(
+      `select f.client_name as client, f.registrant_name as registrant, f.income::float as income, f.expenses::float as expenses,
+              f.filing_year as year, f.filing_period as period, f.url
+       from "LobbyingBills" lb join "LobbyingFilings" f using (filing_uuid)
+       where lb.bill_id = $1 order by coalesce(f.income, f.expenses) desc nulls last limit 10`,
+      [billId]
+    ),
+  ])
+  return { ...summary, filings: filings, count: n(summary?.filings) }
+}
+
+export async function getFec(peopleId: number) {
+  const [totals, contributions] = await Promise.all([
+    q<{
+      cycle: number
+      receipts: number
+      disbursements: number
+      cash_on_hand_end: number
+      individual_contributions: number
+    }>(
+      `select cycle, receipts::float receipts, disbursements::float disbursements, cash_on_hand_end::float cash_on_hand_end,
+              individual_contributions::float individual_contributions
+       from "FecTotals" where people_id = $1 order by cycle desc limit 6`,
+      [peopleId]
+    ),
+    q<{
+      contributor: string
+      employer: string | null
+      amount: number
+      date: string
+      city: string | null
+      state: string | null
+    }>(
+      `select contributor_name contributor, contributor_employer employer, amount::float amount, date::text date,
+              contributor_city city, contributor_state state
+       from "FecContributions" where people_id = $1 order by amount desc nulls last limit 8`,
+      [peopleId]
+    ),
+  ])
+  return { totals, contributions }
+}
+
+/* ---------------------------------------------------------------------------
+ * congress.gov — the families LegiScan and govinfo never carried.
+ *
+ * Written by scripts/pipeline/congress/harvest.mjs in the livingston repo: the
+ * API's own key as the primary key, typed columns for what a page reads, and the
+ * record verbatim in `payload`. These readers hand back the API's own shape —
+ * field names unchanged — so a page built against a fixture pulled straight from
+ * api.congress.gov keeps working when it is pointed here.
+ *
+ * Congress-only by construction: the tables hold the 119th and nothing else.
+ * `US_ONLY` names them so another jurisdiction is told what it asked for rather
+ * than handed Congress's rows, exactly as NY_ONLY does for New York's.
+ * ------------------------------------------------------------------------- */
+
+export const US_ONLY = [
+  "amendments",
+  "summaries",
+  "committee-reports",
+  "laws",
+  "member-detail",
+  "committee-detail",
+  "committee-meetings",
+  // `hearings` was in this list and should never have been: the case reads
+  // "Calendar" joined to that jurisdiction's own bills, so the gate was
+  // telling all 51 other jurisdictions that their own sittings were
+  // Congress's. The calendar page asks for them by scope and got a 503 for
+  // every state (found 2026-09-07). The congress.gov hearing volumes are
+  // `hearings-held`, which is US-only below.
+  "nominations",
+  "crs-reports",
+  "record-issues",
+  "house-votes",
+  "treaties",
+  "summaries",
+  "titles",
+  "related-bills",
+  "cosponsors",
+  "member-votes",
+  "communications",
+  // The depth congress.gov shows and we did not. Two of these wanted names that
+  // were already taken and mean something else for all 52 jurisdictions:
+  // `subjects` is the jurisdiction's subject list behind the bills board's
+  // filter, and `sponsors` is its top-sponsor table. Renaming either quietly to
+  // mean one bill's would have broken a board — the same trap `hearings` set for
+  // lane C, and the same answer.
+  "actions",
+  "bill-record",
+  "bill-committees",
+  "bill-subjects",
+  "bill-sponsors",
+  "cbo-estimates",
+  // Federal money. "LobbyingBills" joins 560,789 rows and every one of them to a
+  // US bill; "FecTotals" holds 5,517 rows across 726 members, all US. Measured
+  // 2026-09-01 before either was exposed on the route.
+  "lobbying",
+  "lobbying-firms",
+  "lobbying-clients",
+  "lobbying-lobbyists",
+  "fec",
+  // The committee page's paged families (2026-09-06).
+  "committee-nominations",
+  "committee-communications",
+  "hearing-index",
+  "department-nominations",
+  // The congress.gov families the agents' tools read.
+  "hearings-held",
+  "transcript",
+  "bill-amendments",
+] as const
+
+/** The payload as the API returned it, newest first, for a whole family. */
+async function congressFamily(table: string, limit: number, offset: number, where = "", params: unknown[] = []) {
+  const rows = await q<{ payload: unknown }>(`select payload from ${table} ${where} order by update_date desc nulls last, key limit $${params.length + 1} offset $${params.length + 2}`, [...params, limit, offset])
+  return rows.map((r) => r.payload)
+}
+
+async function congressCount(table: string, where = "", params: unknown[] = []) {
+  const row = await one<{ n: number }>(`select count(*)::int as n from ${table} ${where}`, params)
+  return n(row?.n)
+}
+
+/**
+ * The scoped answer echoes what it was scoped to.
+ *
+ * These resources took `bill=` and ignored it, so a bill page asking for HR 1's
+ * amendments got all 7,035 and the fetch "succeeded" with the wrong rows — the
+ * quietest kind of wrong. A caller can now tell a scoped answer from a family
+ * list by looking at the envelope, and a scope we cannot honour is an error
+ * rather than everything.
+ */
+export async function getAmendments(limit = 50, offset = 0, billId?: number) {
+  if (billId) {
+    const rows = await q<{ payload: unknown }>(
+      `select payload from congress_amendments where amended_bill_id = $1
+        order by update_date desc nulls last, key limit $2 offset $3`,
+      [billId, limit, offset]
+    )
+    const total = await one<{ n: number }>(`select count(*)::int as n from congress_amendments where amended_bill_id = $1`, [billId])
+    return { bill: billId, count: n(total?.n), amendments: rows.map((r) => r.payload) }
+  }
+  return { count: await congressCount("congress_amendments"), amendments: await congressFamily("congress_amendments", limit, offset) }
+}
+
+export async function getCommitteeReports(limit = 50, offset = 0, billId?: number) {
+  if (billId) {
+    const rows = await q<{ payload: unknown }>(
+      `select payload from congress_committee_reports where bill_id = $1
+        order by update_date desc nulls last, key limit $2 offset $3`,
+      [billId, limit, offset]
+    )
+    const total = await one<{ n: number }>(`select count(*)::int as n from congress_committee_reports where bill_id = $1`, [billId])
+    return { bill: billId, count: n(total?.n), reports: rows.map((r) => r.payload) }
+  }
+  return { count: await congressCount("congress_committee_reports"), reports: await congressFamily("congress_committee_reports", limit, offset) }
+}
+
+/** A law IS a bill, so this one can be scoped without any new linkage. */
+export async function getLaws(limit = 250, offset = 0, billId?: number) {
+  if (billId) {
+    const bill = await one<{ bill_number: string; session_id: number }>(`select bill_number, session_id from "Bills" where bill_id = $1 and state = 'US'`, [billId])
+    if (!bill) return { bill: billId, count: 0, bills: [] }
+    const prefix = String(bill.bill_number)
+      .replace(/[0-9].*$/, "")
+      .toUpperCase()
+    const key = congressKey(congressOf(bill.session_id), BILL_TYPE[prefix] ?? prefix, String(bill.bill_number).replace(/^[A-Z]+/, ""))
+    const rows = await q<{ payload: unknown }>(`select payload from congress_laws where key = $1`, [key])
+    return { bill: billId, count: rows.length, bills: rows.map((r) => r.payload) }
+  }
+  return { count: await congressCount("congress_laws"), bills: await congressFamily("congress_laws", limit, offset) }
+}
+
+export async function getNominations(limit = 50, offset = 0) {
+  return { count: await congressCount("congress_nominations"), nominations: await congressFamily("congress_nominations", limit, offset) }
+}
+
+export async function getCommitteeMeetings(limit = 50, offset = 0) {
+  return { count: await congressCount("congress_committee_meetings"), committeeMeetings: await congressFamily("congress_committee_meetings", limit, offset) }
+}
+
+export async function getCongressHearings(limit = 50, offset = 0) {
+  return { count: await congressCount("congress_hearings"), hearings: await congressFamily("congress_hearings", limit, offset) }
+}
+
+export async function getTreaties(limit = 50, offset = 0) {
+  return { count: await congressCount("congress_treaties"), treaties: await congressFamily("congress_treaties", limit, offset) }
+}
+
+/** One member, by bioguide id — the record that carries the official portrait. */
+/** Our people_id -> the bioguide the congress.gov tables are keyed on. */
+export async function bioguideOf(peopleId: number) {
+  const row = await one<{ bioguide_id: string | null }>(`select bioguide_id from "People" where people_id = $1`, [peopleId])
+  return row?.bioguide_id ?? null
+}
+
+export async function getMemberDetail(bioguideId: string) {
+  const row = await one<{ payload: unknown; portrait_url: string | null }>(`select payload, portrait_url from congress_members where key = $1`, [String(bioguideId).toUpperCase()])
+  return row ? { member: row.payload, portraitUrl: row.portrait_url } : null
+}
+
+/** Every sitting member with a portrait, for a roster that wants faces. */
+export async function getMembersWithPortraits(limit = 600) {
+  return q<{ bioguide_id: string; name: string; party: string; state: string; district: string | null; portrait_url: string | null }>(
+    `select bioguide_id, name, party, state, district, portrait_url
+       from congress_members where portrait_url is not null order by name limit $1`,
+    [limit]
+  )
+}
+
+/** One committee, by systemCode. */
+export async function getCommitteeDetail(systemCode: string) {
+  const row = await one<{ payload: unknown }>(`select payload from congress_committees where key = $1`, [String(systemCode).toLowerCase()])
+  return row?.payload ?? null
+}
+
+/**
+ * A bill's text versions as the site holds them — the resource that answers the
+ * question this lane started from. Reads "BillTexts" and "Documents" rather than
+ * a congress_ table: the versions are already there, and which source won for a
+ * given version is part of the answer.
+ */
+export async function getTextVersions(billId: number) {
+  // `date` is the stage's own date — when the bill was introduced, reported,
+  // engrossed — not when we fetched it. A version list without it cannot be read
+  // as a timeline, which is the only reason to show one. It is also allowed to
+  // be null now: it used to fall back to the night of the backfill, which put
+  // 2026-08-28 on a bill enrolled in July 2025. A missing date beats a wrong
+  // one, and the page already prints a dash for it.
+  //
+  // The list is every version we HOLD and every version congress.gov LISTS,
+  // joined on the same synthetic document id. That is how the Public Law
+  // rendering of an enacted bill — the sixth version congress.gov shows on
+  // H.R. 1 and the fifth we had — appears with its links and an honest blank
+  // where its body would be.
+  return q<{ document_id: number | null; version: string | null; source: string | null; chars: number | null; date: string | null; fetched_at: string | null; url: string | null; formats: { type: string; url: string }[] }>(
+    `with held as (
+       select t.document_id, t.version, t.source, t.chars, d.date, t.fetched_at, d.url
+         from "BillTexts" t
+         left join "Documents" d on d.document_id = t.document_id and d.document_type = 'text'
+        where t.bill_id = $1
+          -- govinfo-billsum rows are CRS summaries, not text versions; they
+          -- belong to the summaries family and were showing up here as an
+          -- undated stage.
+          and t.source <> 'govinfo-billsum'
+     ),
+     listed as (select * from congress_text_formats where bill_id = $1)
+     select coalesce(h.document_id, l.document_id) as document_id,
+            coalesce(h.version, l.version_type) as version,
+            h.source, h.chars,
+            coalesce(h.date, l.version_date) as date,
+            h.fetched_at,
+            coalesce(h.url, l.html_url) as url,
+            coalesce(
+              (select jsonb_agg(f) from jsonb_array_elements(
+                 jsonb_strip_nulls(jsonb_build_array(
+                   case when l.html_url is not null then jsonb_build_object('type', 'Formatted Text', 'url', l.html_url) end,
+                   case when l.pdf_url  is not null then jsonb_build_object('type', 'PDF', 'url', l.pdf_url) end,
+                   case when l.xml_url  is not null then jsonb_build_object('type', 'XML', 'url', l.xml_url) end))) f
+                where jsonb_typeof(f) <> 'null'),
+              '[]'::jsonb) as formats
+       from held h
+       full outer join listed l on l.document_id = h.document_id
+      order by coalesce(h.date, l.version_date, to_char(h.fetched_at, 'YYYY-MM-DD')) desc nulls last,
+               coalesce(h.document_id, l.document_id) desc`,
+    [billId]
+  )
+}
+
+/* ---- what the agents ask of one bill -------------------------------------
+ * Sponsorship, status and amendments, each answered for whichever family
+ * holds them: congress.gov under US, LegiScan everywhere else. The pages ask
+ * these questions one family at a time because a page knows which one it is
+ * on; a tool is handed a jurisdiction and has to branch.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Who put a bill forward and who signed on.
+ *
+ * Under Congress the cosponsors come from BILLSTATUS with the date each one
+ * joined and whether they were there at introduction — 174,000 rows, so always
+ * by bill. Elsewhere `"Sponsors"` carries both in one table, separated by
+ * sponsor_type_id: 1 is the primary, everything else cosponsored.
+ */
+export async function getBillSponsorship(billId: number, state: string) {
+  const [rows, congress] = await Promise.all([
+    q<{ people_id: number; name: string; party: string | null; role: string | null; district: string | null; chamber: string | null; type: number; position: number }>(
+      `select p.people_id, p.name, p.party, p.role, p.district, p.chamber, s.sponsor_type_id as type, s.position
+         from "Sponsors" s join "People" p using (people_id) where s.bill_id = $1 order by s.sponsor_type_id, s.position`,
+      [billId]
+    ),
+    state === "US"
+      ? q<{ name: string | null; party: string | null; state: string | null; district: string | null; joined: string | null; original: string | null; withdrawn: string | null; people_id: number | null }>(
+          // No district column on this table; BILLSTATUS keeps it in the payload.
+          `select c.full_name as name, c.party, c.state, c.payload->>'district' as district,
+                  c.sponsorship_date as joined, c.is_original_cosponsor as original,
+                  c.sponsorship_withdrawn_date as withdrawn, c.people_id
+             from congress_cosponsors c where c.bill_id = $1
+            order by c.sponsorship_date nulls last, c.full_name`,
+          [billId]
+        ).catch(() => [])
+      : Promise.resolve([]),
+  ])
+  const primary = rows.filter((r) => n(r.type) === 1).map((r) => ({ ...r, people_id: n(r.people_id) }))
+  const legiscanCo = rows.filter((r) => n(r.type) !== 1).map((r) => ({ ...r, people_id: n(r.people_id), joined: null as string | null }))
+  // congress.gov's list is the better one where it exists — it carries the date
+  // each cosponsor signed on, which LegiScan's does not record at all.
+  const cosponsors: Record<string, unknown>[] = congress.length
+    ? congress.map((c) => ({ ...c, people_id: c.people_id == null ? null : n(c.people_id), original: c.original === "true" || c.original === "True" }))
+    : legiscanCo
+  return {
+    bill_id: billId,
+    source: congress.length ? "congress.gov" : "legiscan",
+    sponsors: primary,
+    cosponsor_count: cosponsors.length,
+    cosponsors,
+  }
+}
+
+/**
+ * Where a bill has got to and how it got there.
+ *
+ * congress.gov's actions are the fuller record for Congress — they carry the
+ * committee and the roll call on each step — and `"History Table"` is what
+ * every other jurisdiction has. Newest first either way: the question is
+ * almost always "where is it now".
+ */
+export async function getBillStatus(billId: number, limit = 40) {
+  const bill = await one<{ bill_id: number; bill_number: string; title: string; state: string; session_id: number; status_desc: string | null; last_action: string | null; last_action_date: string | null; committee: string | null }>(
+    `select bill_id, bill_number, title, state, session_id, status_desc, last_action, last_action_date, committee from "Bills" where bill_id = $1`,
+    [billId]
+  )
+  if (!bill) return null
+  const cap = Math.min(Math.max(1, limit), 250)
+  const [history, progress, congress, current] = await Promise.all([
+    q<{ date: string; chamber: string; action: string }>(`select date, chamber, action from "History Table" where bill_id = $1 order by date desc, sequence desc limit $2`, [billId, cap]),
+    q<{ date: string; event: string }>(`select date, event from "Progress" where bill_id = $1 order by seq`, [billId]),
+    bill.state === "US"
+      ? q<{ action_date: string | null; text: string | null; action_type: string | null; committee_names: string | null }>(
+          `select action_date, text, action_type, committee_names from congress_bill_actions where bill_id = $1
+            order by action_date desc nulls last, sequence desc limit $2`,
+          [billId, cap]
+        ).catch(() => [])
+      : Promise.resolve([]),
+    bill.state === "US"
+      ? one<{ latest_action: string | null; latest_action_date: string | null; bill_type: string; number: string }>(`select latest_action, latest_action_date, bill_type, number from congress_bills where bill_id = $1`, [billId])
+      : Promise.resolve(null),
+  ])
+  const actions = congress.length
+    ? congress.map((a) => ({ date: a.action_date, action: a.text, type: a.action_type, committee: a.committee_names }))
+    : history.map((h) => ({ date: h.date, action: h.action, type: h.chamber, committee: null }))
+  return {
+    bill_id: n(bill.bill_id),
+    bill_number: bill.bill_number,
+    citation: bill.state === "US" && current ? citationOf(current.bill_type, current.number) : null,
+    title: bill.title,
+    state: bill.state,
+    status: bill.status_desc,
+    committee: bill.committee,
+    last_action: current?.latest_action ?? bill.last_action,
+    last_action_date: current?.latest_action_date ?? bill.last_action_date,
+    source: congress.length ? "congress.gov" : "legiscan",
+    count: actions.length,
+    progress,
+    actions,
+  }
+}
+
+/**
+ * The amendments offered to a bill, with who offered them and where each got
+ * to. Congress only — the record holds no state amendment table, and saying so
+ * is better than an empty list that reads as "none were offered".
+ */
+export async function getBillAmendments(billId: number, limit = 25) {
+  const rows = await q<{
+    key: string
+    amendment_type: string | null
+    number: string | null
+    purpose: string | null
+    description: string | null
+    sponsor_name: string | null
+    latest_action: string | null
+    latest_action_date: string | null
+    cosponsors_count: string | null
+    chamber: string | null
+  }>(
+    `select key, amendment_type, number, purpose, description, sponsor_name, latest_action, latest_action_date, cosponsors_count, chamber
+       from congress_amendments where amended_bill_id = $1
+      order by latest_action_date desc nulls last, number desc limit $2`,
+    [billId, Math.min(Math.max(1, limit), 100)]
+  )
+  const total = await one<{ n: number }>(`select count(*)::int as n from congress_amendments where amended_bill_id = $1`, [billId])
+  return {
+    bill_id: billId,
+    count: n(total?.n),
+    amendments: rows.map((r) => ({
+      amendment: `${r.amendment_type ?? ""} ${r.number ?? ""}`.trim(),
+      chamber: r.chamber,
+      sponsor: r.sponsor_name,
+      purpose: r.purpose ?? r.description,
+      latest_action: r.latest_action,
+      latest_action_date: r.latest_action_date,
+      cosponsors: r.cosponsors_count == null ? null : n(r.cosponsors_count),
+    })),
+  }
+}
+
+/* ---- BILLSTATUS families (summaries, titles, related bills) --------------- */
+
+/** Every CRS summary the bill has carried, oldest first — the sequence is the point. */
+export async function getSummaries(billId: number) {
+  const rows = await q<{ payload: unknown }>(`select payload from congress_summaries where bill_id = $1 order by action_date, version_code`, [billId])
+  return { bill: billId, count: rows.length, summaries: rows.map((r) => r.payload) }
+}
+
+export async function getTitles(billId: number) {
+  const rows = await q<{ payload: unknown }>(`select payload from congress_titles where bill_id = $1 order by key`, [billId])
+  return { bill: billId, count: rows.length, titles: rows.map((r) => r.payload) }
+}
+
+/**
+ * Related bills, both ways round.
+ *
+ * BILLSTATUS records a relationship on one bill only: HR 1 lists 29 and is
+ * listed by 39 others, and congress.gov's own answer (38) sits in between. The
+ * complete graph is already here, recorded from each bill's own side, so reading
+ * it in one direction under-reports by a third at no saving.
+ */
+export async function getRelatedBills(billId: number) {
+  const rows = await q<{ payload: unknown; related_bill_number: string; related_bill_id: number | null; relationship: string; direction: string }>(
+    // `related_bill_id` is our own row for the other bill, when we hold it, so
+    // the page can link to it here rather than to congress.gov.
+    `select payload, related_bill_number, related_bill_id, relationship, 'names' as direction
+       from congress_related_bills where bill_id = $1
+     union all
+     select payload, bill_number as related_bill_number, bill_id as related_bill_id, relationship, 'named-by' as direction
+       from congress_related_bills where related_bill_id = $1
+        and bill_number not in (select related_bill_number from congress_related_bills where bill_id = $1)
+     order by related_bill_number`,
+    [billId]
+  )
+  return { bill: billId, count: rows.length, relatedBills: rows }
+}
+
+/* ---- votes, cosponsors, and the reference families ----------------------- */
+
+/**
+ * Cosponsors, from the BILLSTATUS zips rather than one request per bill.
+ * `payload` is the record as govinfo published it, so the field names are the
+ * API's own — bioguideId, fullName, sponsorshipDate, isOriginalCosponsor — and
+ * `people_id` is added beside it so a page can link without a second lookup.
+ */
+export async function getCosponsors(billId: number) {
+  const rows = await q<{ payload: Record<string, unknown>; people_id: number | null }>(
+    `select payload, people_id from congress_cosponsors where bill_id = $1
+      order by sponsorship_date nulls last, full_name`,
+    [billId]
+  )
+  return { bill: billId, count: rows.length, cosponsors: rows.map((r) => ({ ...r.payload, people_id: r.people_id })) }
+}
+
+/**
+ * A roll call's tally, counted from the positions by the pipeline.
+ *
+ * congress.gov's house-vote list publishes no counts: a tally exists only as
+ * 434 rows of positions per roll call, one request each, which is not something
+ * a board of 647 cards can ask for. So the count is made once where the
+ * positions are, and rides here under a name of our own — `tally` is not a
+ * congress.gov field and does not pretend to be one.
+ *
+ * `casts` is the whole distribution rather than a yes and a no, because three
+ * of the 647 have neither: two quorum calls, and the election of the Speaker,
+ * where 434 members cast a candidate's name.
+ */
+const TALLY_COLUMNS = `yea, nay, present, not_voting, positions, casts`
+type TallyRow = { yea: number | null; nay: number | null; present: number | null; not_voting: number | null; positions: number | null; casts: unknown }
+const withTally = (row: { payload: unknown } & TallyRow) => ({
+  ...(row.payload as Record<string, unknown>),
+  tally:
+    row.yea == null
+      ? null
+      : {
+          yea: n(row.yea),
+          nay: n(row.nay),
+          present: n(row.present),
+          notVoting: n(row.not_voting),
+          total: n(row.positions),
+          casts: row.casts ?? {},
+        },
+})
+
+/** House roll calls. With `bill=`, only the ones on that bill's legislation. */
+export async function getHouseVotes(limit = 50, offset = 0, billId?: number, from?: string | null, to?: string | null) {
+  if (billId) {
+    const bill = await one<{ bill_number: string }>(`select bill_number from "Bills" where bill_id = $1 and state = 'US'`, [billId])
+    if (!bill) return { bill: billId, count: 0, houseRollCallVotes: [] }
+    const prefix = String(bill.bill_number)
+      .replace(/[0-9].*$/, "")
+      .toUpperCase()
+    const number = String(bill.bill_number).replace(/^[A-Z]+/, "")
+    const rows = await q<{ payload: unknown } & TallyRow>(
+      `select payload, ${TALLY_COLUMNS} from congress_house_votes
+        where legislation_type = $1 and legislation_number = $2 order by start_date desc`,
+      [BILL_TYPE[prefix] ?? prefix, number]
+    )
+    return { bill: billId, count: rows.length, houseRollCallVotes: rows.map(withTally) }
+  }
+  const params: unknown[] = []
+  const where: string[] = []
+  if (from) where.push(`left(start_date, 10) >= $${params.push(from)}`)
+  if (to) where.push(`left(start_date, 10) <= $${params.push(to)}`)
+  const clause = where.length ? `where ${where.join(" and ")}` : ""
+  const rows = await q<{ payload: unknown } & TallyRow>(
+    `select payload, ${TALLY_COLUMNS} from congress_house_votes ${clause}
+      order by start_date desc nulls last, key limit $${params.push(limit)} offset $${params.push(offset)}`,
+    params
+  )
+  return { count: await congressCount("congress_house_votes", clause, params.slice(0, params.length - 2)), houseRollCallVotes: rows.map(withTally) }
+}
+
+/**
+ * Per-member positions. By `vote=`, the roll call's own members; by `member=`,
+ * one member's record across every roll call — which is the question a member
+ * page asks and `"Roll Call"` has never been able to answer, because LegiScan
+ * records the tally and not who was in it.
+ */
+export async function getMemberVotes({ vote, member, limit = 500, offset = 0 }: { vote?: string; member?: number; limit?: number; offset?: number }) {
+  if (vote) {
+    // The tally and the question ride with the positions: a list of 434 names
+    // with no result on it is not a roll call, it is a list of names.
+    const [rows, header] = await Promise.all([
+      q(
+        `select bioguide_id, people_id, vote_cast, vote_party, vote_state, first_name, last_name
+           from congress_house_vote_positions where vote_identifier = $1 order by last_name, first_name`,
+        [vote]
+      ),
+      one<{ payload: unknown } & TallyRow>(`select payload, ${TALLY_COLUMNS} from congress_house_votes where key = $1 or identifier = $1`, [vote]),
+    ])
+    return { vote, count: rows.length, rollCall: header ? withTally(header) : null, memberVotes: rows }
+  }
+  if (member) {
+    // The roll call names its bill the congress.gov way (HR 1501); our Bills
+    // row spells it LegiScan's (HB1501). The join walks that spelling so the
+    // page can link the bill to its own page rather than out to congress.gov,
+    // and a roll call with no bill — the Speaker's election, a quorum call —
+    // keeps its question. Congress 119 sat from 2025: session_id is that year.
+    const rows = await q(
+      `select p.vote_identifier, p.vote_cast, v.roll_call_number, v.legislation_type, v.legislation_number,
+              v.result, v.start_date, v.vote_question, v.payload->>'legislationUrl' as legislation_url,
+              b.bill_id, b.title
+         from congress_house_vote_positions p
+         join congress_house_votes v on v.key = p.vote_identifier
+         left join "Bills" b on b.state = 'US' and b.session_id = 1789 + (v.congress - 1) * 2
+          and b.bill_number = case v.legislation_type
+                when 'HR' then 'HB' when 'S' then 'SB' when 'HJRES' then 'HJR' when 'SJRES' then 'SJR'
+                when 'HCONRES' then 'HCR' when 'SCONRES' then 'SCR' when 'HRES' then 'HR' when 'SRES' then 'SR'
+                else v.legislation_type end || v.legislation_number
+        where p.people_id = $1 order by v.start_date desc limit $2 offset $3`,
+      [member, limit, Math.max(0, Number(offset) || 0)]
+    )
+    return { member, count: rows.length, memberVotes: rows.map((r) => ({ ...r, bill_id: r.bill_id == null ? null : n(r.bill_id) })) }
+  }
+  return { count: 0, memberVotes: [] }
+}
+
+/* ---- the bill at congress.gov depth ---------------------------------------
+ * Written by scripts/pipeline/congress/billstatus.mjs from the govinfo zips —
+ * eight requests for the whole congress, no API calls. Each reader hands back
+ * congress.gov's own field names, assembled from the typed columns rather than
+ * echoing the payload: BILLSTATUS nests `recordedVotes.recordedVote` and
+ * `committees.item` where the API returns plain arrays, and a page built
+ * against the API should not have to know which door the row came in.
+ * ------------------------------------------------------------------------- */
+
+type ActionRow = {
+  action_date: string | null
+  action_time: string | null
+  text: string | null
+  action_type: string | null
+  action_code: string | null
+  source_system: string | null
+  source_code: string | null
+  committee_codes: string | null
+  committee_names: string | null
+  roll_number: string | null
+  roll_chamber: string | null
+  roll_url: string | null
+  roll_session: string | null
+  roll_date: string | null
+}
+
+const pairs = (codes: string | null, names: string | null) => {
+  const c = (codes ?? "").split(",").filter(Boolean)
+  const nm = (names ?? "").split("; ").filter(Boolean)
+  return c.map((systemCode, i) => ({ systemCode, name: nm[i] ?? null }))
+}
+
+const asAction = (r: ActionRow) => ({
+  actionDate: r.action_date,
+  // The API omits the time; BILLSTATUS publishes it, Eastern as congress.gov
+  // prints it (14:31:38 is its "2:31pm"), so it rides along under its own name.
+  actionTime: r.action_time,
+  text: r.text,
+  type: r.action_type,
+  actionCode: r.action_code,
+  sourceSystem: r.source_system ? { code: r.source_code, name: r.source_system } : null,
+  committees: pairs(r.committee_codes, r.committee_names),
+  recordedVotes: r.roll_number ? [{ rollNumber: r.roll_number, chamber: r.roll_chamber, url: r.roll_url, sessionNumber: r.roll_session, date: r.roll_date }] : [],
+})
+
+/**
+ * A bill's own actions, oldest last — congress.gov's default order.
+ *
+ * Paged, because §0.3 is real: a long bill's actions can pass the Data API's
+ * 1 MB in one answer. The count in the envelope is the whole list, so a caller
+ * can tell a page from the end of it.
+ */
+export async function getBillActions(billId: number, limit = 250, offset = 0) {
+  const rows = await q<ActionRow>(
+    `select action_date, action_time, text, action_type, action_code, source_system, source_code,
+            committee_codes, committee_names, roll_number, roll_chamber, roll_url, roll_session, roll_date
+       from congress_bill_actions where bill_id = $1
+      order by action_date desc nulls last, action_time desc nulls last, sequence
+      limit $2 offset $3`,
+    [billId, limit, offset]
+  )
+  return { bill: billId, count: await congressCount("congress_bill_actions", "where bill_id = $1", [billId]), actions: rows.map(asAction) }
+}
+
+/**
+ * Every committee and subcommittee the bill touched, with what it did and when.
+ *
+ * Flat rows rather than the API's nested shape, because congress.gov's own
+ * Committees tab is a flat table of exactly these — committee or subcommittee,
+ * date, activity — and the nesting exists in the API only to avoid repeating a
+ * committee's name.
+ */
+export async function getBillCommittees(billId: number) {
+  const rows = await q<{
+    system_code: string | null
+    name: string | null
+    chamber: string | null
+    committee_type: string | null
+    subcommittee_code: string | null
+    subcommittee_name: string | null
+    activity: string | null
+    activity_date: string | null
+  }>(
+    // Stamped in UTC and rendered Eastern, so it has to leave here saying which
+    // it is. The Data API hands a timestamptz back as "2025-05-22 10:48:46" with
+    // no zone on it, and `new Date` reads that as the reader's own local time —
+    // which put H.R. 1's markup on 05/21 where congress.gov prints 05/20.
+    `select system_code, name, chamber, committee_type, subcommittee_code, subcommittee_name, activity,
+            to_char(activity_date at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as activity_date
+       from congress_bill_committees where bill_id = $1
+      order by activity_date desc nulls last, name`,
+    [billId]
+  )
+  return {
+    bill: billId,
+    count: rows.length,
+    committees: rows.map((r) => ({
+      systemCode: r.subcommittee_code ?? r.system_code,
+      name: r.subcommittee_name ?? r.name,
+      parent: r.subcommittee_code ? { systemCode: r.system_code, name: r.name } : null,
+      chamber: r.chamber,
+      type: r.committee_type,
+      activity: r.activity,
+      date: r.activity_date,
+    })),
+  }
+}
+
+/** The policy area and the legislative subjects, in the API's own nesting. */
+export async function getBillSubjects(billId: number) {
+  const rows = await q<{ name: string; is_policy_area: boolean }>(`select name, is_policy_area from congress_bill_subjects where bill_id = $1 order by is_policy_area desc, name`, [billId])
+  const area = rows.find((r) => r.is_policy_area)
+  const legislative = rows.filter((r) => !r.is_policy_area)
+  return {
+    bill: billId,
+    count: legislative.length,
+    subjects: { policyArea: area ? { name: area.name } : null, legislativeSubjects: legislative.map((r) => ({ name: r.name })) },
+  }
+}
+
+/**
+ * CBO's estimates for the bill: title, date and link.
+ *
+ * Metadata only, deliberately. Lane B found the numbers behind DataDome, so
+ * this links out and prints none of them.
+ */
+export async function getCboEstimates(billId: number) {
+  const rows = await q<{ pub_date: string | null; title: string | null; url: string; description: string | null }>(
+    `select pub_date, title, url, description from congress_cbo_estimates where bill_id = $1 order by pub_date desc nulls last`,
+    [billId]
+  )
+  return { bill: billId, count: rows.length, cboCostEstimates: rows.map((r) => ({ pubDate: r.pub_date, title: r.title, url: r.url, description: r.description })) }
+}
+
+/**
+ * The bill's own record: sponsor with a bioguide, display and popular titles,
+ * the constitutional authority statement, the stage its actions put it at.
+ *
+ * `bill-sponsors` reads the same row. `sponsors` was not available as a name:
+ * it is the jurisdiction's top-sponsor table for all 52 of them.
+ */
+export async function getBillRecord(billId: number) {
+  const row = await one<{ payload: Record<string, unknown>; display_title: string | null; popular_title: string | null; sponsor_people_id: number | null }>(
+    `select payload, display_title, popular_title, sponsor_people_id from congress_bills where bill_id = $1`,
+    [billId]
+  )
+  if (!row) return { bill: billId, record: null }
+  return {
+    bill: billId,
+    record: {
+      ...row.payload,
+      displayTitle: row.display_title,
+      popularTitle: row.popular_title,
+      // Our own id for the sponsor, so the page can link to the member without
+      // a second round trip through the bioguide.
+      sponsorPeopleId: row.sponsor_people_id ?? null,
+    },
+  }
+}
+
+export async function getBillSponsors(billId: number) {
+  const answer = await getBillRecord(billId)
+  const record = answer.record as { sponsors?: unknown[]; sponsorPeopleId?: number | null } | null
+  const sponsors = (record?.sponsors ?? []) as Record<string, unknown>[]
+  return {
+    bill: billId,
+    count: sponsors.length,
+    sponsors: sponsors.map((sp, i) => (i === 0 ? { ...sp, peopleId: record?.sponsorPeopleId ?? null } : sp)),
+  }
+}
+
+export async function getCrsReports(limit = 50, offset = 0) {
+  return { count: await congressCount("congress_crs_reports"), CRSReports: await congressFamily("congress_crs_reports", limit, offset) }
+}
+
+export async function getRecordIssues(limit = 50, offset = 0) {
+  return { count: await congressCount("congress_record_daily"), dailyCongressionalRecord: await congressFamily("congress_record_daily", limit, offset) }
+}
+
+export async function getCommunications(limit = 50, offset = 0, chamber?: string) {
+  const where = chamber ? `where chamber = $1` : ""
+  const params = chamber ? [chamber] : []
+  return {
+    count: await congressCount("congress_communications", where, params),
+    communications: await congressFamily("congress_communications", limit, offset, where, params),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Search: bills, members, committees and bill text, across every jurisdiction,
+// for the header menu and /search.
+//
+// Two tiers everywhere: the jurisdiction the reader is in sorts first and gets
+// the most rows, then every other jurisdiction's *current* session with a cap
+// per jurisdiction so Congress cannot drown Wyoming. Bill numbers match on a
+// prefix with the spaces squeezed out, so "hb 10" and "HB10" both reach HB10160.
+//
+// Three things learned the hard way on this data, all load-bearing:
+//
+//  1. A LATERAL per jurisdiction is the obvious shape and the wrong one: it
+//     rebuilds the same global trgm bitmap 52 times (969 ms for "climate",
+//     1396 ms for "health"). One trgm pass plus row_number() over (partition by
+//     state) is the same answer in 18 ms / 232 ms. Metadata therefore scans
+//     once and windows; only the text search, whose index *can* cut per
+//     jurisdiction, iterates.
+//  2. `default_text_search_config` on this cluster is `simple`, but
+//     "BillTexts".search_tsv is generated with 'english'. Every tsquery here
+//     names 'english' explicitly — drop it and the query parses as `simple`,
+//     matches none of the stemmed lexemes in the index, and returns zero rows
+//     with no error at all.
+//  3. The text search cuts by (state, session_id) *inside* billtexts_scope_search_idx
+//     — gin (state, session_id, search_tsv) over btree_gin. Without those two
+//     keys in the index, "health" matches 979,526 rows and fetching them off
+//     the 36 GB heap takes three minutes.
+
+// The newest session that actually has bills, per jurisdiction — the view the
+// matviews already define (sql/001_policy_matviews.sql). Cross-jurisdiction
+// rows come from these sessions, never from the archive.
+export const CURRENT = `(select state, session::int as session_id from v_policy_latest_session)`
+
+// The oldest of those, as one InitPlan the bitmap scans can use as a lower
+// bound before the join prunes the rest. Without it "health" drags all 101,801
+// matching titles out of every session ever recorded.
+export const SINCE = `(select min(session)::int from v_policy_latest_session)`
+
+// New York's Assembly texts arrive as a scrape of the whole page ahead of an
+// "<bill> Text:" marker (lib/policy/texts.ts, cleanBillText). A snippet cut
+// from that preamble quotes the site's navigation instead of the bill, so the
+// marker rule runs here too — over the first 20 k characters only, which is
+// where a preamble can be, rather than over an 11 MB body.
+export const BODY = `substr(t.text, greatest(regexp_instr(left(t.text, 20000),
+  '(?n)^[[:blank:]]*[A-Z][0-9]+[A-Z]? Text:[[:blank:]]*$', 1, 1, 1), 1))`
+
+// "BillTextChunks" geometry. These three numbers are the contract between
+// scripts/search/bill-text-chunks.sh, which writes the rows, and the text query
+// below, which has to know where chunk N starts in order to cut a snippet from
+// the right part of an 11 MB document. They were duplicated once and drifted
+// once — the script moved to 80 k chunks from offset 1 and the query kept
+// computing offsets for the 800 k ones, so every chunk hit was found and then
+// silently dropped, because the headline was cut from the wrong place and
+// contained no match. Change them here and in the script's FIRST/STRIDE/LEN
+// together, or not at all.
+export const CHUNK_FIRST = 1
+export const CHUNK_STRIDE = 79_000
+export const CHUNK_LEN = 80_000
+
+// Snippets, never bodies: the Data API caps a result at 1 MB, and ts_headline
+// over a whole 11 MB bill would cost more than the search did. « » delimit the
+// match — the surface splits on them, so nothing has to trust HTML from the
+// database.
+export const HEADLINE_OPTS = "MaxFragments=1,MaxWords=34,MinWords=16,StartSel=«,StopSel=»,FragmentDelimiter= … "
+
+// Both extras are opt-in, and for different reasons. `text` is a cost: the pass
+// over "BillTexts" is the expensive one and the ⌘K menu must not pay it.
+// `all` is a *contract*: the moment bills[] and committees[] can carry a
+// jurisdiction that is not the reader's, every caller has to render each row's
+// own `state`. /search does. components/command-menu.tsx still draws
+// `FlagChip state={state}` from the page's scope and links to `?state=${state}`,
+// so turning this on for the menu without changing those two lines would put a
+// New York flag on an Arizona bill. It stays off until the menu opts in.
+export type SearchOptions = {
+  text?: boolean
+  all?: boolean
+  perState?: number
+  /**
+   * Jurisdictions to search, as two-letter codes; every one of them when empty
+   * (Brendan, 2026-09-22). The panel's Jurisdiction filter used to be applied
+   * to the rows after they arrived, which could only ever hide what the query
+   * had already fetched — and the query fetches two rows a jurisdiction. A
+   * search for California's wildfire bills drew those two and counted all 313
+   * in the country. Named here, the shortlist is drawn from these jurisdictions
+   * and the count is taken within them, so the rows and the number agree.
+   */
+  places?: string[]
+}
+
+/** Congress's bill letters as typed, to the letters LegiScan stores them under. */
+const FEDERAL_LETTERS: Record<string, string> = { hr: "HB", s: "SB", hjres: "HJR", sjres: "SJR", hconres: "HCR", sconres: "SCR", hres: "HR", sres: "SR" }
+
+/**
+ * A typed bill number, as the columns hold it — searchAll's rules, shared with
+ * the national search (lib/policy/national-search.ts, 2026-09-18) so the two
+ * cannot drift. `numberLike` is the prefix match; `exactUs` and `exactStates`
+ * are the exact-number patterns for Congress's rows and everyone else's, null
+ * when the term does not read as a number.
+ */
+export function billNumberMatch(term: string) {
+  // The number a reader types is not the number on file. "HR119" is stored bare,
+  // and it is typed "hr 119", "H.R. 119" and "hr119" — so every character that is
+  // not a letter or a digit comes out of the term before it meets the column,
+  // not just the spaces. Squeezing spaces alone left "H.R. 119" searching for
+  // `H.R.119%` and finding nothing (Brendan, 2026-09-08).
+  const numberLike = `${term.replace(/[^\p{L}\p{N}]+/gu, "")}%`
+  // A prefix is not enough on its own (Brendan, 2026-09-15): "6644" never
+  // prefixes "HB6644", so only titles matched and ⌘K put H.Res. 1299, whose
+  // title mentions the number, where H.R. 6644 belonged. A term that reads as a
+  // bill number, bare or with its letters, matches the number exactly past
+  // the letters and the zero padding ("A06644"), and that match sorts first.
+  // Congress is stored in LegiScan's letters (H.R. is "HB", H.Res. is "HR"), so
+  // a typed federal prefix is translated for Congress's rows only.
+  const numbered = /^([a-z]{0,6})(\d+)$/i.exec(term.replace(/[^\p{L}\p{N}]+/gu, ""))
+  const exactFor = (letters: string) => `^${letters || "[A-Z]+"}0*${numbered ? numbered[2].replace(/^0+(?=\d)/, "") : ""}$`
+  const exactStates = numbered ? exactFor(numbered[1].toUpperCase()) : null
+  const exactUs = numbered ? exactFor(numbered[1] ? (FEDERAL_LETTERS[numbered[1].toLowerCase()] ?? numbered[1].toUpperCase()) : "") : null
+  return { numberLike, numbered: !!numbered, exactUs, exactStates }
+}
+
+export async function searchAll(f: Resolved, term: string, limit = 8, options: SearchOptions = {}) {
+  const like = `%${term}%`
+  // The typed number's patterns: billNumberMatch, above.
+  const { numberLike, numbered, exactUs, exactStates } = billNumberMatch(term)
+  const exact = (alias: string) =>
+    numbered ? `((${alias}.state = 'US' and ${alias}.bill_number ~* $8) or (${alias}.state <> 'US' and ${alias}.bill_number ~* $9))` : "false"
+  // The named jurisdictions, as a literal list. Two letters each or they are
+  // dropped, so nothing a reader types reaches the statement.
+  const places = [...new Set((options.places ?? []).map((p) => String(p).toUpperCase()))].filter((p) => /^[A-Z]{2}$/.test(p))
+  const inPlaces = places.length ? `b.state in (${places.map((p) => `'${p}'`).join(", ")})` : ""
+  // Two rows a jurisdiction: enough that a reader sees the answer is national,
+  // few enough that 51 other jurisdictions cannot bury the one they are in.
+  // A search narrowed to a jurisdiction wants that jurisdiction's rows instead,
+  // so the cap comes off and each named one gets the whole limit.
+  const perState = options.all ? (places.length ? limit : (options.perState ?? 2)) : 0
+  const elsewhereCap = options.all ? Math.max(limit * 2, 24) : 0
+  // Congress is a group of its own on /search, ahead of the reader's state and
+  // of everyone else (Brendan, 2026-09-20), so it gets the scoped group's cap
+  // rather than the two rows a jurisdiction gets. Until then it was one of the
+  // fifty-one "elsewhere", ranked by state code under one shared cap — and
+  // "US" sorts after Texas, so Congress fell off the end of every search made
+  // from a state. Nothing when the reader's scope is Congress already.
+  const congressCap = options.all && f.state !== "US" ? limit : 0
+  // Four words is more than any name here needs and keeps the parameter list
+  // bounded; a one-word query is the old behaviour exactly.
+  const nameTokens = term
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 4)
+    .map((word) => `%${word}%`)
+
+  const [bills, members, committees, texts, totals] = await Promise.all([
+    q<{
+      bill_id: number
+      bill_number: string
+      title: string
+      description: string | null
+      status_desc: string | null
+      last_action: string | null
+      last_action_date: string | null
+      body: string | null
+      committee: string | null
+      state: string
+      tier: number
+    }>(
+      // The row carries what the bills list's row carries — the latest action,
+      // the chamber, the committee — so /search draws the same item
+      // (Brendan, 2026-09-05: "why do these not show text?").
+      `with scoped as (
+         select b.bill_id, b.bill_number, b.title, b.description, b.status_desc, b.last_action, b.last_action_date, b.body, b.committee, b.state,
+                0 as tier, ${exact("b")} as exact,
+                row_number() over (order by ${exact("b")} desc, (b.bill_number ilike $3) desc,
+                                            b.last_action_date desc nulls last, b.bill_id desc)::int as rn
+         from "Bills" b
+         where b.state = $1 and b.session_id = $2${places.length ? ` and ${inPlaces}` : ""}
+           and (b.bill_number ilike $3 or b.title ilike $4 or ${exact("b")})
+         order by rn
+         limit $5
+       ),
+       -- "as materialized" is not decoration. Inlined, the planner joins the
+       -- 52-row session view first and re-derives the trgm bitmap once per
+       -- jurisdiction (loops=52, 969 ms). Materialised, the trgm scan runs
+       -- once and the join prunes what it produced: 18 ms.
+       hits as materialized (
+         select b.bill_id, b.bill_number, b.title, b.description, b.status_desc, b.last_action, b.last_action_date, b.body, b.committee,
+                b.state, b.session_id
+         from "Bills" b
+         where ${options.all ? `b.session_id >= ${SINCE} and b.state <> $1${places.length ? ` and ${inPlaces}` : ""}` : "false"}
+           and (b.bill_number ilike $3 or b.title ilike $4 or ${exact("b")})
+       ),
+       elsewhere as (
+         select bill_id, bill_number, title, description, status_desc, last_action, last_action_date, body, committee, state, 1 as tier, exact, rn
+         from (
+           select h.bill_id, h.bill_number, h.title, h.description, h.status_desc, h.last_action, h.last_action_date, h.body, h.committee, h.state,
+                  ${exact("h")} as exact,
+                  row_number() over (partition by h.state
+                    order by ${exact("h")} desc, (h.bill_number ilike $3) desc,
+                             h.last_action_date desc nulls last, h.bill_id desc)::int as rn
+           from hits h join ${CURRENT} c on c.state = h.state and c.session_id = h.session_id
+         ) ranked
+         where ranked.rn <= case when ranked.state = 'US' then $5 else $6 end
+       )
+       select bill_id, bill_number, title, description, status_desc, last_action, last_action_date, body, committee, state, tier
+       from (select * from scoped union all select * from elsewhere) hits
+       order by tier, (state = 'US') desc, exact desc, rn, state
+       limit $7`,
+      [f.state, f.session, numberLike, like, limit, perState, limit + congressCap + elsewhereCap, ...(numbered ? [exactUs, exactStates] : [])]
+    ),
+    q<{
+      people_id: number
+      name: string
+      party: string
+      role: string
+      chamber: string
+      district: string
+      state: string
+      // Lane U's ask: without these the search results draw a chamber seal
+      // where the directory draws a face. `photo_url` is LegiScan's;
+      // `bioguide_id` is how a row reaches the official portrait
+      // `congress_members` carries for all 554 members of Congress.
+      photo_url: string | null
+      bioguide_id: string | null
+    }>(
+      // Name *and* aliases, token by token. "holmes" has to find Eleanor Holmes
+      // Norton, whose LegiScan name is "Eleanor Norton";
+      // scripts/search/people-aliases.sql writes the other forms she might be
+      // typed under into "People".aliases. But one contiguous %like% over that
+      // column is not enough: Gil Cisneros's alias reads "Gilbert Ray Cisneros",
+      // so a reader who types "Gilbert Cisneros" — dropping a middle name they
+      // never knew he had — matched nothing. Each word of the query is required
+      // separately instead, in either column, so word order and missing middle
+      // names both stop mattering. Every clause can still use its trigram index.
+      //
+      // A row inserted since that script last ran has a null alias and is still
+      // found by name, so drift degrades to the old behaviour, not to a hole.
+      `select p.people_id, p.name, p.party, p.role, p.chamber, p.district, p.state,
+              p.photo_url, p.bioguide_id,
+              exists (select 1 from "SessionPeople" sp where sp.people_id = p.people_id) as active
+       from "People" p
+       where p.committee_id is null and not coalesce(p.archived, false)
+         -- LegiScan files some committees as people. The committee_id filter
+         -- catches most, but 487 of the 22,193 otherwise-searchable rows slip
+         -- through — Florida's "Health and Human Services Committee", Oregon's
+         -- "Committee On Human Services", and 266 whose names carry no such word
+         -- at all: California's "Utilities and Energy", Kansas's "Agriculture",
+         -- South Carolina's "Judiciary". Searching "health" across every
+         -- jurisdiction put about twenty of them in the Members section.
+         --
+         -- A name in two parts is what separates them. 487 have no last_name at
+         -- all, and exactly one of those carries a party or a district (Oregon's
+         -- "Transportation Reinvestment", HD-061, not sitting) — also a
+         -- committee. A further 24 have a surname but no given name, because
+         -- LegiScan copied the committee's name into both fields: Maryland's
+         -- "Health", "Ways", "Economic" and "Mental", New York's "Rules", South
+         -- Dakota's "Appropriations". Not one of those 24 has a party, a
+         -- district, a photo, an email, a bio, a VoteSmart id or a Ballotpedia
+         -- entry, and not one is sitting; five read like surnames (Barnes,
+         -- George, Nelson, Rice, Young) and are just as empty, one of them filed
+         -- as both Rep and Sen.
+         --
+         -- So: both halves of a name required. 511 of 22,193 rows leave the
+         -- member search and no sitting legislator does. Filtered here rather
+         -- than upstream because this is the query that shows people; getMembers
+         -- and the directory still list them, which is a data fix, not a search
+         -- one.
+         and coalesce(p.first_name, '') <> '' and coalesce(p.last_name, '') <> ''
+         and p.role in ('Rep', 'Sen')
+         and ${nameTokens.map((_, i) => `(p.name ilike $${i + 2} or p.aliases ilike $${i + 2})`).join(" and ") || "false"}
+       order by (p.state = $1) desc, (p.state = 'US') desc, active desc, p.last_name, p.first_name
+       limit $${nameTokens.length + 2}`,
+      [f.state, ...nameTokens, limit + perState * 4 + (congressCap ? 8 : 0)]
+    ),
+    q<{ committee: string; bills: number; chamber: string; state: string; tier: number }>(
+      // Committees are a group-by, so the two tiers are one pass with the
+      // scope decided per row rather than a union.
+      // Same `as materialized` rule as the bills query, and the same size of
+      // difference: 1244 ms inlined, 38.8 ms materialised.
+      `with hits as materialized (
+         select b.state, b.session_id, b.committee, b.body
+         from "Bills" b
+         where ${options.all ? "" : "b.state = $1 and "}b.session_id >= ${SINCE}
+           and coalesce(b.committee, '') <> '' and b.committee ilike $2
+       )
+       select committee, bills, chamber, state, tier from (
+         select h.committee, count(*)::int as bills, min(h.body) as chamber, h.state,
+                case when h.state = $1 then 0 else 1 end as tier,
+                row_number() over (partition by h.state order by count(*) desc)::int as rn
+         from hits h join ${CURRENT} c on c.state = h.state and c.session_id = h.session_id
+         group by h.committee, h.state
+       ) g
+       where g.tier = 0 or g.rn <= $3 or (g.state = 'US' and g.rn <= 6)
+       order by tier, (state = 'US') desc, bills desc
+       limit $4`,
+      [f.state, like, perState, Math.min(limit, 6) + 12 + (congressCap ? 6 : 0)]
+    ),
+    options.text
+      ? q<{
+          bill_id: number
+          document_id: number
+          state: string
+          bill_number: string
+          title: string
+          status_desc: string | null
+          last_action: string | null
+          last_action_date: string | null
+          committee: string | null
+          snippet: string
+          tier: number
+        }>(
+          // The one query that iterates per jurisdiction, because here it pays:
+          // billtexts_scope_search_idx cuts state, session and the tsquery
+          // together, so each slice hands back only its own matches. The active
+          // jurisdiction is the first row of `scopes` and takes the larger cap.
+          // Congress sorts ahead of the other jurisdictions and takes $9 rows, not
+          // their two (2026-09-20): ordered by state under the shared cap its
+          // texts never made the shortlist. Half the scoped cap, because each
+          // row here is a ts_headline over a federal bill.
+          `with scopes as (
+             select $1::text as state, $2::int as session_id, 0 as tier, $3::int as cap
+             union all
+             select c.state, c.session_id, 1, case when c.state = 'US' then $9::int else $4::int end from ${CURRENT} c
+              where c.state <> $1 and ${options.all ? "true" : "false"}
+           ),
+           picked as (
+             select s.tier, x.bill_id, x.document_id, x.state, x.head_from
+             from scopes s
+             cross join lateral (
+               -- Two indexes, one question. search_tsv covers the first megabyte
+               -- of every document; "BillTextChunks" covers everything after it,
+               -- for the 2,110 documents that have an after. Both are gin(state,
+               -- session_id, tsv), so both cut the same way in the same plan.
+               --
+               -- head_from is the character offset ts_headline has to start at.
+               -- Without it a chunk hit would be found and then thrown away: the
+               -- headline would be cut from the top of the document, contain no
+               -- match, and be dropped by the highlight filter below. 1 means the
+               -- first megabyte; anything else is the chunk's own start.
+               select distinct on (u.bill_id) u.bill_id, u.document_id, u.state, u.head_from
+               from (
+                 select t.bill_id, t.document_id, t.state, 1 as head_from
+                 from "BillTexts" t
+                 where t.state = s.state and t.session_id = s.session_id
+                   and t.text is not null
+                   and t.search_tsv @@ websearch_to_tsquery('english', $5)
+                 union all
+                 select c.bill_id, c.document_id, c.state,
+                        ${CHUNK_FIRST} + c.chunk_no * ${CHUNK_STRIDE}
+                 from "BillTextChunks" c
+                 where c.state = s.state and c.session_id = s.session_id
+                   and c.tsv @@ websearch_to_tsquery('english', $5)
+               ) u
+               -- head_from ascending breaks the tie when a bill matches in both:
+               -- prefer the first megabyte, whose headline is a quarter the cost.
+               order by u.bill_id desc, u.document_id desc, u.head_from
+               limit s.cap
+             ) x
+           ),
+           -- ts_headline is the expensive half of this query — it detoasts the
+           -- body and re-parses it — so the row set is cut to what can actually
+           -- be returned *before* it runs. "picked" can hold 8 + 2x51 = 110 rows
+           -- when every jurisdiction matches; without this the query pays for
+           -- 110 headlines to show at most $7 of them. $8 leaves headroom for
+           -- the unhighlighted rows dropped below.
+           shortlist as (
+             select * from picked order by tier, (state = 'US') desc, state, bill_id desc limit $8
+           ),
+           snippets as (
+             select p.tier, p.bill_id, p.document_id, p.state, b.bill_number, b.title, b.status_desc, b.last_action, b.last_action_date, b.committee,
+                    ts_headline('english',
+                      case when p.head_from <= 1
+                           -- the first megabyte, minus New York's scraped preamble
+                           then left(${BODY}, 200000)
+                           -- the exact chunk that matched, whole, so the match is
+                           -- certain to be inside the window rather than probably
+                           else substr(t.text, p.head_from, ${CHUNK_LEN})
+                      end,
+                      websearch_to_tsquery('english', $5), $6) as snippet
+             from shortlist p
+             join "Bills" b on b.bill_id = p.bill_id
+             join "BillTexts" t on t.document_id = p.document_id
+           )
+           -- ts_headline given no match inside its window returns the opening of
+           -- the document instead of nothing, which reads as a result and teaches
+           -- the reader nothing. 2,707 of the 444,220 current-session documents
+           -- (0.61%) run past 200 k characters; when one of them matched further
+           -- in than that, it is dropped here rather than shown unhighlighted.
+           select tier, bill_id, document_id, state, bill_number, title, status_desc, last_action, last_action_date, committee, snippet
+           from snippets
+           where snippet like '%«%'
+           order by tier, (state = 'US') desc, state
+           limit $7`,
+          [f.state, f.session, limit, perState, term, HEADLINE_OPTS, limit + 12 + Math.ceil(congressCap / 2), limit + 24 + Math.ceil(congressCap / 2), Math.ceil(congressCap / 2)]
+        )
+      : Promise.resolve([]),
+    // How many bills match in all, against the shortlist above. The same predicate as `hits`, without the state
+    // exclusion and without the per-jurisdiction caps, counted on the trigram index: the rows are never read.
+    q<{ bills: number }>(
+      `select count(*)::int as bills from "Bills" b
+       where b.session_id >= ${SINCE}${places.length ? ` and ${inPlaces}` : ""}
+         and (b.bill_number ilike $1 or b.title ilike $2 or ${numbered ? "((b.state = 'US' and b.bill_number ~* $3) or (b.state <> 'US' and b.bill_number ~* $4))" : "false"})`,
+      numbered ? [numberLike, like, exactUs, exactStates] : [numberLike, like]
+    ),
+  ])
+
+  return {
+    q: term,
+    state: f.state,
+    session: f.session,
+    /**
+     * Every bill that matches, uncapped (Brendan, 2026-09-22: "Showing 60 of 4,070"). The rows above are a
+     * shortlist — twenty for the reader's jurisdiction, twenty for Congress, two apiece for the other fifty — so
+     * their length says how much is on the page, not how much there is. This says how much there is: the same
+     * predicate over every jurisdiction's sessions since the floor, counted on the trigram index rather than read.
+     */
+    total: n(totals?.[0]?.bills ?? 0),
+    bills: bills.map((r) => ({ ...r, bill_id: n(r.bill_id), tier: n(r.tier) })),
+    members: members.map((r) => ({ ...r, people_id: n(r.people_id) })),
+    committees: committees.map((r) => ({ ...r, bills: n(r.bills), tier: n(r.tier) })),
+    texts: texts.map((r) => ({
+      ...r,
+      bill_id: n(r.bill_id),
+      document_id: n(r.document_id),
+      tier: n(r.tier),
+    })),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// The congressional directories — who answers the phone.
+//
+// The House Telephone Directory (directory.house.gov) lists every House
+// staffer with a title and a phone, and every office a member keeps, in
+// Washington and in the district. The Senate publishes no staff directory; its
+// senators_cfm.xml gives each senator's office, phone, contact form, class and
+// leadership post. Both are loaded by scripts/directory/load.mjs into
+// house_offices, house_staff and senate_contact. Brendan, 2026-09-05: "add
+// this to the member page".
+
+export type DirectoryOffice = {
+  id: string
+  name: string
+  kind: string | null
+  street: string | null
+  locality: string | null
+  region: string | null
+  postal: string | null
+  /** The office's own line, read off its staff: the number most of them share. */
+  phone: string | null
+  staff: number
+}
+
+export type DirectoryStaffer = {
+  id: string
+  name: string
+  title: string | null
+  type: string | null
+  phone: string | null
+  office_id: string | null
+  office: string | null
+}
+
+export type SenateContact = {
+  bioguide_id: string
+  address: string | null
+  phone: string | null
+  contact_form: string | null
+  website: string | null
+  class: string | null
+  leadership_position: string | null
+}
+
+export type MemberDirectory = {
+  chamber: "House" | "Senate"
+  senate: SenateContact | null
+  offices: DirectoryOffice[]
+  staff: DirectoryStaffer[]
+}
+
+/**
+ * `HD-NC-12` → `NC12`; the at-large `HD-AK` → `AK00`, the directory's own key.
+ * American Samoa is `AQ` there, because `AS00` is the Armed Services committee.
+ */
+export function houseOfficeId(district: string | null | undefined) {
+  const m = String(district ?? "").match(/^HD-([A-Z]{2})(?:-0*(\d+))?$/)
+  if (!m) return null
+  const st = m[1] === "AS" ? "AQ" : m[1]
+  return `${st}${String(m[2] ?? 0).padStart(2, "0")}`
+}
+
+/**
+ * "García, Jesús G. \"Chuy\"" → "garcia": the part before the comma, letters
+ * only, accents dropped. A few seats carry no name in the directory, only the
+ * district code in parentheses; that reads as blank, not as a name.
+ */
+const surname = (s: string | null | undefined) =>
+  String(s ?? "")
+    .replace(/\([A-Z]{2}\d{2}\)/g, "")
+    .split(",")[0]
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z]/g, "")
+
+const sameSurname = (a: string, b: string) => !!a && !!b && (a.includes(b) || b.includes(a))
+
+/** A sitting member's offices and staff, or a senator's contact record. */
+export async function getMemberDirectory(peopleId: number): Promise<MemberDirectory | null> {
+  const person = await one<{ state: string; chamber: string; district: string | null; last_name: string; bioguide_id: string | null }>(`select state, chamber, district, last_name, bioguide_id from "People" where people_id = $1`, [peopleId])
+  if (!person || person.state !== "US") return null
+
+  if (person.chamber === "Senate") {
+    if (!person.bioguide_id) return null
+    const senate = await one<SenateContact>(`select bioguide_id, address, phone, contact_form, website, class, leadership_position from senate_contact where bioguide_id = $1`, [person.bioguide_id])
+    return senate ? { chamber: "Senate", senate, offices: [], staff: [] } : null
+  }
+
+  const byDistrict = houseOfficeId(person.district)
+  if (!byDistrict) return null
+  // The directory keys a seat by its district; the person keys it by name. The
+  // district is taken when its office carries the person's name, or no name at
+  // all. When it names someone else, the map has moved under one of the two
+  // records (Alabama's and Georgia's did in 2024), so the seat is looked up by
+  // name within the state instead. Showing another member's staff would be
+  // worse than showing none.
+  const seatName = await one<{ id: string; name: string }>(`select id, name from house_offices where id = $1 and kind = 'Member'`, [byDistrict])
+  let officeId: string | null = null
+  if (seatName && (!surname(seatName.name) || sameSurname(surname(seatName.name), surname(person.last_name)))) officeId = seatName.id
+  else {
+    const candidates = await q<{ id: string; name: string }>(`select id, name from house_offices where kind = 'Member' and id like $1 order by id`, [`${byDistrict.slice(0, 2)}%`])
+    officeId = candidates.find((c) => sameSurname(surname(c.name), surname(person.last_name)))?.id ?? null
+  }
+  if (!officeId) return null
+
+  const offices = await q<Omit<DirectoryOffice, "phone" | "staff"> & { phone: string | null; staff: number | string }>(
+    `select o.id, o.name, o.kind, o.street, o.locality, o.region, o.postal,
+            (select s.telephone from house_staff s where s.office_id = o.id and s.telephone is not null
+              group by s.telephone order by count(*) desc, s.telephone limit 1) as phone,
+            (select count(*) from house_staff s where s.office_id = o.id) as staff
+       from house_offices o
+      where o.id = $1 or o.parent_id = $1
+      order by case when o.id = $1 then 0 else 1 end, o.name`,
+    [officeId]
+  )
+
+  const staff = await q<DirectoryStaffer>(
+    `select s.id, s.name, s.job_title as title, s.staffer_type as type, s.telephone as phone, s.office_id, o.name as office
+       from house_staff s left join house_offices o on o.id = s.office_id
+      where s.office_id = $1 or s.office_id in (select id from house_offices where parent_id = $1)
+      order by case when s.office_id = $1 then 0 else 1 end, o.name, s.name`,
+    [officeId]
+  )
+  return {
+    chamber: "House",
+    senate: null,
+    offices: offices.map((o) => ({ ...o, staff: n(o.staff) })),
+    staff,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Committee assignments — congress_committee_members, loaded by
+// scripts/directory/committees.mjs from the unitedstates project, since
+// neither congress.gov endpoint carries them.
+
+export type MemberCommittee = {
+  system_code: string
+  name: string
+  chamber: string | null
+  parent_system_code: string | null
+  parent_name: string | null
+  rank: number | null
+  title: string | null
+}
+
+/** A member's committees and subcommittees, full committees first, each in rank order. */
+export async function getMemberCommittees(bioguideId: string) {
+  return q<MemberCommittee>(
+    `select m.system_code, m.name, m.chamber, m.parent_system_code, p.name as parent_name, m.rank, m.title
+       from congress_committee_members m
+       left join congress_committee_members p on p.system_code = m.parent_system_code and p.bioguide_id = m.bioguide_id
+      where m.bioguide_id = $1
+      order by (m.parent_system_code is not null), coalesce(m.parent_system_code, m.system_code), m.parent_system_code nulls first, m.name`,
+    [String(bioguideId).toUpperCase()]
+  )
+}
+
+// ---------------------------------------------------------------------------
+// A member's career on file: every session we hold for their legislature.
+// Brendan, 2026-09-05: "can we aggregate this over a member's career?"
+
+export type MemberCareer = {
+  prime: number
+  cosponsor: number
+  aye: number
+  nay: number
+  /** The first session they appear in, and the first session we hold at all. */
+  first_session: number | null
+  floor_session: number | null
+  /** Every session they appear in, newest first. */
+  sessions: number[]
+}
+
+export async function getMemberCareer(peopleId: number, state: string): Promise<MemberCareer> {
+  const row = await one<Record<string, unknown>>(
+    `select
+       (select count(distinct s.bill_id) from "Sponsors" s join "Bills" b using (bill_id)
+         where s.people_id = $1 and b.state = $2 and s.sponsor_type_id = 1)::int as prime,
+       (select count(distinct s.bill_id) from "Sponsors" s join "Bills" b using (bill_id)
+         where s.people_id = $1 and b.state = $2 and s.sponsor_type_id <> 1)::int as cosponsor,
+       (select count(distinct r.bill_id) from "Votes" v join "Roll Call" r using (roll_call_id)
+         join "Bills" b on b.bill_id = r.bill_id
+         where v.people_id = $1 and b.state = $2 and v.vote_desc = 'Yea')::int as aye,
+       (select count(distinct r.bill_id) from "Votes" v join "Roll Call" r using (roll_call_id)
+         join "Bills" b on b.bill_id = r.bill_id
+         where v.people_id = $1 and b.state = $2 and v.vote_desc = 'Nay')::int as nay,
+       (select min(b.session_id) from "Sponsors" s join "Bills" b using (bill_id)
+         where s.people_id = $1 and b.state = $2)::int as first_session,
+       (select min(session_id) from "Bills" where state = $2)::int as floor_session,
+       (select coalesce(array_agg(distinct b.session_id order by b.session_id desc), '{}')
+          from "Sponsors" s join "Bills" b using (bill_id)
+         where s.people_id = $1 and b.state = $2) as sessions`,
+    [peopleId, state]
+  )
+  const sessions = Array.isArray(row?.sessions) ? (row.sessions as unknown[]).map((v) => n(v)) : []
+  return {
+    prime: n(row?.prime),
+    cosponsor: n(row?.cosponsor),
+    aye: n(row?.aye),
+    nay: n(row?.nay),
+    first_session: row?.first_session == null ? null : n(row.first_session),
+    floor_session: row?.floor_session == null ? null : n(row.floor_session),
+    sessions,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// The member before and after this one in the directory's order — sitting
+// members of the session, by last name then first — for the pager at the foot
+// of a member's page (Brendan, 2026-09-05).
+
+export async function getMemberNeighbours(f: Resolved, peopleId: number) {
+  const rows = await q<{ people_id: number; name: string; role: string | null; chamber: string | null }>(
+    `select p.people_id, p.name, p.role, p.chamber
+       from "People" p
+       join "SessionPeople" sp on sp.people_id = p.people_id and sp.state = $1 and sp.year = $2
+      order by p.last_name, p.first_name`,
+    [f.state, f.session]
+  )
+  const at = rows.findIndex((r) => n(r.people_id) === peopleId)
+  if (at < 0) return { previous: null, next: null }
+  const pick = (i: number) => (rows[i] ? { ...rows[i], people_id: n(rows[i].people_id) } : null)
+  // The list wraps, so the last member's Next is the first.
+  return { previous: pick((at - 1 + rows.length) % rows.length), next: pick((at + 1) % rows.length) }
+}
+
+/**
+ * The bills either side of this one in its own session: the same jurisdiction,
+ * the same session, the same prefix (HB beside HB, S beside S), ordered by the
+ * number and then the spelling, so A123 sits before A123B. The foot of the bill
+ * page pages through them the way the member page pages through the directory
+ * (2026-09-05). The ends do not wrap: a first bill has no previous.
+ */
+export async function getBillNeighbours(billId: number) {
+  const me = await one<{ state: string; session_id: number; bill_number: string }>(`select state, session_id, bill_number from "Bills" where bill_id = $1`, [billId])
+  if (!me) return { previous: null, next: null }
+  const prefix = String(me.bill_number).replace(/[0-9].*$/, "")
+  const number = Number((String(me.bill_number).match(/[0-9]+/) ?? ["0"])[0])
+  const pick = async (dir: "<" | ">") => {
+    const row = await one<{ bill_id: number; bill_number: string; title: string }>(
+      `select bill_id, bill_number, title
+         from "Bills"
+        where state = $1 and session_id = $2 and substring(bill_number from '^[A-Z]+') = $3
+          and (substring(bill_number from '[0-9]+')::int, bill_number) ${dir} ($4, $5)
+        order by substring(bill_number from '[0-9]+')::int ${dir === "<" ? "desc" : "asc"}, bill_number ${dir === "<" ? "desc" : "asc"}
+        limit 1`,
+      [me.state, n(me.session_id), prefix, number, me.bill_number]
+    )
+    return row ? { ...row, bill_id: n(row.bill_id) } : null
+  }
+  const [previous, next] = await Promise.all([pick("<"), pick(">")])
+  return { previous, next }
+}
+
+/**
+ * CRS's policy areas — the fixed vocabulary it files every bill under, one
+ * per bill — as the record spells them. Read from the subjects table rather
+ * than committed, so a term CRS adds appears without a release; the list is
+ * thirty-odd names and changes about once a decade.
+ */
+export async function getPolicyAreas() {
+  const rows = await q<{ name: string }>(`select name from congress_bill_subjects where is_policy_area group by name order by name`)
+  return rows.map((r) => r.name)
+}
+
+/* ---- subjects ------------------------------------------------------------- */
+
+export type SubjectTerm = { name: string; bills: number }
+
+/**
+ * A jurisdiction's subject terms with the bills under each, for the session.
+ * Under Congress they are CRS's — the policy areas, one per bill, and the
+ * legislative subjects — as the record spells them. Elsewhere they are
+ * LegiScan's, which some sources (New York) leave empty.
+ */
+export async function getSubjectTerms(f: Resolved): Promise<{ policyAreas: SubjectTerm[]; subjects: SubjectTerm[]; bills: number }> {
+  const total = one<{ n: number }>(`select count(*)::int as n from "Bills" where state = $1 and session_id = $2`, [f.state, f.session])
+  if (f.state === "US") {
+    const rows = await q<{ name: string; is_policy_area: boolean; bills: number }>(
+      `select cs.name, cs.is_policy_area, count(*)::int bills
+         from congress_bill_subjects cs join "Bills" b using (bill_id)
+        where b.state = $1 and b.session_id = $2
+        group by cs.name, cs.is_policy_area order by cs.name`,
+      [f.state, f.session]
+    )
+    return {
+      policyAreas: rows.filter((r) => r.is_policy_area).map((r) => ({ name: r.name, bills: n(r.bills) })),
+      subjects: rows.filter((r) => !r.is_policy_area).map((r) => ({ name: r.name, bills: n(r.bills) })),
+      bills: n((await total)?.n),
+    }
+  }
+  const rows = await q<{ name: string; bills: number }>(
+    `select sj.subject name, count(*)::int bills
+       from "Subjects" sj join "Bills" b using (bill_id)
+      where b.state = $1 and b.session_id = $2 group by 1 order by 1`,
+    [f.state, f.session]
+  )
+  return { policyAreas: [], subjects: rows.map((r) => ({ name: r.name, bills: n(r.bills) })), bills: n((await total)?.n) }
+}
+
+export type SubjectHighlight = { name: string; bills: number; recent: number; policyArea: boolean }
+
+/**
+ * The three lists at the head of /tags (Brendan, 2026-09-16, on daily.dev's
+ * shape): what has moved in the last thirty days, what carries the most bills
+ * this session, and what the jurisdiction filed a bill under for the first time
+ * most recently. One statement, the same rows read three ways.
+ */
+export async function getSubjectHighlights(f: Resolved, limit = 8): Promise<{ trending: SubjectHighlight[]; popular: SubjectHighlight[]; recent: SubjectHighlight[] }> {
+  const rows =
+    f.state === "US"
+      ? await q<{ name: string; bills: number; recent: number; first_seen: string | null; policy_area: boolean }>(
+          `select cs.name, count(*)::int bills,
+                  count(*) filter (where b.last_action_date >= to_char(current_date - 30, 'YYYY-MM-DD'))::int recent,
+                  min(coalesce(cb.introduced_date, b.status_date, b.last_action_date)) first_seen,
+                  bool_or(cs.is_policy_area) policy_area
+             from congress_bill_subjects cs join "Bills" b using (bill_id) left join congress_bills cb using (bill_id)
+            where b.state = $1 and b.session_id = $2
+            group by cs.name`,
+          [f.state, f.session]
+        )
+      : await q<{ name: string; bills: number; recent: number; first_seen: string | null; policy_area: boolean }>(
+          `select sj.subject name, count(*)::int bills,
+                  count(*) filter (where b.last_action_date >= to_char(current_date - 30, 'YYYY-MM-DD'))::int recent,
+                  min(coalesce(b.status_date, b.last_action_date)) first_seen,
+                  false policy_area
+             from "Subjects" sj join "Bills" b using (bill_id)
+            where b.state = $1 and b.session_id = $2
+            group by 1`,
+          [f.state, f.session]
+        )
+  const terms = rows.map((r) => ({ name: r.name, bills: n(r.bills), recent: n(r.recent), policyArea: !!r.policy_area, firstSeen: r.first_seen ?? "" }))
+  const top = (sort: (a: (typeof terms)[number], b: (typeof terms)[number]) => number) =>
+    [...terms].sort(sort).slice(0, limit).map(({ firstSeen: _firstSeen, ...term }) => term)
+  return {
+    trending: top((a, b) => b.recent - a.recent || b.bills - a.bills).filter((t) => t.recent > 0),
+    popular: top((a, b) => b.bills - a.bills),
+    recent: top((a, b) => b.firstSeen.localeCompare(a.firstSeen) || b.bills - a.bills),
+  }
+}
+
+/**
+ * One subject in one session: how many bills, where they stand, and which
+ * committees hold the most of them — the subject page's introduction.
+ */
+export async function getSubjectSummary(f: Resolved, subject: string) {
+  const params: unknown[] = []
+  const where = billWhere({ ...f, subject }, params)
+  const [count, statuses, committees, chambers] = await Promise.all([
+    one<{ n: number }>(`select count(*)::int as n from "Bills" b where ${where}`, params),
+    q<{ status: string; bills: number }>(`select coalesce(nullif(b.status_desc, ''), 'Introduced') status, count(*)::int bills from "Bills" b where ${where} group by 1 order by 2 desc`, params),
+    q<{ committee: string; bills: number }>(`select b.committee, count(*)::int bills from "Bills" b where ${where} and coalesce(b.committee, '') <> '' group by 1 order by 2 desc, 1 limit 3`, params),
+    q<{ chamber: string; bills: number }>(`select b.body chamber, count(*)::int bills from "Bills" b where ${where} and coalesce(b.body, '') <> '' group by 1 order by 2 desc`, params),
+  ])
+  return {
+    bills: n(count?.n),
+    statuses: statuses.map((r) => ({ ...r, bills: n(r.bills) })),
+    committees: committees.map((r) => ({ ...r, bills: n(r.bills) })),
+    chambers: chambers.map((r) => ({ ...r, bills: n(r.bills) })),
+  }
+}
+
+/**
+ * The bills adopted in every session of a jurisdiction, for the home page's
+ * Adopted Bills chart (Brendan, 2026-09-05: "can you make this real?").
+ * Adopted is LegiScan's Passed status, and the words the other pipelines use
+ * for the same thing — Signed by Governor, Adopted, Chaptered, Enacted.
+ */
+export async function getAdoptedBySession(state: string) {
+  const rows = await q<{ session_id: number; adopted: number; bills: number }>(
+    `select session_id,
+            count(*) filter (where status = 4 or status_desc in ('Passed', 'Signed by Governor', 'Adopted', 'Chaptered', 'Enacted', 'Became Law'))::int as adopted,
+            count(*)::int as bills
+       from "Bills" where state = $1 group by 1 order by 1`,
+    [state]
+  )
+  return rows.map((r) => ({ session_id: n(r.session_id), adopted: n(r.adopted), bills: n(r.bills) }))
+}
+
+/**
+ * How many rows each dataset family holds, per session, for a jurisdiction's
+ * datasets page: one grouped query a family, so the page can print the size
+ * of a file before anyone downloads it (Brendan, 2026-09-05).
+ */
+export async function getDatasetCounts(state: string) {
+  const bySession = (rows: { session_id: number; n: number }[]) => new Map(rows.map((r) => [n(r.session_id), n(r.n)]))
+  const [bills, sponsors, members, committees, rollcalls, votes, history] = await Promise.all([
+    q<{ session_id: number; n: number }>(`select session_id, count(*)::int as n from "Bills" where state = $1 group by 1`, [state]),
+    q<{ session_id: number; n: number }>(`select b.session_id, count(*)::int as n from "Sponsors" s join "Bills" b using (bill_id) where b.state = $1 group by 1`, [state]),
+    q<{ session_id: number; n: number }>(`select b.session_id, count(distinct s.people_id)::int as n from "Sponsors" s join "Bills" b using (bill_id) where b.state = $1 group by 1`, [state]),
+    q<{ session_id: number; n: number }>(`select session_id, count(distinct committee)::int as n from "Bills" where state = $1 and coalesce(committee, '') <> '' group by 1`, [state]),
+    q<{ session_id: number; n: number }>(`select b.session_id, count(*)::int as n from "Roll Call" r join "Bills" b using (bill_id) where b.state = $1 group by 1`, [state]),
+    q<{ session_id: number; n: number }>(`select b.session_id, sum(coalesce(r.total::int, 0))::int as n from "Roll Call" r join "Bills" b using (bill_id) where b.state = $1 group by 1`, [state]),
+    q<{ session_id: number; n: number }>(`select b.session_id, count(*)::int as n from "History Table" h join "Bills" b using (bill_id) where b.state = $1 group by 1`, [state]),
+  ])
+  return { bills: bySession(bills), sponsors: bySession(sponsors), members: bySession(members), committees: bySession(committees), rollcalls: bySession(rollcalls), votes: bySession(votes), history: bySession(history) }
+}
+
+/**
+ * What the record is made of and how it fills, for the Admin experience's
+ * Database page (Brendan, 2026-09-05: "perhaps this is what you use to show
+ * me our provenance and nightly run rate"). The ledgers Aurora itself keeps
+ * answer the run rate: the dataset table's imported_at is the LegiScan
+ * loads, BillTexts' fetched_at is the text walk and the text delta, and
+ * congress_sync_state is the congress.gov pipeline's last word. The totals
+ * are the whole record, every jurisdiction, so the page reads the same under
+ * any scope.
+ */
+export async function getProvenance() {
+  const day = (col: string) => `to_char(${col}, 'YYYY-MM-DD')`
+  const [totals, texts, datasets, feeds, fresh, coverage, since] = await Promise.all([
+    one<{ bills: number; sessions: number; states: number; rollcalls: number; people: number; committees: number; texts: number }>(
+      `select (select count(*)::int from "Bills") as bills,
+              (select count(*)::int from "LegiscanDatasets" where bills > 0) as sessions,
+              (select count(distinct state)::int from "LegiscanDatasets") as states,
+              (select count(*)::int from "Roll Call") as rollcalls,
+              (select count(*)::int from "People" where committee_id is null and not coalesce(archived, false)) as people,
+              (select count(distinct committee)::int from "Bills" where coalesce(committee, '') <> '') as committees,
+              (select count(*)::int from "BillTexts") as texts`
+    ),
+    q<{ day: string; texts: number }>(
+      `select ${day("fetched_at")} as day, count(*)::int as texts
+         from "BillTexts" where fetched_at >= now() - interval '90 days' group by 1 order by 1`
+    ),
+    q<{ day: string; datasets: number; bills: number }>(
+      `select ${day("imported_at")} as day, count(*)::int as datasets, sum(bills)::int as bills
+         from "LegiscanDatasets" where imported_at >= now() - interval '90 days' group by 1 order by 1`
+    ),
+    one<{
+      legiscan_at: string | null
+      legiscan_delta_at: string | null
+      texts_at: string | null
+      texts_week: number
+      congress_at: string | null
+      congress_note: string | null
+      lobbying_at: string | null
+      fec_at: string | null
+      house_at: string | null
+      senate_at: string | null
+      laws_at: string | null
+      model_at: string | null
+    }>(
+      `select (select max(imported_at)::text from "LegiscanDatasets") as legiscan_at,
+              (select max(imported_at)::text from "LegiscanDatasets" where state in ('US', 'NY', 'NJ')) as legiscan_delta_at,
+              (select max(fetched_at)::text from "BillTexts") as texts_at,
+              (select count(*)::int from "BillTexts" where fetched_at >= now() - interval '7 days') as texts_week,
+              (select max(last_run)::text from congress_sync_state) as congress_at,
+              (select note from congress_sync_state order by last_run desc limit 1) as congress_note,
+              (select max(updated_at)::text from "LobbyingSync") as lobbying_at,
+              (select max(fetched_at)::text from "FecTotals") as fec_at,
+              (select max(fetched_at)::text from house_staff) as house_at,
+              (select max(fetched_at)::text from senate_contact) as senate_at,
+              (select max(fetched_at)::text from "Laws") as laws_at,
+              (select max(fetched_at)::text from "ModelBills") as model_at`
+    ),
+    // Per jurisdiction: the last action the record holds, and — the figure a
+    // reader wants (Brendan, 2026-09-06: "the last time we pulled the bulk
+    // data or api or harvested that site") — the last time a loader wrote it:
+    // the dataset ledger's import, or for Congress the pipeline's last run.
+    q<{ state: string; last_action: string; bills: number; recent: number; pulled_at: string | null }>(
+      // Looked at counts as pulled (2026-09-20): a sweep that compares a session's hash and finds it unchanged stamps
+      // checked_at (sql/035), so a legislature that has gone home does not read as a feed gone dark. So does a text
+      // fetch in the last eight days, which is all New York's own API leaves behind; it writes no ledger row.
+      `with t as (select state, max(fetched_at) as at from "BillTexts" where fetched_at > now() - interval '8 days' group by 1)
+       select b.state, max(b.last_action_date) as last_action, count(*)::int as bills,
+              count(*) filter (where b.last_action_date >= to_char(now() - interval '7 days', 'YYYY-MM-DD'))::int as recent,
+              greatest((select max(greatest(imported_at, checked_at)) from "LegiscanDatasets" d where d.state = b.state),
+                       (select at from t where t.state = b.state),
+                       case when b.state = 'US' then (select max(last_run) from congress_sync_state) end)::text as pulled_at
+         from "Bills" b where b.session_id >= 2025 group by 1 order by 1`
+    ),
+    one<{ with_text: number; of: number }>(
+      `select count(*) filter (where coalesce(text_chars, 0) > 0)::int as with_text, count(*)::int as of
+         from "Bills" where session_id >= 2025`
+    ),
+    // The record as it stood before the day's runs began: the first snapshot of the last 24 hours (sql/036). The
+    // tiles' change numbers are today's totals less these, never a count of rows stamped today.
+    one<{ at: string; bills: number | null; texts: number | null; rollcalls: number | null; people: number | null }>(
+      `select to_char(at at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as at, bills, texts, rollcalls, people from "CorpusSnapshots" where at > now() - interval '24 hours' order by at limit 1`
+    ).catch(() => null),
+  ])
+  const days = new Map<string, { day: string; texts: number; datasets: number; bills: number }>()
+  for (const t of texts) days.set(t.day, { day: t.day, texts: n(t.texts), datasets: 0, bills: 0 })
+  for (const d of datasets) {
+    const row = days.get(d.day) ?? { day: d.day, texts: 0, datasets: 0, bills: 0 }
+    row.datasets = n(d.datasets)
+    row.bills = n(d.bills)
+    days.set(d.day, row)
+  }
+  return {
+    totals: {
+      bills: n(totals?.bills),
+      sessions: n(totals?.sessions),
+      states: n(totals?.states),
+      rollcalls: n(totals?.rollcalls),
+      people: n(totals?.people),
+      committees: n(totals?.committees),
+      texts: n(totals?.texts),
+    },
+    daily: [...days.values()].sort((a, b) => a.day.localeCompare(b.day)),
+    feeds: {
+      legiscan_at: feeds?.legiscan_at ?? null,
+      legiscan_delta_at: feeds?.legiscan_delta_at ?? null,
+      texts_at: feeds?.texts_at ?? null,
+      texts_week: n(feeds?.texts_week),
+      congress_at: feeds?.congress_at ?? null,
+      congress_note: feeds?.congress_note ?? null,
+      lobbying_at: feeds?.lobbying_at ?? null,
+      fec_at: feeds?.fec_at ?? null,
+      house_at: feeds?.house_at ?? null,
+      senate_at: feeds?.senate_at ?? null,
+      laws_at: feeds?.laws_at ?? null,
+      model_at: feeds?.model_at ?? null,
+    },
+    fresh: fresh.map((f) => ({ state: f.state, last_action: f.last_action, bills: n(f.bills), recent: n(f.recent), pulled_at: f.pulled_at ?? null })),
+    coverage: { with_text: n(coverage?.with_text), of: n(coverage?.of) },
+    since: since ? { at: since.at, bills: since.bills, texts: since.texts, rollcalls: since.rollcalls, people: since.people } : null,
+  }
+}

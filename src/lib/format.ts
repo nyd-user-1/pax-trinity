@@ -1,0 +1,69 @@
+import { billCitation } from "@/lib/policy/congress"
+
+// Ported from livingston-v3 lib/policy/format.ts — only what the home page uses.
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+const MONTHS_LONG = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+
+export function fmtDate(value: string | null | undefined, withYear = true) {
+  if (!value) return ""
+  const match = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (!match) return String(value)
+  const [, y, m, d] = match
+  const month = MONTHS[Number(m) - 1] ?? m
+  return withYear ? `${month} ${Number(d)}, ${y}` : `${month} ${Number(d)}`
+}
+
+export function fmtTime(value: string | null | undefined) {
+  if (!value || value === "00:00") return ""
+  const [h, m] = value.split(":").map(Number)
+  if (!Number.isFinite(h)) return value
+  const suffix = h >= 12 ? "PM" : "AM"
+  const hour = h % 12 === 0 ? 12 : h % 12
+  return `${hour}:${String(m ?? 0).padStart(2, "0")} ${suffix}`
+}
+
+/** `September 2, 2026` — the month written out. */
+export function fmtLongDate(value: string | null | undefined) {
+  if (!value) return ""
+  const match = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (!match) return String(value)
+  const [, y, m, d] = match
+  return `${MONTHS_LONG[Number(m) - 1] ?? m} ${Number(d)}, ${y}`
+}
+
+export function fmtNumber(value: number | null | undefined) {
+  return new Intl.NumberFormat("en-US").format(Number(value ?? 0))
+}
+
+export function honorific(role: string | null | undefined, chamber: string | null | undefined) {
+  if (role === "Sen") return "Sen."
+  if (chamber === "Assembly") return "Asm."
+  if (role === "Rep") return "Rep."
+  return ""
+}
+
+export function truncate(value: string | null | undefined, length = 120) {
+  const text = (value ?? "").replace(/\s+/g, " ").trim()
+  return text.length > length ? `${text.slice(0, length - 1).trimEnd()}…` : text
+}
+
+export function fmtCompact(value: number | null | undefined, currency = true) {
+  const formatted = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(Number(value ?? 0))
+  return currency ? `$${formatted}` : formatted
+}
+
+/**
+ * `HB6500` → `HB 6500`: the prefix and the number with a space between, leading
+ * zeros dropped, as the rail prints a bill number.
+ *
+ * Under Congress the record's spelling is not the citation. LegiScan files
+ * H.R. 1 as `HB1` and H.Res. 1 as `HR1`; congress.gov, the news and the reader
+ * all write the other one. Pass the jurisdiction and a federal number prints
+ * as congress.gov prints it — one implementation, in lib/policy/congress.
+ */
+export function fmtBill(number: string | null | undefined, state?: string | null) {
+  return billCitation(number, state)
+}
+
+/** "HD-NY-025" reads "NY-25": the chamber prefix and the zero padding go. */
+export const shortDistrict = (value: string | null | undefined) => (value ?? "").replace(/^[A-Z]+-/, "").replace(/(^|-)0+(?=\d)/g, "$1")

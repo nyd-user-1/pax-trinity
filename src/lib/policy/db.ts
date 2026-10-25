@@ -1,0 +1,348 @@
+import {
+  RDSDataClient,
+  BeginTransactionCommand,
+  CommitTransactionCommand,
+  ExecuteStatementCommand,
+  RollbackTransactionCommand,
+  type ExecuteStatementCommandOutput,
+  type Field,
+} from "@aws-sdk/client-rds-data"
+import { unstable_cache } from "next/cache"
+
+// The policy database, read only.
+//
+// Production is Aurora Serverless v2 (PostgreSQL 17) reached over the RDS Data
+// API: an HTTPS call signed with the hosting role, so the site needs no VPC
+// attachment, no NAT gateway and no connection pool. `sql` is a tagged template
+// with the same shape the Neon driver had, so every reader below is unchanged.
+//
+// POLICY_DATABASE_URL still wins when it is set, which keeps a laptop pointed at
+// any plain Postgres. Absent both, `sql` is null and the pages fall back to their
+// committed snapshots, so a build without secrets still renders.
+
+export type SqlTag = (strings: TemplateStringsArray, ...values: unknown[]) => Promise<Record<string, unknown>[]>
+
+// The plain-Postgres (Neon driver) laptop path is removed in trinity — no Neon in this project (Brendan, 2026-10-24). Aurora Data API or snapshot fallback only.
+const resourceArn = process.env.POLICY_CLUSTER_ARN
+const secretArn = process.env.POLICY_SECRET_ARN
+const database = process.env.POLICY_DATABASE ?? "policy"
+
+// A Postgres array literal: the call sites write `${ids}::bigint[]`, so the cast
+// sits in the SQL already and the parameter only has to arrive as `{1,2,3}`.
+function arrayLiteral(values: unknown[]) {
+  return `{${values
+    .map((v) => {
+      if (v === null || v === undefined) return "NULL"
+      // Numbers go bare; everything else is quoted, including the string "NULL",
+      // which unquoted would become a SQL null. Postgres accepts quoted elements
+      // for any element type, so the ::bigint[] casts at the call sites still hold.
+      if (typeof v === "number" || typeof v === "bigint") return String(v)
+      return `"${String(v).replace(/(["\\])/g, "\\$1")}"`
+    })
+    .join(",")}}`
+}
+
+function parameter(name: string, value: unknown) {
+  if (value === null || value === undefined) return { name, value: { isNull: true } }
+  if (Array.isArray(value)) return { name, value: { stringValue: arrayLiteral(value) } }
+  switch (typeof value) {
+    case "number":
+      return Number.isInteger(value)
+        ? { name, value: { longValue: value } }
+        : { name, value: { doubleValue: value } }
+    case "boolean":
+      return { name, value: { booleanValue: value } }
+    case "bigint":
+      return { name, value: { longValue: Number(value) } }
+    default:
+      return { name, value: { stringValue: String(value) } }
+  }
+}
+
+// One Data API field -> one JS value. `formatRecordsAs: "JSON"` would be shorter
+// but hands jsonb back as an unparsed string and drops column metadata, so the
+// newsroom's sections would arrive as text. Decoding against the metadata keeps
+// the driver swap invisible to every reader.
+function decode(field: Field, typeName: string | undefined): unknown {
+  const f = field as unknown as Record<string, unknown>
+  if (f.isNull) return null
+  if (f.arrayValue) {
+    const inner = Object.values(f.arrayValue as Record<string, unknown>)[0]
+    return Array.isArray(inner) ? inner : []
+  }
+  const value = (f.stringValue ?? f.longValue ?? f.doubleValue ?? f.booleanValue ?? null) as unknown
+  if ((typeName === "json" || typeName === "jsonb") && typeof value === "string") {
+    try {
+      return JSON.parse(value)
+    } catch {
+      return value
+    }
+  }
+  return value
+}
+
+// The read cache (2026-09-15). The data changes when a loader runs, not when a
+// page is opened, so a read of the public tables is answered from Next's data
+// cache and the cluster hears each statement once per day at most, or once per
+// hour when the statement asks the clock. The nightly loads and the Database
+// dashboard clear a table's tag (`table:bills`) or everything (`policy`)
+// through POST /api/revalidate, so readers see the freshest load, never a
+// stale one. What is never cached: a write, a statement over a personal or
+// volatile table (a reader's watches, forks, clips, the job queue, the Typeset
+// document store, sign-in), a catalog read, and any statement carrying the
+// comment /* fresh */. Before this, a week of the cluster sat at its 8 ACU
+// ceiling around the clock, mostly crawlers re-rendering the same pages.
+const DAY = 86_400
+const HOUR = 3_600
+const VOLATILE = /^(clip|typeset_documents|xml_jobs|xml_fallouts|watch|reader_|linkedin_|forks|fork_|commits|users|accounts|sessions|verification|agent|mail_|inbox|chat_|comment|pg_|information_schema)/i
+
+/** The tables a statement reads, for its cache tags. */
+export function tablesOf(text: string): string[] {
+  const out = new Set<string>()
+  for (const m of text.matchAll(/\b(?:from|join)\s+"?([A-Za-z_][A-Za-z0-9_]*)"?/g)) out.add(m[1])
+  return [...out]
+}
+
+export function cachePlan(text: string): { tags: string[]; revalidate: number } | null {
+  if (/\/\*\s*fresh\s*\*\//.test(text)) return null
+  const head = text.trimStart().slice(0, 6).toLowerCase()
+  if (!head.startsWith("select") && !head.startsWith("with")) return null
+  if (/\b(insert|update|delete|truncate|refresh|create|alter|drop|lock|nextval|set_config|for\s+update)\b/i.test(text)) return null
+  const tables = tablesOf(text)
+  if (tables.length === 0 || tables.some((t) => VOLATILE.test(t))) return null
+  const clock = /\b(now\(\)|current_date|current_timestamp|localtimestamp|clock_timestamp)\b/i.test(text)
+  return { tags: ["policy", ...tables.map((t) => `table:${t.toLowerCase()}`)], revalidate: clock ? HOUR : DAY }
+}
+
+async function cached<T>(text: string, params: unknown[], run: () => Promise<T>): Promise<T> {
+  const plan = cachePlan(text)
+  if (!plan) return run()
+  try {
+    return await unstable_cache(run, ["policy-read", text, JSON.stringify(params)], plan)()
+  } catch (error) {
+    // Outside a request (a script importing this module) there is no cache to
+    // hold the answer; the statement simply runs.
+    if (/incrementalCache/i.test(String((error as Error)?.message))) return run()
+    throw error
+  }
+}
+
+function dataApiTag(client: RDSDataClient): SqlTag {
+  return async (strings, ...values) => {
+    const parameters = values.map((value, i) => parameter(`p${i}`, value))
+    const statement = strings.reduce((acc, part, i) => acc + part + (i < values.length ? `:p${i}` : ""), "")
+    return cached(statement, values, async () => {
+      const response = await client.send(
+        new ExecuteStatementCommand({
+          resourceArn,
+          secretArn,
+          database,
+          sql: statement,
+          parameters,
+          includeResultMetadata: true,
+        })
+      )
+      const columns = response.columnMetadata ?? []
+      return (response.records ?? []).map((record) => {
+        const row: Record<string, unknown> = {}
+        record.forEach((field, i) => {
+          const column = columns[i]
+          row[column?.name ?? `column${i}`] = decode(field, column?.typeName)
+        })
+        return row
+      })
+    })
+  }
+}
+
+// $1 -> :p0, but only where it is really a placeholder. A scanner rather than a
+// regex because '$1' inside a string literal is data, "$1" is an identifier, and
+// $$ ... $$ is a quoted body — Postgres treats all three as text, and so must we.
+// $10 has to survive as one number, not :p0 followed by a stray 0.
+export function toNamedParameters(text: string) {
+  let out = ""
+  let i = 0
+  let highest = -1
+  while (i < text.length) {
+    const c = text[i]
+    const rest = text.slice(i)
+    if (c === "'" || c === '"') {
+      // A quote doubled inside its own literal escapes it: 'it''s'.
+      const quote = c
+      let j = i + 1
+      while (j < text.length) {
+        if (text[j] === "\\") j += 2
+        else if (text[j] === quote) {
+          if (text[j + 1] === quote) j += 2
+          else break
+        } else j += 1
+      }
+      out += text.slice(i, j + 1)
+      i = j + 1
+      continue
+    }
+    const dollarTag = /^\$[A-Za-z_]*\$/.exec(rest)
+    if (dollarTag) {
+      const tag = dollarTag[0]
+      const close = text.indexOf(tag, i + tag.length)
+      const end = close === -1 ? text.length : close + tag.length
+      out += text.slice(i, end)
+      i = end
+      continue
+    }
+    if (rest.startsWith("--")) {
+      const nl = text.indexOf("\n", i)
+      const end = nl === -1 ? text.length : nl
+      out += text.slice(i, end)
+      i = end
+      continue
+    }
+    if (rest.startsWith("/*")) {
+      const close = text.indexOf("*/", i + 2)
+      const end = close === -1 ? text.length : close + 2
+      out += text.slice(i, end)
+      i = end
+      continue
+    }
+    const placeholder = /^\$(\d+)/.exec(rest)
+    if (placeholder) {
+      const index = Number(placeholder[1]) - 1
+      highest = Math.max(highest, index)
+      out += `:p${index}`
+      i += placeholder[0].length
+      continue
+    }
+    out += c
+    i += 1
+  }
+  return { text: out, highest }
+}
+
+function build(): SqlTag | null {
+  if (resourceArn && secretArn) {
+    return dataApiTag(new RDSDataClient({ region: process.env.AWS_REGION ?? "us-east-1" }))
+  }
+  return null
+}
+
+export const sql = build()
+
+// The positional interface livingston-v3's queries are written against —
+// `q("select ... where state = $1", [state])` — so ~46 KB of working SQL ports
+// without being rewritten. Over the Data API the placeholders are renamed; over
+// a plain Postgres URL the driver already speaks $n.
+const client = resourceArn && secretArn ? new RDSDataClient({ region: process.env.AWS_REGION ?? "us-east-1" }) : null
+
+export async function q<T = Record<string, unknown>>(text: string, params: unknown[] = []): Promise<T[]> {
+  if (!client) throw new Error("no policy database configured")
+
+  const statement = toNamedParameters(text)
+  return cached(text, params, async () => {
+    const response = await awake(() =>
+      client.send(
+        new ExecuteStatementCommand({
+          resourceArn,
+          secretArn,
+          database,
+          sql: statement.text,
+          parameters: params.map((value, i) => parameter(`p${i}`, value)),
+          includeResultMetadata: true,
+        })
+      )
+    )
+    return rowsOf<T>(response)
+  })
+}
+
+// Aurora Serverless v2 pauses at 0 ACU after five idle minutes and answers the
+// first statements with DatabaseResumingException while it wakes (~20 s). Wait
+// it out rather than 503 the first visitor (2026-09-04).
+async function awake<R>(send: () => Promise<R>): Promise<R> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await send()
+    } catch (error) {
+      const name = (error as { name?: string })?.name ?? ""
+      const resuming = name === "DatabaseResumingException" || /resuming after being auto-paused/i.test(String((error as Error)?.message))
+      if (!resuming || attempt >= 12) throw error
+      await new Promise((r) => setTimeout(r, 2500))
+    }
+  }
+}
+
+function rowsOf<T>(response: ExecuteStatementCommandOutput): T[] {
+  const columns = response.columnMetadata ?? []
+  return (response.records ?? []).map((record) => {
+    const row: Record<string, unknown> = {}
+    record.forEach((field, i) => {
+      const column = columns[i]
+      row[column?.name ?? `column${i}`] = decode(field, column?.typeName)
+    })
+    return row as T
+  })
+}
+
+/**
+ * A read with its own memory and a deadline (2026-09-18, the national search).
+ * The cluster's work_mem is 4 MB, and a search matching half a million
+ * documents overflows it: the bitmap goes lossy and Postgres re-reads every
+ * candidate's tsvector out of TOAST, which took "tax" across every session past
+ * the Data API's 45 s. At 64 MB the same search answered in 2.9 s cold. The
+ * settings are `set local`, so they last one transaction — the statement's own
+ * — and never reach another reader's; the timeout turns a runaway into an
+ * error the caller can answer, instead of a statement left running. Cached
+ * exactly as `q` is. Over a plain Postgres URL the settings are skipped.
+ */
+export async function qTuned<T = Record<string, unknown>>(text: string, params: unknown[] = [], { workMem = "64MB", timeoutMs = 8000 }: { workMem?: string; timeoutMs?: number } = {}): Promise<T[]> {
+  if (!client) return q<T>(text, params)
+  const statement = toNamedParameters(text)
+  return cached(text, params, async () => {
+    const begun = await awake(() => client.send(new BeginTransactionCommand({ resourceArn, secretArn, database })))
+    const transactionId = begun.transactionId
+    try {
+      await client.send(
+        new ExecuteStatementCommand({
+          resourceArn,
+          secretArn,
+          database,
+          transactionId,
+          sql: "select set_config('work_mem', :mem, true), set_config('statement_timeout', :timeout, true)",
+          parameters: [parameter("mem", workMem), parameter("timeout", String(timeoutMs))],
+        })
+      )
+      const response = await client.send(
+        new ExecuteStatementCommand({
+          resourceArn,
+          secretArn,
+          database,
+          transactionId,
+          sql: statement.text,
+          parameters: params.map((value, i) => parameter(`p${i}`, value)),
+          includeResultMetadata: true,
+        })
+      )
+      await client.send(new CommitTransactionCommand({ resourceArn, secretArn, transactionId }))
+      return rowsOf<T>(response)
+    } catch (error) {
+      await client.send(new RollbackTransactionCommand({ resourceArn, secretArn, transactionId })).catch(() => {})
+      throw error
+    }
+  })
+}
+
+export async function one<T = Record<string, unknown>>(text: string, params: unknown[] = []): Promise<T | null> {
+  const rows = await q<T>(text, params)
+  return rows[0] ?? null
+}
+
+export const n = (value: unknown) => Number(value ?? 0)
+
+export function hasDatabase() {
+  return !!sql
+}
+
+/** Which backend answered, for the health route and the footer's source badge. */
+export function databaseKind(): "aurora-data-api" | "postgres-url" | "none" {
+  if (resourceArn && secretArn) return "aurora-data-api"
+  return "none"
+}
