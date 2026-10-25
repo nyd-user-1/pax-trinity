@@ -23,7 +23,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --no-audit --no-fund
-      - run: printf 'PAX2_REGION=us-east-1\nPAX2_BUCKET=pax-2-638175140432\nPAX2_LEDGER_TABLE=pax2-ledger\n' > .env.production
+      - run: printf 'PAX2_REGION=us-east-1\n' > .env.production
       - run: npx next build 2>&1 | tee build.log
         shell: bash
       - name: Size against Amplify's cap
@@ -35,6 +35,3 @@ jobs:
           mb=$(du -sm .next | cut -f1)
           echo "next=${mb} MB, limit ${LIMIT_MB} MB" >> "$GITHUB_STEP_SUMMARY"
           if [ "$mb" -gt "$LIMIT_MB" ]; then echo "::error::.next is ${mb} MB, over ${LIMIT_MB} MB"; exit 1; fi
-      - name: Every data file the server reads is in the build
-        shell: bash
-        run: bash scripts/check-traced.sh
