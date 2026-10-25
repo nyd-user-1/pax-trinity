@@ -42,11 +42,11 @@ export function Creators({ clips, partners, activeId, onOpenClip, selected, onSe
       <div className="flex min-h-0 flex-1 flex-col gap-0.5">
         {/* The context switcher: whose shelf the page shows (Brendan, 2026-10-25). */}
         <Select value={selected} onValueChange={(v) => v && onSelect(String(v))}>
-          <SelectTrigger className="h-auto w-full justify-start gap-3 rounded-lg border-0 bg-accent px-2 py-2 shadow-none" aria-label="Partner">
+          <SelectTrigger className="h-auto min-h-[52px] w-full shrink-0 justify-start gap-3 rounded-lg border-0 bg-accent px-2 py-2 shadow-none" aria-label="Partner">
             <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-background"><LayoutGridIcon className="size-4" /></span>
             <span className="flex min-w-0 flex-1 flex-col text-left">
-              <span className="truncate text-sm font-medium">{current?.name}</span>
-              <span className="truncate text-xs text-muted-foreground">{current?.count} clips</span>
+              <span className="truncate text-sm font-medium leading-5">{current?.name}</span>
+              <span className="truncate text-xs leading-4 text-muted-foreground">{current?.count} clips</span>
             </span>
           </SelectTrigger>
           <SelectContent className="w-(--anchor-width) min-w-44">

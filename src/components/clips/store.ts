@@ -67,6 +67,23 @@ const by = (id: string) => {
 // faststart MP4 and served from S3 behind CloudFront (private bucket, OAC).
 // The originals stay in public/clips-media/, untracked, as the archive.
 const CLIPS_CDN = "https://d3tyjc2amjpyom.cloudfront.net"
+
+// The partner channels' shorts (pulled 2026-10-25 through the Webshare fleet),
+// one manifest row per cut, files at <CDN>/vf/<id>.mp4 and <CDN>/y3/<id>.mp4.
+type PartnerShort = { id: string; partner: string; title: string; duration: number }
+const shortClip = (x: PartnerShort): Clip => ({
+  id: `yt-${x.id}`,
+  creatorId: x.partner,
+  author: by(x.partner),
+  title: x.title,
+  caption: "From the channel's shorts.",
+  src: `${CLIPS_CDN}/${x.partner === "voter-freedom" ? "vf" : "y3"}/${x.id}.mp4`,
+  duration: x.duration,
+  createdAt: "2026-10-25T12:00:00Z",
+  visibility: "public",
+  views: 0,
+  likes: 0,
+})
 const frame = (id: string, file: string, o: { title: string; duration: number; createdAt?: string; messenger?: string; partner?: string }): Clip => ({
   id: `px-${id}`,
   creatorId: o.partner ?? "parallax",
@@ -79,6 +96,8 @@ const frame = (id: string, file: string, o: { title: string; duration: number; c
   likes: 0,
   ...o,
 })
+
+import PARTNER_SHORTS from "./partner-shorts.json"
 
 export const PUBLISHED: Clip[] = [
   frame("danielle", "danielle-allen.mp4", { title: "Danielle Allen", messenger: "Danielle Allen", duration: 35 }),
@@ -112,6 +131,7 @@ export const PUBLISHED: Clip[] = [
   frame("locked-out", "why-independentsare-locked-out-40s.mp4", { title: "Why independents are locked out", partner: "voter-freedom", duration: 41, createdAt: "2026-10-05T12:00:00Z" }),
   frame("no-newscaster", "why-independentsare-locked-out-no-newscaster-21s.mp4", { title: "Why independents are locked out", partner: "voter-freedom", duration: 21, createdAt: "2026-10-05T12:00:00Z" }),
   frame("theo", "why-nothing-passes-theo-51s.mp4", { title: "Why nothing passes", messenger: "Theo", partner: "voter-freedom", duration: 52, createdAt: "2026-10-05T12:00:00Z" }),
+  ...(PARTNER_SHORTS as PartnerShort[]).map(shortClip),
 ]
 
 const person = (name: string, handle: string) => ({ name, handle, image: null })
