@@ -19,7 +19,7 @@ export type Partner = { id: string; name: string; youtube: string | null }
 
 export const PARTNERS: Partner[] = [
   { id: "voter-freedom", name: "Voter Freedom", youtube: "https://www.youtube.com/@voterfreedom" },
-  { id: "unite-america", name: "Unite America", youtube: "https://www.youtube.com/@uniteamerica" },
+  { id: "unite-america", name: "Unite America", youtube: "https://www.youtube.com/@uniteamerica3047" },
   // The PAX channel does not exist yet; it gets made, then its URL lands here.
   { id: "pax", name: "PAX", youtube: null },
   { id: "yeson3", name: "Yes on 3", youtube: "https://www.youtube.com/@yeson3ma" },

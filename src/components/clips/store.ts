@@ -116,7 +116,7 @@ export const PUBLISHED: Clip[] = [
 
   frame("jesse", "jesse-littlewood.mp4", { title: "Jesse Littlewood", messenger: "Jesse Littlewood", report: { study: "Grow Progress · Massachusetts Wave 1", fielded: "Oct 2–7, 2026", placeboN: 494, armN: 484, outcomes: [{ name: "Support — % choosing Yes", lift: 15, label: "Persuasive" }, { name: "Comprehension — % identifying the change", lift: -3, label: "No measurable effect" }] }, duration: 49 }),
 
-  frame("paul", "paul-schilchtman.mp4", { title: "Paul Schilchtman", messenger: "Paul Schilchtman", duration: 43 }),
+  frame("paul", "paul-schilchtman.mp4", { title: "Paul Schilchtman", messenger: "Paul Schilchtman", report: { study: "Grow Progress · Massachusetts Wave 2", fielded: "Oct 12–15, 2026", placeboN: 443, armN: 482, outcomes: [{ name: "Support — % choosing Yes", lift: 10, label: "Persuasive" }, { name: "Comprehension — % identifying the change", lift: 11, label: "Persuasive" }] }, duration: 43 }),
 
   frame("alex", "alex-rodriguez.mp4", { title: "Alex Rodriguez", messenger: "Alex Rodriguez", report: { study: "Grow Progress · Massachusetts Wave 1", fielded: "Oct 2–7, 2026", placeboN: 494, armN: 546, outcomes: [{ name: "Support — % choosing Yes", lift: 2, label: "No measurable effect" }, { name: "Comprehension — % identifying the change", lift: 0, label: "No measurable effect" }] }, duration: 37 }),
 

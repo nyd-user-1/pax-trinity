@@ -120,3 +120,8 @@ Cascade (dead bridges that imported the trees): src/components/card-frame.tsx, s
 - src/lib/policy/use-policy.ts
 - src/lib/policy/use-scoped.ts
 - src/lib/workspace/dashboard.ts (inbox lane's own DROP)
+
+# Removed 2026-10-25, round 3 — unused packages (reinstall from npm if needed)
+- sonner ^2.0.8 (the shadcn-style toast library)
+- zod ^4.4.3 (runtime schema validation)
+- earlier same day: @dagrejs/dagre ^3.1.1, maplibre-gl ^5.24.0, react-map-gl ^8.1.3 (graph/map pages)
