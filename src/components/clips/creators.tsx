@@ -37,13 +37,13 @@ export function Creators({ clips, partners, activeId, onOpenClip, selected, onSe
   const current = partners.find((x) => x.id === selected) ?? partners[0]
   return (
     <div className={cn("flex h-full flex-col", className)}>
-      {/* h-14: the center toolbar's row, so this label sits on the "46 clips" line and the first row lands at the grid's top. */}
-      <p className="flex h-14 items-center px-2 text-xs font-medium text-muted-foreground">Partners</p>
-      <div className="flex flex-col gap-0.5">
+      {/* Fixed head: the label on the toolbar's line, then the switcher; only the list below slides (Brendan, 2026-10-25). */}
+      <p className="flex h-14 shrink-0 items-center px-2 text-xs font-medium text-muted-foreground">Partners</p>
+      <div className="flex min-h-0 flex-1 flex-col gap-0.5">
         {/* The context switcher: whose shelf the page shows (Brendan, 2026-10-25). */}
         <Select value={selected} onValueChange={(v) => v && onSelect(String(v))}>
           <SelectTrigger className="h-auto w-full justify-start gap-3 rounded-lg border-0 bg-accent px-2 py-2 shadow-none" aria-label="Partner">
-            <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-background"><LayoutGridIcon className="size-5" /></span>
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-background"><LayoutGridIcon className="size-4" /></span>
             <span className="flex min-w-0 flex-1 flex-col text-left">
               <span className="truncate text-sm font-medium">{current?.name}</span>
               <span className="truncate text-xs text-muted-foreground">{current?.count} clips</span>
@@ -58,10 +58,11 @@ export function Creators({ clips, partners, activeId, onOpenClip, selected, onSe
           </SelectContent>
         </Select>
         {/* One row per video: pressing one brings the single-video view into focus. */}
+        <div className="mt-0.5 flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto">
         {clips.map((c) => (
           <button key={c.id} type="button" onClick={() => onOpenClip(c.id)} className={cn("group flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-accent", activeId === c.id && "bg-accent")}>
-            <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-muted/60 text-muted-foreground">
-              <PlayIcon className="size-5" />
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+              <PlayIcon className="size-4" />
             </span>
             <span className="flex min-w-0 flex-col">
               <span className="truncate text-sm font-medium">{c.title}</span>
@@ -75,6 +76,7 @@ export function Creators({ clips, partners, activeId, onOpenClip, selected, onSe
             <Item id="you" name={you.name} sub={`Your library · ${you.count}`} image={you.image} fallback={you.name.slice(0, 1)} />
           </>
         )}
+        </div>
       </div>
       <div className="mt-auto flex flex-col gap-2 pt-4">
         <Button className="w-full gap-1.5" onClick={onRecord}>

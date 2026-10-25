@@ -297,7 +297,7 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
     <div data-slot="clips" className="container-wrapper">
       <div className="px-2 lg:grid lg:grid-cols-[240px_minmax(0,1fr)_340px] lg:gap-6 lg:px-4">
         <aside className="hidden lg:block">
-          <div className={cn("sticky top-4 overflow-y-auto pb-4", COLUMN_HEIGHT[frame])}>
+          <div className={cn("sticky top-4 pb-4", COLUMN_HEIGHT[frame])}>
             <Creators clips={clipRows} partners={partnerRows} activeId={view === "feed" ? activeId : null} onOpenClip={(id) => { const c = published.find((x) => x.id === id); if (c) goToPost(c) }} selected={creator} onSelect={setCreator} you={youRow} onRecord={record} onUpload={upload} onGenerate={() => setMode("generate")} />
           </div>
         </aside>
