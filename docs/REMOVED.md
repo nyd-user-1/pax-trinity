@@ -56,3 +56,5 @@
 All of src/govblock-ui and lib/policy home-state, jurisdiction, manual-fetch, use-policy. Still removed: the bill/text JSON snapshots and lib/policy frozen, snapshot, url-state, use-scoped.
 
 ## Second restore: all of lib/policy stays (the lane keeps reaching for it). Only the lib/data bill/text snapshots remain removed.
+
+## Verdict 2026-10-25: sweep fully reverted. The /inbox lane is actively building into the govblock layer (policy hooks, govblock-ui, the data snapshots via snapshot.ts), so nothing of it can go until that lane settles. Re-run the removal then.
