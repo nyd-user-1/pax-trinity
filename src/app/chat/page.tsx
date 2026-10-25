@@ -26,5 +26,6 @@ export default async function ChatPage({ searchParams }: { searchParams: Promise
   const videos = [...ours.filter((v) => v.e2), ...ours.filter((v) => !v.e2 && v.lab && v.channel === VF && settled(v)).slice(0, 7)].map(chip)
   // The menu's Shorts: every one of their shorts with a settled number.
   const shorts = ours.filter(settled).map(chip)
-  return <Chat key={chatId} chatId={chatId} initialMessages={saved?.messages} record={record === "1"} scripts={SCRIPTS.map((s) => ({ id: s.id, title: s.title, short: s.short }))} videos={videos} shorts={shorts} />
+  // explore={false}: the Explore strip and its video scroll stayed behind in pax2 (Brendan, 2026-10-24).
+  return <Chat key={chatId} chatId={chatId} initialMessages={saved?.messages} record={record === "1"} explore={false} scripts={SCRIPTS.map((s) => ({ id: s.id, title: s.title, short: s.short }))} videos={videos} shorts={shorts} />
 }

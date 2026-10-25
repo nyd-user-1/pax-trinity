@@ -9,7 +9,7 @@
 // the chat with its Graphics card). Icons wear the sidebar's clothes: 18px, 1.75 stroke, lavender fill on hover.
 
 import { useState, useRef, useEffect } from 'react'
-import { Plus, ChevronRight, ArrowLeft, X, ChartColumn, NotebookPen, PlaySquare, Clapperboard, AudioLines, Volume2, Loader2, Film, Shapes } from 'lucide-react'
+import { Plus, ChevronRight, ArrowLeft, X, ChartColumn, NotebookPen, Paperclip, PlaySquare, Clapperboard, AudioLines, Volume2, Loader2, Film, Shapes } from 'lucide-react'
 
 import { narrate } from '@/app/studio-actions'
 import { BROLL, GRAPHIC_KINDS, type FootageFocus, type GraphicKind } from '@/lib/footage'
@@ -67,6 +67,8 @@ interface Props {
   onGraphic?: (kind: GraphicKind) => void
   /** Whether the conversation holds a finished script for a graphic to come from. */
   hasScript?: boolean
+  /** Attach: the chat's file upload, housed in the menu rather than beside it (Brendan, 2026-10-24). */
+  onAttach?: () => void
 }
 
 /* Sidebar dress for every menu icon (shell.tsx's item): 18px, 1.75 stroke, lavender fill on row hover. */
@@ -80,7 +82,7 @@ const outlier = (x: number) => `${x >= 10 ? x.toFixed(0) : x.toFixed(1)}×`
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
 
-export function PlusMenu({ videos, shorts = [], onSelect, onShort, dropUp = false, onFootage, onBroll, onGraphic, hasScript = false }: Props) {
+export function PlusMenu({ videos, shorts = [], onSelect, onShort, dropUp = false, onFootage, onBroll, onGraphic, hasScript = false, onAttach }: Props) {
   const [scripts, setScripts] = useState<ListedScript[] | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [step, setStep] = useState<DrillStep>('categories')
@@ -200,6 +202,13 @@ export function PlusMenu({ videos, shorts = [], onSelect, onShort, dropUp = fals
                 <ChevronRight className="h-4 w-4 ml-auto text-[var(--muted)]" />
               </button>
             ))}
+            {/* A leaf, not a drill-down: picking it opens the file dialog. */}
+            {onAttach && (
+              <button onClick={() => { onAttach(); closeMenu() }} className={row(CATEGORIES.length) + ' text-sm font-medium'}>
+                <Paperclip className={ICON} strokeWidth={1.75} />
+                <span className="text-[var(--txt)]">Attach</span>
+              </button>
+            )}
           </div>
         </div>
       )}

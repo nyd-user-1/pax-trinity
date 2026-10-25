@@ -798,6 +798,7 @@ export function Chat({ scripts = [], videos = [], shorts = [], compact = false, 
 
         <div className="flex items-center pt-1">
           <PlusMenu videos={videos} shorts={shorts} dropUp={!isEmpty || compact} onSelect={(text) => { setInput(text); textareaRef.current?.focus() }} onShort={(v) => { if (!chipVideo && v.youtube) { setChipTarget(v.id); setTapped([]) } attachVideo(v) }}
+            onAttach={() => pdfInput.current?.click()}
             hasScript={messages.some((m) => m.role === 'assistant' && !!scriptText(m.content))}
             onFootage={(text, focus) => { setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: 'assistant', content: '```pax-script\n' + text.trim() + '\n```', model: focus === 'shots' ? 'library-shots' : 'library-graphics' }]); setFootageFocus({ script: text.trim(), focus }) }}
             onBroll={(id) => setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: 'assistant', content: '```pax-broll\n' + id + '\n```', model: 'library-broll' }])}
@@ -809,9 +810,7 @@ export function Chat({ scripts = [], videos = [], shorts = [], compact = false, 
               if (last.model === 'library-shots') setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: 'assistant', content: '```pax-script\n' + text + '\n```', model: 'library-graphics' }])
               setFootageFocus({ script: text, focus: kind })
             }} />
-          <button type="button" onClick={() => pdfInput.current?.click()} aria-label="Attach a PDF" title="Attach a PDF" className="flex size-9 items-center justify-center rounded-full text-[var(--muted)] transition-colors hover:bg-slate-100 hover:text-[var(--txt)]">
-            <Paperclip className="size-[18px]" />
-          </button>
+          {/* Attach lives in the + menu now (Brendan, 2026-10-24); only the hidden input stays. */}
           <input ref={pdfInput} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => { pickPdf(e.target.files?.[0]); e.target.value = '' }} />
 
           <button
