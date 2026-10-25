@@ -97,8 +97,8 @@ export function BlockShell({
       >
         {rail}
       </Sidebar>
-      {/* Brendan, 2026-09-07: a gap-4 between the rail and the card while the rail is open. */}
-      <SidebarInset className={cn("m-2 min-h-0 min-w-0 overflow-hidden rounded-xl shadow-sm", open ? "ml-4" : "ml-2")}>
+      {/* Brendan, 2026-10-25: flush — the margins, rounded corners and shadow are gone; the pane meets the shell edge to edge. */}
+      <SidebarInset className="min-h-0 min-w-0 overflow-hidden">
         <header className={cn("relative z-10 flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-shadow", headerClassName)}>
           <div className="flex w-full min-w-0 items-center gap-1 px-4 lg:gap-2 lg:px-6">
             <SidebarTrigger className="-ml-1" />
