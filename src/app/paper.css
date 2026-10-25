@@ -1,0 +1,40 @@
+:root {
+  --white: #ffffff;
+}
+
+/* The NYSgpt paper palette, scoped exactly as it was in NYSgpt's globals.css:
+   the home boxes (HomeMasthead, HomeContents) read these tokens directly. */
+.nysgpt-app {
+  --bg: #f9f9f9;
+  --surface: #ffffff;
+  --border: rgba(0, 0, 0, 0.09);
+  --inp-bg: rgba(0, 0, 0, 0.04);
+  --txt: #111118;
+  --muted: rgba(17, 17, 24, 0.48);
+
+  --paper: #ffffff;
+  --paper-text: #16181d;
+  --paper-muted: rgba(22, 24, 29, 0.58);
+  --paper-faint: rgba(22, 24, 29, 0.4);
+  --paper-rule: #16181d;
+  --paper-rule-soft: rgba(22, 24, 29, 0.06);
+  --paper-quiet: rgba(22, 24, 29, 0.035);
+  --paper-strong: #033882;
+}
+.dark .nysgpt-app {
+  --bg: #0f0f13;
+  --surface: #1a1a22;
+  --border: rgba(255, 255, 255, 0.09);
+  --inp-bg: rgba(255, 255, 255, 0.06);
+  --txt: #f0f0f5;
+  --muted: rgba(240, 240, 245, 0.48);
+
+  --paper: #15120d;
+  --paper-text: #f0e9d8;
+  --paper-muted: rgba(240, 233, 216, 0.58);
+  --paper-faint: rgba(240, 233, 216, 0.36);
+  --paper-rule: #f0e9d8;
+  --paper-rule-soft: rgba(240, 233, 216, 0.06);
+  --paper-quiet: rgba(240, 233, 216, 0.035);
+  --paper-strong: #b6d0f4;
+}

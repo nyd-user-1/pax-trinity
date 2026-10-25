@@ -42,7 +42,7 @@ export function HomeMasthead({ ledger }: { ledger: LedgerEntry[] }) {
   return (
     // A rounded frame matching the app shell (2026-10-08); the grid inside sits
     // 1px outward so its own edge rules fall under the frame and are clipped.
-    <div className="overflow-hidden rounded-2xl border border-[var(--paper-rule)]">
+    <div className="overflow-hidden rounded-2xl border border-[var(--paper-rule)] bg-[var(--paper)]">
     <div data-inspect="HomeMasthead" className="-m-px grid grid-cols-1 items-stretch border-t border-b border-[var(--paper-rule)] lg:grid-cols-[auto_1fr]">
       {/* border-r closes the cell's right edge when the masthead stacks below lg.
           Side by side the ledger's own border-l closes that seam, so it is
