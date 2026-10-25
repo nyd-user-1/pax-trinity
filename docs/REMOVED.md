@@ -54,3 +54,5 @@
 
 ## Restored same day for the /inbox lane (its work in progress imports them)
 All of src/govblock-ui and lib/policy home-state, jurisdiction, manual-fetch, use-policy. Still removed: the bill/text JSON snapshots and lib/policy frozen, snapshot, url-state, use-scoped.
+
+## Second restore: all of lib/policy stays (the lane keeps reaching for it). Only the lib/data bill/text snapshots remain removed.
