@@ -147,6 +147,8 @@ export default function Page() {
   const [query, setQuery] = React.useState("")
   // Messages folded to their one-line state, Gmail's collapse. Fresh per thread.
   const [folded, setFolded] = React.useState<Set<string>>(() => new Set())
+  // The reply card's recipient row: a summary line until clicked, then the editable To/Cc/Bcc.
+  const [editingTo, setEditingTo] = React.useState(false)
   const [copied, setCopied] = React.useState<string | null>(null)
   // The list alone, or the list beside the reading pane (Brendan, 2026-09-07:
   // Gmail's split toggle). Kept in this browser with the threads.
@@ -335,6 +337,7 @@ export default function Page() {
   React.useEffect(() => {
     setReplying(false)
     setFolded(new Set())
+    setEditingTo(false)
     if (!open) return
     setReplyDraft({ ...EMPTY_DRAFT, to: open.to ?? [], cc: open.cc ?? [], bcc: open.bcc ?? [] })
     // Only when a different thread opens; a reply that is being typed must not
@@ -797,38 +800,51 @@ export default function Page() {
                           })}
                         </div>
 
-                      </div>
-
-                      {/* The foot is its own layer under every thread, snapped to the shell's
-                          bottom — Gmail's: Reply and Forward the moment a thread opens, and
-                          the composer card once Reply is pressed. The card grows upward as
-                          the body grows, taking room from the thread above, until its sender
-                          row meets the toolbar; past that the body scrolls inside the card. */}
-                      <div className="flex min-h-0 flex-col bg-background px-6 py-4">
+                        {/* Gmail's foot: Reply and Forward in flow right under the last
+                            message, sticky so they never scroll off — a long thread pins them
+                            to the shell's bottom and the messages scroll up behind them. The
+                            composer card opens in the same spot. */}
+                        <div className="sticky bottom-0 bg-background px-6 pt-2 pb-6 pl-[76px]">
                         {open.status === "draft" ? (
                           <Button size="sm" className="self-start" onClick={() => editDraft(open)}>
                             Edit draft
                           </Button>
                         ) : replying ? (
-                          <div className="flex min-h-0 flex-col rounded-2xl border bg-background shadow-sm">
+                          <div className="flex flex-col rounded-2xl border bg-background shadow-sm">
                             <div className="flex shrink-0 items-center gap-3 border-b px-4 py-3">
                               <Sender from="you" />
-                              <ReplyIcon className="size-4 shrink-0 text-muted-foreground" />
-                              <span className="min-w-0 truncate text-sm text-muted-foreground">{shownRecipients(open).join(", ") || open.agentName}</span>
+                              {editingTo ? (
+                                <span className="text-sm text-muted-foreground">Reply</span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="flex min-w-0 items-center gap-3 text-left"
+                                  title="Edit recipients"
+                                  onClick={() => setEditingTo(true)}
+                                >
+                                  <ReplyIcon className="size-4 shrink-0 text-muted-foreground" />
+                                  <span className="min-w-0 truncate text-sm text-muted-foreground">{shownRecipients(open).join(", ") || open.agentName}</span>
+                                </button>
+                              )}
                             </div>
-                            <div className="flex min-h-0 flex-1 flex-col p-4 pt-3">
+                            <div className="flex flex-col p-4 pt-3">
                               <Compose
                                 inline
+                                reply={editingTo}
                                 placeholder=""
                                 draft={replyDraft}
                                 onChange={setReplyDraft}
                                 onSend={(current) => {
                                   const text = current.body
                                   setReplyDraft({ ...current, body: "" })
-                                  void followUp(open, text)
+                                  setEditingTo(false)
+                                  const lines = { to: current.to, cc: current.cc, bcc: current.bcc }
+                                  patch(open.id, (t) => ({ ...t, ...lines }))
+                                  void followUp({ ...open, ...lines }, text)
                                 }}
                                 onDiscard={() => {
                                   setReplying(false)
+                                  setEditingTo(false)
                                   setReplyDraft((current) => ({ ...current, body: "" }))
                                 }}
                               />
@@ -846,6 +862,7 @@ export default function Page() {
                             </Button>
                           </div>
                         )}
+                        </div>
                       </div>
                     </>
                   ) : (

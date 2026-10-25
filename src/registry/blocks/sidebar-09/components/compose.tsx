@@ -208,6 +208,7 @@ export function Compose({
   onDiscard,
   onSaveDraft,
   inline = false,
+  reply = false,
   placeholder,
 }: {
   draft: Draft
@@ -215,8 +216,10 @@ export function Compose({
   onSend: (draft: Draft) => void
   onDiscard: () => void
   onSaveDraft?: () => void
-  /** A reply at the bottom of a thread: no recipient lines, no subject. */
+  /** A reply at the bottom of a thread: compact body, no subject line. */
   inline?: boolean
+  /** Gmail's reply with the recipient row opened: the To/Cc/Bcc lines show and edit, the subject stays implied. */
+  reply?: boolean
   /** What the empty surface says; defaults to the first agent's own line. */
   placeholder?: string
 }) {
@@ -239,7 +242,7 @@ export function Compose({
         if (everyone.length && draft.body.trim()) onSend(draft)
       }}
     >
-      {!inline && (
+      {(!inline || reply) && (
         <>
           <Recipients
             line="to"
@@ -277,7 +280,10 @@ export function Compose({
               onChange={(bcc) => onChange({ ...draft, bcc })}
             />
           )}
-
+        </>
+      )}
+      {!inline && (
+        <>
           <div className="flex w-full items-center gap-3 border-b pb-2">
             <label htmlFor="task-subject" className="w-12 shrink-0 text-sm text-muted-foreground">
               Subject
@@ -324,7 +330,7 @@ export function Compose({
         // A new task's surface takes the height the pane has, so the bottom
         // bar sits at the bottom of the frame — Gmail's compose — and a long
         // brief scrolls inside the surface rather than pushing Send away.
-        className={inline ? "[&_.ProseMirror]:min-h-24 min-h-0 flex-1 overflow-y-auto" : "min-h-0 flex-1 overflow-y-auto"}
+        className={inline ? "[&_.ProseMirror]:min-h-24 min-h-24" : "min-h-0 flex-1 overflow-y-auto"}
       />
 
       {/* Starters are a way in, not furniture: once there is something to send,
@@ -349,23 +355,19 @@ export function Compose({
           row immediately beside it, and the rest pushed right. Formatting
           belongs down here with the action, not on top of the page someone is
           trying to write on. */}
-      <div className="mt-auto flex shrink-0 flex-col gap-2 pt-2">
-        <div className="no-scrollbar w-fit max-w-full overflow-x-auto rounded-full border bg-muted/50 px-2 py-1">
-          <TaskToolbar editor={editor} />
-        </div>
-        <div className="flex items-center gap-2">
-          <Button type="submit" size="sm" disabled={!everyone.length || !draft.body.trim()}>
-            Send
+      <div className="mt-auto flex flex-wrap items-center gap-2 border-t pt-3">
+        <Button type="submit" size="sm" disabled={!everyone.length || !draft.body.trim()}>
+          Send
+        </Button>
+        <TaskToolbar editor={editor} />
+        {onSaveDraft && (
+          <Button type="button" variant="ghost" size="sm" onClick={onSaveDraft}>
+            Save draft
           </Button>
-          {onSaveDraft && (
-            <Button type="button" variant="ghost" size="sm" onClick={onSaveDraft}>
-              Save draft
-            </Button>
-          )}
-          <Button type="button" variant="ghost" size="sm" aria-label={inline ? "Discard the reply" : "Discard"} className="ml-auto" onClick={onDiscard}>
-            <Trash2Icon className="size-4" />
-          </Button>
-        </div>
+        )}
+        <Button type="button" variant="ghost" size="sm" aria-label={inline ? "Discard the reply" : "Discard"} className="ml-auto" onClick={onDiscard}>
+          <Trash2Icon className="size-4" />
+        </Button>
       </div>
     </form>
   )
