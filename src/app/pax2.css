@@ -2,6 +2,10 @@
    GovBlock's forecast colors and they carry meaning: green = above the reference, red = below,
    navy = actions and type. */
 :root:root {
+  /* The clips surfaces size their feed as calc(100svh - var(--header-height) - …);
+     govblock defined this in its globals, trinity defines it here: the shell's
+     18px frame + the header row above the content card. */
+  --header-height: 7rem;
   --pax2-blue: #1e3a8a;
   --pax2-light-blue: #2563eb;
   --pax2-lavender: #dbeafe;
