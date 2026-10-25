@@ -77,13 +77,15 @@ const short = (id: string, o: { title: string; caption: string; duration: number
   ...o,
 })
 
-// The six Frame.io review cuts (added 2026-10-25). The files live in
-// public/clips-media/, which stays out of git; real hosting is a later wiring.
+// The Frame.io review cuts (2026-10-25): transcoded once to 720-width
+// faststart MP4 and served from S3 behind CloudFront (private bucket, OAC).
+// The originals stay in public/clips-media/, untracked, as the archive.
+const CLIPS_CDN = "https://d3tyjc2amjpyom.cloudfront.net"
 const frame = (id: string, file: string, o: { title: string; duration: number; createdAt?: string }): Clip => ({
   id: `px-${id}`,
   creatorId: "parallax",
   author: by("parallax"),
-  src: `/clips-media/${file}`,
+  src: `${CLIPS_CDN}/${file}`,
   caption: "Vertical cut, from the review set.",
   createdAt: "2026-10-24T19:50:00Z",
   visibility: "public",
@@ -95,10 +97,10 @@ const frame = (id: string, file: string, o: { title: string; duration: number; c
 export const PUBLISHED: Clip[] = [
   frame("danielle", "danielle-allen.mp4", { title: "Danielle Allen", duration: 35 }),
   frame("dustin", "dustin-cathcart.mp4", { title: "Dustin Cathcart", duration: 28 }),
-  frame("jesse", "jesse-littlewood.mov", { title: "Jesse Littlewood", duration: 49 }),
-  frame("paul", "paul-schilchtman.mov", { title: "Paul Schilchtman", duration: 43 }),
-  frame("alex", "alex-rodriguez.mov", { title: "Alex Rodriguez", duration: 37 }),
-  frame("ajayi", "ajayi-harris.mov", { title: "Ajayi Harris", duration: 27 }),
+  frame("jesse", "jesse-littlewood.mp4", { title: "Jesse Littlewood", duration: 49 }),
+  frame("paul", "paul-schilchtman.mp4", { title: "Paul Schilchtman", duration: 43 }),
+  frame("alex", "alex-rodriguez.mp4", { title: "Alex Rodriguez", duration: 37 }),
+  frame("ajayi", "ajayi-harris.mp4", { title: "Ajayi Harris", duration: 27 }),
   // The October 5 share (19 cuts, downloaded 2026-10-25).
   frame("liam-kerr", "closed-primaries-fuel-extremes-liam-kerr-55s.mp4", { title: "Closed primaries fuel extremes (Liam Kerr)", duration: 55, createdAt: "2026-10-05T12:00:00Z" }),
   frame("beth-co", "independent-votersin-colorado-beth-42s.mp4", { title: "Independent voters in Colorado (Beth)", duration: 43, createdAt: "2026-10-05T12:00:00Z" }),
