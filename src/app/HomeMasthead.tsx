@@ -1,5 +1,6 @@
 'use client'
 
+import StrokeText from '@/components/stroke-text'
 import { CountUp } from '@/components/CountUp'
 import { compact } from '@/lib/compact'
 import { useSwitchboard } from '@/components/SwitchboardPanel'
@@ -50,11 +51,19 @@ export function HomeMasthead({ ledger }: { ledger: LedgerEntry[] }) {
         data-inspect="Wordmark"
         className="relative self-stretch flex items-center justify-center border-l border-r lg:border-r-0 border-[var(--paper-rule)] px-6 py-8 sm:px-10 lg:w-[360px]"
       >
-        <span
-          className="text-[var(--paper-text)] leading-[0.82]"
-          style={{ ...SERIF, fontSize: 'clamp(2.5rem, 8vw, 4.5rem)', fontWeight: 650, letterSpacing: '-0.025em' }}
-        >
-          PAX
+        {/* The curtain's PAX, drawn live in the nameplate; the stroke takes the plate's ink. */}
+        <span className="text-[var(--paper-text)]">
+          <StrokeText
+            text="PAX"
+            strokeColor="currentColor"
+            fillMode="wipe"
+            fillColor="#dc2626"
+            fontSize={120}
+            fontFamily="'PAX Curtain', monospace"
+            letterSpacing={0}
+            drawDuration={0.9}
+            stagger={0.08}
+          />
         </span>
       </div>
 

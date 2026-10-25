@@ -268,7 +268,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
   if (path.startsWith("/t/")) return <>{children}</>
   if (path === "/record" || (path.startsWith("/sign") && !home))
     return (
-      <div className="min-h-dvh bg-pax2-mist">
+      <div className="min-h-dvh bg-white">
         <RevealFx key={path} translateY={4}>
           {children}
         </RevealFx>
@@ -328,7 +328,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
     )
   }
   const sidebar = (
-    <div className="flex h-full w-60 flex-col rounded-2xl border border-slate-500 bg-pax2-mist px-3 py-4 shadow-e2">
+    <div className="flex h-full w-60 flex-col rounded-2xl border border-slate-500 bg-white px-3 py-4 shadow-e2">
       <Link href="/" aria-label="Home" className="mb-4 flex px-3 pt-1">
         <Wordmark size={20} />
       </Link>
@@ -394,7 +394,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
   if (home)
     return (
       <PanelCtx.Provider value={panel}>
-        <div className="min-h-dvh bg-pax2-mist">{children}</div>
+        <div className="min-h-dvh bg-white">{children}</div>
         {/* The sidebar slides in for everyone (PAX in the landing header calls it); the discussion is for the signed in. */}
         <div aria-hidden onClick={() => (setSidebarOpen(false), setDiscuss(false))} className={cn("fixed inset-0 z-40 bg-slate-900/20 transition-opacity duration-300", sidebarOpen || discuss ? "opacity-100" : "pointer-events-none opacity-0")} />
         <div className={cn("fixed inset-y-[18px] left-[18px] z-[45] transition-transform duration-300 ease-in-out", sidebarOpen ? "translate-x-0" : "-translate-x-[calc(100%+18px)]")}>{sidebar}</div>
@@ -423,7 +423,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
           {sidebar}
         </div>
         <div ref={mainRef} className={cn("relative flex min-w-0 flex-1 flex-col", takeover && "md:hidden")}>
-          <div className="flex min-w-0 flex-1 flex-col md:min-h-0 md:overflow-hidden md:rounded-2xl md:border md:border-slate-500 md:bg-pax2-mist md:shadow-e2">
+          <div className="flex min-w-0 flex-1 flex-col md:min-h-0 md:overflow-hidden md:rounded-2xl md:border md:border-slate-500 md:bg-white md:shadow-e2">
             <Announcement />
             <header className="sticky top-0 z-20 flex items-center gap-3 border-b bg-white/90 px-4 py-2.5 backdrop-blur md:hidden">
               <Link href="/" aria-label="Home"><Wordmark size={18} /></Link>
@@ -442,7 +442,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
                 })}
               </nav>
             </header>
-            <div className={cn("relative z-10 hidden shrink-0 items-center gap-3 px-5 py-4 shadow-[0_4px_12px_-8px_rgb(15_23_42/0.25)] md:flex")}>
+            <div className={cn("relative z-10 hidden shrink-0 items-center gap-3 bg-white px-5 py-4 shadow-[0_4px_12px_-8px_rgb(15_23_42/0.25)] md:flex")}>
               {/* The wordmark stands plain in the corner — not a button (Brendan, 2026-10-24). */}
               <Wordmark size={20} />
               <button type="button" onClick={() => setSidebarOpen((v) => !v)} aria-label="Toggle sidebar" className={whiteButton("circle")}>
@@ -807,7 +807,7 @@ function AccountMenu() {
         <span className="flex-1 truncate text-left text-sm font-semibold">{name}</span>
         <ChevronsUpDown className="size-3.5 shrink-0 text-slate-400" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-(--anchor-width) rounded-2xl border border-slate-500 bg-pax2-mist p-1.5 shadow-e2 ring-0">
+      <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-(--anchor-width) rounded-2xl border border-slate-500 bg-white p-1.5 shadow-e2 ring-0">
         <div className="flex items-center gap-3 px-2.5 py-2">
           {user ? <Initials name={name} size="md" /> : <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-slate-200 text-slate-500"><User2 className="size-4" /></span>}
           <span className="min-w-0">
@@ -834,7 +834,7 @@ function AccountMenu() {
           <DropdownMenuSubTrigger className={item}>
             <Beaker /> Lab
           </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className="min-w-44 rounded-2xl border border-slate-500 bg-pax2-mist p-1.5 shadow-e2 ring-0">
+          <DropdownMenuSubContent className="min-w-44 rounded-2xl border border-slate-500 bg-white p-1.5 shadow-e2 ring-0">
             {LAB.map((l) => (
               <DropdownMenuItem key={l.href} disabled className={item}>
                 <l.icon /> {l.label}
@@ -859,7 +859,7 @@ function AccountMenu() {
  *  title, width toggle and close. */
 function AsidePanel({ aside, wide, onWide, onClose }: { aside: Aside; wide: boolean; onWide: (wide: boolean) => void; onClose: () => void }) {
   return (
-    <section className="fixed inset-0 z-50 flex flex-col bg-pax2-mist md:static md:z-auto md:h-full md:overflow-hidden md:rounded-2xl md:border md:border-slate-500 md:shadow-e2">
+    <section className="fixed inset-0 z-50 flex flex-col bg-white md:static md:z-auto md:h-full md:overflow-hidden md:rounded-2xl md:border md:border-slate-500 md:shadow-e2">
       <div className="flex min-h-[73px] shrink-0 items-center justify-between gap-3 px-6 py-4">
         <div className="flex min-w-0 items-center gap-2">
           {aside.back && (
