@@ -443,8 +443,6 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
               </nav>
             </header>
             <div className={cn("relative z-10 hidden shrink-0 items-center gap-3 bg-white px-5 py-4 shadow-[0_4px_12px_-8px_rgb(15_23_42/0.25)] md:flex")}>
-              {/* The wordmark stands plain in the corner — not a button (Brendan, 2026-10-24). */}
-              <Wordmark size={20} />
               <button type="button" onClick={() => setSidebarOpen((v) => !v)} aria-label="Toggle sidebar" className={whiteButton("circle")}>
                 {sidebarOpen ? <PanelLeftClose className="size-4" strokeWidth={2} /> : <PanelLeftOpen className="size-4" strokeWidth={2} />}
               </button>

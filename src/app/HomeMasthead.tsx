@@ -1,5 +1,7 @@
 'use client'
 
+import * as React from 'react'
+
 import StrokeText from '@/components/stroke-text'
 import { CountUp } from '@/components/CountUp'
 import { compact } from '@/lib/compact'
@@ -37,6 +39,13 @@ const SPELL = (chars: number) =>
 
 export function HomeMasthead({ ledger }: { ledger: LedgerEntry[] }) {
   const { toggle } = useSwitchboard()
+  // 2380ms ≈ the curtain's HOLD (1600) + TRAIL (180) + SWEEP (600). performance.now() tells a hard
+  // load (clock near zero, curtain up) from a client-side nav (clock long past it, no curtain).
+  const [paxReady, setPaxReady] = React.useState(false)
+  React.useEffect(() => {
+    const t = window.setTimeout(() => setPaxReady(true), Math.max(0, 2380 - performance.now()))
+    return () => window.clearTimeout(t)
+  }, [])
 
   return (
     // A rounded frame matching the app shell (2026-10-08); the grid inside sits
@@ -51,9 +60,11 @@ export function HomeMasthead({ ledger }: { ledger: LedgerEntry[] }) {
         data-inspect="Wordmark"
         className="relative self-stretch flex items-center justify-center border-l border-r lg:border-r-0 border-[var(--paper-rule)] px-6 py-8 sm:px-10 lg:w-[360px]"
       >
-        {/* The curtain's PAX, drawn live in the nameplate; the stroke takes the plate's ink. */}
+        {/* The curtain's PAX, drawn live in the nameplate; the stroke takes the plate's ink.
+            The draw holds until the curtain lifts (HOLD + TRAIL + SWEEP, load-curtain.tsx) —
+            on a hard load it would otherwise finish behind it; a client-side nav starts at once. */}
         <span className="text-[var(--paper-text)]">
-          <StrokeText
+          {paxReady && <StrokeText
             text="PAX"
             strokeColor="currentColor"
             fillMode="wipe"
@@ -63,7 +74,7 @@ export function HomeMasthead({ ledger }: { ledger: LedgerEntry[] }) {
             letterSpacing={0}
             drawDuration={0.9}
             stagger={0.08}
-          />
+          />}
         </span>
       </div>
 
