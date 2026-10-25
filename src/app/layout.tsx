@@ -2,7 +2,6 @@ import type { Metadata } from "next"
 import { Geist_Mono, Plus_Jakarta_Sans } from "next/font/google"
 
 import "@/ui/styles/globals.css"
-import { DevInspector } from "@/components/dev/inspector"
 import { LoadCurtainGate } from "@/components/load-curtain-gate"
 import { Shell } from "@/components/shell"
 import { currentUser } from "@/lib/auth"
@@ -28,7 +27,6 @@ export default async function RootLayout({ children, drawer }: LayoutProps<"/">)
         <Shell drawer={drawer} signedIn={!!user} admin={!!user?.admin}>
           {children}
         </Shell>
-        {process.env.NODE_ENV === "development" && <DevInspector />}
       </body>
     </html>
   )
