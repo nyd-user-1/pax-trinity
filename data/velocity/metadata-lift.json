@@ -1,0 +1,1297 @@
+{
+ "builtAt": "2026-10-19T16:38:14.658Z",
+ "method": "Within-channel difference in the share of shorts pushed (3x the channel median or more), percentage points; channels weighted by the balance of their with/without counts; at most 300 recent shorts per channel; 90% ranges from 1000 resamples of channels.",
+ "videos": 8808,
+ "channels": 64,
+ "pushedShare": 13.8,
+ "rows": [
+  {
+   "key": "question",
+   "label": "Title asks a question",
+   "prevalence": 12.8,
+   "all": {
+    "points": -0.5,
+    "low": -2.9,
+    "high": 1.8,
+    "channels": 44,
+    "videos": 1054,
+    "basePushed": 13.4
+   },
+   "byGroup": {
+    "Reform": {
+     "points": 3.9,
+     "low": 0.7,
+     "high": 8.6,
+     "channels": 10,
+     "videos": 194,
+     "basePushed": 14.8
+    },
+    "Voting rights": {
+     "points": 1,
+     "low": -3.1,
+     "high": 5.1,
+     "channels": 5,
+     "videos": 118,
+     "basePushed": 7.2
+    },
+    "Nonpartisan media": {
+     "points": -7.5,
+     "low": -11.5,
+     "high": -1.2,
+     "channels": 5,
+     "videos": 213,
+     "basePushed": 17.3
+    },
+    "Candidates & officials": {
+     "points": 1.7,
+     "low": -5.3,
+     "high": 8.8,
+     "channels": 14,
+     "videos": 143,
+     "basePushed": 16.7
+    },
+    "Partisan media": {
+     "points": -0.5,
+     "low": -4,
+     "high": 1.6,
+     "channels": 8,
+     "videos": 361,
+     "basePushed": 10.2
+    },
+    "UK": {
+     "points": -1.3,
+     "low": -2.2,
+     "high": 0,
+     "channels": 2,
+     "videos": 25,
+     "basePushed": 1.1
+    }
+   }
+  },
+  {
+   "key": "exclaim",
+   "label": "Exclamation mark in the title",
+   "prevalence": 5.7,
+   "all": {
+    "points": -5.4,
+    "low": -8.9,
+    "high": -1.6,
+    "channels": 30,
+    "videos": 405,
+    "basePushed": 14.2
+   },
+   "byGroup": {
+    "Reform": {
+     "points": 1.1,
+     "low": -4.3,
+     "high": 4.4,
+     "channels": 6,
+     "videos": 66,
+     "basePushed": 19.6
+    },
+    "Voting rights": null,
+    "Nonpartisan media": null,
+    "Candidates & officials": {
+     "points": -6.1,
+     "low": -10.9,
+     "high": -1.5,
+     "channels": 15,
+     "videos": 187,
+     "basePushed": 14
+    },
+    "Partisan media": {
+     "points": -2.9,
+     "low": -6.1,
+     "high": 0.9,
+     "channels": 7,
+     "videos": 117,
+     "basePushed": 10
+    },
+    "UK": null
+   }
+  },
+  {
+   "key": "number",
+   "label": "A number in the title",
+   "prevalence": 8.3,
+   "all": {
+    "points": 0.4,
+    "low": -2.2,
+    "high": 3.2,
+    "channels": 51,
+    "videos": 857,
+    "basePushed": 12.1
+   },
+   "byGroup": {
+    "Reform": {
+     "points": 8,
+     "low": 1.4,
+     "high": 17.7,
+     "channels": 12,
+     "videos": 145,
+     "basePushed": 10.3
+    },
+    "Voting rights": {
+     "points": -6.3,
+     "low": -13,
+     "high": -2.6,
+     "channels": 6,
+     "videos": 98,
+     "basePushed": 10.4
+    },
+    "Nonpartisan media": {
+     "points": 3.4,
+     "low": -1.3,
+     "high": 14,
+     "channels": 6,
+     "videos": 75,
+     "basePushed": 16.2
+    },
+    "Candidates & officials": {
+     "points": 0.8,
+     "low": -3.5,
+     "high": 5.1,
+     "channels": 17,
+     "videos": 377,
+     "basePushed": 14.5
+    },
+    "Partisan media": {
+     "points": -4.6,
+     "low": -8.7,
+     "high": -0.8,
+     "channels": 8,
+     "videos": 155,
+     "basePushed": 10.5
+    },
+    "UK": {
+     "points": -1.1,
+     "low": -1.9,
+     "high": 0,
+     "channels": 2,
+     "videos": 7,
+     "basePushed": 0.9
+    }
+   }
+  },
+  {
+   "key": "firstPerson",
+   "label": "First person in the title (I, my, I'm)",
+   "prevalence": 4.9,
+   "all": {
+    "points": 1.8,
+    "low": -2.6,
+    "high": 5.8,
+    "channels": 28,
+    "videos": 475,
+    "basePushed": 13.6
+   },
+   "byGroup": {
+    "Reform": null,
+    "Voting rights": {
+     "points": -6.5,
+     "low": -7.4,
+     "high": -4.3,
+     "channels": 2,
+     "videos": 11,
+     "basePushed": 5.8
+    },
+    "Nonpartisan media": {
+     "points": 13.4,
+     "low": 2.6,
+     "high": 33.7,
+     "channels": 2,
+     "videos": 17,
+     "basePushed": 15.9
+    },
+    "Candidates & officials": {
+     "points": 2.5,
+     "low": -3.8,
+     "high": 8,
+     "channels": 16,
+     "videos": 350,
+     "basePushed": 16
+    },
+    "Partisan media": {
+     "points": -1.9,
+     "low": -7.2,
+     "high": 1.7,
+     "channels": 7,
+     "videos": 88,
+     "basePushed": 9.9
+    },
+    "UK": null
+   }
+  },
+  {
+   "key": "you",
+   "label": "Addresses the viewer (you, your)",
+   "prevalence": 8,
+   "all": {
+    "points": -3.1,
+    "low": -5.1,
+    "high": -1.2,
+    "channels": 42,
+    "videos": 688,
+    "basePushed": 14.3
+   },
+   "byGroup": {
+    "Reform": {
+     "points": -2.5,
+     "low": -8.9,
+     "high": 3.4,
+     "channels": 8,
+     "videos": 67,
+     "basePushed": 13.8
+    },
+    "Voting rights": {
+     "points": -2.5,
+     "low": -9.9,
+     "high": 0.8,
+     "channels": 3,
+     "videos": 27,
+     "basePushed": 7.3
+    },
+    "Nonpartisan media": {
+     "points": -6.9,
+     "low": -10.8,
+     "high": -0.4,
+     "channels": 6,
+     "videos": 137,
+     "basePushed": 21.2
+    },
+    "Candidates & officials": {
+     "points": -2.1,
+     "low": -5.7,
+     "high": 0.8,
+     "channels": 16,
+     "videos": 274,
+     "basePushed": 16.1
+    },
+    "Partisan media": {
+     "points": -2.7,
+     "low": -5.6,
+     "high": -0.1,
+     "channels": 8,
+     "videos": 179,
+     "basePushed": 10.4
+    },
+    "UK": null
+   }
+  },
+  {
+   "key": "caps",
+   "label": "A word in ALL CAPS",
+   "prevalence": 23.6,
+   "all": {
+    "points": 2.7,
+    "low": 0.5,
+    "high": 5.3,
+    "channels": 37,
+    "videos": 1276,
+    "basePushed": 12.5
+   },
+   "byGroup": {
+    "Reform": {
+     "points": -4.1,
+     "low": -13.7,
+     "high": 3.4,
+     "channels": 5,
+     "videos": 89,
+     "basePushed": 16.7
+    },
+    "Voting rights": {
+     "points": 3.8,
+     "low": -7.4,
+     "high": 6.1,
+     "channels": 4,
+     "videos": 62,
+     "basePushed": 7.2
+    },
+    "Nonpartisan media": {
+     "points": 26.5,
+     "low": 19.2,
+     "high": 31.7,
+     "channels": 3,
+     "videos": 57,
+     "basePushed": 16.6
+    },
+    "Candidates & officials": {
+     "points": 1.8,
+     "low": -1.2,
+     "high": 5.2,
+     "channels": 16,
+     "videos": 450,
+     "basePushed": 13.9
+    },
+    "Partisan media": {
+     "points": 1,
+     "low": -0.5,
+     "high": 2.2,
+     "channels": 8,
+     "videos": 614,
+     "basePushed": 9.8
+    },
+    "UK": null
+   }
+  },
+  {
+   "key": "anger",
+   "label": "Combative words in the title (lies, corrupt, slams…)",
+   "prevalence": 4.8,
+   "all": {
+    "points": 4.3,
+    "low": 0.6,
+    "high": 8.2,
+    "channels": 24,
+    "videos": 310,
+    "basePushed": 16.2
+   },
+   "byGroup": {
+    "Reform": {
+     "points": -6.5,
+     "low": -15.1,
+     "high": -3,
+     "channels": 3,
+     "videos": 17,
+     "basePushed": 13.5
+    },
+    "Voting rights": null,
+    "Nonpartisan media": {
+     "points": -3.9,
+     "low": -23.2,
+     "high": 6,
+     "channels": 2,
+     "videos": 21,
+     "basePushed": 19.3
+    },
+    "Candidates & officials": {
+     "points": 10.2,
+     "low": 4.1,
+     "high": 15.3,
+     "channels": 12,
+     "videos": 144,
+     "basePushed": 19.7
+    },
+    "Partisan media": {
+     "points": 0.1,
+     "low": -2.1,
+     "high": 2.1,
+     "channels": 6,
+     "videos": 124,
+     "basePushed": 10.6
+    },
+    "UK": null
+   }
+  },
+  {
+   "key": "quote",
+   "label": "Quotation in the title",
+   "prevalence": 7.4,
+   "all": {
+    "points": 1,
+    "low": -1.5,
+    "high": 4.3,
+    "channels": 32,
+    "videos": 479,
+    "basePushed": 13.8
+   },
+   "byGroup": {
+    "Reform": {
+     "points": -0.3,
+     "low": -4.2,
+     "high": 5.9,
+     "channels": 5,
+     "videos": 55,
+     "basePushed": 15.4
+    },
+    "Voting rights": {
+     "points": 16.2,
+     "low": 12.8,
+     "high": 22.9,
+     "channels": 2,
+     "videos": 9,
+     "basePushed": 7.2
+    },
+    "Nonpartisan media": {
+     "points": 1,
+     "low": -9.5,
+     "high": 14.3,
+     "channels": 2,
+     "videos": 28,
+     "basePushed": 16.3
+    },
+    "Candidates & officials": {
+     "points": 4.5,
+     "low": 0,
+     "high": 11.2,
+     "channels": 15,
+     "videos": 182,
+     "basePushed": 17.3
+    },
+    "Partisan media": {
+     "points": -3.1,
+     "low": -5.8,
+     "high": -0.5,
+     "channels": 7,
+     "videos": 200,
+     "basePushed": 8.2
+    },
+    "UK": null
+   }
+  },
+  {
+   "key": "shortTitle",
+   "label": "Title of six words or fewer",
+   "prevalence": 31.5,
+   "all": {
+    "points": -2,
+    "low": -3.8,
+    "high": -0.1,
+    "channels": 53,
+    "videos": 2885,
+    "basePushed": 13.6
+   },
+   "byGroup": {
+    "Reform": {
+     "points": -4.2,
+     "low": -9.2,
+     "high": -0.7,
+     "channels": 13,
+     "videos": 553,
+     "basePushed": 15.5
+    },
+    "Voting rights": {
+     "points": -1.4,
+     "low": -4.2,
+     "high": 4.4,
+     "channels": 7,
+     "videos": 297,
+     "basePushed": 10.5
+    },
+    "Nonpartisan media": {
+     "points": -9.9,
+     "low": -17.1,
+     "high": -5,
+     "channels": 5,
+     "videos": 204,
+     "basePushed": 17.2
+    },
+    "Candidates & officials": {
+     "points": -1.5,
+     "low": -5.1,
+     "high": 2.1,
+     "channels": 19,
+     "videos": 845,
+     "basePushed": 14.6
+    },
+    "Partisan media": {
+     "points": 0.2,
+     "low": -2.2,
+     "high": 2.6,
+     "channels": 8,
+     "videos": 970,
+     "basePushed": 10
+    },
+    "UK": null
+   }
+  },
+  {
+   "key": "longTitle",
+   "label": "Title of fifteen words or more",
+   "prevalence": 9,
+   "all": {
+    "points": 0,
+    "low": -2,
+    "high": 1.8,
+    "channels": 31,
+    "videos": 936,
+    "basePushed": 14.5
+   },
+   "byGroup": {
+    "Reform": {
+     "points": -4.4,
+     "low": -20.1,
+     "high": 6.5,
+     "channels": 4,
+     "videos": 21,
+     "basePushed": 21.7
+    },
+    "Voting rights": {
+     "points": -5.6,
+     "low": -7.2,
+     "high": -5.3,
+     "channels": 2,
+     "videos": 50,
+     "basePushed": 6.3
+    },
+    "Nonpartisan media": {
+     "points": -5.4,
+     "low": -9.2,
+     "high": -1.3,
+     "channels": 2,
+     "videos": 32,
+     "basePushed": 21.5
+    },
+    "Candidates & officials": {
+     "points": 2.1,
+     "low": 0.1,
+     "high": 4.2,
+     "channels": 16,
+     "videos": 698,
+     "basePushed": 15.9
+    },
+    "Partisan media": {
+     "points": -6.2,
+     "low": -10.9,
+     "high": -4,
+     "channels": 6,
+     "videos": 112,
+     "basePushed": 8.4
+    },
+    "UK": null
+   }
+  },
+  {
+   "key": "emoji",
+   "label": "Emoji in the title",
+   "prevalence": 13.8,
+   "all": {
+    "points": 3.4,
+    "low": 0.5,
+    "high": 6.5,
+    "channels": 21,
+    "videos": 655,
+    "basePushed": 11.1
+   },
+   "byGroup": {
+    "Reform": {
+     "points": 1.8,
+     "low": -11,
+     "high": 7.3,
+     "channels": 2,
+     "videos": 11,
+     "basePushed": 20.6
+    },
+    "Voting rights": null,
+    "Nonpartisan media": {
+     "points": -3.9,
+     "low": -23,
+     "high": 3.3,
+     "channels": 2,
+     "videos": 34,
+     "basePushed": 11.5
+    },
+    "Candidates & officials": {
+     "points": 3.5,
+     "low": -5.5,
+     "high": 8.7,
+     "channels": 9,
+     "videos": 148,
+     "basePushed": 11.8
+    },
+    "Partisan media": {
+     "points": 4.1,
+     "low": 1.1,
+     "high": 9,
+     "channels": 6,
+     "videos": 449,
+     "basePushed": 9.8
+    },
+    "UK": null
+   }
+  },
+  {
+   "key": "hashtagTitle",
+   "label": "Hashtag in the title",
+   "prevalence": 7.5,
+   "all": {
+    "points": 0.3,
+    "low": -4.2,
+    "high": 5.1,
+    "channels": 14,
+    "videos": 785,
+    "basePushed": 15.1
+   },
+   "byGroup": {
+    "Reform": {
+     "points": -0.9,
+     "low": -13.3,
+     "high": 10.2,
+     "channels": 6,
+     "videos": 213,
+     "basePushed": 19.5
+    },
+    "Voting rights": null,
+    "Nonpartisan media": null,
+    "Candidates & officials": {
+     "points": 2.9,
+     "low": 0.2,
+     "high": 9.7,
+     "channels": 4,
+     "videos": 237,
+     "basePushed": 11
+    },
+    "Partisan media": {
+     "points": -9.1,
+     "low": -18.6,
+     "high": -8,
+     "channels": 2,
+     "videos": 41,
+     "basePushed": 13.3
+    },
+    "UK": null
+   }
+  },
+  {
+   "key": "trump",
+   "label": "Names Trump",
+   "prevalence": 17.5,
+   "all": {
+    "points": 6.3,
+    "low": 1.7,
+    "high": 11.4,
+    "channels": 29,
+    "videos": 1136,
+    "basePushed": 14.9
+   },
+   "byGroup": {
+    "Reform": {
+     "points": 5,
+     "low": -8.4,
+     "high": 13.8,
+     "channels": 4,
+     "videos": 36,
+     "basePushed": 12.1
+    },
+    "Voting rights": {
+     "points": 11.9,
+     "low": 1.5,
+     "high": 26.3,
+     "channels": 4,
+     "videos": 59,
+     "basePushed": 8.2
+    },
+    "Nonpartisan media": {
+     "points": 14.9,
+     "low": 4.8,
+     "high": 22,
+     "channels": 3,
+     "videos": 61,
+     "basePushed": 17.7
+    },
+    "Candidates & officials": {
+     "points": 11.6,
+     "low": 5.5,
+     "high": 18.2,
+     "channels": 13,
+     "videos": 525,
+     "basePushed": 17.4
+    },
+    "Partisan media": {
+     "points": -4.3,
+     "low": -11.5,
+     "high": 0,
+     "channels": 5,
+     "videos": 455,
+     "basePushed": 14.6
+    },
+    "UK": null
+   }
+  },
+  {
+   "key": "under20",
+   "label": "20 seconds or shorter",
+   "prevalence": 9,
+   "all": {
+    "points": 5,
+    "low": 1,
+    "high": 8.7,
+    "channels": 34,
+    "videos": 871,
+    "basePushed": 13.2
+   },
+   "byGroup": {
+    "Reform": {
+     "points": -1.8,
+     "low": -17.4,
+     "high": 10.6,
+     "channels": 6,
+     "videos": 58,
+     "basePushed": 20.6
+    },
+    "Voting rights": {
+     "points": -0.9,
+     "low": -3.1,
+     "high": 5,
+     "channels": 3,
+     "videos": 40,
+     "basePushed": 9.7
+    },
+    "Nonpartisan media": {
+     "points": 15.3,
+     "low": -12.9,
+     "high": 45.1,
+     "channels": 4,
+     "videos": 44,
+     "basePushed": 14.5
+    },
+    "Candidates & officials": {
+     "points": 4,
+     "low": -1,
+     "high": 9.7,
+     "channels": 15,
+     "videos": 386,
+     "basePushed": 13.8
+    },
+    "Partisan media": {
+     "points": 7.2,
+     "low": 1.3,
+     "high": 12.1,
+     "channels": 6,
+     "videos": 343,
+     "basePushed": 5.4
+    },
+    "UK": null
+   }
+  },
+  {
+   "key": "under35",
+   "label": "35 seconds or shorter",
+   "prevalence": 23.8,
+   "all": {
+    "points": 2.6,
+    "low": -0.3,
+    "high": 5.4,
+    "channels": 54,
+    "videos": 2309,
+    "basePushed": 13.1
+   },
+   "byGroup": {
+    "Reform": {
+     "points": -1.7,
+     "low": -10.8,
+     "high": 2.8,
+     "channels": 11,
+     "videos": 219,
+     "basePushed": 16.2
+    },
+    "Voting rights": {
+     "points": 1.4,
+     "low": -4.2,
+     "high": 10.7,
+     "channels": 7,
+     "videos": 107,
+     "basePushed": 7.7
+    },
+    "Nonpartisan media": {
+     "points": 2.3,
+     "low": -20.6,
+     "high": 21,
+     "channels": 6,
+     "videos": 108,
+     "basePushed": 19.8
+    },
+    "Candidates & officials": {
+     "points": 2.9,
+     "low": -1.6,
+     "high": 7.7,
+     "channels": 19,
+     "videos": 1067,
+     "basePushed": 15.3
+    },
+    "Partisan media": {
+     "points": 4.7,
+     "low": 0.2,
+     "high": 9.8,
+     "channels": 8,
+     "videos": 756,
+     "basePushed": 8
+    },
+    "UK": {
+     "points": -2,
+     "low": -3,
+     "high": 0,
+     "channels": 3,
+     "videos": 52,
+     "basePushed": 1.1
+    }
+   }
+  },
+  {
+   "key": "over60",
+   "label": "Longer than a minute",
+   "prevalence": 47.4,
+   "all": {
+    "points": -0.1,
+    "low": -2.8,
+    "high": 2.7,
+    "channels": 53,
+    "videos": 4035,
+    "basePushed": 12.3
+   },
+   "byGroup": {
+    "Reform": {
+     "points": -0.3,
+     "low": -6.3,
+     "high": 8,
+     "channels": 13,
+     "videos": 592,
+     "basePushed": 13.4
+    },
+    "Voting rights": {
+     "points": -3,
+     "low": -7.6,
+     "high": 1.7,
+     "channels": 7,
+     "videos": 438,
+     "basePushed": 11.4
+    },
+    "Nonpartisan media": {
+     "points": 8.2,
+     "low": -9.3,
+     "high": 21.7,
+     "channels": 4,
+     "videos": 562,
+     "basePushed": 10.3
+    },
+    "Candidates & officials": {
+     "points": -0.3,
+     "low": -5.1,
+     "high": 4.6,
+     "channels": 19,
+     "videos": 1407,
+     "basePushed": 14.9
+    },
+    "Partisan media": {
+     "points": -0.5,
+     "low": -3.7,
+     "high": 2.7,
+     "channels": 8,
+     "videos": 1025,
+     "basePushed": 9.2
+    },
+    "UK": {
+     "points": -1.3,
+     "low": -2,
+     "high": 0,
+     "channels": 2,
+     "videos": 11,
+     "basePushed": 1
+    }
+   }
+  },
+  {
+   "key": "weekend",
+   "label": "Posted on a weekend",
+   "prevalence": 19.3,
+   "all": {
+    "points": 2.4,
+    "low": 0.6,
+    "high": 4.4,
+    "channels": 41,
+    "videos": 1493,
+    "basePushed": 12.1
+   },
+   "byGroup": {
+    "Reform": {
+     "points": 6.1,
+     "low": 3.1,
+     "high": 9.5,
+     "channels": 8,
+     "videos": 147,
+     "basePushed": 12.5
+    },
+    "Voting rights": {
+     "points": -0.7,
+     "low": -3.8,
+     "high": 0,
+     "channels": 3,
+     "videos": 66,
+     "basePushed": 8.1
+    },
+    "Nonpartisan media": {
+     "points": 0.8,
+     "low": -4.8,
+     "high": 8.6,
+     "channels": 4,
+     "videos": 162,
+     "basePushed": 14.6
+    },
+    "Candidates & officials": {
+     "points": 2.9,
+     "low": -0.1,
+     "high": 6.3,
+     "channels": 16,
+     "videos": 657,
+     "basePushed": 14.5
+    },
+    "Partisan media": {
+     "points": 1.2,
+     "low": -2.6,
+     "high": 4.9,
+     "channels": 8,
+     "videos": 452,
+     "basePushed": 9.9
+    },
+    "UK": {
+     "points": -1.3,
+     "low": -1.9,
+     "high": 0,
+     "channels": 2,
+     "videos": 9,
+     "basePushed": 1
+    }
+   }
+  },
+  {
+   "key": "morning",
+   "label": "Posted 6–11am Eastern",
+   "prevalence": 15.4,
+   "all": {
+    "points": 0.1,
+    "low": -1.7,
+    "high": 1.5,
+    "channels": 45,
+    "videos": 1821,
+    "basePushed": 13.9
+   },
+   "byGroup": {
+    "Reform": {
+     "points": 1.2,
+     "low": -4.2,
+     "high": 5.8,
+     "channels": 10,
+     "videos": 385,
+     "basePushed": 18.7
+    },
+    "Voting rights": {
+     "points": 1.8,
+     "low": -2.8,
+     "high": 4.2,
+     "channels": 5,
+     "videos": 239,
+     "basePushed": 8.5
+    },
+    "Nonpartisan media": {
+     "points": -2.5,
+     "low": -7.3,
+     "high": 1.1,
+     "channels": 3,
+     "videos": 120,
+     "basePushed": 12.1
+    },
+    "Candidates & officials": {
+     "points": -1,
+     "low": -4.5,
+     "high": 1.9,
+     "channels": 18,
+     "videos": 689,
+     "basePushed": 15.8
+    },
+    "Partisan media": {
+     "points": 1,
+     "low": -1.4,
+     "high": 3.6,
+     "channels": 7,
+     "videos": 365,
+     "basePushed": 10.8
+    },
+    "UK": {
+     "points": 0,
+     "low": 0,
+     "high": 0,
+     "channels": 2,
+     "videos": 23,
+     "basePushed": 0
+    }
+   }
+  },
+  {
+   "key": "evening",
+   "label": "Posted 6–11pm Eastern",
+   "prevalence": 30.4,
+   "all": {
+    "points": 1.4,
+    "low": -0.2,
+    "high": 2.9,
+    "channels": 45,
+    "videos": 2384,
+    "basePushed": 14.3
+   },
+   "byGroup": {
+    "Reform": {
+     "points": 1.1,
+     "low": -3.1,
+     "high": 7.2,
+     "channels": 7,
+     "videos": 317,
+     "basePushed": 14.8
+    },
+    "Voting rights": {
+     "points": 2.2,
+     "low": -8.8,
+     "high": 12.6,
+     "channels": 4,
+     "videos": 96,
+     "basePushed": 8.8
+    },
+    "Nonpartisan media": {
+     "points": -1.2,
+     "low": -25,
+     "high": 6.5,
+     "channels": 5,
+     "videos": 77,
+     "basePushed": 25.9
+    },
+    "Candidates & officials": {
+     "points": 0.7,
+     "low": -1.8,
+     "high": 3.2,
+     "channels": 20,
+     "videos": 1164,
+     "basePushed": 14.9
+    },
+    "Partisan media": {
+     "points": 2.6,
+     "low": 0.7,
+     "high": 4.6,
+     "channels": 8,
+     "videos": 723,
+     "basePushed": 9.4
+    },
+    "UK": null
+   }
+  },
+  {
+   "key": "cta",
+   "label": "Call to action in the description",
+   "prevalence": 19.1,
+   "all": {
+    "points": -0.7,
+    "low": -3.4,
+    "high": 2,
+    "channels": 26,
+    "videos": 1190,
+    "basePushed": 13.4
+   },
+   "byGroup": {
+    "Reform": {
+     "points": 6,
+     "low": 2.2,
+     "high": 8.4,
+     "channels": 9,
+     "videos": 173,
+     "basePushed": 16.6
+    },
+    "Voting rights": {
+     "points": -4.5,
+     "low": -7.5,
+     "high": 3.4,
+     "channels": 6,
+     "videos": 135,
+     "basePushed": 8
+    },
+    "Nonpartisan media": {
+     "points": -11.5,
+     "low": -20.5,
+     "high": -2.9,
+     "channels": 2,
+     "videos": 20,
+     "basePushed": 11.7
+    },
+    "Candidates & officials": {
+     "points": -4.7,
+     "low": -10.5,
+     "high": 0.8,
+     "channels": 4,
+     "videos": 170,
+     "basePushed": 16.8
+    },
+    "Partisan media": {
+     "points": 0.3,
+     "low": -1.5,
+     "high": 0.8,
+     "channels": 4,
+     "videos": 681,
+     "basePushed": 14.8
+    },
+    "UK": null
+   }
+  },
+  {
+   "key": "link",
+   "label": "Link in the description",
+   "prevalence": 32.2,
+   "all": {
+    "points": 1.4,
+    "low": -2.6,
+    "high": 6,
+    "channels": 25,
+    "videos": 1580,
+    "basePushed": 10.8
+   },
+   "byGroup": {
+    "Reform": {
+     "points": -2,
+     "low": -5.4,
+     "high": 12.7,
+     "channels": 4,
+     "videos": 56,
+     "basePushed": 9.9
+    },
+    "Voting rights": {
+     "points": -1.5,
+     "low": -2.9,
+     "high": 0,
+     "channels": 4,
+     "videos": 292,
+     "basePushed": 7.8
+    },
+    "Nonpartisan media": {
+     "points": 3.1,
+     "low": -8.1,
+     "high": 27.4,
+     "channels": 3,
+     "videos": 35,
+     "basePushed": 11.8
+    },
+    "Candidates & officials": {
+     "points": 6.7,
+     "low": -1.8,
+     "high": 14,
+     "channels": 7,
+     "videos": 459,
+     "basePushed": 13.6
+    },
+    "Partisan media": {
+     "points": -2.8,
+     "low": -7.6,
+     "high": 1.5,
+     "channels": 5,
+     "videos": 694,
+     "basePushed": 12.7
+    },
+    "UK": {
+     "points": -2.7,
+     "low": -4,
+     "high": 0,
+     "channels": 2,
+     "videos": 44,
+     "basePushed": 2
+    }
+   }
+  },
+  {
+   "key": "noDescription",
+   "label": "No description",
+   "prevalence": 28.5,
+   "all": {
+    "points": -2.8,
+    "low": -6.2,
+    "high": 0.8,
+    "channels": 28,
+    "videos": 1885,
+    "basePushed": 12.9
+   },
+   "byGroup": {
+    "Reform": {
+     "points": 16.2,
+     "low": -0.4,
+     "high": 28.2,
+     "channels": 3,
+     "videos": 48,
+     "basePushed": 8.9
+    },
+    "Voting rights": {
+     "points": -3.8,
+     "low": -13.3,
+     "high": -2.7,
+     "channels": 3,
+     "videos": 82,
+     "basePushed": 10.4
+    },
+    "Nonpartisan media": {
+     "points": -7.3,
+     "low": -11.9,
+     "high": 7.5,
+     "channels": 2,
+     "videos": 50,
+     "basePushed": 17.3
+    },
+    "Candidates & officials": {
+     "points": -4,
+     "low": -9.8,
+     "high": 2.1,
+     "channels": 15,
+     "videos": 1261,
+     "basePushed": 14.1
+    },
+    "Partisan media": {
+     "points": -0.8,
+     "low": -2.8,
+     "high": 0.7,
+     "channels": 5,
+     "videos": 444,
+     "basePushed": 11.3
+    },
+    "UK": null
+   }
+  },
+  {
+   "key": "tags",
+   "label": "Has tags",
+   "prevalence": 53.2,
+   "all": {
+    "points": 1.1,
+    "low": -1.9,
+    "high": 3.8,
+    "channels": 20,
+    "videos": 1507,
+    "basePushed": 15.6
+   },
+   "byGroup": {
+    "Reform": {
+     "points": -0.6,
+     "low": -21,
+     "high": 2.3,
+     "channels": 3,
+     "videos": 71,
+     "basePushed": 15.9
+    },
+    "Voting rights": {
+     "points": 1.5,
+     "low": -5.3,
+     "high": 7.3,
+     "channels": 4,
+     "videos": 116,
+     "basePushed": 8.7
+    },
+    "Nonpartisan media": {
+     "points": -7.5,
+     "low": -10.8,
+     "high": 2.5,
+     "channels": 2,
+     "videos": 60,
+     "basePushed": 10.4
+    },
+    "Candidates & officials": {
+     "points": 2.5,
+     "low": -4.8,
+     "high": 8.4,
+     "channels": 8,
+     "videos": 586,
+     "basePushed": 21.7
+    },
+    "Partisan media": {
+     "points": 1.2,
+     "low": 0.5,
+     "high": 1.9,
+     "channels": 3,
+     "videos": 674,
+     "basePushed": 11.5
+    },
+    "UK": null
+   }
+  }
+ ]
+}
