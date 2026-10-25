@@ -18,7 +18,7 @@ const CompositionThumb = dynamic(() => import("./composition-player").then((m) =
 
 export function Grid({ clips, onOpen, className }: { clips: Clip[]; onOpen: (clip: Clip) => void; className?: string }) {
   return (
-    <div className={cn("grid grid-cols-3 gap-0.5 lg:grid-cols-4", className)}>
+    <div className={cn("grid grid-cols-3 gap-0.5", className)}>
       {clips.map((clip) => (
         <button key={clip.id} type="button" onClick={() => onOpen(clip)} className="group relative aspect-[9/16] overflow-hidden bg-black text-left text-white" aria-label={clip.title}>
           {clip.composition ? (

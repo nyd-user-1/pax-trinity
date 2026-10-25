@@ -308,7 +308,7 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
   return (
     // The slot hides the site footer (Brendan, 2026-09-11): the page is the clip.
     <div data-slot="clips" className="container-wrapper">
-      <div className="px-2 lg:grid lg:grid-cols-[240px_minmax(0,1fr)_340px] lg:gap-6 lg:px-4">
+      <div className="px-2 lg:grid lg:grid-cols-[340px_minmax(0,1fr)_340px] lg:gap-6 lg:px-4">
         <aside className="hidden lg:block">
           <div className={cn("sticky top-4 pb-4", COLUMN_HEIGHT[frame])}>
             {/* The Block dress (Brendan, 2026-10-25): toggles after the title, the search,
