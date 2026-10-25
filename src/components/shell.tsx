@@ -777,7 +777,7 @@ function Initials({ name, size }: { name: string; size: "sm" | "md" }) {
   )
 }
 
-function AccountMenu() {
+export function AccountMenu() {
   const router = useRouter()
   const path = usePathname()
   const [user, setUser] = React.useState<User | null | undefined>(undefined)

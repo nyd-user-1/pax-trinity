@@ -1,107 +1,74 @@
 "use client"
 
 import * as React from "react"
-import Link from "next/link"
-import { CameraIcon, CheckIcon, FileTextIcon, FilmIcon, LayoutTemplateIcon, MoreHorizontalIcon, PlayIcon, ScissorsIcon } from "lucide-react"
+import { EllipsisVertical, ExternalLink, Link2, PlayIcon, Star } from "lucide-react"
 
-import { Avatar, AvatarFallback, AvatarImage } from "@govblock/ui/components/nova/avatar"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@govblock/ui/components/nova/dropdown-menu"
-import { Button } from "@govblock/ui/components/nova/button"
+import { KebabMenu, MenuFoot, MenuHeader, MenuRow, MenuSeparator } from "@/components/kebab-menu"
+import { AccountMenu } from "@/components/shell"
 import { cn } from "@govblock/ui/lib/utils"
 
-import type { Creator } from "./store"
+export type ClipRow = { id: string; title: string; sub: string; partner: string }
 
-// The left rail: who is making clips. All clips first, then each creator
-// with a count, then the reader's own library when they are signed in.
-// Picking one narrows the feed and the grid to them.
-
-export type CreatorRow = Creator & { count: number }
-
-export type ClipRow = { id: string; title: string; sub: string; poster?: string | null }
-
-export type PartnerRow = { id: string; name: string; count: number }
-
-export function Creators({ clips, partners, activeId, onOpenClip, selected, onSelect, you, onRecord, onUpload, onGenerate, className }: { clips: ClipRow[]; partners: PartnerRow[]; activeId: string | null; onOpenClip: (id: string) => void; selected: string; onSelect: (id: string) => void; you: CreatorRow | null; onRecord: () => void; onUpload?: () => void; onGenerate?: () => void; className?: string }) {
-  const Item = ({ id, name, sub, image, fallback }: { id: string; name: string; sub: string; image?: string | null; fallback: React.ReactNode }) => (
-    <button type="button" onClick={() => onSelect(id)} className={cn("flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-accent", selected === id && "bg-accent")}>
-      <Avatar className="size-9">
-        {image && <AvatarImage src={image} alt="" className="object-cover" />}
-        <AvatarFallback className="bg-muted text-xs">{fallback}</AvatarFallback>
-      </Avatar>
-      <span className="flex min-w-0 flex-col">
-        <span className="truncate text-sm font-medium">{name}</span>
-        <span className="truncate text-xs text-muted-foreground">{sub}</span>
-      </span>
-    </button>
-  )
-  const current = partners.find((x) => x.id === selected) ?? partners[0]
+// The Partners panel's body: one row per video in the sidebar items' dress —
+// row kebab included — with the shell's account chip as the foot
+// (Brendan, 2026-10-25). The header lives on the PanelBlock.
+export function Creators({ clips, activeId, onOpenClip }: { clips: ClipRow[]; activeId: string | null; onOpenClip: (id: string) => void }) {
+  const [favs, setFavs] = React.useState<Set<string>>(new Set())
+  const toggleFav = (id: string) =>
+    setFavs((s) => {
+      const n = new Set(s)
+      if (n.has(id)) n.delete(id)
+      else n.add(id)
+      return n
+    })
   return (
-    <div className={cn("flex h-full flex-col", className)}>
-      {/* The panel's head: name, the shelf's count, and partner selection behind the
-          three dots (Brendan, 2026-10-25). The default shelf is every partner, newest first. */}
-      <div className="flex shrink-0 items-center gap-2.5 border-b px-4 py-3">
-        <span className="text-sm font-semibold">Partners</span>
-        <span className="text-xs text-muted-foreground tabular-nums">{current?.count} clips</span>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button type="button" className="ml-auto flex size-8 items-center justify-center rounded-full hover:bg-accent" aria-label="Pick a partner">
-              <MoreHorizontalIcon className="size-5" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="min-w-44">
-            {partners.map((x) => (
-              <DropdownMenuItem key={x.id} onClick={() => onSelect(x.id)} className="whitespace-nowrap">
-                {x.name}
-                {selected === x.id && <CheckIcon className="ml-auto size-4" />}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="scrollbar-none min-h-0 flex-1 overflow-y-auto px-2 py-2">
+        {clips.map((c) => {
+          const on = activeId === c.id
+          const fav = favs.has(c.id)
+          const url = `/clips?c=${encodeURIComponent(c.id)}`
+          return (
+            <div key={c.id} className="group/item relative">
+              <button
+                type="button"
+                onClick={() => onOpenClip(c.id)}
+                data-find={`${c.title} ${c.sub} ${c.partner}`}
+                className={cn(
+                  "group flex w-full items-center gap-3 rounded-xl px-3 py-2 pr-12 text-left transition-[color,background-color,box-shadow]",
+                  on ? "bg-accent text-pax2-blue" : "text-slate-500 hover:bg-accent/70 hover:text-pax2-blue",
+                )}
+              >
+                <PlayIcon className={cn("size-[18px] shrink-0 transition-colors", on ? "fill-pax2-lavender text-pax2-blue" : "group-hover:fill-pax2-lavender group-hover:text-pax2-blue")} strokeWidth={on ? 2.25 : 1.75} />
+                <span className="flex min-w-0 flex-col">
+                  <span className={cn("truncate text-sm", on && "font-semibold")}>{c.title}</span>
+                  <span className="truncate text-xs text-muted-foreground">{c.sub}</span>
+                </span>
+              </button>
+              <span className="absolute top-1/2 right-1.5 flex -translate-y-1/2 items-center">
+                {fav && <Star aria-label="Favorite" className="size-3 fill-amber-400 text-amber-400" />}
+                <KebabMenu
+                  label={`${c.title} options`}
+                  align="left"
+                  width="w-56"
+                  trigger={<EllipsisVertical className="size-4" />}
+                  triggerClassName="flex size-7 items-center justify-center rounded-lg text-slate-400 opacity-0 transition-opacity hover:bg-accent hover:text-pax2-blue focus-visible:opacity-100 group-hover/item:opacity-100 aria-expanded:opacity-100"
+                >
+                  <MenuHeader text={url} copy={url} />
+                  <MenuSeparator />
+                  <MenuRow icon={<Star className={fav ? "fill-amber-400 text-amber-400" : undefined} />} label={fav ? "Unfavorite" : "Favorite"} onClick={() => toggleFav(c.id)} />
+                  <MenuRow icon={<ExternalLink />} label="Open in new tab" onClick={() => window.open(url, "_blank", "noopener")} />
+                  <MenuRow icon={<Link2 />} label="Copy link" onClick={() => navigator.clipboard.writeText(`${window.location.origin}${url}`)} />
+                  <MenuSeparator />
+                  <MenuFoot title={c.title} sub={c.partner} />
+                </KebabMenu>
+              </span>
+            </div>
+          )
+        })}
       </div>
-      <div className="flex min-h-0 flex-1 flex-col">
-        {/* One row per video: pressing one brings the single-video view into focus. */}
-        <div className="scrollbar-none flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto p-2">
-        {clips.map((c) => (
-          <button key={c.id} type="button" onClick={() => onOpenClip(c.id)} className={cn("group flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-accent", activeId === c.id && "bg-accent")}>
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
-              <PlayIcon className="size-4" />
-            </span>
-            <span className="flex min-w-0 flex-col">
-              <span className="truncate text-sm font-medium">{c.title}</span>
-              <span className="truncate text-xs text-muted-foreground">{c.sub}</span>
-            </span>
-          </button>
-        ))}
-        {you && (
-          <>
-            <p className="px-2 pt-4 pb-2 text-xs font-medium text-muted-foreground">You</p>
-            <Item id="you" name={you.name} sub={`Your library · ${you.count}`} image={you.image} fallback={you.name.slice(0, 1)} />
-          </>
-        )}
-        </div>
-      </div>
-      <div className="mt-auto flex flex-col gap-2 pt-4">
-        <Button className="w-full gap-1.5" onClick={onRecord}>
-          <CameraIcon className="size-4" /> Record
-        </Button>
-        <div className="grid grid-cols-2 gap-2">
-          {onUpload && (
-            <Button variant="outline" className="gap-1.5" onClick={onUpload}>
-              <ScissorsIcon className="size-4" /> Clip
-            </Button>
-          )}
-          {onGenerate && (
-            <Button variant="outline" className="gap-1.5" onClick={onGenerate}>
-              <FilmIcon className="size-4" /> Generate
-            </Button>
-          )}
-          <Button variant="outline" className="gap-1.5" render={<Link href="/clips/transcript" />} nativeButton={false}>
-            <FileTextIcon className="size-4" /> Transcript
-          </Button>
-          <Button variant="outline" className="gap-1.5" render={<Link href="/clips/studio" />} nativeButton={false}>
-            <LayoutTemplateIcon className="size-4" /> Studio
-          </Button>
-        </div>
+      <div className="border-t border-slate-200/70 px-3 py-2">
+        <AccountMenu />
       </div>
     </div>
   )

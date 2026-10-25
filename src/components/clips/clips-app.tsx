@@ -12,14 +12,16 @@ import { cn } from "@govblock/ui/lib/utils"
 
 import { Capture } from "./capture"
 import { CommentsPanel } from "./comments"
-import { Creators, type CreatorRow } from "./creators"
+import { PanelBlock } from "@/components/blocks"
+import { MenuRow } from "@/components/kebab-menu"
+import { Creators } from "./creators"
 import { DEFAULT_AVATAR } from "@/lib/auth/use-account"
 import { LoadingFlag } from "@/components/loading-flag"
 import { Feed, type Reactions } from "./feed"
 import { Grid } from "./grid"
 import { ReportDialog } from "./report"
 import { Upload } from "./upload"
-import { CREATORS, PUBLISHED, SEED_COMMENTS, deleteClip, loadFeed, takeDown, loadFollows, loadLikes, loadMyComments, loadSaves, saveClip, storeFollows, storeLikes, storeMyComments, storeSaves, updateClip, type Clip, type Comment, type Feed as FeedData, type Upload as UploadRow } from "./store"
+import { creatorOf, CREATORS, PUBLISHED, SEED_COMMENTS, deleteClip, loadFeed, takeDown, loadFollows, loadLikes, loadMyComments, loadSaves, saveClip, storeFollows, storeLikes, storeMyComments, storeSaves, updateClip, type Clip, type Comment, type Feed as FeedData, type Upload as UploadRow } from "./store"
 
 // Clips: short vertical video, recorded on a phone or a laptop, kept private
 // until its owner says otherwise. A mock of the whole experience (Brendan,
@@ -96,6 +98,7 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
   const [creator, setCreator] = React.useState("all")
   // The grid first (Brendan, 2026-09-14); a clip opens the feed.
   const [view, setView] = React.useState<"feed" | "grid">("grid")
+  const [panelTab, setPanelTab] = React.useState<"edit" | "report">("edit")
   const [activeId, setActiveId] = React.useState<string | null>(null)
   const [muted, setMuted] = React.useState(true)
   const [liked, setLiked] = React.useState<Set<string>>(new Set())
@@ -155,9 +158,8 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
   }, [creator, mine, published])
 
   // The rail lists the videos themselves (Brendan, 2026-10-25), not the desks.
-  const clipRows = clips.map((c) => ({ id: c.id, title: c.title, sub: `${c.duration}s · @${c.author.handle}`, poster: c.poster }))
+  const clipRows = clips.map((c) => ({ id: c.id, title: c.title, sub: `${c.duration}s · @${c.author.handle}`, partner: creatorOf(c.creatorId)?.name ?? c.author.name }))
   const partnerRows = [{ id: "all", name: "All partners", count: published.length }, ...CREATORS.map((c) => ({ id: c.id, name: c.name, count: published.filter((x) => x.creatorId === c.id).length }))]
-  const youRow: CreatorRow | null = signedIn ? { id: "you", name: you.name, handle: you.handle, image: you.image, kind: "user", count: mine.length } : null
 
   // The first clip plays on arrival, or the one the address names.
   React.useEffect(() => {
@@ -269,6 +271,7 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
   const panel = (className?: string) =>
     active ? (
       <CommentsPanel
+        tab={panelTab}
         clip={active}
         comments={commentsFor(active.id)}
         liked={liked.has(active.id)}
@@ -290,6 +293,16 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
       />
     ) : null
 
+  const viewToggle = (
+    <div className="flex items-center rounded-full bg-muted p-0.5">
+      <button type="button" onClick={() => setView("feed")} className={cn("flex size-8 items-center justify-center rounded-full", view === "feed" ? "bg-background shadow-sm" : "text-muted-foreground")} aria-label="Feed">
+        <PlaySquareIcon className="size-4" />
+      </button>
+      <button type="button" onClick={() => setView("grid")} className={cn("flex size-8 items-center justify-center rounded-full", view === "grid" ? "bg-background shadow-sm" : "text-muted-foreground")} aria-label="Grid">
+        <LayoutGridIcon className="size-4" />
+      </button>
+    </div>
+  )
   const creatorLabel = creator === "all" ? "All clips" : creator === "you" ? "Your library" : (CREATORS.find((c) => c.id === creator)?.name ?? creator)
 
   return (
@@ -298,15 +311,29 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
       <div className="px-2 lg:grid lg:grid-cols-[240px_minmax(0,1fr)_340px] lg:gap-6 lg:px-4">
         <aside className="hidden lg:block">
           <div className={cn("sticky top-4 pb-4", COLUMN_HEIGHT[frame])}>
-            <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border bg-card">
-            <Creators clips={clipRows} partners={partnerRows} activeId={view === "feed" ? activeId : null} onOpenClip={(id) => { const c = published.find((x) => x.id === id); if (c) goToPost(c) }} selected={creator} onSelect={setCreator} you={youRow} onRecord={record} onUpload={upload} onGenerate={() => setMode("generate")} />
-            </div>
+            {/* The Block dress (Brendan, 2026-10-25): toggles after the title, the search,
+                then the count grouped right before the chevron and the menu, where the
+                partners live. */}
+            <PanelBlock
+              title="Partners"
+              search="Search clips…"
+              name="partners"
+              rows={clipRows}
+              tools={viewToggle}
+              actions={<span className="text-xs whitespace-nowrap text-muted-foreground tabular-nums">{clips.length} clips</span>}
+              menuItems={partnerRows.map((x) => (
+                <MenuRow key={x.id} label={x.name} checked={creator === x.id} onClick={() => setCreator(x.id)} />
+              ))}
+            >
+              <Creators clips={clipRows} activeId={view === "feed" ? activeId : null} onOpenClip={(id) => { const c = published.find((x) => x.id === id); if (c) goToPost(c) }} />
+            </PanelBlock>
           </div>
         </aside>
 
         <main className="min-w-0">
-          <div className="flex h-14 items-center gap-2">
-            <div className="flex items-center rounded-full bg-muted p-0.5">
+          <div className="flex h-14 items-center gap-2 lg:hidden">
+            {viewToggle}
+            <div className="hidden">
               <button type="button" onClick={() => setView("feed")} className={cn("flex size-8 items-center justify-center rounded-full", view === "feed" ? "bg-background shadow-sm" : "text-muted-foreground")} aria-label="Feed">
                 <PlaySquareIcon className="size-4" />
               </button>
@@ -334,8 +361,6 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
                 )}
               </SelectContent>
             </Select>
-            {/* The count stands alone at the right (Brendan, 2026-10-25). */}
-            <span className="ml-auto text-xs text-muted-foreground tabular-nums">{clips.length} clips</span>
           </div>
 
           {creator === "you" && signedIn && uploads.length > 0 && (
@@ -387,8 +412,25 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
 
         <aside className="hidden lg:block">
           {/* mt-14 clears the center toolbar so the panel's border starts at the video top. */}
-          <div className={cn("sticky top-4 mt-14 pb-4", COLUMN_HEIGHT[frame])}>
-            <div className="h-full overflow-hidden rounded-xl border bg-card">{panel()}</div>
+          <div className={cn("sticky top-4 pb-4", COLUMN_HEIGHT[frame])}>
+            <PanelBlock
+              title=""
+              id="clip-panel"
+              name="clip panel"
+              tools={
+                <div className="flex items-center gap-2.5">
+                  <button type="button" onClick={() => setPanelTab("edit")} className={cn("text-sm font-semibold", panelTab === "edit" ? "" : "text-muted-foreground")}>
+                    Edit Panel
+                  </button>
+                  <span className="text-muted-foreground">·</span>
+                  <button type="button" onClick={() => setPanelTab("report")} className={cn("text-sm font-semibold", panelTab === "report" ? "" : "text-muted-foreground")}>
+                    Report Panel
+                  </button>
+                </div>
+              }
+            >
+              {panel()}
+            </PanelBlock>
           </div>
         </aside>
       </div>

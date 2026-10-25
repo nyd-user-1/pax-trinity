@@ -2,16 +2,13 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { BookmarkIcon, HeartIcon, MessageCircleIcon, MoreHorizontalIcon, SendIcon } from "lucide-react"
-
-import { ReactionButton } from "@govblock/ui/components/animbits/reaction-button"
+import { AtSignIcon, BoldIcon, CodeIcon, ItalicIcon, Link2Icon, ListIcon, ListOrderedIcon, PlusIcon, SendHorizontalIcon, SmileIcon, SquareCodeIcon, StrikethroughIcon, TextQuoteIcon } from "lucide-react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@govblock/ui/components/nova/avatar"
 import { Button } from "@govblock/ui/components/nova/button"
 import { cn } from "@govblock/ui/lib/utils"
 
-import { ClipMenu } from "./menu"
-import { fmtAge, fmtCount, fmtWhen, type Clip, type Comment } from "./store"
+import { fmtAge, type Clip, type Comment } from "./store"
 
 // Instagram's post panel, as the page's right rail: the author with Follow
 // and the menu, the caption as the first entry, the comments, the action row
@@ -19,6 +16,7 @@ import { fmtAge, fmtCount, fmtWhen, type Clip, type Comment } from "./store"
 // box is a sentence with a sign-in link.
 
 export function CommentsPanel({
+  tab,
   clip,
   comments,
   liked,
@@ -38,6 +36,7 @@ export function CommentsPanel({
   focusKey,
   className,
 }: {
+  tab: "edit" | "report"
   clip: Clip | null
   comments: Comment[]
   liked: boolean
@@ -58,7 +57,6 @@ export function CommentsPanel({
   className?: string
 }) {
   const [text, setText] = React.useState("")
-  const [tab, setTab] = React.useState<"edit" | "report">("edit")
   const inputRef = React.useRef<HTMLInputElement>(null)
   React.useEffect(() => {
     if (focusKey) inputRef.current?.focus()
@@ -70,31 +68,22 @@ export function CommentsPanel({
 
   return (
     <div className={cn("flex h-full min-h-0 flex-col", className)}>
-      {/* Edit and Report, side by side (Brendan, 2026-10-25): the edit thread and the
-          cut's test readout share the panel; the clip menu keeps the corner. */}
-      <div className="flex items-center gap-2.5 border-b px-4 py-3">
-        <button type="button" onClick={() => setTab("edit")} className={cn("text-sm font-semibold", tab === "edit" ? "" : "text-muted-foreground")}>
-          Edit Panel
-        </button>
-        <span className="text-muted-foreground">·</span>
-        <button type="button" onClick={() => setTab("report")} className={cn("text-sm font-semibold", tab === "report" ? "" : "text-muted-foreground")}>
-          Report Panel
-        </button>
-        <ClipMenu clip={clip} onGoToPost={onGoToPost} onDelete={onDelete} onReport={onReport} onTakeDown={onTakeDown}>
-          <button type="button" className="ml-auto flex size-8 items-center justify-center rounded-full hover:bg-accent" aria-label="More">
-            <MoreHorizontalIcon className="size-5" />
-          </button>
-        </ClipMenu>
-      </div>
-
       {tab === "report" ? (
         <ReportView clip={clip} />
       ) : (
       <div className="scrollbar-none min-h-0 flex-1 overflow-y-auto px-4 py-3">
         {EDITS.map((e) => (
-          <div key={e.who + e.ago} className="pb-3 text-sm">
-            <span className="font-semibold">{e.who}</span> <span className="text-xs text-muted-foreground">{e.ago}</span>
-            <p className="mt-0.5">{e.text}</p>
+          <div key={e.who + e.ago} className="flex gap-3 py-2">
+            <Avatar className="size-8 shrink-0">
+              <AvatarImage src={e.image} alt="" className="object-cover" />
+              <AvatarFallback className="text-xs">{e.who.slice(0, 1)}</AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 flex-1 text-sm">
+              <p className="leading-snug">
+                <span className="font-semibold">{e.who}</span> <span className="text-muted-foreground">{e.ago}</span>
+              </p>
+              <p className="mt-0.5">{e.text}</p>
+            </div>
           </div>
         ))}
         {!!clip.links?.length && (
@@ -112,52 +101,30 @@ export function CommentsPanel({
           </Row>
         ))}
         {comments.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">No comments yet.</p>}
-      </div>
-      )}
-
-      {tab === "edit" && (
-      <div className="border-t px-4 py-3">
-        <div className="flex items-center gap-1">
-          <span className={cn("flex size-10 items-center justify-center rounded-full transition-colors hover:bg-accent", liked && "text-red-500")}>
-            <ReactionButton Icon={HeartIcon} size={24} isLiked={liked} onToggle={onLike} />
-          </span>
-          <IconButton onClick={() => inputRef.current?.focus()} label="Comment">
-            <MessageCircleIcon className="size-6 -scale-x-100" />
-          </IconButton>
-          <IconButton onClick={onGoToPost} label="Share">
-            <SendIcon className="size-6" />
-          </IconButton>
-          <span className="ml-auto flex size-10 items-center justify-center rounded-full transition-colors hover:bg-accent">
-            <ReactionButton Icon={BookmarkIcon} size={24} isLiked={saved} colors={{ initial: "currentColor", liked: "currentColor" }} onToggle={onSave} />
-          </span>
-        </div>
-        <p className="mt-1 text-sm font-semibold">{fmtCount(likes)} likes</p>
-        <p className="text-xs text-muted-foreground">{fmtWhen(clip.createdAt)}</p>
-        {signedIn ? (
-          <form
-            className="mt-3 flex items-center gap-2"
-            onSubmit={(e) => {
-              e.preventDefault()
-              const t = text.trim()
-              if (!t) return
-              onPost(t)
-              setText("")
-            }}
-          >
-            <input ref={inputRef} value={text} onChange={(e) => setText(e.target.value)} placeholder="Add a comment…" className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground" />
-            <Button type="submit" variant="ghost" size="sm" className="text-sky-600 disabled:opacity-40 dark:text-sky-400" disabled={!text.trim()}>
-              Post
-            </Button>
-          </form>
-        ) : (
-          <p className="mt-3 text-sm text-muted-foreground">
-            <Link href="/sign-in" className="font-medium text-sky-600 dark:text-sky-400">
+        {!signedIn && (
+          <p className="py-4 text-center text-sm text-muted-foreground">
+            <Link href="/signin" className="font-medium text-sky-600 dark:text-sky-400">
               Sign in
             </Link>{" "}
             to like or comment.
           </p>
         )}
       </div>
+      )}
+
+      {tab === "edit" && signedIn && (
+        <Composer
+          placeholder={`Message #${clip.author.handle}`}
+          value={text}
+          onChange={setText}
+          inputRef={inputRef}
+          onSend={() => {
+            const t = text.trim()
+            if (!t) return
+            onPost(t)
+            setText("")
+          }}
+        />
       )}
     </div>
   )
@@ -205,11 +172,11 @@ function IconButton({ children, label, onClick, className }: { children: React.R
 
 // The edit thread's seed (Brendan's mock, 2026-10-25) — stand-in entries until edits are recorded for real.
 const EDITS = [
-  { who: "Admin", ago: "22h", text: "Frame 7 swapped, new vert added." },
-  { who: "Sajeela", ago: "24h", text: "Swap frame 7 🎞️, settle down. 💅" },
-  { who: "Ted", ago: "28h", text: "Act on 🧊 2 findings. I will fight you" },
-  { who: "Garrett", ago: "36h", text: "This guy 👆 Also, MA-3 asked for an update" },
-  { who: "Brendan", ago: "48h", text: "🎃 is not 🍕." },
+  { who: "Admin", ago: "22h", text: "Frame 7 swapped, new vert added.", image: "/pax-avatar.svg" },
+  { who: "Sajeela", ago: "24h", text: "Swap frame 7 🎞️, settle down. 💅", image: "/sajeela.jpeg" },
+  { who: "Ted", ago: "28h", text: "Act on 🧊 2 findings. I will fight you", image: "/ted.jpeg" },
+  { who: "Garrett", ago: "36h", text: "This guy 👆 Also, MA-3 asked for an update", image: "/garrett.jpeg" },
+  { who: "Brendan", ago: "48h", text: "🎃 is not 🍕.", image: "/avatars/default.jpg" },
 ]
 
 // The cut's randomized-test readout: lifts against the wave's own placebo, the
@@ -238,6 +205,49 @@ function ReportView({ clip }: { clip: Clip }) {
       </div>
       <p className="mt-3 text-xs text-muted-foreground">{r.armN} weighted saw this cut · {r.placeboN} weighted saw the placebo.</p>
       <p className="mt-2 text-xs text-muted-foreground">Lifts are against the wave's own placebo at the source's 90% criterion. "No measurable effect" means not detected — not proof of zero.</p>
+    </div>
+  )
+}
+
+
+// The Slack-dress composer (Brendan's mock, 2026-10-25): a formatting strip,
+// the message line, and the senders' row. Only Send is wired.
+function Composer({ placeholder, value, onChange, onSend, inputRef }: { placeholder: string; value: string; onChange: (v: string) => void; onSend: () => void; inputRef: React.RefObject<HTMLInputElement | null> }) {
+  const tool = "flex size-7 items-center justify-center rounded text-slate-500 hover:bg-accent hover:text-foreground"
+  return (
+    <div className="px-3 pb-3">
+      <form
+        className="rounded-2xl border"
+        onSubmit={(e) => {
+          e.preventDefault()
+          onSend()
+        }}
+      >
+        <div className="flex items-center gap-0.5 border-b px-2 py-1.5">
+          <span className={tool}><BoldIcon className="size-4" /></span>
+          <span className={tool}><ItalicIcon className="size-4" /></span>
+          <span className={tool}><StrikethroughIcon className="size-4" /></span>
+          <span className="mx-1 h-4 w-px bg-border" />
+          <span className={tool}><Link2Icon className="size-4" /></span>
+          <span className="mx-1 h-4 w-px bg-border" />
+          <span className={tool}><ListOrderedIcon className="size-4" /></span>
+          <span className={tool}><ListIcon className="size-4" /></span>
+          <span className="mx-1 h-4 w-px bg-border" />
+          <span className={tool}><TextQuoteIcon className="size-4" /></span>
+          <span className={tool}><CodeIcon className="size-4" /></span>
+          <span className={tool}><SquareCodeIcon className="size-4" /></span>
+        </div>
+        <input ref={inputRef} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="w-full bg-transparent px-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground" />
+        <div className="flex items-center gap-1 px-2 pt-0.5 pb-2">
+          <span className="flex size-8 items-center justify-center rounded-full bg-muted text-slate-600"><PlusIcon className="size-4" /></span>
+          <span className="px-1 text-sm font-semibold text-pax2-blue">Aa</span>
+          <span className={tool}><SmileIcon className="size-4" /></span>
+          <span className={tool}><AtSignIcon className="size-4" /></span>
+          <button type="submit" disabled={!value.trim()} aria-label="Send" className="ml-auto flex size-9 items-center justify-center rounded-full bg-pax2-lavender text-pax2-blue transition-colors hover:bg-pax2-blue hover:text-white disabled:opacity-50">
+            <SendHorizontalIcon className="size-4" />
+          </button>
+        </div>
+      </form>
     </div>
   )
 }

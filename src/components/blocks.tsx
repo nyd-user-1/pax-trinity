@@ -70,9 +70,11 @@ export type BlockProps = {
   small?: boolean
   /** The footer link reads More and goes here (the block's own page) instead of the Glossary. */
   more?: string
+  /** A side panel: the Card fills its column, the child owns body and footer, no Glossary foot. */
+  panel?: boolean
 }
 
-export function MainBlock({ title, children, search, searchValue, onSearch, tools, actions, rows, name, views, view, onView, defaultOpen = true, height, peek, id, menuItems, className, small, more }: BlockProps) {
+export function MainBlock({ title, children, search, searchValue, onSearch, tools, actions, rows, name, views, view, onView, defaultOpen = true, height, peek, id, menuItems, className, small, more, panel }: BlockProps) {
   const [size, setSize] = React.useState<BlockSize>(defaultOpen ? "full" : "collapsed")
   const open = size !== "collapsed"
   const half = height && height !== "auto" && height !== "max" ? height : BLOCK_HEIGHT
@@ -82,7 +84,7 @@ export function MainBlock({ title, children, search, searchValue, onSearch, tool
   if (title && hidden.includes(`${path}#${id ?? slug(title)}`)) return null
   return (
     <PAX2Table2 value={searchValue} onChange={onSearch}>
-      <Card className={cn("gap-4", open && (small ? (size === "full" ? SMALL_FULL : SMALL_HALF) : size === "full" ? BLOCK_FULL : half), className)}>
+      <Card className={cn("gap-4", panel ? "h-full min-h-0" : open && (small ? (size === "full" ? SMALL_FULL : SMALL_HALF) : size === "full" ? BLOCK_FULL : half), className)}>
         <CardHeader className={cn((open || peek) && "border-b [.border-b]:pb-2")}>
           <div className="flex items-center gap-1">
             <CardAnchor id={id}>{title}</CardAnchor>
@@ -102,12 +104,17 @@ export function MainBlock({ title, children, search, searchValue, onSearch, tool
           </CardAction>
         </CardHeader>
         {!open && peek && <CardContent>{peek}</CardContent>}
-        {open && (
+        {open && panel && (
+          <div className="flex min-h-0 flex-1 flex-col">
+            <SizeCtx.Provider value={size}>{children}</SizeCtx.Provider>
+          </div>
+        )}
+        {open && !panel && (
           <CardContent className="min-h-0 flex-1 overflow-y-auto [&_[data-slot=table-container]]:overflow-visible [&_thead]:sticky [&_thead]:top-0 [&_thead]:z-10 [&_thead]:bg-card">
             <SizeCtx.Provider value={size}>{children}</SizeCtx.Provider>
           </CardContent>
         )}
-        {open && (
+        {open && !panel && (
           <CardFooter className="bg-transparent py-3 text-xs text-slate-800">
             <Link href={more ?? "/glossary"} className="font-medium text-slate-800 underline underline-offset-2 hover:text-pax2-light-blue">{more ? "More" : "Glossary"}</Link>
           </CardFooter>
@@ -121,6 +128,11 @@ export function MainBlock({ title, children, search, searchValue, onSearch, tool
  *  reach 840px. */
 export function SmallBlock(props: BlockProps) {
   return <MainBlock {...props} small />
+}
+
+/** A side panel in the Block dress (Brendan, 2026-10-25): fills its column; body and footer are the child's. */
+export function PanelBlock(props: BlockProps) {
+  return <MainBlock {...props} panel />
 }
 
 /** MainBlock with a table in it: the column header pins while the rows scroll. */

@@ -86,7 +86,7 @@ const shortClip = (x: PartnerShort): Clip => ({
   creatorId: x.partner,
   author: by(x.partner),
   title: x.title,
-  caption: "From the channel's shorts.",
+  caption: "",
   src: `${CLIPS_CDN}/${x.partner === "voter-freedom" ? "vf" : "y3"}/${x.id}.mp4`,
   duration: x.duration,
   createdAt: "2026-10-25T12:00:00Z",
