@@ -355,7 +355,7 @@ export function Compose({
       <div
         className={
           pinned
-            ? "sticky bottom-2 z-10 mt-auto flex flex-wrap items-center gap-2 rounded-xl border bg-background px-3 py-2 shadow-[0_1px_3px_rgba(60,64,67,0.25),0_2px_8px_2px_rgba(60,64,67,0.12)]"
+            ? "sticky bottom-2 z-10 mt-auto flex flex-wrap items-center gap-2 rounded-xl border bg-background px-3 py-2"
             : "mt-auto flex flex-wrap items-center gap-2 border-t pt-3"
         }
       >
