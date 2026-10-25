@@ -2,10 +2,9 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { AtSignIcon, BoldIcon, CodeIcon, ItalicIcon, Link2Icon, ListIcon, ListOrderedIcon, PlusIcon, SendHorizontalIcon, SmileIcon, SquareCodeIcon, StrikethroughIcon, TextQuoteIcon } from "lucide-react"
+import { AtSignIcon, BoldIcon, CodeIcon, HeartIcon, ItalicIcon, Link2Icon, ListIcon, ListOrderedIcon, PlusIcon, SendHorizontalIcon, SmileIcon, SquareCodeIcon, StrikethroughIcon, TextQuoteIcon } from "lucide-react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@govblock/ui/components/nova/avatar"
-import { Button } from "@govblock/ui/components/nova/button"
 import { cn } from "@govblock/ui/lib/utils"
 
 import { fmtAge, type Clip, type Comment } from "./store"
@@ -161,13 +160,6 @@ function Row({ author, at, likes, liked, onLike, children }: { author: Comment["
   )
 }
 
-function IconButton({ children, label, onClick, className }: { children: React.ReactNode; label: string; onClick: () => void; className?: string }) {
-  return (
-    <button type="button" onClick={onClick} aria-label={label} className={cn("flex size-10 items-center justify-center rounded-full transition-colors hover:bg-accent", className)}>
-      {children}
-    </button>
-  )
-}
 
 
 // The edit thread's seed (Brendan's mock, 2026-10-25) — stand-in entries until edits are recorded for real.
