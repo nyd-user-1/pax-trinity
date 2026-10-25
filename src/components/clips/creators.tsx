@@ -2,10 +2,10 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { CameraIcon, FileTextIcon, FilmIcon, LayoutGridIcon, LayoutTemplateIcon, PlayIcon, ScissorsIcon } from "lucide-react"
+import { CameraIcon, CheckIcon, FileTextIcon, FilmIcon, LayoutTemplateIcon, MoreHorizontalIcon, PlayIcon, ScissorsIcon } from "lucide-react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@govblock/ui/components/nova/avatar"
-import { Select, SelectContent, SelectItem, SelectTrigger } from "@govblock/ui/components/nova/select"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@govblock/ui/components/nova/dropdown-menu"
 import { Button } from "@govblock/ui/components/nova/button"
 import { cn } from "@govblock/ui/lib/utils"
 
@@ -37,28 +37,30 @@ export function Creators({ clips, partners, activeId, onOpenClip, selected, onSe
   const current = partners.find((x) => x.id === selected) ?? partners[0]
   return (
     <div className={cn("flex h-full flex-col", className)}>
-      {/* Fixed head: the label on the toolbar's line, then the switcher; only the list below slides (Brendan, 2026-10-25). */}
-      <p className="flex h-14 shrink-0 items-center px-2 text-xs font-medium text-muted-foreground">Partners</p>
-      <div className="flex min-h-0 flex-1 flex-col gap-0.5">
-        {/* The context switcher: whose shelf the page shows (Brendan, 2026-10-25). */}
-        <Select value={selected} onValueChange={(v) => v && onSelect(String(v))}>
-          <SelectTrigger className="h-auto min-h-[52px] w-full shrink-0 justify-start gap-3 rounded-lg border-0 bg-accent px-2 py-2 shadow-none" aria-label="Partner">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-background"><LayoutGridIcon className="size-4" /></span>
-            <span className="flex min-w-0 flex-1 flex-col text-left">
-              <span className="truncate text-sm font-medium leading-5">{current?.name}</span>
-              <span className="truncate text-xs leading-4 text-muted-foreground">{current?.count} clips</span>
-            </span>
-          </SelectTrigger>
-          <SelectContent className="w-(--anchor-width) min-w-44">
+      {/* The panel's head: name, the shelf's count, and partner selection behind the
+          three dots (Brendan, 2026-10-25). The default shelf is every partner, newest first. */}
+      <div className="flex shrink-0 items-center gap-2.5 border-b px-4 py-3">
+        <span className="text-sm font-semibold">Partners</span>
+        <span className="text-xs text-muted-foreground tabular-nums">{current?.count} clips</span>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button type="button" className="ml-auto flex size-8 items-center justify-center rounded-full hover:bg-accent" aria-label="Pick a partner">
+              <MoreHorizontalIcon className="size-5" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="min-w-44">
             {partners.map((x) => (
-              <SelectItem key={x.id} value={x.id} className="whitespace-nowrap">
+              <DropdownMenuItem key={x.id} onClick={() => onSelect(x.id)} className="whitespace-nowrap">
                 {x.name}
-              </SelectItem>
+                {selected === x.id && <CheckIcon className="ml-auto size-4" />}
+              </DropdownMenuItem>
             ))}
-          </SelectContent>
-        </Select>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      <div className="flex min-h-0 flex-1 flex-col">
         {/* One row per video: pressing one brings the single-video view into focus. */}
-        <div className="mt-0.5 flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto">
+        <div className="scrollbar-none flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto p-2">
         {clips.map((c) => (
           <button key={c.id} type="button" onClick={() => onOpenClip(c.id)} className={cn("group flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-accent", activeId === c.id && "bg-accent")}>
             <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">

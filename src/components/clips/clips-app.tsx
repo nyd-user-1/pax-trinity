@@ -149,9 +149,9 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
   // the stock), narrowed to a creator when one is picked.
   const published = React.useMemo(() => [...mine.filter((c) => c.visibility === "public" && c.status !== "processing"), ...live, ...PUBLISHED], [mine, live])
   const clips = React.useMemo(() => {
-    if (creator === "you") return mine
-    if (creator === "all") return published
-    return published.filter((c) => c.creatorId === creator)
+    const list = creator === "you" ? mine : creator === "all" ? published : published.filter((c) => c.creatorId === creator)
+    // Newest first, everywhere (Brendan, 2026-10-25).
+    return [...list].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
   }, [creator, mine, published])
 
   // The rail lists the videos themselves (Brendan, 2026-10-25), not the desks.
@@ -298,7 +298,9 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
       <div className="px-2 lg:grid lg:grid-cols-[240px_minmax(0,1fr)_340px] lg:gap-6 lg:px-4">
         <aside className="hidden lg:block">
           <div className={cn("sticky top-4 pb-4", COLUMN_HEIGHT[frame])}>
+            <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border bg-card">
             <Creators clips={clipRows} partners={partnerRows} activeId={view === "feed" ? activeId : null} onOpenClip={(id) => { const c = published.find((x) => x.id === id); if (c) goToPost(c) }} selected={creator} onSelect={setCreator} you={youRow} onRecord={record} onUpload={upload} onGenerate={() => setMode("generate")} />
+            </div>
           </div>
         </aside>
 

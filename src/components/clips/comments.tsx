@@ -58,6 +58,7 @@ export function CommentsPanel({
   className?: string
 }) {
   const [text, setText] = React.useState("")
+  const [tab, setTab] = React.useState<"edit" | "report">("edit")
   const inputRef = React.useRef<HTMLInputElement>(null)
   React.useEffect(() => {
     if (focusKey) inputRef.current?.focus()
@@ -69,20 +70,16 @@ export function CommentsPanel({
 
   return (
     <div className={cn("flex h-full min-h-0 flex-col", className)}>
+      {/* Edit and Report, side by side (Brendan, 2026-10-25): the edit thread and the
+          cut's test readout share the panel; the clip menu keeps the corner. */}
       <div className="flex items-center gap-2.5 border-b px-4 py-3">
-        <Avatar className="size-8">
-          <AvatarImage src={clip.author.image ?? undefined} alt="" className="object-cover" />
-          <AvatarFallback className="text-xs">{clip.author.name.slice(0, 1)}</AvatarFallback>
-        </Avatar>
-        <span className="text-sm font-semibold">{clip.author.handle}</span>
-        {!clip.mine && (
-          <>
-            <span className="text-muted-foreground">·</span>
-            <button type="button" onClick={onFollow} className={cn("text-sm font-semibold", following ? "text-muted-foreground" : "text-sky-600 dark:text-sky-400")}>
-              {following ? "Following" : "Follow"}
-            </button>
-          </>
-        )}
+        <button type="button" onClick={() => setTab("edit")} className={cn("text-sm font-semibold", tab === "edit" ? "" : "text-muted-foreground")}>
+          Edit Panel
+        </button>
+        <span className="text-muted-foreground">·</span>
+        <button type="button" onClick={() => setTab("report")} className={cn("text-sm font-semibold", tab === "report" ? "" : "text-muted-foreground")}>
+          Report Panel
+        </button>
         <ClipMenu clip={clip} onGoToPost={onGoToPost} onDelete={onDelete} onReport={onReport} onTakeDown={onTakeDown}>
           <button type="button" className="ml-auto flex size-8 items-center justify-center rounded-full hover:bg-accent" aria-label="More">
             <MoreHorizontalIcon className="size-5" />
@@ -90,10 +87,16 @@ export function CommentsPanel({
         </ClipMenu>
       </div>
 
+      {tab === "report" ? (
+        <ReportView clip={clip} />
+      ) : (
       <div className="scrollbar-none min-h-0 flex-1 overflow-y-auto px-4 py-3">
-        <Row author={clip.author} at={clip.createdAt}>
-          <span className="font-semibold">{clip.title}</span> {clip.caption}
-        </Row>
+        {EDITS.map((e) => (
+          <div key={e.who + e.ago} className="pb-3 text-sm">
+            <span className="font-semibold">{e.who}</span> <span className="text-xs text-muted-foreground">{e.ago}</span>
+            <p className="mt-0.5">{e.text}</p>
+          </div>
+        ))}
         {!!clip.links?.length && (
           <div className="-mt-1 flex flex-col gap-1 pb-2 pl-11 text-sm">
             {clip.links.map((l) => (
@@ -110,7 +113,9 @@ export function CommentsPanel({
         ))}
         {comments.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">No comments yet.</p>}
       </div>
+      )}
 
+      {tab === "edit" && (
       <div className="border-t px-4 py-3">
         <div className="flex items-center gap-1">
           <span className={cn("flex size-10 items-center justify-center rounded-full transition-colors hover:bg-accent", liked && "text-red-500")}>
@@ -153,6 +158,7 @@ export function CommentsPanel({
           </p>
         )}
       </div>
+      )}
     </div>
   )
 }
@@ -193,5 +199,45 @@ function IconButton({ children, label, onClick, className }: { children: React.R
     <button type="button" onClick={onClick} aria-label={label} className={cn("flex size-10 items-center justify-center rounded-full transition-colors hover:bg-accent", className)}>
       {children}
     </button>
+  )
+}
+
+
+// The edit thread's seed (Brendan's mock, 2026-10-25) — stand-in entries until edits are recorded for real.
+const EDITS = [
+  { who: "Admin", ago: "22h", text: "Frame 7 swapped, new vert added." },
+  { who: "Sajeela", ago: "24h", text: "Swap frame 7 🎞️, settle down. 💅" },
+  { who: "Ted", ago: "28h", text: "Act on 🧊 2 findings. I will fight you" },
+  { who: "Garrett", ago: "36h", text: "This guy 👆 Also, MA-3 asked for an update" },
+  { who: "Brendan", ago: "48h", text: "🎃 is not 🍕." },
+]
+
+// The cut's randomized-test readout: lifts against the wave's own placebo, the
+// source's labels, nothing invented. Untested cuts say so.
+function ReportView({ clip }: { clip: Clip }) {
+  const r = clip.report
+  if (!r)
+    return (
+      <div className="flex min-h-0 flex-1 items-center justify-center px-6 text-center text-sm text-muted-foreground">
+        Untested. When this cut runs in a randomized test, its movement against the placebo lands here.
+      </div>
+    )
+  return (
+    <div className="scrollbar-none min-h-0 flex-1 overflow-y-auto px-4 py-4">
+      <p className="text-xs text-muted-foreground">{r.study} · fielded {r.fielded}</p>
+      <div className="mt-3 flex flex-col gap-3">
+        {r.outcomes.map((o) => (
+          <div key={o.name} className="rounded-lg border px-3 py-2.5">
+            <p className="text-xs text-muted-foreground">{o.name}</p>
+            <div className="mt-1 flex items-baseline gap-2">
+              <span className="text-xl font-semibold tabular-nums">{o.lift > 0 ? `+${o.lift}` : o.lift} pp</span>
+              <span className={o.label === "Persuasive" ? "rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700" : "rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground"}>{o.label}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+      <p className="mt-3 text-xs text-muted-foreground">{r.armN} weighted saw this cut · {r.placeboN} weighted saw the placebo.</p>
+      <p className="mt-2 text-xs text-muted-foreground">Lifts are against the wave's own placebo at the source's 90% criterion. "No measurable effect" means not detected — not proof of zero.</p>
+    </div>
   )
 }

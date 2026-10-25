@@ -30,6 +30,8 @@ export type Clip = {
   title: string
   /** Who speaks in the cut — shown beside the partner on every card. */
   messenger?: string
+  /** A randomized test's published readout for this cut, when one exists. */
+  report?: ClipReport
   caption: string
   src: string
   /** A YouTube video id: the clip plays in YouTube's own player and `src` is empty. */
@@ -54,6 +56,14 @@ export type Clip = {
   links?: { label: string; href: string }[]
   /** A generated clip: the template and the data it plays from, live in the browser. */
   composition?: { template: string; props: Record<string, unknown> }
+}
+
+export type ClipReport = {
+  study: string
+  fielded: string
+  armN: number
+  placeboN: number
+  outcomes: { name: string; lift: number; label: "Persuasive" | "No measurable effect" }[]
 }
 
 export type Comment = { id: string; clipId: string; author: { name: string; handle: string; image?: string | null }; text: string; at: string; likes: number; mine?: boolean }
@@ -84,7 +94,7 @@ const shortClip = (x: PartnerShort): Clip => ({
   views: 0,
   likes: 0,
 })
-const frame = (id: string, file: string, o: { title: string; duration: number; createdAt?: string; messenger?: string; partner?: string }): Clip => ({
+const frame = (id: string, file: string, o: { title: string; duration: number; createdAt?: string; messenger?: string; partner?: string; report?: ClipReport }): Clip => ({
   id: `px-${id}`,
   creatorId: o.partner ?? "parallax",
   author: by(o.partner ?? "parallax"),
@@ -100,15 +110,15 @@ const frame = (id: string, file: string, o: { title: string; duration: number; c
 import PARTNER_SHORTS from "./partner-shorts.json"
 
 export const PUBLISHED: Clip[] = [
-  frame("danielle", "danielle-allen.mp4", { title: "Danielle Allen", messenger: "Danielle Allen", duration: 35 }),
+  frame("danielle", "danielle-allen.mp4", { title: "Danielle Allen", messenger: "Danielle Allen", report: { study: "Grow Progress · Massachusetts Wave 1", fielded: "Oct 2–7, 2026", placeboN: 494, armN: 512, outcomes: [{ name: "Support — % choosing Yes", lift: 18, label: "Persuasive" }, { name: "Comprehension — % identifying the change", lift: 3, label: "No measurable effect" }] }, duration: 35 }),
 
-  frame("dustin", "dustin-cathcart.mp4", { title: "Dustin Cathcart", messenger: "Dustin Cathcart", duration: 28 }),
+  frame("dustin", "dustin-cathcart.mp4", { title: "Dustin Cathcart", messenger: "Dustin Cathcart", report: { study: "Grow Progress · Massachusetts Wave 1", fielded: "Oct 2–7, 2026", placeboN: 494, armN: 520, outcomes: [{ name: "Support — % choosing Yes", lift: 11, label: "Persuasive" }, { name: "Comprehension — % identifying the change", lift: 0, label: "No measurable effect" }] }, duration: 28 }),
 
-  frame("jesse", "jesse-littlewood.mp4", { title: "Jesse Littlewood", messenger: "Jesse Littlewood", duration: 49 }),
+  frame("jesse", "jesse-littlewood.mp4", { title: "Jesse Littlewood", messenger: "Jesse Littlewood", report: { study: "Grow Progress · Massachusetts Wave 1", fielded: "Oct 2–7, 2026", placeboN: 494, armN: 484, outcomes: [{ name: "Support — % choosing Yes", lift: 15, label: "Persuasive" }, { name: "Comprehension — % identifying the change", lift: -3, label: "No measurable effect" }] }, duration: 49 }),
 
   frame("paul", "paul-schilchtman.mp4", { title: "Paul Schilchtman", messenger: "Paul Schilchtman", duration: 43 }),
 
-  frame("alex", "alex-rodriguez.mp4", { title: "Alex Rodriguez", messenger: "Alex Rodriguez", duration: 37 }),
+  frame("alex", "alex-rodriguez.mp4", { title: "Alex Rodriguez", messenger: "Alex Rodriguez", report: { study: "Grow Progress · Massachusetts Wave 1", fielded: "Oct 2–7, 2026", placeboN: 494, armN: 546, outcomes: [{ name: "Support — % choosing Yes", lift: 2, label: "No measurable effect" }, { name: "Comprehension — % identifying the change", lift: 0, label: "No measurable effect" }] }, duration: 37 }),
 
   frame("ajayi", "ajayi-harris.mp4", { title: "Ajayi Harris", messenger: "Ajayi Harris", duration: 27 }),
 
