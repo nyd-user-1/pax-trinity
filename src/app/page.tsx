@@ -16,10 +16,12 @@ import "./paper.css"
 export default async function HomePage() {
   const digest = await getDigest()
   return (
-    <div className="nysgpt-app relative min-h-dvh" style={{ backgroundColor: "var(--white)", ...PAPER_BRIDGE }}>
+    <div className="nysgpt-app relative min-h-0 flex-1 overflow-y-auto" style={{ backgroundColor: "var(--white)", ...PAPER_BRIDGE }}>
       <LandingGrid />
       <SwitchboardProvider cards={CARDS} digest={digest}>
-        <div className="relative mx-auto w-full max-w-[1360px] px-6 pt-8 pb-16 sm:px-10 md:px-14">
+        {/* min-h-full + justify-center: the two plates sit at the true middle of the
+            content area, scrolling normally once they outgrow it. */}
+        <div className="relative mx-auto flex min-h-full w-full max-w-[1360px] flex-col justify-center px-6 py-10 sm:px-10 md:px-14">
           <RevealFx delay={0.08} translateY={6}>
             <HomeMasthead ledger={LEDGER} />
           </RevealFx>

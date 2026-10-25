@@ -1,5 +1,9 @@
 :root {
   --white: #ffffff;
+  /* NYSgpt's display face maps to pax2's: the one sans family, hierarchy from
+     weight and tracking — so every `var(--font-display), Georgia` fallback
+     resolves to Plus Jakarta Sans instead of Georgia. */
+  --font-display: var(--font-sans);
 }
 
 /* The NYSgpt paper palette, scoped exactly as it was in NYSgpt's globals.css:
@@ -19,7 +23,7 @@
   --paper-rule: #16181d;
   --paper-rule-soft: rgba(22, 24, 29, 0.06);
   --paper-quiet: rgba(22, 24, 29, 0.035);
-  --paper-strong: #033882;
+  --paper-strong: var(--pax2-blue);
 }
 .dark .nysgpt-app {
   --bg: #0f0f13;

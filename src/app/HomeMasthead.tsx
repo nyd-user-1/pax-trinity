@@ -23,8 +23,6 @@ export type LedgerEntry = { word: string; value: number; unit: string; exact?: b
 
 const FADE = 'transition-opacity duration-200'
 
-/** NYSgpt's page on the AWS Startups showcase. */
-const AWS_STARTUP = 'https://startups.aws.com/showcase/startup-details/ea42a691-3fe8-4572-8edf-70be4999ec83'
 
 /**
  * The cell width an exact figure needs before it is spelled out, by its length
@@ -47,33 +45,18 @@ export function HomeMasthead({ ledger }: { ledger: LedgerEntry[] }) {
       {/* border-r closes the cell's right edge when the masthead stacks below lg.
           Side by side the ledger's own border-l closes that seam, so it is
           dropped at lg to avoid a double rule. */}
-      {/* The nameplate links to NYSgpt's AWS startup page (2026-10-08): on hover
-          the wordmark dissolves into the AWS mark, which zooms in a little, and
-          a click opens the page in a new tab. The Data cell opens the switchboard. */}
-      <a
+      {/* The nameplate: plain, no link, no AWS (Brendan, 2026-10-24). The Data cell opens the switchboard. */}
+      <div
         data-inspect="Wordmark"
-        href={AWS_STARTUP}
-        target="_blank"
-        rel="noreferrer noopener"
-        aria-label="NYSgpt on AWS Startups"
-        className="group/name relative self-stretch flex items-center justify-center border-l border-r lg:border-r-0 border-[var(--paper-rule)] px-6 py-8 no-underline transition-colors hover:bg-[var(--paper-quiet)] sm:px-10 lg:w-[360px]"
+        className="relative self-stretch flex items-center justify-center border-l border-r lg:border-r-0 border-[var(--paper-rule)] px-6 py-8 sm:px-10 lg:w-[360px]"
       >
         <span
-          className="text-[var(--paper-text)] leading-[0.82] transition-opacity duration-500 group-hover/name:opacity-0"
-          style={{ ...SERIF, fontSize: 'clamp(2.5rem, 8vw, 4.5rem)', fontWeight: 400, letterSpacing: '-0.03em' }}
+          className="text-[var(--paper-text)] leading-[0.82]"
+          style={{ ...SERIF, fontSize: 'clamp(2.5rem, 8vw, 4.5rem)', fontWeight: 650, letterSpacing: '-0.025em' }}
         >
-          NYSgpt
+          PAX
         </span>
-        {/* The AWS mark dissolves in over the wordmark, with a small zoom. */}
-        <span className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3 opacity-0 transition-opacity duration-500 group-hover/name:opacity-100">
-          <img
-            src="/aws-logo.png"
-            alt=""
-            className="h-auto w-[44%] max-w-[150px] scale-95 transition-transform duration-500 ease-out group-hover/name:scale-105"
-          />
-          <span className="text-[10px] uppercase tracking-[0.2em] text-[var(--paper-faint)]" style={SANS}>Built on</span>
-        </span>
-      </a>
+      </div>
 
       {/* Bottom-row cells drop border-b so it does not double with the
           container's own bottom rule. */}

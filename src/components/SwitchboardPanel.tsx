@@ -54,7 +54,7 @@ export const CHANNELS: Record<ChannelId, { name: string; href: string; sameTab?:
     blurb: 'The public channel. Every night the harvest posts what it found — new documents, new patents, new models.',
   },
   ask: {
-    name: 'Ask NYSgpt',
+    name: 'Ask PAX',
     href: 'https://44b.nysgpt.com/chat',
     sameTab: true,
     blurb: 'A cited answer over the whole corpus — papers, patents, models, benchmarks — with its sources attached.',
@@ -181,7 +181,7 @@ function Row({ children, onClick }: { children: React.ReactNode; onClick: () => 
 }
 
 /**
- * A channel row — Slack, Discord, Ask NYSgpt — which has TWO destinations:
+ * A channel row — Slack, Discord, Ask PAX — which has TWO destinations:
  * drill INTO the panel, or leave for the service.
  *
  * So it cannot be one `<Link>`. The row and its `Open` chip are a button that
@@ -489,7 +489,7 @@ function SwitchboardPanel() {
               /* ── MENU VIEW ───────────────────────────────────────────── */
               <>
                 <div className="border-b border-[var(--paper-rule)] px-5 py-6">
-                  <h2 className="text-[26px] leading-none text-[var(--paper-text)]" style={SERIF}>NYSgpt</h2>
+                  <h2 className="text-[26px] leading-none text-[var(--paper-text)]" style={SERIF}>PAX</h2>
                   <p className="mt-3 text-[13px] leading-[1.6] text-[var(--paper-muted)]" style={SANS}>{INTRO}</p>
                 </div>
 
@@ -516,7 +516,7 @@ function SwitchboardPanel() {
                   href={CHANNELS.ask.href}
                   sameTab
                 >
-                  Ask NYSgpt
+                  Ask PAX
                 </ChannelRow>
 
                 <p className="px-5 pb-2 pt-5 text-[10px] uppercase tracking-[0.28em] text-[var(--paper-faint)]" style={MONO}>

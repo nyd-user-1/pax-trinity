@@ -25,6 +25,10 @@ const DiscussionPanel = dynamic(() => import("@/components/discussion-panel").th
 // then Create, Explore and Lab as group rows, then Learn, then Research and Admin as group rows too.
 // A group row folds its pages open and shut with its chevron; every group starts shut. /app/home stays
 // as a route, off the sidebar.
+// The pages trinity starts with; every other destination renders in place but goes nowhere
+// until its page exists (Brendan, 2026-10-24).
+const LIVE = new Set(["/", "/chat", "/glossary", "/signin", "/signup", "/erd", "/pipeline-2"])
+
 type NavLink = { href: string; label: string; icon: typeof House }
 type NavGroup = { label: string; icon: typeof House; children: NavLink[]; admin?: boolean }
 // A to Z (Brendan, 2026-10-23).
@@ -258,7 +262,8 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
   const findable = React.useMemo(() => [...NAV, ...RESEARCH, ...(admin ? ADMIN : [])], [admin])
   // The front door (landing, record entry, sign-in) is full bleed; the recording flow, from /recording on, sits in the shell.
   // /signup and /signin are the landing's first screen with a form in place of the hero, sidebar and all.
-  const home = path === "/" || path === "/signup" || path === "/signin"
+  // Trinity's front door lives inside the shell; only the auth screens stay full bleed.
+  const home = path === "/signup" || path === "/signin"
   // A message test's respondent page (/t/<id>) is a bare survey: no sidebar, nothing of the product.
   if (path.startsWith("/t/")) return <>{children}</>
   if (path === "/record" || (path.startsWith("/sign") && !home))
@@ -277,24 +282,30 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
     const fav = favs.includes(href)
     const group = RESEARCH.some((n) => n.href === href) ? "Research" : ADMIN.some((n) => n.href === href) ? "Admin" : "Main"
     const url = () => `${window.location.origin}${href}`
-    return (
-      <div key={href} className="group/item relative">
-      <Link
-        href={href}
-        aria-current={on ? "page" : undefined}
-        className={cn(
-          "group relative flex items-center gap-3 rounded-xl px-3 pr-14 outline-none transition-[color,background-color,box-shadow]",
-          small ? "py-1.5 text-[13px]" : "py-2 text-sm",
-          on ? "bg-white font-semibold text-pax2-blue shadow-e1" : "text-slate-500 hover:bg-white/70 hover:text-pax2-blue hover:shadow-e1",
-        )}
-      >
+    const rowCls = cn(
+      "group relative flex items-center gap-3 rounded-xl px-3 pr-14 outline-none transition-[color,background-color,box-shadow]",
+      small ? "py-1.5 text-[13px]" : "py-2 text-sm",
+      on ? "bg-white font-semibold text-pax2-blue shadow-e1" : "text-slate-500 hover:bg-white/70 hover:text-pax2-blue hover:shadow-e1",
+    )
+    const rowBody = (
+      <>
         {on && <span aria-hidden className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-pax2-light-blue" />}
         <Icon
           className={cn(small ? "size-3.5" : "size-[18px]", "icon-pop shrink-0 transition-colors", on ? "fill-pax2-lavender text-pax2-blue" : "group-hover:fill-pax2-lavender group-hover:text-pax2-blue")}
           strokeWidth={on ? 2.25 : 1.75}
         />
         {label}
-      </Link>
+      </>
+    )
+    return (
+      <div key={href} className="group/item relative">
+      {LIVE.has(href) ? (
+        <Link href={href} aria-current={on ? "page" : undefined} className={rowCls}>
+          {rowBody}
+        </Link>
+      ) : (
+        <span className={cn(rowCls, "cursor-default")}>{rowBody}</span>
+      )}
       <span className="absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center">
         {fav && <Star aria-label="Favorite" className="size-3 fill-amber-400 text-amber-400" />}
         <KebabMenu
@@ -394,7 +405,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
         )}
       </PanelCtx.Provider>
     )
-  const title = TITLES.find(([p]) => path.startsWith(p))?.[1] ?? (path === "/" ? "Scored" : path.slice(1).split("/")[0].replace(/^./, (c) => c.toUpperCase()))
+  const title = TITLES.find(([p]) => path.startsWith(p))?.[1] ?? (path === "/" ? "Home" : path.slice(1).split("/")[0].replace(/^./, (c) => c.toUpperCase()))
   // The take panel must not remount (and re-fade) the page beneath it.
   if (!path.startsWith("/v/")) animKey.current = title
   const panelW = size === "half" ? PANEL_HALF : size === "custom" ? PANEL_CUSTOM : PANEL_THIRD
@@ -404,7 +415,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
   const paired = open && !takeover
   const closePanel = () => (panelOpen ? router.back() : discuss ? setDiscuss(false) : setAside(null))
   // /chat fills the content card edge to edge, as solar's chat fills its main area; /app/home is the same chat dressed as the home.
-  const full = path.startsWith("/chat") || path.startsWith("/graph") || path.startsWith("/erd") || path.startsWith("/app/home") || path.startsWith("/flow/")
+  const full = path === "/" || path.startsWith("/chat") || path.startsWith("/graph") || path.startsWith("/erd") || path.startsWith("/app/home") || path.startsWith("/flow/")
   return (
     <PanelCtx.Provider value={panel}>
       <div className="flex min-h-dvh md:h-dvh md:overflow-hidden md:bg-slate-200/60 md:p-[18px]">
@@ -417,14 +428,23 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
             <header className="sticky top-0 z-20 flex items-center gap-3 border-b bg-white/90 px-4 py-2.5 backdrop-blur md:hidden">
               <Link href="/" aria-label="Home"><Wordmark size={18} /></Link>
               <nav className="no-scrollbar flex flex-1 gap-1 overflow-x-auto">
-                {NAV.map(({ href, label }) => (
-                  <Link key={href} href={href} className={cn("whitespace-nowrap rounded-full px-3 py-1 text-xs", active(href) ? "bg-pax2-lavender font-semibold text-pax2-blue" : "text-slate-500")}>
-                    {label}
-                  </Link>
-                ))}
+                {NAV.map(({ href, label }) => {
+                  const cls = cn("whitespace-nowrap rounded-full px-3 py-1 text-xs", active(href) ? "bg-pax2-lavender font-semibold text-pax2-blue" : "text-slate-500")
+                  return LIVE.has(href) ? (
+                    <Link key={href} href={href} className={cls}>
+                      {label}
+                    </Link>
+                  ) : (
+                    <span key={href} className={cls}>
+                      {label}
+                    </span>
+                  )
+                })}
               </nav>
             </header>
             <div className={cn("relative z-10 hidden shrink-0 items-center gap-3 px-5 py-4 shadow-[0_4px_12px_-8px_rgb(15_23_42/0.25)] md:flex")}>
+              {/* The wordmark stands plain in the corner — not a button (Brendan, 2026-10-24). */}
+              <Wordmark size={20} />
               <button type="button" onClick={() => setSidebarOpen((v) => !v)} aria-label="Toggle sidebar" className={whiteButton("circle")}>
                 {sidebarOpen ? <PanelLeftClose className="size-4" strokeWidth={2} /> : <PanelLeftOpen className="size-4" strokeWidth={2} />}
               </button>
@@ -796,16 +816,17 @@ function AccountMenu() {
           </span>
         </div>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => router.push("/account#profile")} className={item}>
+        {/* Unwired until their pages exist in trinity (Brendan, 2026-10-24); Log out stays live. */}
+        <DropdownMenuItem disabled className={item}>
           <User2 /> Profile
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => router.push("/account#account")} className={item}>
+        <DropdownMenuItem disabled className={item}>
           <BadgeCheck /> Account
         </DropdownMenuItem>
         <DropdownMenuItem disabled className={item}>
           <Bell /> Notifications
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => router.push("/account#settings")} className={item}>
+        <DropdownMenuItem disabled className={item}>
           <Settings /> Settings
         </DropdownMenuItem>
         <DropdownMenuSeparator />
@@ -815,7 +836,7 @@ function AccountMenu() {
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent className="min-w-44 rounded-2xl border border-slate-500 bg-pax2-mist p-1.5 shadow-e2 ring-0">
             {LAB.map((l) => (
-              <DropdownMenuItem key={l.href} onClick={() => router.push(l.href)} className={item}>
+              <DropdownMenuItem key={l.href} disabled className={item}>
                 <l.icon /> {l.label}
               </DropdownMenuItem>
             ))}
