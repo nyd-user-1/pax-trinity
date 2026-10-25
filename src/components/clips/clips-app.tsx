@@ -83,7 +83,7 @@ const Generate = dynamic(() => import("./generate").then((m) => m.Generate), { s
 // The feed, the creators and the comments fit the page under the header, or the right rail's sheet (Brendan, 2026-09-14): the sheet is 1.2rem shorter than the page and its content sits in 0.5rem of padding. The page's feed gives back a rem so its foot is never cut.
 type Frame = "page" | "sheet"
 const FEED_HEIGHT: Record<Frame, string> = { page: "h-[calc(100svh-var(--header-height)-4.5rem)]", sheet: "h-[calc(100svh-var(--header-height)-5.2rem)]" }
-const COLUMN_HEIGHT: Record<Frame, string> = { page: "h-[calc(100svh-var(--header-height))]", sheet: "h-[calc(100svh-var(--header-height)-1.7rem)]" }
+const COLUMN_HEIGHT: Record<Frame, string> = { page: "h-[calc(100svh-var(--header-height)-0.5rem)]", sheet: "h-[calc(100svh-var(--header-height)-1.7rem)]" }
 
 export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
   const { account, ready } = useAccount()
