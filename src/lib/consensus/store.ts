@@ -1,7 +1,8 @@
 import "server-only"
 
-import { q } from "@/lib/policy/db"
+import { databaseKind, q } from "@/lib/policy/db"
 import type { Conversation, Statement } from "@/lib/consensus/data"
+import SEED from "@/lib/consensus/seed.json"
 
 // The conversations, from Aurora (Brendan, 2026-09-11: "move it to aurora").
 // Two tables: consensus_conversations, one row each in the order the index
@@ -17,6 +18,12 @@ const json = <T,>(v: T | string): T => (typeof v === "string" ? (JSON.parse(v) a
 const statement = (r: StatementRow): Statement => ({ tid: Number(r.tid), text: r.text, moderated: Number(r.moderated), votes: json(r.votes), byGroup: json(r.by_group) })
 
 async function load(where: string, params: unknown[]): Promise<Conversation[]> {
+  // No database configured: the committed seed answers (statements from the
+  // open-primaries seed file; the votes are invented dev data).
+  if (databaseKind() === "none") {
+    const all = SEED as unknown as Conversation[]
+    return where ? all.filter((c) => c.slug === params[0]) : all
+  }
   try {
     const rows = await q<ConversationRow>(`select slug, title, topic, description, source, stats, groups from consensus_conversations ${where} order by position`, params)
     if (!rows.length) return []

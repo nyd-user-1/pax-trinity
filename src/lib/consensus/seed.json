@@ -1,0 +1,746 @@
+[
+ {
+  "slug": "open-primaries",
+  "title": "Open primaries",
+  "topic": "Elections",
+  "description": "Who may vote in a primary, and who pays for it \u2014 statements gathered on one question, voted agree, disagree or pass.",
+  "source": null,
+  "stats": {
+   "views": 1964,
+   "voters": 412,
+   "commenters": 57,
+   "statements": 23,
+   "groups": 3,
+   "votes": 7911
+  },
+  "groups": [
+   {
+    "id": 0,
+    "size": 171
+   },
+   {
+    "id": 1,
+    "size": 149
+   },
+   {
+    "id": 2,
+    "size": 92
+   }
+  ],
+  "statements": [
+   {
+    "tid": 0,
+    "text": "Primaries paid for by taxpayers should be open to every registered voter.",
+    "moderated": 1,
+    "votes": {
+     "agree": 142,
+     "disagree": 125,
+     "pass": 71,
+     "seen": 338
+    },
+    "byGroup": {
+     "0": {
+      "agree": 34,
+      "disagree": 61,
+      "pass": 38,
+      "seen": 133
+     },
+     "1": {
+      "agree": 82,
+      "disagree": 27,
+      "pass": 18,
+      "seen": 127
+     },
+     "2": {
+      "agree": 26,
+      "disagree": 37,
+      "pass": 15,
+      "seen": 78
+     }
+    }
+   },
+   {
+    "tid": 1,
+    "text": "A political party is a private association and should decide for itself who picks its nominees.",
+    "moderated": 1,
+    "votes": {
+     "agree": 136,
+     "disagree": 155,
+     "pass": 41,
+     "seen": 332
+    },
+    "byGroup": {
+     "0": {
+      "agree": 26,
+      "disagree": 88,
+      "pass": 17,
+      "seen": 131
+     },
+     "1": {
+      "agree": 70,
+      "disagree": 35,
+      "pass": 10,
+      "seen": 115
+     },
+     "2": {
+      "agree": 40,
+      "disagree": 32,
+      "pass": 14,
+      "seen": 86
+     }
+    }
+   },
+   {
+    "tid": 2,
+    "text": "Closing a primary to party members is a reasonable way to stop rival voters from meddling.",
+    "moderated": 1,
+    "votes": {
+     "agree": 176,
+     "disagree": 106,
+     "pass": 47,
+     "seen": 329
+    },
+    "byGroup": {
+     "0": {
+      "agree": 111,
+      "disagree": 11,
+      "pass": 7,
+      "seen": 129
+     },
+     "1": {
+      "agree": 26,
+      "disagree": 61,
+      "pass": 29,
+      "seen": 116
+     },
+     "2": {
+      "agree": 39,
+      "disagree": 34,
+      "pass": 11,
+      "seen": 84
+     }
+    }
+   },
+   {
+    "tid": 3,
+    "text": "Independent voters are shut out of the only election that is actually competitive where they live.",
+    "moderated": 1,
+    "votes": {
+     "agree": 176,
+     "disagree": 115,
+     "pass": 38,
+     "seen": 329
+    },
+    "byGroup": {
+     "0": {
+      "agree": 110,
+      "disagree": 18,
+      "pass": 12,
+      "seen": 140
+     },
+     "1": {
+      "agree": 28,
+      "disagree": 68,
+      "pass": 17,
+      "seen": 113
+     },
+     "2": {
+      "agree": 38,
+      "disagree": 29,
+      "pass": 9,
+      "seen": 76
+     }
+    }
+   },
+   {
+    "tid": 4,
+    "text": "If a party wants a closed primary, the party should pay for it rather than the public.",
+    "moderated": 1,
+    "votes": {
+     "agree": 208,
+     "disagree": 98,
+     "pass": 36,
+     "seen": 342
+    },
+    "byGroup": {
+     "0": {
+      "agree": 117,
+      "disagree": 16,
+      "pass": 5,
+      "seen": 138
+     },
+     "1": {
+      "agree": 40,
+      "disagree": 59,
+      "pass": 20,
+      "seen": 119
+     },
+     "2": {
+      "agree": 51,
+      "disagree": 23,
+      "pass": 11,
+      "seen": 85
+     }
+    }
+   },
+   {
+    "tid": 5,
+    "text": "Top-two primaries, where the two leading candidates advance regardless of party, produce better general elections.",
+    "moderated": 1,
+    "votes": {
+     "agree": 185,
+     "disagree": 98,
+     "pass": 46,
+     "seen": 329
+    },
+    "byGroup": {
+     "0": {
+      "agree": 100,
+      "disagree": 26,
+      "pass": 6,
+      "seen": 132
+     },
+     "1": {
+      "agree": 36,
+      "disagree": 48,
+      "pass": 32,
+      "seen": 116
+     },
+     "2": {
+      "agree": 49,
+      "disagree": 24,
+      "pass": 8,
+      "seen": 81
+     }
+    }
+   },
+   {
+    "tid": 6,
+    "text": "Combining an open primary with ranked-choice voting is too complicated for most voters.",
+    "moderated": 1,
+    "votes": {
+     "agree": 199,
+     "disagree": 124,
+     "pass": 30,
+     "seen": 353
+    },
+    "byGroup": {
+     "0": {
+      "agree": 114,
+      "disagree": 18,
+      "pass": 6,
+      "seen": 138
+     },
+     "1": {
+      "agree": 39,
+      "disagree": 75,
+      "pass": 15,
+      "seen": 129
+     },
+     "2": {
+      "agree": 46,
+      "disagree": 31,
+      "pass": 9,
+      "seen": 86
+     }
+    }
+   },
+   {
+    "tid": 7,
+    "text": "Ranked-choice voting should be decided separately from who may vote in a primary.",
+    "moderated": 1,
+    "votes": {
+     "agree": 150,
+     "disagree": 176,
+     "pass": 43,
+     "seen": 369
+    },
+    "byGroup": {
+     "0": {
+      "agree": 38,
+      "disagree": 101,
+      "pass": 13,
+      "seen": 152
+     },
+     "1": {
+      "agree": 85,
+      "disagree": 36,
+      "pass": 15,
+      "seen": 136
+     },
+     "2": {
+      "agree": 27,
+      "disagree": 39,
+      "pass": 15,
+      "seen": 81
+     }
+    }
+   },
+   {
+    "tid": 8,
+    "text": "Opening primaries would not make elected officials any less partisan.",
+    "moderated": 1,
+    "votes": {
+     "agree": 115,
+     "disagree": 168,
+     "pass": 49,
+     "seen": 332
+    },
+    "byGroup": {
+     "0": {
+      "agree": 15,
+      "disagree": 97,
+      "pass": 20,
+      "seen": 132
+     },
+     "1": {
+      "agree": 71,
+      "disagree": 31,
+      "pass": 13,
+      "seen": 115
+     },
+     "2": {
+      "agree": 29,
+      "disagree": 40,
+      "pass": 16,
+      "seen": 85
+     }
+    }
+   },
+   {
+    "tid": 9,
+    "text": "Changing the primary system is best done by the legislature, not by ballot measure.",
+    "moderated": 1,
+    "votes": {
+     "agree": 226,
+     "disagree": 96,
+     "pass": 41,
+     "seen": 363
+    },
+    "byGroup": {
+     "0": {
+      "agree": 135,
+      "disagree": 19,
+      "pass": 4,
+      "seen": 158
+     },
+     "1": {
+      "agree": 35,
+      "disagree": 59,
+      "pass": 26,
+      "seen": 120
+     },
+     "2": {
+      "agree": 56,
+      "disagree": 18,
+      "pass": 11,
+      "seen": 85
+     }
+    }
+   },
+   {
+    "tid": 10,
+    "text": "Out-of-state donors should not fund campaigns to change how a state runs its elections.",
+    "moderated": 1,
+    "votes": {
+     "agree": 132,
+     "disagree": 148,
+     "pass": 61,
+     "seen": 341
+    },
+    "byGroup": {
+     "0": {
+      "agree": 21,
+      "disagree": 85,
+      "pass": 30,
+      "seen": 136
+     },
+     "1": {
+      "agree": 80,
+      "disagree": 29,
+      "pass": 20,
+      "seen": 129
+     },
+     "2": {
+      "agree": 31,
+      "disagree": 34,
+      "pass": 11,
+      "seen": 76
+     }
+    }
+   },
+   {
+    "tid": 11,
+    "text": "A ballot measure funded mostly by out-of-state money is still legitimate if voters decide it.",
+    "moderated": 1,
+    "votes": {
+     "agree": 198,
+     "disagree": 139,
+     "pass": 28,
+     "seen": 365
+    },
+    "byGroup": {
+     "0": {
+      "agree": 118,
+      "disagree": 25,
+      "pass": 8,
+      "seen": 151
+     },
+     "1": {
+      "agree": 27,
+      "disagree": 89,
+      "pass": 15,
+      "seen": 131
+     },
+     "2": {
+      "agree": 53,
+      "disagree": 25,
+      "pass": 5,
+      "seen": 83
+     }
+    }
+   },
+   {
+    "tid": 12,
+    "text": "Voters rejected these measures in 2024, and that verdict should settle the question for now.",
+    "moderated": 1,
+    "votes": {
+     "agree": 111,
+     "disagree": 153,
+     "pass": 61,
+     "seen": 325
+    },
+    "byGroup": {
+     "0": {
+      "agree": 17,
+      "disagree": 97,
+      "pass": 27,
+      "seen": 141
+     },
+     "1": {
+      "agree": 65,
+      "disagree": 31,
+      "pass": 17,
+      "seen": 113
+     },
+     "2": {
+      "agree": 29,
+      "disagree": 25,
+      "pass": 17,
+      "seen": 71
+     }
+    }
+   },
+   {
+    "tid": 13,
+    "text": "Congress should require states to let unaffiliated voters vote in federal primaries.",
+    "moderated": 1,
+    "votes": {
+     "agree": 129,
+     "disagree": 132,
+     "pass": 55,
+     "seen": 316
+    },
+    "byGroup": {
+     "0": {
+      "agree": 16,
+      "disagree": 82,
+      "pass": 35,
+      "seen": 133
+     },
+     "1": {
+      "agree": 86,
+      "disagree": 20,
+      "pass": 6,
+      "seen": 112
+     },
+     "2": {
+      "agree": 27,
+      "disagree": 30,
+      "pass": 14,
+      "seen": 71
+     }
+    }
+   },
+   {
+    "tid": 14,
+    "text": "How primaries work is a state matter and Congress should stay out of it.",
+    "moderated": 1,
+    "votes": {
+     "agree": 152,
+     "disagree": 134,
+     "pass": 41,
+     "seen": 327
+    },
+    "byGroup": {
+     "0": {
+      "agree": 40,
+      "disagree": 82,
+      "pass": 10,
+      "seen": 132
+     },
+     "1": {
+      "agree": 84,
+      "disagree": 25,
+      "pass": 16,
+      "seen": 125
+     },
+     "2": {
+      "agree": 28,
+      "disagree": 27,
+      "pass": 15,
+      "seen": 70
+     }
+    }
+   },
+   {
+    "tid": 15,
+    "text": "Whatever the rule is, it should apply to every party in the state equally.",
+    "moderated": 1,
+    "votes": {
+     "agree": 155,
+     "disagree": 140,
+     "pass": 34,
+     "seen": 329
+    },
+    "byGroup": {
+     "0": {
+      "agree": 88,
+      "disagree": 39,
+      "pass": 6,
+      "seen": 133
+     },
+     "1": {
+      "agree": 29,
+      "disagree": 74,
+      "pass": 24,
+      "seen": 127
+     },
+     "2": {
+      "agree": 38,
+      "disagree": 27,
+      "pass": 4,
+      "seen": 69
+     }
+    }
+   },
+   {
+    "tid": 16,
+    "text": "Letting a voter change party registration at the polling place invites strategic voting.",
+    "moderated": 1,
+    "votes": {
+     "agree": 195,
+     "disagree": 110,
+     "pass": 46,
+     "seen": 351
+    },
+    "byGroup": {
+     "0": {
+      "agree": 109,
+      "disagree": 29,
+      "pass": 14,
+      "seen": 152
+     },
+     "1": {
+      "agree": 44,
+      "disagree": 54,
+      "pass": 18,
+      "seen": 116
+     },
+     "2": {
+      "agree": 42,
+      "disagree": 27,
+      "pass": 14,
+      "seen": 83
+     }
+    }
+   },
+   {
+    "tid": 17,
+    "text": "Allowing unaffiliated voters to choose one party's ballot is a fair middle ground.",
+    "moderated": 1,
+    "votes": {
+     "agree": 230,
+     "disagree": 97,
+     "pass": 48,
+     "seen": 375
+    },
+    "byGroup": {
+     "0": {
+      "agree": 139,
+      "disagree": 18,
+      "pass": 4,
+      "seen": 161
+     },
+     "1": {
+      "agree": 51,
+      "disagree": 56,
+      "pass": 29,
+      "seen": 136
+     },
+     "2": {
+      "agree": 40,
+      "disagree": 23,
+      "pass": 15,
+      "seen": 78
+     }
+    }
+   },
+   {
+    "tid": 18,
+    "text": "Nonpartisan primaries would help good candidates who do not fit either party.",
+    "moderated": 1,
+    "votes": {
+     "agree": 163,
+     "disagree": 160,
+     "pass": 41,
+     "seen": 364
+    },
+    "byGroup": {
+     "0": {
+      "agree": 22,
+      "disagree": 92,
+      "pass": 23,
+      "seen": 137
+     },
+     "1": {
+      "agree": 93,
+      "disagree": 41,
+      "pass": 6,
+      "seen": 140
+     },
+     "2": {
+      "agree": 48,
+      "disagree": 27,
+      "pass": 12,
+      "seen": 87
+     }
+    }
+   },
+   {
+    "tid": 19,
+    "text": "The current system protects incumbents more than it protects parties.",
+    "moderated": 1,
+    "votes": {
+     "agree": 157,
+     "disagree": 133,
+     "pass": 53,
+     "seen": 343
+    },
+    "byGroup": {
+     "0": {
+      "agree": 20,
+      "disagree": 76,
+      "pass": 40,
+      "seen": 136
+     },
+     "1": {
+      "agree": 100,
+      "disagree": 24,
+      "pass": 6,
+      "seen": 130
+     },
+     "2": {
+      "agree": 37,
+      "disagree": 33,
+      "pass": 7,
+      "seen": 77
+     }
+    }
+   },
+   {
+    "tid": 20,
+    "text": "I would be more likely to vote in a primary if I did not have to register with a party.",
+    "moderated": 1,
+    "votes": {
+     "agree": 171,
+     "disagree": 154,
+     "pass": 42,
+     "seen": 367
+    },
+    "byGroup": {
+     "0": {
+      "agree": 47,
+      "disagree": 85,
+      "pass": 18,
+      "seen": 150
+     },
+     "1": {
+      "agree": 90,
+      "disagree": 28,
+      "pass": 16,
+      "seen": 134
+     },
+     "2": {
+      "agree": 34,
+      "disagree": 41,
+      "pass": 8,
+      "seen": 83
+     }
+    }
+   },
+   {
+    "tid": 21,
+    "text": "Louisiana closing its congressional primaries is a step backward.",
+    "moderated": 1,
+    "votes": {
+     "agree": 183,
+     "disagree": 115,
+     "pass": 47,
+     "seen": 345
+    },
+    "byGroup": {
+     "0": {
+      "agree": 106,
+      "disagree": 30,
+      "pass": 5,
+      "seen": 141
+     },
+     "1": {
+      "agree": 32,
+      "disagree": 64,
+      "pass": 37,
+      "seen": 133
+     },
+     "2": {
+      "agree": 45,
+      "disagree": 21,
+      "pass": 5,
+      "seen": 71
+     }
+    }
+   },
+   {
+    "tid": 22,
+    "text": "Most voters do not know their own state's primary rules, and that is the bigger problem.",
+    "moderated": 1,
+    "votes": {
+     "agree": 174,
+     "disagree": 129,
+     "pass": 44,
+     "seen": 347
+    },
+    "byGroup": {
+     "0": {
+      "agree": 52,
+      "disagree": 82,
+      "pass": 22,
+      "seen": 156
+     },
+     "1": {
+      "agree": 84,
+      "disagree": 24,
+      "pass": 14,
+      "seen": 122
+     },
+     "2": {
+      "agree": 38,
+      "disagree": 23,
+      "pass": 8,
+      "seen": 69
+     }
+    }
+   }
+  ]
+ }
+]
