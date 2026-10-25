@@ -27,7 +27,7 @@ const DiscussionPanel = dynamic(() => import("@/components/discussion-panel").th
 // as a route, off the sidebar.
 // The pages trinity starts with; every other destination renders in place but goes nowhere
 // until its page exists (Brendan, 2026-10-24).
-const LIVE = new Set(["/", "/chat", "/glossary", "/signin", "/signup", "/erd", "/pipeline-2"])
+const LIVE = new Set(["/", "/chat", "/consensus", "/consensus/survey", "/consensus/report", "/consensus/admin", "/clips", "/glossary", "/signin", "/signup", "/erd", "/pipeline-2"])
 
 type NavLink = { href: string; label: string; icon: typeof House }
 type NavGroup = { label: string; icon: typeof House; children: NavLink[]; admin?: boolean }
@@ -54,6 +54,11 @@ const ADMIN = [
 ]
 const NAV_TREE: (NavLink | NavGroup)[] = [
   { href: "/chat", label: "Chat", icon: MessagesSquare },
+  { href: "/consensus", label: "Consensus", icon: Vote },
+  { href: "/consensus/survey", label: "Consensus survey", icon: ListChecks },
+  { href: "/consensus/report", label: "Consensus report", icon: NotebookPen },
+  { href: "/consensus/admin", label: "Consensus admin", icon: Settings },
+  { href: "/clips", label: "Clips", icon: Film },
   {
     label: "Create",
     icon: Clapperboard,
