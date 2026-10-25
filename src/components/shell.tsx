@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Activity, ArrowLeft, Database, Sigma, BadgeCheck, Beaker, Bell, BookA, Brain, ClipboardList, ChevronDown, ChevronUp, ChevronsUpDown, Clapperboard, Columns2, Columns3, Compass, EllipsisVertical, ExternalLink, Film, FlaskConical, GanttChart, Gauge, Hammer, House, LayoutDashboard, Library, LifeBuoy, Link2, ListChecks, LogIn, LogOut, MessagesSquare, Microscope, NotebookPen, PanelLeftClose, PanelLeftOpen, Search, Settings, ShieldCheck, Star, Tag, Target, Tv, TvMinimal, User2, Video, Vote, Workflow, X } from "lucide-react"
+import { Activity, ArrowLeft, Database, Sigma, BadgeCheck, Beaker, Bell, BookA, Brain, ClipboardList, ChevronDown, ChevronUp, ChevronsUpDown, Clapperboard, Columns2, Columns3, Compass, EllipsisVertical, ExternalLink, Film, FlaskConical, GanttChart, Gauge, Hammer, House, Inbox, LayoutDashboard, Library, LifeBuoy, Link2, ListChecks, LogIn, LogOut, MessagesSquare, Microscope, NotebookPen, PanelLeftClose, PanelLeftOpen, Search, Settings, ShieldCheck, Star, Tag, Target, Tv, TvMinimal, User2, Video, Vote, Workflow, X } from "lucide-react"
 
 import dynamic from "next/dynamic"
 import { SidebarChats } from "@/components/sidebar-chats"
@@ -27,7 +27,7 @@ const DiscussionPanel = dynamic(() => import("@/components/discussion-panel").th
 // as a route, off the sidebar.
 // The pages trinity starts with; every other destination renders in place but goes nowhere
 // until its page exists (Brendan, 2026-10-24).
-const LIVE = new Set(["/", "/chat", "/consensus", "/consensus/survey", "/consensus/report", "/consensus/admin", "/clips", "/glossary", "/signin", "/signup", "/erd", "/pipeline-2"])
+const LIVE = new Set(["/", "/chat", "/consensus", "/consensus/survey", "/consensus/report", "/consensus/admin", "/clips", "/inbox", "/glossary", "/signin", "/signup", "/erd", "/pipeline-2"])
 
 type NavLink = { href: string; label: string; icon: typeof House }
 type NavGroup = { label: string; icon: typeof House; children: NavLink[]; admin?: boolean }
@@ -59,6 +59,7 @@ const NAV_TREE: (NavLink | NavGroup)[] = [
   { href: "/consensus/report", label: "Consensus report", icon: NotebookPen },
   { href: "/consensus/admin", label: "Consensus admin", icon: Settings },
   { href: "/clips", label: "Clips", icon: Film },
+  { href: "/inbox", label: "Inbox", icon: Inbox },
   { href: "/glossary", label: "Glossary", icon: BookA },
 ]
 
@@ -394,7 +395,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
   const paired = open && !takeover
   const closePanel = () => (panelOpen ? router.back() : discuss ? setDiscuss(false) : setAside(null))
   // /chat fills the content card edge to edge, as solar's chat fills its main area; /app/home is the same chat dressed as the home.
-  const full = path === "/" || path.startsWith("/chat") || path.startsWith("/graph") || path.startsWith("/erd") || path.startsWith("/app/home") || path.startsWith("/flow/")
+  const full = path === "/" || path.startsWith("/chat") || path.startsWith("/inbox") || path.startsWith("/graph") || path.startsWith("/erd") || path.startsWith("/app/home") || path.startsWith("/flow/")
   return (
     <PanelCtx.Provider value={panel}>
       <div className="flex min-h-dvh md:h-dvh md:overflow-hidden md:bg-slate-200/60 md:p-[18px]">
