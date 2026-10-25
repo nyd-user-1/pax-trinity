@@ -32,7 +32,8 @@ export function Creators({ rows, selected, onSelect, you, onRecord, onUpload, on
   const total = rows.reduce((s, r) => s + r.count, 0)
   return (
     <div className={cn("flex h-full flex-col", className)}>
-      <p className="px-2 pt-1 pb-2 text-xs font-medium text-muted-foreground">Creators</p>
+      {/* h-14: the center toolbar's row, so this label sits on the "46 clips" line and the first row lands at the grid's top. */}
+      <p className="flex h-14 items-center px-2 text-xs font-medium text-muted-foreground">Creators</p>
       <div className="flex flex-col gap-0.5">
         <Item id="all" name="All clips" sub={`${total} clips`} fallback={<LayoutGridIcon className="size-4" />} />
         {rows.map((r) => (

@@ -295,7 +295,7 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
     <div data-slot="clips" className="container-wrapper">
       <div className="px-2 lg:grid lg:grid-cols-[240px_minmax(0,1fr)_340px] lg:gap-6 lg:px-4">
         <aside className="hidden lg:block">
-          <div className={cn("sticky top-(--header-height) overflow-y-auto pt-0 pb-4", COLUMN_HEIGHT[frame])}>
+          <div className={cn("sticky top-4 overflow-y-auto pb-4", COLUMN_HEIGHT[frame])}>
             <Creators rows={rows} selected={creator} onSelect={setCreator} you={youRow} onRecord={record} onUpload={upload} onGenerate={() => setMode("generate")} />
           </div>
         </aside>
@@ -385,7 +385,8 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
         </main>
 
         <aside className="hidden lg:block">
-          <div className={cn("sticky top-(--header-height) pt-0 pb-4", COLUMN_HEIGHT[frame])}>
+          {/* mt-14 clears the center toolbar so the panel's border starts at the video top. */}
+          <div className={cn("sticky top-4 mt-14 pb-4", COLUMN_HEIGHT[frame])}>
             <div className="h-full overflow-hidden rounded-xl border bg-card">{panel()}</div>
           </div>
         </aside>
