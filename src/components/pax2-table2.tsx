@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Search } from "lucide-react"
+import { Search, X } from "lucide-react"
 
 import { cn } from "@/ui/lib/utils"
 
@@ -40,10 +40,39 @@ export function PAX2Table2({ children, value: controlled, onChange }: { children
 
 export function PAX2Search({ placeholder = "Search…", className }: { placeholder?: string; className?: string }) {
   const { q, setQ } = React.useContext(Ctx)
+  // A button at rest (Brendan, 2026-10-25): it expands to the bar's full width when
+  // picked, and the x folds it back to a button, clearing the filter with it.
+  const [open, setOpen] = React.useState(false)
+  const inputRef = React.useRef<HTMLInputElement>(null)
+  if (!open)
+    return (
+      <button
+        type="button"
+        aria-label={placeholder}
+        onClick={() => {
+          setOpen(true)
+          setTimeout(() => inputRef.current?.focus(), 0)
+        }}
+        className={cn("ml-1 flex size-7 shrink-0 items-center justify-center rounded-full bg-slate-100/80 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600", className)}
+      >
+        <Search className="size-3.5" />
+      </button>
+    )
   return (
     <label className={cn("ml-1 flex h-7 w-44 items-center gap-1.5 rounded-full bg-slate-100/80 px-2.5 transition-colors focus-within:bg-slate-100", className)}>
       <Search className="size-3.5 shrink-0 text-slate-400" />
-      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={placeholder} aria-label={placeholder} className="min-w-0 flex-1 bg-transparent text-[13px] text-slate-900 outline-none placeholder:text-slate-400" />
+      <input ref={inputRef} value={q} onChange={(e) => setQ(e.target.value)} placeholder={placeholder} aria-label={placeholder} className="min-w-0 flex-1 bg-transparent text-[13px] text-slate-900 outline-none placeholder:text-slate-400" />
+      <button
+        type="button"
+        aria-label="Close search"
+        onClick={() => {
+          setQ("")
+          setOpen(false)
+        }}
+        className="flex size-5 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-slate-200/70 hover:text-slate-600"
+      >
+        <X className="size-3.5" />
+      </button>
     </label>
   )
 }

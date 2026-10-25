@@ -12,6 +12,10 @@ const SORTED = [...GLOSSARY].sort((a, b) => a.full.replace(/[^\p{L}\p{N} ]/gu, "
 
 export default function GlossaryPage() {
   return (
+    // The Block standard (Brendan, 2026-10-25): the BlockHeader sits 20px under the
+    // AppShellHeader (pt-5 here, since this route drops the page's top padding) and
+    // HOME_BLOCK's height lands the BlockFooter 20px above the AppShell's bottom.
+    <div className="pt-5">
     <TableBlock title="Glossary" search="Search terms…" rows={SORTED.map((t) => ({ term: t.full, definition: t.definition, section: t.group }))} name="glossary" height={HOME_BLOCK}>
       <Table className="table-fixed">
         <TableHeader>
@@ -24,5 +28,6 @@ export default function GlossaryPage() {
         <GlossaryRows rows={SORTED} />
       </Table>
     </TableBlock>
+    </div>
   )
 }
