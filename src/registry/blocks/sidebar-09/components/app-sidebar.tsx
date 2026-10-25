@@ -5,6 +5,7 @@ import Link from "next/link"
 import { File, Inbox, PenSquare, Send, Star, Trash2 } from "lucide-react"
 
 import { unreadIn, type Folder, type Thread } from "@/lib/agents/inbox"
+import { cn } from "@/lib/utils"
 import { AccountFooter } from "@/components/admin/account-footer"
 import { SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@govblock/ui/components/ny4/sidebar"
 
@@ -23,7 +24,21 @@ const FOLDERS: { title: string; icon: typeof Inbox; folder: Folder }[] = [
   { title: "Trash", icon: Trash2, folder: "trash" },
 ]
 
-export function InboxRail({ threads, folder, onFolder, onCompose }: { threads: Thread[]; folder: Folder; onFolder: (folder: Folder) => void; onCompose: () => void }) {
+export function InboxRail({
+  threads,
+  folder,
+  onFolder,
+  onCompose,
+  onDropThread,
+}: {
+  threads: Thread[]
+  folder: Folder
+  onFolder: (folder: Folder) => void
+  onCompose: () => void
+  /** A list row dragged onto a folder lands here. */
+  onDropThread: (id: string, folder: Folder) => void
+}) {
+  const [over, setOver] = React.useState<Folder | null>(null)
   return (
     <>
       {/* The dashboard rail's header: the word alone (Brendan, 2026-09-07: "both should match the /dashboard sidebar"). */}
@@ -53,7 +68,25 @@ export function InboxRail({ threads, folder, onFolder, onCompose }: { threads: T
                 const unread = unreadIn(threads, item.folder)
                 return (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton onClick={() => onFolder(item.folder)} isActive={folder === item.folder} title={unread ? `${item.title} (${unread})` : item.title}>
+                    <SidebarMenuButton
+                      onClick={() => onFolder(item.folder)}
+                      isActive={folder === item.folder}
+                      title={unread ? `${item.title} (${unread})` : item.title}
+                      onDragOver={(event) => {
+                        if (!event.dataTransfer.types.includes("application/x-thread-id")) return
+                        event.preventDefault()
+                        event.dataTransfer.dropEffect = "move"
+                        setOver(item.folder)
+                      }}
+                      onDragLeave={() => setOver((current) => (current === item.folder ? null : current))}
+                      onDrop={(event) => {
+                        event.preventDefault()
+                        setOver(null)
+                        const id = event.dataTransfer.getData("application/x-thread-id")
+                        if (id) onDropThread(id, item.folder)
+                      }}
+                      className={cn(over === item.folder && "bg-accent ring-2 ring-primary/40")}
+                    >
                       <item.icon />
                       <span>{item.title}</span>
                       {unread > 0 && <span className="ml-auto text-xs tabular-nums">{unread}</span>}

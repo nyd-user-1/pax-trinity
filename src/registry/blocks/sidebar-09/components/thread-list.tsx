@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, EllipsisVerticalIcon, PanelRightIcon, RefreshCwIcon, RowsIcon, StarIcon } from "lucide-react"
+import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, EllipsisVerticalIcon, GripVerticalIcon, PanelRightIcon, RefreshCwIcon, RowsIcon, StarIcon } from "lucide-react"
 
 import { inFolder, isUnread, matches, running, shownRecipients, teaser, when, type Folder, type Thread } from "@/lib/agents/inbox"
 import { cn } from "@/lib/utils"
@@ -33,13 +33,30 @@ function Tip({ label, children }: { label: string; children: React.ReactNode }) 
   )
 }
 
-/** Gmail's importance marker: lit for a task still running or one that failed, quiet otherwise. */
-function Marker({ thread }: { thread: Thread }) {
-  const lit = thread.status === "running" || thread.status === "failed"
-  return (
+/** Gmail's importance marker: a toggle the reader sets; a task still running or one that failed lights it on its own. */
+export function Marker({ thread, onToggle }: { thread: Thread; onToggle?: () => void }) {
+  const lit = Boolean(thread.important) || thread.status === "running" || thread.status === "failed"
+  const mark = (
     <svg viewBox="0 0 20 20" aria-hidden className={cn("size-4 shrink-0", lit ? "fill-amber-400 text-amber-400" : "fill-transparent text-muted-foreground/50")}>
       <path d="M4 5h7l5 5-5 5H4l5-5z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
     </svg>
+  )
+  if (!onToggle) return mark
+  return (
+    <Tip label={thread.important ? "Marked important" : "Mark as important"}>
+      <button
+        type="button"
+        aria-pressed={Boolean(thread.important)}
+        aria-label={thread.important ? "Marked important" : "Mark as important"}
+        onClick={(event) => {
+          event.stopPropagation()
+          onToggle()
+        }}
+        className="shrink-0"
+      >
+        {mark}
+      </button>
+    </Tip>
   )
 }
 
@@ -51,11 +68,13 @@ export function ThreadList({
   onTab,
   onOpenThread,
   onStar,
+  onImportant,
   onRefresh,
   onMarkAllRead,
   onClear,
   split,
   onSplit,
+  query = "",
 }: {
   threads: Thread[]
   folder: Folder
@@ -64,16 +83,19 @@ export function ThreadList({
   onTab: (tab: ListTab) => void
   onOpenThread: (id: string) => void
   onStar: (id: string) => void
+  onImportant: (id: string) => void
   onRefresh: () => void
   onMarkAllRead: () => void
   onClear: () => void
   split: Split
   onSplit: (split: Split) => void
+  /** The header search's filter; empty shows everything. */
+  query?: string
 }) {
   const [checked, setChecked] = React.useState<Set<string>>(() => new Set())
   const shown = threads
     .filter((thread) => inFolder(thread, folder))
-    .filter((thread) => matches(thread, ""))
+    .filter((thread) => matches(thread, query))
     .filter((thread) => tab === "all" || isUnread(thread))
   const allChecked = shown.length > 0 && shown.every((thread) => checked.has(thread.id))
   const someChecked = shown.some((thread) => checked.has(thread.id))
@@ -186,13 +208,25 @@ export function ThreadList({
                 key={thread.id}
                 data-active={active}
                 data-unread={unread}
-                className={cn("group/row flex cursor-pointer items-start gap-3 px-3 text-sm transition-colors hover:bg-accent/60", stacked ? "py-2.5" : "h-10 items-center", unread && "bg-primary/5", active && "bg-muted")}
+                draggable
+                onDragStart={(event) => {
+                  event.dataTransfer.setData("application/x-thread-id", thread.id)
+                  event.dataTransfer.effectAllowed = "move"
+                }}
+                className={cn(
+                  "group/row relative flex cursor-pointer items-start gap-3 px-3 text-sm transition-[background-color,box-shadow] hover:z-10 hover:bg-accent/60 hover:shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]",
+                  stacked ? "py-2.5" : "h-10 items-center",
+                  unread && "bg-primary/5",
+                  active && "bg-muted"
+                )}
                 onClick={() => onOpenThread(thread.id)}
               >
                 <span className={cn("flex shrink-0 items-center gap-2", stacked && "pt-0.5")} onClick={(event) => event.stopPropagation()}>
+                  {/* Gmail's grip: the space is always held, the dots show on hover, and the whole row drags to a folder. */}
+                  <GripVerticalIcon aria-hidden className="-ml-1 size-4 shrink-0 cursor-grab text-muted-foreground/50 opacity-0 transition-opacity group-hover/row:opacity-100" />
                   <Checkbox aria-label={`Select ${thread.subject}`} checked={checked.has(thread.id)} onCheckedChange={(value) => toggle(thread.id, value === true)} />
                   {!stacked && star}
-                  <Marker thread={thread} />
+                  <Marker thread={thread} onToggle={() => onImportant(thread.id)} />
                 </span>
                 {stacked ? (
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">

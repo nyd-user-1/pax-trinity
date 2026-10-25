@@ -140,6 +140,8 @@ export type Thread = {
   reportType?: string
   starred?: boolean
   trashed?: boolean
+  /** Gmail's importance marker, set by hand; a running or failed thread lights it on its own. */
+  important?: boolean
   /** Where the report was delivered, if a connection took it. */
   deliveredTo?: string
   messages: Message[]
@@ -327,6 +329,11 @@ function flatten(body: string) {
     .replace(/[*_`>]/g, "")
     .replace(/\s+/g, " ")
     .trim()
+}
+
+/** One line of a message's body, for a collapsed message in the thread. */
+export function snippet(message: Message) {
+  return flatten(message.body).slice(0, 160)
 }
 
 /** The line under a thread's subject in the list. */

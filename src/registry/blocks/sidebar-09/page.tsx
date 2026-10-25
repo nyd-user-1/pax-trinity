@@ -1,10 +1,10 @@
 "use client"
 
 import * as React from "react"
-import { ArrowLeft, Check, Copy, ExternalLink, PenSquare, Reply as ReplyIcon, RotateCcw, Star, Trash2, UserRound } from "lucide-react"
+import { ArrowLeft, Check, Copy, ExternalLink, Forward as ForwardIcon, PenSquare, Reply as ReplyIcon, RotateCcw, Search, Star, Trash2, UserRound, X } from "lucide-react"
 
 import { agent as findAgent, maxRounds } from "@/lib/agents/registry"
-import { findAddress, isPerson, isUnread, loadThreads, messageId, nameOf, newThread, reply, running, runners, saveThreads, settle, shownRecipients, threadCost, when, type Attached, type Folder, type Message, type Thread } from "@/lib/agents/inbox"
+import { findAddress, isPerson, isUnread, loadThreads, messageId, nameOf, newThread, reply, running, runners, saveThreads, settle, shownRecipients, snippet, threadCost, when, type Attached, type Folder, type Message, type Thread } from "@/lib/agents/inbox"
 import { emptyRun, runAgent, type RunTurn } from "@/lib/agents/run-client"
 import { FEATURED } from "@/lib/agents/featured"
 import { sampleThreads } from "@/lib/agents/sample"
@@ -20,7 +20,7 @@ import { isReportType, isTrace, reportBody } from "@/lib/agents/report-modes"
 import { attachmentMeta, reportFor, save } from "@/lib/agents/report-pdf"
 import { AttachmentGroup } from "@/registry/blocks/sidebar-09/components/attachment"
 import { TraceReport } from "@/registry/blocks/sidebar-09/components/trace-report"
-import { ThreadList, type ListTab, type Split } from "@/registry/blocks/sidebar-09/components/thread-list"
+import { Marker, ThreadList, type ListTab, type Split } from "@/registry/blocks/sidebar-09/components/thread-list"
 import { useLocal } from "@/lib/policy/use-local"
 import { Progress } from "@govblock/ui/components/progress"
 import { Avatar, AvatarFallback, AvatarImage } from "@govblock/ui/components/ny4/avatar"
@@ -144,6 +144,11 @@ export default function Page() {
   }, [replying])
   // Gmail's "Message sent" bar: the id of what just went, for a few seconds.
   const [sent, setSent] = React.useState<string | null>(null)
+  // The header search: closed it is an icon; open it filters the list as you type.
+  const [searching, setSearching] = React.useState(false)
+  const [query, setQuery] = React.useState("")
+  // Messages folded to their one-line state, Gmail's collapse. Fresh per thread.
+  const [folded, setFolded] = React.useState<Set<string>>(() => new Set())
   const [copied, setCopied] = React.useState<string | null>(null)
   // The list alone, or the list beside the reading pane (Brendan, 2026-09-07:
   // Gmail's split toggle). Kept in this browser with the threads.
@@ -331,6 +336,7 @@ export default function Page() {
   const openId = open?.id ?? null
   React.useEffect(() => {
     setReplying(false)
+    setFolded(new Set())
     if (!open) return
     setReplyDraft({ ...EMPTY_DRAFT, to: open.to ?? [], cc: open.cc ?? [], bcc: open.bcc ?? [] })
     // Only when a different thread opens; a reply that is being typed must not
@@ -342,6 +348,35 @@ export default function Page() {
     setDraft(EMPTY_DRAFT)
     setDraftId(null)
     setComposing(true)
+  }
+
+  // Forward opens the full composer with the message quoted the way mail
+  // quotes one, so the reader picks recipients and sends it as a new task.
+  const startForward = (thread: Thread, message: Message) => {
+    const name = message.from === "you" ? ADMIN_USER.name : nameOf(message.from)
+    const email = message.from === "you" ? ADMIN_USER.email : (findAddress(message.from)?.email ?? "")
+    const to = message.from === "you" ? shownRecipients(thread).join(", ") || thread.agentName : "me"
+    setDraft({
+      to: [],
+      cc: [],
+      bcc: [],
+      subject: /^fwd:/i.test(thread.subject) ? thread.subject : `Fwd: ${thread.subject}`,
+      body: `---------- Forwarded message ---------\nFrom: ${name} <${email}>\nDate: ${new Date(message.at).toLocaleString()}\nSubject: ${thread.subject}\nTo: ${to}\n\n${message.body}`,
+      reportType: thread.reportType,
+    })
+    setDraftId(null)
+    setComposing(true)
+  }
+
+  // A row dropped on a folder: trash and starred take it, inbox and sent restore
+  // it; a sent thread cannot become a draft again, so that drop is a no-op.
+  const moveToFolder = (id: string, target: Folder) => {
+    patch(id, (t) => {
+      if (target === "trash") return { ...t, trashed: true }
+      if (target === "starred") return { ...t, starred: true, trashed: false }
+      if (target === "inbox" || target === "sent") return { ...t, trashed: false }
+      return t
+    })
   }
 
   const saveDraft = () => {
@@ -410,7 +445,45 @@ export default function Page() {
     // the reading pane sharing the inset pane beside it.
     <BlockShell
       defaultOpen={false}
-      title={<PathBar crumbs={[{ label: "Agent Inbox" }]} folder onGo={() => {}} />}
+      title={
+        <div className="flex min-w-0 flex-1 items-center gap-1">
+          <PathBar crumbs={[{ label: "Agent Inbox" }]} folder onGo={() => {}} />
+          {/* The header search, trinity's pattern: an icon until picked, then the bar's remaining width; the x folds it back and clears the filter. */}
+          {searching ? (
+            <div className="ml-2 flex min-w-0 flex-1 items-center gap-2 rounded-full bg-muted px-3 py-1.5">
+              <Search className="size-4 shrink-0 text-muted-foreground" />
+              <input
+                autoFocus
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") {
+                    setQuery("")
+                    setSearching(false)
+                  }
+                }}
+                placeholder="Search mail"
+                className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              />
+              <button
+                type="button"
+                aria-label="Close the search"
+                className="shrink-0 text-muted-foreground hover:text-foreground"
+                onClick={() => {
+                  setQuery("")
+                  setSearching(false)
+                }}
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+          ) : (
+            <Button variant="ghost" size="sm" aria-label="Search mail" className="ml-1" onClick={() => setSearching(true)}>
+              <Search className="size-4" />
+            </Button>
+          )}
+        </div>
+      }
       sidebarWidth="calc(var(--spacing) * 56)"
       contentClassName="overflow-hidden"
       rail={
@@ -422,6 +495,7 @@ export default function Page() {
             setComposing(false)
           }}
           onCompose={startCompose}
+          onDropThread={moveToFolder}
         />
       }
     >
@@ -438,6 +512,8 @@ export default function Page() {
               setComposing(false)
             }}
             onStar={(id) => patch(id, (t) => ({ ...t, starred: !t.starred }))}
+            onImportant={(id) => patch(id, (t) => ({ ...t, important: !t.important }))}
+            query={query}
             onRefresh={() => setTick((n) => n + 1)}
             onMarkAllRead={() => setThreads((current) => current.map((thread) => ({ ...thread, messages: thread.messages.map((message) => (message.from === "you" ? message : { ...message, unread: false })) })))}
             onClear={() => {
@@ -593,9 +669,10 @@ export default function Page() {
                     the "this came from a model" cue. */}
                       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
                         <div className="flex items-start gap-4 px-6 pt-5 pb-2">
-                          <div className="min-w-0 flex-1">
-                            <h2 className="text-xl font-medium">{open.subject}</h2>
-                            {open.reportType && <span className="mt-1.5 inline-block rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{open.reportType}</span>}
+                          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
+                            <h2 className="min-w-0 truncate text-xl font-medium">{open.subject}</h2>
+                            <Marker thread={open} onToggle={() => patch(open.id, (t) => ({ ...t, important: !t.important }))} />
+                            {open.reportType && <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{open.reportType}</span>}
                           </div>
                           <div className="ml-auto shrink-0 pt-1 text-right text-xs text-muted-foreground">
                             {open.trashed && <div>in trash</div>}
@@ -615,23 +692,54 @@ export default function Page() {
                             const name = mine ? ADMIN_USER.name : nameOf(message.from)
                             const email = mine ? ADMIN_USER.email : findAddress(message.from)?.email
                             const to = mine ? shownRecipients(open).join(", ") || open.agentName : "me"
+                            const isFolded = folded.has(message.id)
+                            const fold = () =>
+                              setFolded((current) => {
+                                const next = new Set(current)
+                                if (next.has(message.id)) next.delete(message.id)
+                                else next.add(message.id)
+                                return next
+                              })
                             return (
-                              <article key={message.id} className="px-6 py-4">
-                                <header className="flex items-start gap-3">
+                              <article key={message.id} className="group/msg px-6 py-4">
+                                {/* The header is the collapse, as in Gmail: click folds the message
+                                    to its one-line state, the snippet standing in for the body. */}
+                                <header className="flex cursor-pointer items-start gap-3" onClick={fold}>
                                   <Sender from={message.from} />
                                   <div className="min-w-0 flex-1 pt-0.5">
-                                    <div className="flex flex-wrap items-baseline gap-x-2">
-                                      <span className="font-semibold">{name}</span>
-                                      {email && <span className="text-xs text-muted-foreground">&lt;{email}&gt;</span>}
-                                      {message.unread && <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">Unread</span>}
+                                    <div className="flex min-w-0 flex-wrap items-baseline gap-x-2">
+                                      <span className="shrink-0 font-semibold">{name}</span>
+                                      {isFolded ? (
+                                        <span className="min-w-0 truncate text-sm text-muted-foreground">{snippet(message) || "…"}</span>
+                                      ) : (
+                                        <>
+                                          {email && <span className="text-xs text-muted-foreground">&lt;{email}&gt;</span>}
+                                          {message.unread && <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">Unread</span>}
+                                        </>
+                                      )}
                                     </div>
-                                    <div className="text-xs text-muted-foreground">to {to}</div>
+                                    {!isFolded && <div className="text-xs text-muted-foreground">to {to}</div>}
                                   </div>
                                   <time className="shrink-0 pt-0.5 text-xs text-muted-foreground" dateTime={new Date(message.at).toISOString()}>
                                     {when(message.at)}
                                   </time>
+                                  {open.status !== "draft" && (
+                                    <span className="flex shrink-0 items-center" onClick={(event) => event.stopPropagation()}>
+                                      <Tip label="Reply">
+                                        <Button variant="ghost" size="sm" aria-label="Reply" className="size-7 p-0" onClick={() => setReplying(true)}>
+                                          <ReplyIcon className="size-4" />
+                                        </Button>
+                                      </Tip>
+                                      <Tip label="Forward">
+                                        <Button variant="ghost" size="sm" aria-label="Forward" className="size-7 p-0" onClick={() => startForward(open, message)}>
+                                          <ForwardIcon className="size-4" />
+                                        </Button>
+                                      </Tip>
+                                    </span>
+                                  )}
                                 </header>
 
+                                {!isFolded && (
                                 <div className="mt-3 flex flex-col gap-3 pl-[52px]">
                                   {mine ? (
                                     <div className="text-sm whitespace-pre-wrap">
@@ -685,46 +793,59 @@ export default function Page() {
                                     </div>
                                   ) : null}
                                 </div>
+                                )}
                               </article>
                             )
                           })}
                         </div>
 
-                        {/* Under the last message, where Gmail keeps them: Reply, or
-                      the composer once it has been asked for. Sticky so it
-                      stays visible without scrolling (2026-10-10). */}
-                        <div className="sticky bottom-0 bg-background px-6 pt-2 pb-6 pl-[76px]">
+                        {/* Under the last message, where Gmail keeps them: Reply and Forward
+                            in flow, or the composer card once Reply is pressed. The card's
+                            sender row sticks under the pane's toolbar while earlier messages
+                            scroll away above it, and its bottom bar stays pinned in view —
+                            the body grows in between. */}
+                        <div className="px-6 pt-2 pb-6 pl-[76px]">
                           {open.status === "draft" ? (
                             <Button size="sm" onClick={() => editDraft(open)}>
                               Edit draft
                             </Button>
                           ) : replying ? (
-                            <div ref={replyRef} className="flex flex-col gap-3 rounded-lg border p-4">
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <ReplyIcon className="size-4" />
-                                <span>{shownRecipients(open).join(", ") || open.agentName}</span>
+                            <div ref={replyRef} className="flex flex-col rounded-lg border bg-background shadow-sm">
+                              <div className="sticky top-0 z-10 flex items-center gap-3 rounded-t-lg border-b bg-background px-4 py-3">
+                                <Sender from="you" />
+                                <ReplyIcon className="size-4 shrink-0 text-muted-foreground" />
+                                <span className="min-w-0 truncate text-sm text-muted-foreground">{shownRecipients(open).join(", ") || open.agentName}</span>
                               </div>
-                              <Compose
-                                inline
-                                placeholder=""
-                                draft={replyDraft}
-                                onChange={setReplyDraft}
-                                onSend={(current) => {
-                                  const text = current.body
-                                  setReplyDraft({ ...current, body: "" })
-                                  void followUp(open, text)
-                                }}
-                                onDiscard={() => {
-                                  setReplying(false)
-                                  setReplyDraft((current) => ({ ...current, body: "" }))
-                                }}
-                              />
+                              <div className="flex flex-col p-4 pt-3">
+                                <Compose
+                                  inline
+                                  pinned
+                                  placeholder=""
+                                  draft={replyDraft}
+                                  onChange={setReplyDraft}
+                                  onSend={(current) => {
+                                    const text = current.body
+                                    setReplyDraft({ ...current, body: "" })
+                                    void followUp(open, text)
+                                  }}
+                                  onDiscard={() => {
+                                    setReplying(false)
+                                    setReplyDraft((current) => ({ ...current, body: "" }))
+                                  }}
+                                />
+                              </div>
                             </div>
                           ) : (
-                            <Button variant="outline" size="sm" className="rounded-full" onClick={() => setReplying(true)}>
-                              <ReplyIcon className="size-4" />
-                              Reply
-                            </Button>
+                            <div className="flex items-center gap-2">
+                              <Button variant="outline" size="sm" className="rounded-full" onClick={() => setReplying(true)}>
+                                <ReplyIcon className="size-4" />
+                                Reply
+                              </Button>
+                              <Button variant="outline" size="sm" className="rounded-full" onClick={() => startForward(open, open.messages.at(-1)!)}>
+                                <ForwardIcon className="size-4" />
+                                Forward
+                              </Button>
+                            </div>
                           )}
                         </div>
                       </div>

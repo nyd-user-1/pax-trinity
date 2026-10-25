@@ -208,6 +208,7 @@ export function Compose({
   onDiscard,
   onSaveDraft,
   inline = false,
+  pinned = false,
   placeholder,
 }: {
   draft: Draft
@@ -217,6 +218,8 @@ export function Compose({
   onSaveDraft?: () => void
   /** A reply at the bottom of a thread: no recipient lines, no subject. */
   inline?: boolean
+  /** Gmail's reply card: the bottom bar stays pinned in the pane's view, lightly shadowed, while the body grows above it. */
+  pinned?: boolean
   /** What the empty surface says; defaults to the first agent's own line. */
   placeholder?: string
 }) {
@@ -349,7 +352,13 @@ export function Compose({
           row immediately beside it, and the rest pushed right. Formatting
           belongs down here with the action, not on top of the page someone is
           trying to write on. */}
-      <div className="mt-auto flex flex-wrap items-center gap-2 border-t pt-3">
+      <div
+        className={
+          pinned
+            ? "sticky bottom-2 z-10 mt-auto flex flex-wrap items-center gap-2 rounded-xl border bg-background px-3 py-2 shadow-[0_1px_3px_rgba(60,64,67,0.25),0_2px_8px_2px_rgba(60,64,67,0.12)]"
+            : "mt-auto flex flex-wrap items-center gap-2 border-t pt-3"
+        }
+      >
         <Button type="submit" size="sm" disabled={!everyone.length || !draft.body.trim()}>
           Send
         </Button>
