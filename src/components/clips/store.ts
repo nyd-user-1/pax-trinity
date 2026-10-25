@@ -64,19 +64,6 @@ const by = (id: string) => {
   return { name: c.name, handle: c.handle, image: c.image }
 }
 
-/** A Short from a committee's channel: YouTube's portrait thumbnail, and the player when it is active. */
-const short = (id: string, o: { title: string; caption: string; duration: number; createdAt: string; views: number }): Clip => ({
-  id: `yt-${id}`,
-  creatorId: "house-ag",
-  author: by("house-ag"),
-  src: "",
-  youtube: id,
-  poster: `https://i.ytimg.com/vi/${id}/oardefault.jpg`,
-  visibility: "public",
-  likes: 0,
-  ...o,
-})
-
 // The Frame.io review cuts (2026-10-25): transcoded once to 720-width
 // faststart MP4 and served from S3 behind CloudFront (private bucket, OAC).
 // The originals stay in public/clips-media/, untracked, as the archive.
@@ -121,10 +108,6 @@ export const PUBLISHED: Clip[] = [
   frame("locked-out", "why-independentsare-locked-out-40s.mp4", { title: "Why independents are locked out", duration: 41, createdAt: "2026-10-05T12:00:00Z" }),
   frame("no-newscaster", "why-independentsare-locked-out-no-newscaster-21s.mp4", { title: "Why independents are locked out (no newscaster)", duration: 21, createdAt: "2026-10-05T12:00:00Z" }),
   frame("theo", "why-nothing-passes-theo-51s.mp4", { title: "Why nothing passes (Theo)", duration: 52, createdAt: "2026-10-05T12:00:00Z" }),
-  short("ZfZYXKoJ4Rc", { title: "Time to get the Farm Bill done", caption: "Tell your elected officials: it's time to get the Farm Bill done. From the House Committee on Agriculture.", duration: 42, createdAt: "2026-03-02T15:00:00Z", views: 217 }),
-  short("RHKfwZaMdqU", { title: "A new farm bill means certainty", caption: "For everyone. The committee's case for finishing the bill this session.", duration: 29, createdAt: "2026-03-01T18:00:00Z", views: 346 }),
-  short("p33RWZYDpvM", { title: "Support rural America", caption: "Support the Farm Bill. The committee on what the bill carries for rural districts.", duration: 49, createdAt: "2026-03-01T14:00:00Z", views: 108 }),
-  short("0agkzFpSSIQ", { title: "We need a Prop 12 fix", caption: "We need a new Farm Bill. The committee on the California pork rule and what the bill does about it.", duration: 43, createdAt: "2026-02-28T16:00:00Z", views: 104 }),
   {
     id: "pub-40700",
     creatorId: "tx",
