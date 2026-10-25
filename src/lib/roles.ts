@@ -22,6 +22,7 @@ export const PARTNERS: Partner[] = [
   { id: "unite-america", name: "Unite America", youtube: "https://www.youtube.com/@uniteamerica" },
   // The PAX channel does not exist yet; it gets made, then its URL lands here.
   { id: "pax", name: "PAX", youtube: null },
+  { id: "yeson3", name: "Yes on 3", youtube: "https://www.youtube.com/@yeson3ma" },
 ]
 
 export const memberByEmail = (email: string) => MEMBERS.find((m) => m.email?.toLowerCase() === email.toLowerCase())

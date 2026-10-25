@@ -9,6 +9,7 @@ export const CREATORS: Creator[] = [
   { id: "parallax", name: "PAX", handle: "pax", image: "/pax-avatar.svg", kind: "desk" },
   { id: "voter-freedom", name: "Voter Freedom", handle: "voterfreedom", kind: "desk" },
   { id: "unite-america", name: "Unite America", handle: "uniteamerica", kind: "desk" },
+  { id: "yeson3", name: "Yes on 3", handle: "yeson3ma", kind: "desk" },
 ]
 
 export const creatorOf = (id: string) => CREATORS.find((c) => c.id === id)

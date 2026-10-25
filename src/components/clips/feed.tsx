@@ -268,7 +268,7 @@ function FeedItem({ clip, active, muted, onMuted, reactions }: { clip: Clip; act
               <AvatarImage src={clip.author.image ?? undefined} alt="" className="object-cover" />
               <AvatarFallback className="bg-white/20 text-xs text-white">{clip.author.name.slice(0, 1)}</AvatarFallback>
             </Avatar>
-            <span className="text-sm font-semibold">{clip.author.handle}</span>
+            <span className="text-sm font-semibold">{clip.messenger ?? clip.author.name}</span>
             {reactions.onFollow && !clip.mine && (
               <>
                 <span className="text-white/60">·</span>

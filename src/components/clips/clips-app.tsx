@@ -155,7 +155,8 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
   }, [creator, mine, published])
 
   // The rail lists the videos themselves (Brendan, 2026-10-25), not the desks.
-  const clipRows = published.map((c) => ({ id: c.id, title: c.title, sub: `${c.duration}s · @${c.author.handle}`, poster: c.poster }))
+  const clipRows = clips.map((c) => ({ id: c.id, title: c.title, sub: `${c.duration}s · @${c.author.handle}`, poster: c.poster }))
+  const partnerRows = [{ id: "all", name: "All partners", count: published.length }, ...CREATORS.map((c) => ({ id: c.id, name: c.name, count: published.filter((x) => x.creatorId === c.id).length }))]
   const youRow: CreatorRow | null = signedIn ? { id: "you", name: you.name, handle: you.handle, image: you.image, kind: "user", count: mine.length } : null
 
   // The first clip plays on arrival, or the one the address names.
@@ -297,16 +298,12 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
       <div className="px-2 lg:grid lg:grid-cols-[240px_minmax(0,1fr)_340px] lg:gap-6 lg:px-4">
         <aside className="hidden lg:block">
           <div className={cn("sticky top-4 overflow-y-auto pb-4", COLUMN_HEIGHT[frame])}>
-            <Creators clips={clipRows} activeId={view === "feed" ? activeId : null} onOpenClip={(id) => { const c = published.find((x) => x.id === id); if (c) goToPost(c) }} selected={creator} onSelect={setCreator} you={youRow} onRecord={record} onUpload={upload} onGenerate={() => setMode("generate")} />
+            <Creators clips={clipRows} partners={partnerRows} activeId={view === "feed" ? activeId : null} onOpenClip={(id) => { const c = published.find((x) => x.id === id); if (c) goToPost(c) }} selected={creator} onSelect={setCreator} you={youRow} onRecord={record} onUpload={upload} onGenerate={() => setMode("generate")} />
           </div>
         </aside>
 
         <main className="min-w-0">
           <div className="flex h-14 items-center gap-2">
-            {/* The count leads and the layout toggle sits beside it, at the
-                left of the column, where a reader's eye starts (Brendan,
-                2026-09-08). */}
-            <span className="text-xs text-muted-foreground tabular-nums">{clips.length} clips</span>
             <div className="flex items-center rounded-full bg-muted p-0.5">
               <button type="button" onClick={() => setView("feed")} className={cn("flex size-8 items-center justify-center rounded-full", view === "feed" ? "bg-background shadow-sm" : "text-muted-foreground")} aria-label="Feed">
                 <PlaySquareIcon className="size-4" />
@@ -335,7 +332,8 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
                 )}
               </SelectContent>
             </Select>
-            <span className="ml-auto hidden text-sm font-medium lg:inline">{creatorLabel}</span>
+            {/* The count stands alone at the right (Brendan, 2026-10-25). */}
+            <span className="ml-auto text-xs text-muted-foreground tabular-nums">{clips.length} clips</span>
           </div>
 
           {creator === "you" && signedIn && uploads.length > 0 && (

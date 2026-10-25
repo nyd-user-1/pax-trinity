@@ -36,7 +36,7 @@ export function Grid({ clips, onOpen, className }: { clips: Clip[]; onOpen: (cli
               <AvatarImage src={clip.author.image ?? undefined} alt="" className="object-cover" />
               <AvatarFallback className="bg-white/20 text-[10px] text-white">{clip.author.name.slice(0, 1)}</AvatarFallback>
             </Avatar>
-            <span className="truncate text-xs font-semibold max-sm:text-[11px]">{clip.author.handle}</span>
+            <span className="truncate text-xs font-semibold max-sm:text-[11px]">{clip.messenger ?? clip.author.name}</span>
           </div>
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent p-2 pt-8">
             {!clip.mine && (
