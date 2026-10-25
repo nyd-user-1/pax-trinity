@@ -59,35 +59,9 @@ const NAV_TREE: (NavLink | NavGroup)[] = [
   { href: "/consensus/report", label: "Consensus report", icon: NotebookPen },
   { href: "/consensus/admin", label: "Consensus admin", icon: Settings },
   { href: "/clips", label: "Clips", icon: Film },
-  {
-    label: "Create",
-    icon: Clapperboard,
-    children: [
-      { href: "/recording", label: "Record", icon: Video },
-      { href: "/scripts", label: "Scripts", icon: NotebookPen },
-    ],
-  },
-  {
-    label: "Explore",
-    icon: Compass,
-    children: [
-      { href: "/channels", label: "Channels", icon: Tv },
-      { href: "/tags", label: "Tags", icon: Tag },
-      { href: "/videos", label: "Videos", icon: Clapperboard },
-    ],
-  },
-  {
-    label: "Lab",
-    icon: FlaskConical,
-    children: [
-      { href: "/my-channels", label: "My Channels", icon: TvMinimal },
-      { href: "/my-videos", label: "My Videos", icon: Film },
-    ],
-  },
-  { href: "/learn", label: "Learn", icon: ListChecks },
-  { label: "Research", icon: Microscope, children: RESEARCH },
-  { label: "Admin", icon: ShieldCheck, children: ADMIN, admin: true },
+  { href: "/glossary", label: "Glossary", icon: BookA },
 ]
+
 // The product's pages, in order: the search's list and the phone's strip.
 const NAV: NavLink[] = NAV_TREE.filter((n) => !("children" in n) || (n.label !== "Research" && n.label !== "Admin")).flatMap((n) => ("children" in n ? n.children : [n]))
 // Off the sidebar and the search: early pages kept for reference, under the account menu's Lab.
