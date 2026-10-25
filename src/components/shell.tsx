@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Activity, ArrowLeft, Database, Sigma, BadgeCheck, Beaker, Bell, BookA, Brain, ClipboardList, ChevronDown, ChevronUp, ChevronsUpDown, Clapperboard, Columns2, Columns3, Compass, EllipsisVertical, ExternalLink, Film, FlaskConical, GanttChart, Gauge, Hammer, House, Inbox, LayoutDashboard, Library, LifeBuoy, Link2, ListChecks, LogIn, LogOut, MessagesSquare, Microscope, NotebookPen, PanelLeftClose, PanelLeftOpen, Search, Settings, ShieldCheck, Star, Tag, Target, Tv, TvMinimal, User2, Video, Vote, Workflow, X } from "lucide-react"
+import { Activity, ArrowLeft, Database, Sigma, BadgeCheck, Beaker, Bell, BookA, Brain, ClipboardList, ChevronDown, History, ChevronUp, ChevronsUpDown, Clapperboard, Columns2, Columns3, Compass, EllipsisVertical, ExternalLink, Film, FlaskConical, GanttChart, Gauge, Hammer, House, Inbox, LayoutDashboard, Library, LifeBuoy, Link2, ListChecks, LogIn, LogOut, MessagesSquare, Microscope, NotebookPen, PanelLeftClose, PanelLeftOpen, Search, Settings, ShieldCheck, Star, Tag, Target, Tv, TvMinimal, User2, Video, Vote, Workflow, X } from "lucide-react"
 
 import dynamic from "next/dynamic"
 import { SidebarChats } from "@/components/sidebar-chats"
@@ -27,7 +27,7 @@ const DiscussionPanel = dynamic(() => import("@/components/discussion-panel").th
 // as a route, off the sidebar.
 // The pages trinity starts with; every other destination renders in place but goes nowhere
 // until its page exists (Brendan, 2026-10-24).
-const LIVE = new Set(["/", "/chat", "/consensus", "/consensus/survey", "/consensus/report", "/consensus/admin", "/clips", "/inbox", "/glossary", "/signin", "/signup", "/erd", "/pipeline-2"])
+const LIVE = new Set(["/", "/chat", "/consensus", "/consensus/survey", "/consensus/report", "/consensus/admin", "/clips", "/inbox", "/glossary", "/changelog", "/signin", "/signup", "/erd", "/pipeline-2"])
 
 type NavLink = { href: string; label: string; icon: typeof House }
 type NavGroup = { label: string; icon: typeof House; children: NavLink[]; admin?: boolean }
@@ -61,6 +61,7 @@ const NAV_TREE: (NavLink | NavGroup)[] = [
   { href: "/clips", label: "Clips", icon: Film },
   { href: "/inbox", label: "Inbox", icon: Inbox },
   { href: "/glossary", label: "Glossary", icon: BookA },
+  { href: "/changelog", label: "Changelog", icon: History },
 ]
 
 // The product's pages, in order: the search's list and the phone's strip.
