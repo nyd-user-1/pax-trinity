@@ -810,8 +810,8 @@ export default function Page() {
                               Edit draft
                             </Button>
                           ) : replying ? (
-                            <div ref={replyRef} className="flex flex-col rounded-lg border bg-background shadow-sm">
-                              <div className="sticky top-0 z-10 flex items-center gap-3 rounded-t-lg border-b bg-background px-4 py-3">
+                            <div ref={replyRef} className="flex flex-col rounded-2xl border bg-background shadow-sm">
+                              <div className="sticky top-0 z-10 flex items-center gap-3 rounded-t-2xl border-b bg-background px-4 py-3">
                                 <Sender from="you" />
                                 <ReplyIcon className="size-4 shrink-0 text-muted-foreground" />
                                 <span className="min-w-0 truncate text-sm text-muted-foreground">{shownRecipients(open).join(", ") || open.agentName}</span>
