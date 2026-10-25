@@ -72,9 +72,11 @@ export type BlockProps = {
   more?: string
   /** A side panel: the Card fills its column, the child owns body and footer, no Glossary foot. */
   panel?: boolean
+  /** Fill the container (a flex column with real height) instead of any viewport-sized class. */
+  fill?: boolean
 }
 
-export function MainBlock({ title, children, search, searchValue, onSearch, tools, actions, rows, name, views, view, onView, defaultOpen = true, height, peek, id, menuItems, className, small, more, panel }: BlockProps) {
+export function MainBlock({ title, children, search, searchValue, onSearch, tools, actions, rows, name, views, view, onView, defaultOpen = true, height, peek, id, menuItems, className, small, more, panel, fill }: BlockProps) {
   const [size, setSize] = React.useState<BlockSize>(defaultOpen ? "full" : "collapsed")
   const open = size !== "collapsed"
   const half = height && height !== "auto" && height !== "max" ? height : BLOCK_HEIGHT
@@ -84,7 +86,7 @@ export function MainBlock({ title, children, search, searchValue, onSearch, tool
   if (title && hidden.includes(`${path}#${id ?? slug(title)}`)) return null
   return (
     <PAX2Table2 value={searchValue} onChange={onSearch}>
-      <Card className={cn("gap-4", panel ? "h-full min-h-0" : open && (small ? (size === "full" ? SMALL_FULL : SMALL_HALF) : size === "full" ? BLOCK_FULL : half), className)}>
+      <Card className={cn("gap-4", fill ? "min-h-0 flex-1" : panel ? "h-full min-h-0" : open && (small ? (size === "full" ? SMALL_FULL : SMALL_HALF) : size === "full" ? BLOCK_FULL : half), className)}>
         <CardHeader className={cn((open || peek) && "border-b [.border-b]:pb-2")}>
           <div className="flex items-center gap-1">
             {title ? <CardAnchor id={id}>{title}</CardAnchor> : null}

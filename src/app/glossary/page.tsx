@@ -1,4 +1,3 @@
-import { HOME_BLOCK } from "@/app/_home/height"
 import { TableBlock } from "@/components/blocks"
 import { GLOSSARY } from "@/lib/glossary"
 import { Table, TableHead, TableHeader, TableRow } from "@/ui/components/nova/table"
@@ -12,11 +11,11 @@ const SORTED = [...GLOSSARY].sort((a, b) => a.full.replace(/[^\p{L}\p{N} ]/gu, "
 
 export default function GlossaryPage() {
   return (
-    // The Block standard (Brendan, 2026-10-25): the BlockHeader sits 20px under the
-    // AppShellHeader (pt-5 here, since this route drops the page's top padding) and
-    // HOME_BLOCK's height lands the BlockFooter 20px above the AppShell's bottom.
-    <div className="pt-5">
-    <TableBlock title="Glossary" search="Search terms…" rows={SORTED.map((t) => ({ term: t.full, definition: t.definition, section: t.group }))} name="glossary" height={HOME_BLOCK}>
+    // The Block standard (Brendan, 2026-10-25): header 20px under the AppShellHeader,
+    // footer 20px above the AppShell bottom — by filling the shell's fixed-height
+    // column, never by viewport arithmetic.
+    <div className="flex min-h-0 flex-1 flex-col px-5 pt-5 pb-5 md:px-10">
+    <TableBlock fill title="Glossary" search="Search terms…" rows={SORTED.map((t) => ({ term: t.full, definition: t.definition, section: t.group }))} name="glossary">
       <Table className="table-fixed">
         <TableHeader>
           <TableRow className="bg-muted/60">
