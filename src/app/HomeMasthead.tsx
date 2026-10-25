@@ -72,7 +72,7 @@ export function HomeMasthead({ ledger }: { ledger: LedgerEntry[] }) {
             fontSize={120}
             fontFamily="'PAX Curtain', monospace"
             letterSpacing={0}
-            kerning={[-10, 4]}
+            kerning={[-10, 0]}
             drawDuration={0.9}
             stagger={0.08}
           />}

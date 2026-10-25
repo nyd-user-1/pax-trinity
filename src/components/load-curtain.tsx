@@ -83,7 +83,7 @@ export function LoadCurtain({ onDone }: { onDone?: () => void }) {
               fontSize={144}
               fontFamily="'PAX Curtain', monospace"
               letterSpacing={0}
-              kerning={[-12, 5]}
+              kerning={[-12, 0]}
               drawDuration={0.9}
               stagger={0.08}
             />

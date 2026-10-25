@@ -1,0 +1,27 @@
+// Who is who (Brendan, 2026-10-25). One super admin, three admins, two staff,
+// three partner organizations. Emails and the remaining YouTube channels fill
+// in as they arrive; Cognito wiring maps sign-ins onto these rows later.
+
+export type Role = "superadmin" | "admin" | "staff" | "partner"
+
+export type Member = { name: string; email?: string; role: Role }
+
+export const MEMBERS: Member[] = [
+  { name: "Brendan Stanton", email: "brendan@nysgpt.com", role: "superadmin" },
+  { name: "Sajeela Padder", role: "admin" },
+  { name: "Garrett Hernandez Rimer", role: "admin" },
+  { name: "Ted Delicath", role: "admin" },
+  { name: "Errin M Vasquez", role: "staff" },
+  { name: "Sergio Gutierrez", role: "staff" },
+]
+
+export type Partner = { id: string; name: string; youtube: string | null }
+
+export const PARTNERS: Partner[] = [
+  { id: "voter-freedom", name: "Voter Freedom", youtube: "https://www.youtube.com/@voterfreedom" },
+  { id: "unite-america", name: "Unite America", youtube: "https://www.youtube.com/@uniteamerica" },
+  // The PAX channel does not exist yet; it gets made, then its URL lands here.
+  { id: "pax", name: "PAX", youtube: null },
+]
+
+export const memberByEmail = (email: string) => MEMBERS.find((m) => m.email?.toLowerCase() === email.toLowerCase())
