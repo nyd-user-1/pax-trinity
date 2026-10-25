@@ -79,7 +79,7 @@ const short = (id: string, o: { title: string; caption: string; duration: number
 
 // The six Frame.io review cuts (added 2026-10-25). The files live in
 // public/clips-media/, which stays out of git; real hosting is a later wiring.
-const frame = (id: string, file: string, o: { title: string; duration: number }): Clip => ({
+const frame = (id: string, file: string, o: { title: string; duration: number; createdAt?: string }): Clip => ({
   id: `px-${id}`,
   creatorId: "parallax",
   author: by("parallax"),
@@ -99,6 +99,26 @@ export const PUBLISHED: Clip[] = [
   frame("paul", "paul-schilchtman.mov", { title: "Paul Schilchtman", duration: 43 }),
   frame("alex", "alex-rodriguez.mov", { title: "Alex Rodriguez", duration: 37 }),
   frame("ajayi", "ajayi-harris.mov", { title: "Ajayi Harris", duration: 27 }),
+  // The October 5 share (19 cuts, downloaded 2026-10-25).
+  frame("liam-kerr", "closed-primaries-fuel-extremes-liam-kerr-55s.mp4", { title: "Closed primaries fuel extremes (Liam Kerr)", duration: 55, createdAt: "2026-10-05T12:00:00Z" }),
+  frame("beth-co", "independent-votersin-colorado-beth-42s.mp4", { title: "Independent voters in Colorado (Beth)", duration: 43, createdAt: "2026-10-05T12:00:00Z" }),
+  frame("john-avlon", "let-all-americans-vote-john-avlon-1m3s.mp4", { title: "Let all Americans vote (John Avlon)", duration: 63, createdAt: "2026-10-05T12:00:00Z" }),
+  frame("cameron", "millionsof-unheard-voters-cameron-44s.mp4", { title: "Millions of unheard voters (Cameron)", duration: 44, createdAt: "2026-10-05T12:00:00Z" }),
+  frame("larry-sokoff", "more-than-two-choices-larry-sokoff-34s.mp4", { title: "More than two choices (Larry Sokoff)", duration: 34, createdAt: "2026-10-05T12:00:00Z" }),
+  frame("theo-wilson", "name-another-job-theo-wilson-1m4s.mp4", { title: "Name another job (Theo Wilson)", duration: 64, createdAt: "2026-10-05T12:00:00Z" }),
+  frame("beth-jon", "no-football-for-you-beth-jon-2m13s.mp4", { title: "No football for you (Beth and Jon)", duration: 133, createdAt: "2026-10-05T12:00:00Z" }),
+  frame("garrett", "taxation-without-choice-garrett-52s.mp4", { title: "Taxation without choice (Garrett)", duration: 53, createdAt: "2026-10-05T12:00:00Z" }),
+  frame("landon", "taxation-without-representation-landon-45s.mp4", { title: "Taxation without representation (Landon)", duration: 45, createdAt: "2026-10-05T12:00:00Z" }),
+  frame("john-opdycke", "the-case-for-open-primaries-john-opdycke.mp4", { title: "The case for open primaries (John Opdycke)", duration: 45, createdAt: "2026-10-05T12:00:00Z" }),
+  frame("rise-independents", "the-rise-of-independents-voters-41s.mp4", { title: "The rise of independent voters", duration: 42, createdAt: "2026-10-05T12:00:00Z" }),
+  frame("jimmy-carr", "two-things-needto-happen-jimmy-carr-59s.mp4", { title: "Two things need to happen (Jimmy Carr)", duration: 60, createdAt: "2026-10-05T12:00:00Z" }),
+  frame("gaby", "windependentsare-locked-out-gaby.mp4", { title: "Why independents are locked out (Gaby)", duration: 46, createdAt: "2026-10-05T12:00:00Z" }),
+  frame("cats", "when-political-parties-see-independent-voters-cats-19s.mp4", { title: "When political parties see independent voters (Cats)", duration: 19, createdAt: "2026-10-05T12:00:00Z" }),
+  frame("nick-jon", "whos-in-charge-nick-jon-1m10s.mp4", { title: "Who's in charge (Nick and Jon)", duration: 70, createdAt: "2026-10-05T12:00:00Z" }),
+  frame("msnow", "why-independents-are-locked-out-msnow-39s.mp4", { title: "Why independents are locked out (MSNOW)", duration: 39, createdAt: "2026-10-05T12:00:00Z" }),
+  frame("locked-out", "why-independentsare-locked-out-40s.mp4", { title: "Why independents are locked out", duration: 41, createdAt: "2026-10-05T12:00:00Z" }),
+  frame("no-newscaster", "why-independentsare-locked-out-no-newscaster-21s.mp4", { title: "Why independents are locked out (no newscaster)", duration: 21, createdAt: "2026-10-05T12:00:00Z" }),
+  frame("theo", "why-nothing-passes-theo-51s.mp4", { title: "Why nothing passes (Theo)", duration: 52, createdAt: "2026-10-05T12:00:00Z" }),
   short("ZfZYXKoJ4Rc", { title: "Time to get the Farm Bill done", caption: "Tell your elected officials: it's time to get the Farm Bill done. From the House Committee on Agriculture.", duration: 42, createdAt: "2026-03-02T15:00:00Z", views: 217 }),
   short("RHKfwZaMdqU", { title: "A new farm bill means certainty", caption: "For everyone. The committee's case for finishing the bill this session.", duration: 29, createdAt: "2026-03-01T18:00:00Z", views: 346 }),
   short("p33RWZYDpvM", { title: "Support rural America", caption: "Support the Farm Bill. The committee on what the bill carries for rural districts.", duration: 49, createdAt: "2026-03-01T14:00:00Z", views: 108 }),
