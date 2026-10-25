@@ -58,3 +58,65 @@ All of src/govblock-ui and lib/policy home-state, jurisdiction, manual-fetch, us
 ## Second restore: all of lib/policy stays (the lane keeps reaching for it). Only the lib/data bill/text snapshots remain removed.
 
 ## Verdict 2026-10-25: sweep fully reverted. The /inbox lane is actively building into the govblock layer (policy hooks, govblock-ui, the data snapshots via snapshot.ts), so nothing of it can go until that lane settles. Re-run the removal then.
+
+# Removed 2026-10-25, round 2 — after the inbox lane's keep list (restore from git history)
+Cascade (dead bridges that imported the trees): src/components/card-frame.tsx, src/components/card-gate.tsx, src/components/directory-rail.tsx, src/components/docs-copy-page.tsx, src/components/docs-sidebar.tsx, src/components/home/home-rail.tsx, src/components/workspace/grid.tsx
+- src/components/card-frame.tsx
+- src/components/card-gate.tsx
+- src/components/directory-rail.tsx
+- src/components/docs-copy-page.tsx
+- src/components/docs-sidebar.tsx
+- src/components/home/home-rail.tsx
+- src/components/workspace/grid.tsx
+- src/govblock-ui/components/animate-ui/components/base/dialog.tsx
+- src/govblock-ui/components/animate-ui/components/base/menu.tsx
+- src/govblock-ui/components/animate-ui/primitives/base/dialog.tsx
+- src/govblock-ui/components/animate-ui/primitives/base/menu.tsx
+- src/govblock-ui/components/animate-ui/primitives/effects/highlight.tsx
+- src/govblock-ui/components/button.tsx
+- src/govblock-ui/components/card.tsx
+- src/govblock-ui/components/dropdown-menu.tsx
+- src/govblock-ui/components/item.tsx
+- src/govblock-ui/components/ny4/collapsible.tsx
+- src/govblock-ui/components/ny4/popover.tsx
+- src/govblock-ui/components/separator.tsx
+- src/govblock-ui/components/tooltip.tsx
+- src/govblock-ui/hooks/use-controlled-state.tsx
+- src/govblock-ui/hooks/use-data-state.tsx
+- src/govblock-ui/lib/get-strict-context.tsx
+- src/lib/data/congress/amendments.json
+- src/lib/data/congress/committee-detail.json
+- src/lib/data/congress/committee-meetings.json
+- src/lib/data/congress/committee-reports.json
+- src/lib/data/congress/cosponsors.json
+- src/lib/data/congress/crs-reports.json
+- src/lib/data/congress/hearings-congress.json
+- src/lib/data/congress/house-votes.json
+- src/lib/data/congress/laws.json
+- src/lib/data/congress/member-detail.json
+- src/lib/data/congress/nominations.json
+- src/lib/data/congress/record-issues.json
+- src/lib/data/congress/related-bills.json
+- src/lib/data/congress/summaries.json
+- src/lib/data/congress/text-versions.json
+- src/lib/data/congress/titles.json
+- src/lib/data/fec-candidates-us.json
+- src/lib/data/fec-manifest.json
+- src/lib/data/hearings-us.json
+- src/lib/data/members-us.json
+- src/lib/data/options-us.json
+- src/lib/data/rollcalls-us.json
+- src/lib/data/sessions-us.json
+- src/lib/data/states.json
+- src/lib/data/subjects-us.json
+- src/lib/data/text-bodies-us.json
+- src/lib/data/texts-us.json
+- src/lib/policy/frozen.tsx
+- src/lib/policy/home-state.ts
+- src/lib/policy/jurisdiction.tsx
+- src/lib/policy/manual-fetch.tsx
+- src/lib/policy/snapshot.ts
+- src/lib/policy/url-state.ts
+- src/lib/policy/use-policy.ts
+- src/lib/policy/use-scoped.ts
+- src/lib/workspace/dashboard.ts (inbox lane's own DROP)
