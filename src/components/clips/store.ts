@@ -79,15 +79,16 @@ const by = (id: string) => {
 const CLIPS_CDN = "https://d3tyjc2amjpyom.cloudfront.net"
 
 // The partner channels' shorts (pulled 2026-10-25 through the Webshare fleet),
-// one manifest row per cut, files at <CDN>/vf/<id>.mp4 and <CDN>/y3/<id>.mp4.
+// one manifest row per cut, files at <CDN>/<dir>/<id>.mp4.
 type PartnerShort = { id: string; partner: string; title: string; duration: number }
+const SHORT_DIR: Record<string, string> = { "voter-freedom": "vf", "yeson3": "y3", "unite-america": "ua" }
 const shortClip = (x: PartnerShort): Clip => ({
   id: `yt-${x.id}`,
   creatorId: x.partner,
   author: by(x.partner),
   title: x.title,
   caption: "",
-  src: `${CLIPS_CDN}/${x.partner === "voter-freedom" ? "vf" : "y3"}/${x.id}.mp4`,
+  src: `${CLIPS_CDN}/${SHORT_DIR[x.partner]}/${x.id}.mp4`,
   duration: x.duration,
   createdAt: "2026-10-25T12:00:00Z",
   visibility: "public",
