@@ -111,3 +111,4 @@ public/sketches/
 
 # Client reports: originals live in private S3 (library/reports/), never in public/
 data/raw/reports
+public/clips-media/

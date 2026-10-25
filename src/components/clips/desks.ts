@@ -6,6 +6,7 @@ import { flagUrl } from "@/lib/filters"
 export type Creator = { id: string; name: string; handle: string; image?: string | null; state?: string; kind: "desk" | "user" }
 
 export const CREATORS: Creator[] = [
+  { id: "parallax", name: "Parallax", handle: "parallax", kind: "desk" },
   { id: "govblock", name: "GovBlock", handle: "govblock", image: flagUrl("US"), state: "US", kind: "desk" },
   { id: "ny", name: "New York Desk", handle: "nydesk", image: flagUrl("NY"), state: "NY", kind: "desk" },
   { id: "tx", name: "Texas Desk", handle: "txdesk", image: flagUrl("TX"), state: "TX", kind: "desk" },

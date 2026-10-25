@@ -77,7 +77,28 @@ const short = (id: string, o: { title: string; caption: string; duration: number
   ...o,
 })
 
+// The six Frame.io review cuts (added 2026-10-25). The files live in
+// public/clips-media/, which stays out of git; real hosting is a later wiring.
+const frame = (id: string, file: string, o: { title: string; duration: number }): Clip => ({
+  id: `px-${id}`,
+  creatorId: "parallax",
+  author: by("parallax"),
+  src: `/clips-media/${file}`,
+  caption: "Vertical cut, from the review set.",
+  createdAt: "2026-10-24T19:50:00Z",
+  visibility: "public",
+  views: 0,
+  likes: 0,
+  ...o,
+})
+
 export const PUBLISHED: Clip[] = [
+  frame("danielle", "danielle-allen.mp4", { title: "Danielle Allen", duration: 35 }),
+  frame("dustin", "dustin-cathcart.mp4", { title: "Dustin Cathcart", duration: 28 }),
+  frame("jesse", "jesse-littlewood.mov", { title: "Jesse Littlewood", duration: 49 }),
+  frame("paul", "paul-schilchtman.mov", { title: "Paul Schilchtman", duration: 43 }),
+  frame("alex", "alex-rodriguez.mov", { title: "Alex Rodriguez", duration: 37 }),
+  frame("ajayi", "ajayi-harris.mov", { title: "Ajayi Harris", duration: 27 }),
   short("ZfZYXKoJ4Rc", { title: "Time to get the Farm Bill done", caption: "Tell your elected officials: it's time to get the Farm Bill done. From the House Committee on Agriculture.", duration: 42, createdAt: "2026-03-02T15:00:00Z", views: 217 }),
   short("RHKfwZaMdqU", { title: "A new farm bill means certainty", caption: "For everyone. The committee's case for finishing the bill this session.", duration: 29, createdAt: "2026-03-01T18:00:00Z", views: 346 }),
   short("p33RWZYDpvM", { title: "Support rural America", caption: "Support the Farm Bill. The committee on what the bill carries for rural districts.", duration: 49, createdAt: "2026-03-01T14:00:00Z", views: 108 }),
