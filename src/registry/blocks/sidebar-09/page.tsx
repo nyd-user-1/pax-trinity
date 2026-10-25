@@ -468,7 +468,6 @@ export default function Page() {
             </div>
             <div className="mt-auto flex flex-col items-center gap-1 pt-16 text-sm text-muted-foreground">
               <p>Last activity: {latest ? when(latest) : "none yet"}</p>
-              <span>Details</span>
               <p>
                 <span>Terms</span>
                 {" · "}

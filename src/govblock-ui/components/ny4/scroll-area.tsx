@@ -16,9 +16,11 @@ function ScrollArea({
       className={cn("relative", className)}
       {...props}
     >
+      {/* Radix wraps the children in a display:table div that sizes to its content, so a `truncate`
+          inside never meets an edge to ellipsize against; block keeps rows at the viewport's width. */}
       <ScrollAreaPrimitive.Viewport
         data-slot="scroll-area-viewport"
-        className="size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1"
+        className="size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1 [&>div]:block! [&>div]:min-w-0!"
       >
         {children}
       </ScrollAreaPrimitive.Viewport>
