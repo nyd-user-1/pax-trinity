@@ -22,7 +22,7 @@ import { SidebarFooter, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSide
 // way to sign in.
 
 /** The demo account the dashboard's sample pages still print. */
-export const ADMIN_USER = { name: "John Doe", email: "john@example.com", avatar: "" }
+export const ADMIN_USER = { name: "Brendan Stanton", email: "brendan@nysgpt.com", avatar: "/brendan.jpg" }
 
 export function AccountFooter({ go }: { go: (page: string) => void }) {
   const { isMobile } = useSidebar()

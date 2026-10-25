@@ -93,6 +93,8 @@ function Sender({ from, className }: { from: string; className?: string }) {
       </Avatar>
     )
   }
+  // Pax wears its own mark; the other agents keep their coloured monograms.
+  if (from === "bill-reader") return <img src="/pax-avatar.svg" alt="Pax" className={cn("size-10 shrink-0 rounded-full", className)} />
   const color = AGENT_COLORS[from] ?? "bg-muted text-foreground"
   return <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-medium", color, className)}>{monogram(nameOf(from))}</span>
 }
@@ -138,10 +140,6 @@ export default function Page() {
   const [replyDraft, setReplyDraft] = React.useState<Draft>(EMPTY_DRAFT)
   // The reply composer is asked for, not always there.
   const [replying, setReplying] = React.useState(false)
-  const replyRef = React.useRef<HTMLDivElement>(null)
-  React.useEffect(() => {
-    if (replying) replyRef.current?.scrollIntoView({ block: "nearest" })
-  }, [replying])
   // Gmail's "Message sent" bar: the id of what just went, for a few seconds.
   const [sent, setSent] = React.useState<string | null>(null)
   // The header search: closed it is an icon; open it filters the list as you type.
@@ -799,55 +797,55 @@ export default function Page() {
                           })}
                         </div>
 
-                        {/* Under the last message, where Gmail keeps them: Reply and Forward
-                            in flow, or the composer card once Reply is pressed. The card's
-                            sender row sticks under the pane's toolbar while earlier messages
-                            scroll away above it, and its bottom bar stays pinned in view —
-                            the body grows in between. */}
-                        <div className="px-6 pt-2 pb-6 pl-[76px]">
-                          {open.status === "draft" ? (
-                            <Button size="sm" onClick={() => editDraft(open)}>
-                              Edit draft
+                      </div>
+
+                      {/* The foot is its own layer under every thread, snapped to the shell's
+                          bottom — Gmail's: Reply and Forward the moment a thread opens, and
+                          the composer card once Reply is pressed. The card grows upward as
+                          the body grows, taking room from the thread above, until its sender
+                          row meets the toolbar; past that the body scrolls inside the card. */}
+                      <div className="flex min-h-0 flex-col bg-background px-6 py-4">
+                        {open.status === "draft" ? (
+                          <Button size="sm" className="self-start" onClick={() => editDraft(open)}>
+                            Edit draft
+                          </Button>
+                        ) : replying ? (
+                          <div className="flex min-h-0 flex-col rounded-2xl border bg-background shadow-sm">
+                            <div className="flex shrink-0 items-center gap-3 border-b px-4 py-3">
+                              <Sender from="you" />
+                              <ReplyIcon className="size-4 shrink-0 text-muted-foreground" />
+                              <span className="min-w-0 truncate text-sm text-muted-foreground">{shownRecipients(open).join(", ") || open.agentName}</span>
+                            </div>
+                            <div className="flex min-h-0 flex-1 flex-col p-4 pt-3">
+                              <Compose
+                                inline
+                                placeholder=""
+                                draft={replyDraft}
+                                onChange={setReplyDraft}
+                                onSend={(current) => {
+                                  const text = current.body
+                                  setReplyDraft({ ...current, body: "" })
+                                  void followUp(open, text)
+                                }}
+                                onDiscard={() => {
+                                  setReplying(false)
+                                  setReplyDraft((current) => ({ ...current, body: "" }))
+                                }}
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <Button variant="outline" size="sm" className="rounded-full" onClick={() => setReplying(true)}>
+                              <ReplyIcon className="size-4" />
+                              Reply
                             </Button>
-                          ) : replying ? (
-                            <div ref={replyRef} className="flex flex-col rounded-2xl border bg-background shadow-sm">
-                              <div className="sticky top-0 z-10 flex items-center gap-3 rounded-t-2xl border-b bg-background px-4 py-3">
-                                <Sender from="you" />
-                                <ReplyIcon className="size-4 shrink-0 text-muted-foreground" />
-                                <span className="min-w-0 truncate text-sm text-muted-foreground">{shownRecipients(open).join(", ") || open.agentName}</span>
-                              </div>
-                              <div className="flex flex-col p-4 pt-3">
-                                <Compose
-                                  inline
-                                  pinned
-                                  placeholder=""
-                                  draft={replyDraft}
-                                  onChange={setReplyDraft}
-                                  onSend={(current) => {
-                                    const text = current.body
-                                    setReplyDraft({ ...current, body: "" })
-                                    void followUp(open, text)
-                                  }}
-                                  onDiscard={() => {
-                                    setReplying(false)
-                                    setReplyDraft((current) => ({ ...current, body: "" }))
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <Button variant="outline" size="sm" className="rounded-full" onClick={() => setReplying(true)}>
-                                <ReplyIcon className="size-4" />
-                                Reply
-                              </Button>
-                              <Button variant="outline" size="sm" className="rounded-full" onClick={() => startForward(open, open.messages.at(-1)!)}>
-                                <ForwardIcon className="size-4" />
-                                Forward
-                              </Button>
-                            </div>
-                          )}
-                        </div>
+                            <Button variant="outline" size="sm" className="rounded-full" onClick={() => startForward(open, open.messages.at(-1)!)}>
+                              <ForwardIcon className="size-4" />
+                              Forward
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </>
                   ) : (

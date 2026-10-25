@@ -83,7 +83,7 @@ name where it helps someone scan; do not bold a sentence.
 export const AGENTS: AgentDefinition[] = [
   {
     slug: "bill-reader",
-    name: "Clerk",
+    name: "Pax",
     speciality:
       "Reads the record — a bill, a vote, a hearing, a committee — and explains it, citing the rows it read.",
     reads:
