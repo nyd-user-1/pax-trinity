@@ -1,7 +1,9 @@
 import { HOME_BLOCK } from "@/app/_home/height"
 import { TableBlock } from "@/components/blocks"
 import { GLOSSARY } from "@/lib/glossary"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/ui/components/nova/table"
+import { Table, TableHead, TableHeader, TableRow } from "@/ui/components/nova/table"
+
+import { GlossaryRows } from "./glossary-rows"
 
 export const metadata = { title: "Glossary" }
 
@@ -19,18 +21,7 @@ export default function GlossaryPage() {
             <TableHead className="w-[14%]">Section</TableHead>
           </TableRow>
         </TableHeader>
-        <TableBody>
-          {SORTED.map((t) => (
-            <TableRow key={t.id} id={t.id} className="scroll-mt-24 target:bg-pax2-lavender/50">
-              <TableCell className="align-top whitespace-normal">
-                <p className="font-semibold text-slate-900">{t.full}</p>
-                {t.short !== t.full && <p className="text-xs text-slate-400">Shown as “{t.short}”</p>}
-              </TableCell>
-              <TableCell className="align-top text-sm leading-relaxed whitespace-normal text-slate-600">{t.definition}</TableCell>
-              <TableCell className="align-top text-slate-800">{t.group}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
+        <GlossaryRows rows={SORTED} />
       </Table>
     </TableBlock>
   )

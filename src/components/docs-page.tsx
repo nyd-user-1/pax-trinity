@@ -19,7 +19,8 @@ export function DocsPage({
   [key: string]: unknown
 }) {
   return (
-    <div className="mx-auto w-full max-w-[920px] pb-12">
+    // 773px: the chat container's width; the consensus pages hold the same column.
+    <div className="mx-auto w-full max-w-[773px] pb-12">
       <div className="flex items-start justify-between gap-4 pt-2">
         <div className="min-w-0">
           <h1 className="font-display m-0 text-[26px] text-pax2-blue">{title}</h1>
