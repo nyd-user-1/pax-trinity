@@ -313,7 +313,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
     )
   }
   const sidebar = (
-    <div className="flex h-full w-60 flex-col rounded-2xl border border-slate-500 bg-white px-3 py-4 shadow-e2">
+    <div className="flex h-full w-60 flex-col rounded-2xl border border-slate-500 bg-pax2-mist px-3 py-4 shadow-e2">
       <Link href="/" aria-label="Home" className="mb-4 flex px-3 pt-1">
         <Wordmark size={20} />
       </Link>

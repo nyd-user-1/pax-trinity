@@ -2,12 +2,13 @@
 
 import dynamic from "next/dynamic"
 
-// /inbox duplicated whole: the same browser-side surface from its own copy of
-// the page component (page-2.tsx), so this one can change shape without
-// touching /inbox. The store is still this browser's localStorage, so a
-// server render would paint an inbox the reader doesn't have.
-const AgentInbox2 = dynamic(() => import("@/registry/blocks/sidebar-09/page-2"), { ssr: false })
+// /inbox-2 — the audience database repurposing the Agentic Inbox's frame
+// (Brendan, 2026-10-26: "it's just a recreate of Gmail... a lot of
+// opportunity to repurpose this"). The mail duplicate this page carried
+// lives on at /inbox; the audience surface loads browser-side because the
+// split preference and the read sources live in this browser.
+const AudienceInbox = dynamic(() => import("./audience-inbox").then((m) => m.AudienceInbox), { ssr: false })
 
 export function InboxClient2() {
-  return <AgentInbox2 />
+  return <AudienceInbox />
 }

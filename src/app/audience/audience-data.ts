@@ -29,19 +29,47 @@ export const groupSources = (sources: SourceFile[]): SourceGroup[] => {
 
 /** The rail's short names; the full institutional label stays on the About panel. */
 export const SHORT_SOURCE: Record<string, string> = {
-  ACS: "Census (ACS)",
-  ANES: "Election study (ANES)",
-  CES: "Election study (CES)",
-  CPS: "Turnout (CPS)",
-  CVAP: "Voting-age citizens",
+  ACS: "U.S. Census",
+  ANES: "ANES",
+  CES: "CES",
+  CPS: "Turnout",
+  CVAP: "Voting Age",
   ELECTION_RESULT: "Results",
-  GSS: "Social survey (GSS)",
-  LIFT_ARCHIVE: "Lift dataset",
-  MA_ENROLLMENT: "MA enrollment",
-  PAX_TEST: "PAX tests",
+  GSS: "GSS",
+  LIFT_ARCHIVE: "Lift",
+  MA_ENROLLMENT: "Enrollment",
+  PAX_TEST: "Tests",
   POLL: "Polls",
 }
 export const shortSource = (key: string) => SHORT_SOURCE[key] ?? key
+
+/** The rail branch's segment names, clipped to the word the row needs. */
+export const SHORT_SEGMENT: Record<string, string> = {
+  age_bucket: "Age",
+  citizenship: "Citizenship",
+  education_4: "Education",
+  hh_income_bucket: "Income",
+  race_eth: "Ethnicity",
+  sex: "Sex",
+}
+export const shortSegment = (id: string, fallback: string) => SHORT_SEGMENT[id] ?? fallback
+
+/** Per-source segment counts for the rail before a source is read; the live
+ *  count replaces a seed the moment the source's files load. From the 2026-10
+ *  export; a regenerated export corrects itself on first read. */
+export const SEGMENT_SEED: Record<string, number> = {
+  ACS: 6,
+  ANES: 13,
+  CES: 7,
+  CPS: 2,
+  CVAP: 2,
+  ELECTION_RESULT: 1,
+  GSS: 15,
+  LIFT_ARCHIVE: 3,
+  MA_ENROLLMENT: 1,
+  PAX_TEST: 2,
+  POLL: 4,
+}
 
 export const year = (x: string) => String(x).slice(0, 4)
 export const period = (start: string, end: string) => (year(start) === year(end) ? year(start) : `${year(start)}–${year(end)}`)
@@ -70,6 +98,8 @@ export type MetricInfo = {
   topline: SourceRow | null
   /** The lead option's rows, the ones the grid reads. */
   rs: SourceRow[]
+  /** Every response option the metric carries, in the file's order: its bands. */
+  options: string[]
   /** An archive of one-shot lifts reads as their median, not a baseline. */
   median: { v: number; n: number } | null
 }
@@ -85,6 +115,8 @@ export function buildInfo(rows: SourceRow[], geoLevel: Map<string, string>): Map
   for (const id of metricIdsOf(rows)) {
     const all = rows.filter((r) => r[0] === id)
     const option = all.find((r) => r[4] != null)?.[4] ?? null
+    const options: string[] = []
+    for (const r of all) if (r[4] != null && !options.includes(r[4])) options.push(r[4])
     const rs = all.filter((r) => (r[4] ?? null) === option)
     const type = rs[0]?.[8] ?? "pct"
     // The baseline geography is the highest level the metric reaches: US
@@ -103,7 +135,7 @@ export function buildInfo(rows: SourceRow[], geoLevel: Map<string, string>): Map
       const vals = [...perOpt.values()].map((r) => r[7]).sort((a, b) => a - b)
       if (vals.length) median = { v: vals[Math.floor(vals.length / 2)], n: vals.length }
     }
-    m.set(id, { id, option, type, baseGeo, topline, rs, median })
+    m.set(id, { id, option, type, baseGeo, topline, rs, options, median })
   }
   return m
 }
