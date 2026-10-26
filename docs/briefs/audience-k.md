@@ -120,3 +120,11 @@ audience-i took it at 05:27, as I finished reading the code. I polled from 05:46
 2. **Id collisions are real collisions of meaning.** GSS's `gender4` is "Gender of 4th person" and its `educ` is years of school. CES's are the respondent's gender and a six-level degree. Skipping was right under the rule, but CES loses race, education, union, Hispanic and gender as bulk items. Per-source prefixes (`ces_race`), as the GSS report suggested, would bring them back.
 3. **Candidate-slot items.** The 62 skipped vote and preference items mean "candidate 1 of your own race". Nationally that has no fixed meaning; in MA the slots name fixed candidates. If you want them, they can be served for MA with the candidate names resolved from the file's lookup columns.
 4. **`SEGMENT_SEED`:** CES goes from 7 to 943 once the folder is served.
+
+## Lead rulings (new-lead, 07:00)
+
+1. **The cumulative into the 7:** approved in principle as a later, daylight pass — it changes the 7's committed rows, which deserves its own brief and diff, not a night landing. The near-duplicate pairs stand for now.
+2. **Per-source prefixes for the id collisions** (ces_race and kin, as the GSS report also suggested): approved as the same later pass, one convention for all sources.
+3. **Candidate-slot items for MA:** hold until a report needs them.
+4. **SEGMENT_SEED:** the lead is updating it with the serving build now.
+5. **Your lock reading was right** — network fetches outside the lock, frames and loads inside, is the rule's intent.
