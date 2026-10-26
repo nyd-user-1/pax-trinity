@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Audience — refined sketch</title>
+<style>
+  :root { --blue:#1e3a8a; --lightblue:#2563eb; --red:#dc2626; --lav:#dbeafe; --mist:#f5f7fb; --rule:#e2e8f0; --ink:#0f172a; --mut:#64748b; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#fff; color:var(--ink); font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+  .nav { display:flex; gap:8px; padding:14px 40px; border-bottom:1px solid var(--rule); align-items:center; }
+  .nav a { padding:6px 14px; border-radius:999px; border:1px solid var(--rule); color:var(--mut); text-decoration:none; font-size:13px; }
+  .nav a.on { background:var(--blue); border-color:var(--blue); color:#fff; }
+  .nav span { margin-left:auto; color:#94a3b8; font-size:12px; }
+  .app { position:relative; display:grid; grid-template-columns:210px minmax(0,1fr); height:calc(100vh - 54px); overflow:hidden; }
+  .rail { border-right:1px solid var(--rule); padding:16px 10px; overflow:auto; }
+  .rail h3 { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--mut); margin:4px 10px 8px; }
+  .folder { display:flex; justify-content:space-between; padding:7px 10px; border-radius:10px; font-size:13px; color:#475569; }
+  .folder .n { color:#94a3b8; font-size:11px; font-variant-numeric:tabular-nums; }
+  .folder.on { background:var(--lav); color:var(--blue); font-weight:600; }
+  .cons { margin-top:18px; }
+  .c { display:flex; gap:7px; align-items:center; padding:5px 10px; font-size:12.5px; color:#475569; }
+  .c input { accent-color:var(--blue); }
+  .pane { padding:20px 24px; overflow:auto; }
+  .chips { display:flex; gap:8px; align-items:center; margin-bottom:16px; }
+  .chip { padding:6px 11px; border:1px solid var(--rule); border-radius:10px; font-size:12.5px; }
+  .chip b { color:var(--blue); font-weight:600; }
+  .count { margin-left:auto; font-size:12.5px; color:var(--mut); font-variant-numeric:tabular-nums; }
+  h2 { font-size:17px; margin:0 0 14px; color:var(--blue); }
+  table { border-collapse:collapse; width:100%; }
+  th, td { border:1px solid var(--rule); padding:8px 10px; text-align:left; font-size:13px; }
+  thead .group th { background:var(--mist); font-weight:600; font-size:12.5px; }
+  thead .subh th { background:var(--mist); font-weight:500; color:var(--mut); font-size:12px; }
+  tr.band td { background:var(--mist); color:var(--mut); font-size:12px; font-weight:600; padding:5px 10px; }
+  td.seg { width:170px; }
+  td.seg .n { color:#94a3b8; font-size:11px; margin-left:4px; }
+  .cell { display:flex; align-items:center; gap:7px; font-variant-numeric:tabular-nums; cursor:pointer; border-radius:3px; }
+  .bar { height:12px; background:var(--lightblue); border-radius:2px; opacity:.85; }
+  .bar.lav { background:var(--lav); outline:1px solid #bfdbfe; }
+  .pennant { height:13px; background:var(--lightblue); clip-path:polygon(0 0, calc(100% - 7px) 0, 100% 50%, calc(100% - 7px) 100%, 0 100%); }
+  .pennant.neg { transform:scaleX(-1); background:var(--red); opacity:.75; }
+  .v { font-weight:600; }
+  .base { color:var(--mut); font-size:12px; }
+  .weak { opacity:.35; }
+  .cell.sel { outline:2px solid var(--lightblue); outline-offset:2px; }
+  /* The About panel is summoned, not resident: off-canvas until a cell is picked. */
+  .panel { position:absolute; top:0; right:0; bottom:0; width:420px; border-left:1px solid var(--rule); background:#fff;
+           padding:20px; overflow:auto; box-shadow:-8px 0 24px rgb(15 23 42/.08); transform:translateX(100%); transition:transform .2s ease; }
+  .panel.open { transform:none; }
+  .panel .x { position:absolute; top:14px; right:14px; border:0; background:none; color:var(--mut); font-size:16px; cursor:pointer; }
+  .panel h3 { margin:0 24px 2px 0; font-size:14px; color:var(--blue); }
+  .where { color:var(--mut); font-size:12px; margin-bottom:14px; }
+  .kv { display:grid; grid-template-columns:1fr auto; gap:6px 12px; font-size:13px; border-top:1px solid var(--rule); padding:10px 0; }
+  .kv .k { color:var(--mut); }
+  .kv .v2 { font-variant-numeric:tabular-nums; font-weight:600; text-align:right; }
+  .word { font-size:12.5px; background:var(--mist); border-radius:10px; padding:10px 12px; margin:10px 0; }
+  .prov { font-size:11.5px; color:var(--mut); word-break:break-all; }
+  .bench { margin-top:14px; border-top:1px solid var(--rule); padding-top:10px; }
+  .bench h4 { margin:0 0 8px; font-size:12px; color:var(--mut); font-weight:600; text-transform:uppercase; letter-spacing:.05em; }
+  .brow { display:flex; justify-content:space-between; font-size:12.5px; padding:4px 0; }
+  .brow .v2 { font-variant-numeric:tabular-nums; font-weight:600; }
+</style>
+</head>
+<body>
+<div class="nav">
+  <a href="audience-lead.html">Lead</a>
+  <a href="audience-inbox.html">Inbox</a>
+  <a href="audience-combined.html">Combined</a>
+  <a class="on" href="audience-refined.html">Refined</a>
+  <span>Combined, refined: levels as bars, deltas as pennants, the panel summoned by a click</span>
+</div>
+<div class="app">
+  <div class="rail">
+    <h3>Sources</h3>
+    <div class="folder on"><b>MA enrollment</b><span class="n">35,200</span></div>
+    <div class="folder"><b>Turnout (CPS)</b><span class="n">2,580</span></div>
+    <div class="folder"><b>Polls</b><span class="n">70</span></div>
+    <div class="folder"><b>Lift dataset</b><span class="n">1,583</span></div>
+    <div class="cons">
+      <h3>Constructs</h3>
+      <label class="c"><input type="checkbox" checked> Party enrollment</label>
+      <label class="c"><input type="checkbox" checked> Change since 2008</label>
+      <label class="c"><input type="checkbox"> Voted, 2024</label>
+      <label class="c"><input type="checkbox"> Open primaries support</label>
+    </div>
+  </div>
+  <div class="pane">
+    <div class="chips">
+      <div class="chip">Geography <b>Statewide + towns ▾</b></div>
+      <div class="chip">Period <b>Feb 2025 ▾</b></div>
+      <div class="count">35,200 rows</div>
+    </div>
+    <h2>Party enrollment — Massachusetts</h2>
+    <table>
+      <thead>
+        <tr class="group">
+          <th rowspan="2" style="width:170px">Geography</th>
+          <th colspan="4">Party enrollment</th>
+          <th colspan="2">Change since 2008</th>
+        </tr>
+        <tr class="subh">
+          <th>Democrat</th><th>Republican</th><th>Unenrolled</th><th>Other</th>
+          <th>Democrat</th><th>Unenrolled</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="band"><td colspan="7">Statewide</td></tr>
+        <tr>
+          <td class="seg">Massachusetts<span class="n">n 5,025,826</span></td>
+          <td><div class="cell" data-t="Democrat — Massachusetts" data-kv='[["Estimate","25.8%"],["Count","1,296,663"],["Registered","5,025,826"]]'><div class="bar" style="width:50px"></div><span class="v">25.8%</span></div></td>
+          <td><div class="cell" data-t="Republican — Massachusetts" data-kv='[["Estimate","8.4%"],["Count","422,170"],["Registered","5,025,826"]]'><div class="bar lav" style="width:16px"></div><span class="v">8.4%</span></div></td>
+          <td><div class="cell" data-t="Unenrolled — Massachusetts" data-kv='[["Estimate","64.8%"],["Count","3,256,724"],["Registered","5,025,826"]]' data-series='[["2008","50.7%"],["2014","53.3%"],["2020","56.9%"],["2024","64.2%"],["2025","64.8%"]]'><div class="bar" style="width:126px"></div><span class="v">64.8%</span></div></td>
+          <td><div class="cell" data-t="Other designations — Massachusetts" data-kv='[["Estimate","1.0%"],["Count","50,269"],["Registered","5,025,826"]]'><div class="bar lav" style="width:2px"></div><span class="v">1.0%</span></div></td>
+          <td><div class="cell" data-t="Democrat, change since 2008 — Massachusetts" data-kv='[["2008","36.9%"],["2025","25.8%"],["Change","−11.1 pp"]]'><span class="base">36.9</span><div class="pennant neg" style="width:70px"></div><span class="v">−11.1</span></div></td>
+          <td><div class="cell" data-t="Unenrolled, change since 2008 — Massachusetts" data-kv='[["2008","50.7%"],["2025","64.8%"],["Change","+14.1 pp"]]'><span class="base">50.7</span><div class="pennant" style="width:88px"></div><span class="v">+14.1</span></div></td>
+        </tr>
+        <tr class="band"><td colspan="7">By town</td></tr>
+        <tr>
+          <td class="seg">Boston</td>
+          <td><div class="cell" data-t="Democrat — Boston" data-kv='[["Estimate","39.4%"],["Count","173,418"],["Registered","440,150"]]'><div class="bar" style="width:77px"></div><span class="v">39.4%</span></div></td>
+          <td><div class="cell" data-t="Republican — Boston" data-kv='[["Estimate","4.6%"],["Count","20,247"],["Registered","440,150"]]'><div class="bar lav" style="width:9px"></div><span class="v">4.6%</span></div></td>
+          <td><div class="cell" data-t="Unenrolled — Boston" data-kv='[["Estimate","54.6%"],["Count","240,322"],["Registered","440,150"]]'><div class="bar" style="width:106px"></div><span class="v">54.6%</span></div></td>
+          <td><div class="cell" data-t="Other designations — Boston" data-kv='[["Estimate","1.4%"],["Count","6,163"],["Registered","440,150"]]'><div class="bar lav" style="width:3px"></div><span class="v">1.4%</span></div></td>
+          <td><div class="cell" data-t="Democrat, change since 2008 — Boston" data-kv='[["2008","48.2%"],["2025","39.4%"],["Change","−8.8 pp"]]'><span class="base">48.2</span><div class="pennant neg" style="width:55px"></div><span class="v">−8.8</span></div></td>
+          <td><div class="cell" data-t="Unenrolled, change since 2008 — Boston" data-kv='[["2008","44.5%"],["2025","54.6%"],["Change","+10.1 pp"]]'><span class="base">44.5</span><div class="pennant" style="width:63px"></div><span class="v">+10.1</span></div></td>
+        </tr>
+        <tr>
+          <td class="seg">Gosnold<span class="n">n 108</span></td>
+          <td><div class="cell weak" data-t="Democrat — Gosnold" data-kv='[["Estimate","22.2%"],["Count","24"],["Registered","108"],["Why faded","108 registered; the cell is thin, the figures stand"]]'><div class="bar" style="width:44px"></div><span class="v">22.2%</span></div></td>
+          <td><div class="cell weak" data-t="Republican — Gosnold" data-kv='[["Estimate","15.7%"],["Count","17"],["Registered","108"],["Why faded","108 registered; the cell is thin, the figures stand"]]'><div class="bar lav" style="width:30px"></div><span class="v">15.7%</span></div></td>
+          <td><div class="cell weak" data-t="Unenrolled — Gosnold" data-kv='[["Estimate","60.2%"],["Count","65"],["Registered","108"],["Why faded","108 registered; the cell is thin, the figures stand"]]'><div class="bar" style="width:118px"></div><span class="v">60.2%</span></div></td>
+          <td><div class="cell weak" data-t="Other designations — Gosnold" data-kv='[["Estimate","1.9%"],["Count","2"],["Registered","108"]]'><div class="bar lav" style="width:4px"></div><span class="v">1.9%</span></div></td>
+          <td><div class="cell weak"><span class="base">—</span></div></td>
+          <td><div class="cell weak"><span class="base">—</span></div></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="panel" id="panel">
+    <button class="x" id="close" aria-label="Close">×</button>
+    <h3 id="p-title"></h3>
+    <div class="where">MA enrollment · Enrollment Breakdown as of 2/1/2025</div>
+    <div class="kv" id="p-kv"></div>
+    <div class="word">"Registered Voters and Party Enrollment as of February 1, 2025" — share of all registered voters; unenrolled voters may vote in either party's primary under current MA law.</div>
+    <div class="prov">sec.state.ma.us · Elections Division, Registration Statistics</div>
+    <div class="bench" id="p-bench" hidden>
+      <h4>The series</h4>
+      <div id="p-series"></div>
+    </div>
+  </div>
+</div>
+<script>
+  const panel = document.getElementById("panel")
+  let picked = null
+  for (const cell of document.querySelectorAll(".cell[data-t]")) {
+    cell.addEventListener("click", () => {
+      picked?.classList.remove("sel")
+      picked = cell
+      cell.classList.add("sel")
+      document.getElementById("p-title").textContent = cell.dataset.t
+      document.getElementById("p-kv").innerHTML = JSON.parse(cell.dataset.kv)
+        .map(([k, v]) => `<span class="k">${k}</span><span class="v2">${v}</span>`).join("")
+      const series = cell.dataset.series ? JSON.parse(cell.dataset.series) : null
+      document.getElementById("p-bench").hidden = !series
+      if (series) document.getElementById("p-series").innerHTML = series
+        .map(([k, v], i) => `<div class="brow"><span>${i === series.length - 1 ? `<b>${k}</b>` : k}</span><span class="v2">${i === series.length - 1 ? `<b>${v}</b>` : v}</span></div>`).join("")
+      panel.classList.add("open")
+    })
+  }
+  document.getElementById("close").addEventListener("click", () => {
+    panel.classList.remove("open")
+    picked?.classList.remove("sel")
+    picked = null
+  })
+</script>
+</body>
+</html>

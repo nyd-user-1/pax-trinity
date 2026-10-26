@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Audience — the inbox frame, live anatomy</title>
+<style>
+  :root { --blue:#1e3a8a; --lightblue:#2563eb; --lav:#dbeafe; --mist:#f5f7fb; --rule:#e2e8f0; --ink:#0f172a; --mut:#64748b; --amber:#f59e0b; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#fff; color:var(--ink); font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+  .nav { display:flex; gap:14px; padding:12px 24px; border-bottom:1px solid var(--rule); align-items:center; font-size:12.5px; color:var(--mut); }
+  .nav .set { display:flex; gap:6px; align-items:center; }
+  .nav button { padding:5px 12px; border-radius:999px; border:1px solid var(--rule); background:#fff; color:var(--mut); font-size:12.5px; cursor:pointer; }
+  .nav button.on { background:var(--blue); border-color:var(--blue); color:#fff; }
+  .app { display:flex; height:calc(100vh - 47px); overflow:hidden; }
+
+  .rail { width:200px; flex:none; border-right:1px solid var(--rule); padding:14px 8px; overflow:auto; transition:width .2s; }
+  .rail.shut { width:0; padding:0; border:none; overflow:hidden; }
+  .rail h1 { font-size:19px; margin:2px 8px 14px; }
+  .rail h3 { font-size:11px; letter-spacing:.05em; color:var(--mut); margin:4px 8px 6px; font-weight:500; }
+  .folder { display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:8px; font-size:13.5px; color:#334155; cursor:pointer; }
+  .folder:hover { background:var(--mist); }
+  .folder.on { background:var(--lav); color:var(--blue); font-weight:600; }
+  .folder .n { margin-left:auto; font-size:11.5px; color:#94a3b8; font-variant-numeric:tabular-nums; }
+
+  .main { flex:1; min-width:0; display:flex; overflow:hidden; }
+  .listcol { display:flex; flex-direction:column; min-width:0; flex:1; border-right:1px solid var(--rule); }
+  .split .listcol { flex:none; width:360px; }
+  .toolbar { height:52px; flex:none; display:flex; align-items:center; gap:6px; padding:0 12px; border-bottom:1px solid var(--rule); color:var(--mut); }
+  .toolbar .ic { width:28px; height:28px; display:grid; place-items:center; border-radius:6px; cursor:pointer; font-size:14px; }
+  .toolbar .ic:hover { background:var(--mist); color:var(--ink); }
+  .toolbar .count { margin-left:auto; font-size:12px; font-variant-numeric:tabular-nums; }
+  .rows { overflow:auto; flex:1; }
+  .row { display:flex; align-items:center; gap:10px; height:40px; padding:0 12px; border-bottom:1px solid #eef2f7; font-size:13.5px; cursor:pointer; }
+  .row:hover { background:#f8fafc; box-shadow:0 1px 2px rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15); position:relative; z-index:2; }
+  .row.on { background:var(--mist); }
+  .row input { accent-color:var(--blue); }
+  .star { color:#cbd5e1; cursor:pointer; font-size:15px; }
+  .star.lit { color:var(--amber); }
+  .who { width:150px; flex:none; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .app[data-sender="none"] .who { display:none; }
+  .subj { min-width:0; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .subj b { font-weight:600; }
+  .subj .tz { color:var(--mut); font-weight:400; }
+  .date { flex:none; font-size:12px; color:var(--mut); font-variant-numeric:tabular-nums; }
+  .split .row { height:auto; padding:8px 12px; flex-wrap:wrap; }
+  .split .who { width:auto; max-width:60%; }
+  .split .date { margin-left:auto; }
+  .split .subj { flex-basis:100%; padding-left:46px; }
+
+  .pane { flex:1; min-width:0; display:none; flex-direction:column; overflow:auto; padding:16px 20px; }
+  .split .pane { display:flex; }
+  .chips { display:flex; gap:8px; align-items:center; margin-bottom:12px; flex:none; }
+  .chip { padding:5px 10px; border:1px solid var(--rule); border-radius:10px; font-size:12px; }
+  .chip b { color:var(--blue); font-weight:600; }
+  .chips .count { margin-left:auto; font-size:12px; color:var(--mut); font-variant-numeric:tabular-nums; }
+  .pane h2 { font-size:16px; color:var(--blue); margin:0 0 2px; }
+  .pane .def { font-size:12px; color:var(--mut); margin-bottom:12px; }
+  table { border-collapse:collapse; width:100%; }
+  th, td { border-bottom:1px solid var(--rule); padding:8px 10px; text-align:left; font-size:13px; }
+  thead th { color:var(--mut); font-weight:500; font-size:12px; }
+  tr.band td { background:var(--mist); color:var(--mut); font-size:11.5px; font-weight:600; padding:4px 10px; }
+  td.seg { width:140px; }
+  .cell { display:flex; align-items:center; gap:7px; font-variant-numeric:tabular-nums; cursor:pointer; border-radius:3px; }
+  .cell.sel { outline:2px solid var(--lightblue); outline-offset:2px; }
+  .base { color:var(--mut); font-size:12px; width:34px; text-align:right; flex:none; }
+  .pennant { height:13px; background:var(--lightblue); clip-path:polygon(0 0, calc(100% - 7px) 0, 100% 50%, calc(100% - 7px) 100%, 0 100%); }
+  .pennant.neg { transform:scaleX(-1); }
+  .d { font-weight:600; }
+  .weak { opacity:.35; }
+
+  .about { width:0; flex:none; border-left:1px solid var(--rule); overflow:hidden; transition:width .2s; background:#fff; }
+  .about.open { width:420px; overflow:auto; }
+  .about .in { width:420px; padding:18px; position:relative; }
+  .about .x { position:absolute; top:12px; right:12px; border:0; background:none; color:var(--mut); font-size:16px; cursor:pointer; }
+  .about h3 { margin:0 22px 2px 0; font-size:14px; color:var(--blue); }
+  .about .where { color:var(--mut); font-size:12px; margin-bottom:12px; }
+  .kv { display:grid; grid-template-columns:1fr auto; gap:6px 12px; font-size:13px; border-top:1px solid var(--rule); padding:10px 0; }
+  .kv .k { color:var(--mut); }
+  .kv .v { font-variant-numeric:tabular-nums; font-weight:600; text-align:right; }
+  .word { font-size:12.5px; background:var(--mist); border-radius:10px; padding:10px 12px; margin:10px 0; }
+  .prov { font-size:11.5px; color:var(--mut); word-break:break-all; }
+  .bench h4 { margin:14px 0 6px; font-size:11px; color:var(--mut); font-weight:600; letter-spacing:.05em; text-transform:uppercase; }
+  .brow { display:flex; justify-content:space-between; font-size:12.5px; padding:3px 0; }
+  .brow .v { font-variant-numeric:tabular-nums; font-weight:600; }
+</style>
+</head>
+<body>
+<div class="nav">
+  <div class="set">Row unit
+    <button id="u-metrics" class="on">Metrics</button>
+    <button id="u-questions">Questions</button>
+  </div>
+  <div class="set">Sender slot
+    <button id="s-option" class="on">Option</button>
+    <button id="s-source">Source</button>
+    <button id="s-none">None</button>
+  </div>
+  <span style="margin-left:auto">click a row to split · click a value for About · ☰ folds the rail · kebab holds the flat table</span>
+</div>
+<div class="app" id="app" data-sender="option">
+  <div class="rail" id="rail">
+    <h1>Audience</h1>
+    <h3>Sources</h3>
+    <div class="folder"><span>Census (ACS)</span><span class="n">23,488</span></div>
+    <div class="folder"><span>Voting-age citizens</span><span class="n">7,720</span></div>
+    <div class="folder"><span>Turnout (CPS)</span><span class="n">2,580</span></div>
+    <div class="folder on"><span>Social survey (GSS)</span><span class="n">31,824</span></div>
+    <div class="folder"><span>Election study (ANES)</span><span class="n">26,593</span></div>
+    <div class="folder"><span>Election study (CES)</span><span class="n">3,151</span></div>
+    <div class="folder"><span>MA enrollment</span><span class="n">35,200</span></div>
+    <div class="folder"><span>Polls</span><span class="n">70</span></div>
+    <div class="folder"><span>Results</span><span class="n">13</span></div>
+    <div class="folder"><span>Lift dataset</span><span class="n">1,583</span></div>
+  </div>
+  <div class="main" id="main">
+    <div class="listcol">
+      <div class="toolbar">
+        <span class="ic" id="burger">☰</span>
+        <input type="checkbox" aria-label="Select all"> <span style="font-size:11px">▾</span>
+        <span class="ic" title="Refresh">⟳</span>
+        <span class="ic" title="More">⋮</span>
+        <span class="count">1–11 of 11</span>
+        <span class="ic">‹</span><span class="ic">›</span>
+        <span class="ic" title="Split">▥</span>
+      </div>
+      <div class="rows" id="rows"></div>
+    </div>
+    <div class="pane" id="pane">
+      <div class="chips">
+        <span class="chip">Sources <b>1</b></span>
+        <span class="chip">Metrics <b>2</b></span>
+        <span class="chip">Segments <b>All ▾</b></span>
+        <span class="chip">Filter <b>US ▾</b></span>
+        <span class="count">31,824 rows</span>
+      </div>
+      <h2>Confidence in Congress</h2>
+      <div class="def">Share with hardly any confidence in Congress · Hardly any</div>
+      <table>
+        <thead><tr><th style="width:140px">Segment</th><th>Confidence in Congress</th><th>Party identification</th></tr></thead>
+        <tbody>
+          <tr class="band"><td colspan="3">Geography</td></tr>
+          <tr>
+            <td class="seg">United States</td>
+            <td><div class="cell" data-seg="United States"><span class="base">50.4</span><span style="color:var(--mut);font-size:12px">baseline</span></div></td>
+            <td><div class="cell" data-seg="United States"><span class="base">44.6</span><span style="color:var(--mut);font-size:12px">baseline</span></div></td>
+          </tr>
+          <tr class="band"><td colspan="3">Party</td></tr>
+          <tr>
+            <td class="seg">Democrat</td>
+            <td><div class="cell" data-seg="Democrat"><span class="base">50.4</span><div class="pennant" style="width:38px"></div><span class="d">+6.1</span></div></td>
+            <td><div class="cell" data-seg="Democrat"><span class="base">44.6</span><div class="pennant neg" style="width:104px"></div><span class="d">−17.5</span></div></td>
+          </tr>
+          <tr>
+            <td class="seg">Independent</td>
+            <td><div class="cell" data-seg="Independent"><span class="base">50.4</span><div class="pennant" style="width:22px"></div><span class="d">+3.4</span></div></td>
+            <td><div class="cell" data-seg="Independent"><span class="base">44.6</span><div class="pennant" style="width:120px"></div><span class="d">+55.4</span></div></td>
+          </tr>
+          <tr>
+            <td class="seg">Republican</td>
+            <td><div class="cell weak" data-seg="Republican"><span class="base">50.4</span><div class="pennant neg" style="width:8px"></div><span class="d">−1.2</span></div></td>
+            <td><div class="cell" data-seg="Republican"><span class="base">44.6</span><div class="pennant neg" style="width:98px"></div><span class="d">−16.3</span></div></td>
+          </tr>
+          <tr class="band"><td colspan="3">Age</td></tr>
+          <tr>
+            <td class="seg">18–29</td>
+            <td><div class="cell" data-seg="18–29"><span class="base">50.4</span><div class="pennant neg" style="width:30px"></div><span class="d">−4.8</span></div></td>
+            <td><div class="cell" data-seg="18–29"><span class="base">44.6</span><div class="pennant" style="width:44px"></div><span class="d">+7.2</span></div></td>
+          </tr>
+          <tr>
+            <td class="seg">65+</td>
+            <td><div class="cell" data-seg="65+"><span class="base">50.4</span><div class="pennant" style="width:34px"></div><span class="d">+5.5</span></div></td>
+            <td><div class="cell weak" data-seg="65+"><span class="base">44.6</span><div class="pennant neg" style="width:6px"></div><span class="d">−0.9</span></div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="about" id="about">
+      <div class="in">
+        <button class="x" id="aboutx">×</button>
+        <h3 id="a-t">Confidence in Congress — Independent</h3>
+        <div class="where">General Social Survey cumulative cross-section 1972-2024 (NORC) · 2024</div>
+        <div class="kv">
+          <span class="k">Estimate</span><span class="v">53.8%</span>
+          <span class="k">Margin of error</span><span class="v">±2.1</span>
+          <span class="k">Respondents</span><span class="v">1,108</span>
+          <span class="k">Baseline</span><span class="v">50.4% · United States</span>
+        </div>
+        <div class="word">"I am going to name some institutions in this country. Would you say you have a great deal of confidence, only some confidence, or hardly any confidence at all in Congress?"</div>
+        <div class="prov">gssdataexplorer.norc.org/variables/441/vshow</div>
+        <div class="bench">
+          <h4>Same metric, other sources</h4>
+          <div class="brow"><span>Election study (ANES) · US · 2024</span><span class="v">48.9%</span></div>
+          <div class="brow"><span>Polls · US · 2026</span><span class="v">52.0%</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  const METRICS = [
+    ["Hardly any", "Confidence in Congress", "50.4% · US", "2024", true],
+    ["Hardly any", "Confidence in the press", "50.9% · US", "2024", true],
+    ["Independent", "Party identification", "44.6% · US", "2024", false],
+    ["A great deal", "Confidence in science", "38.7% · US", "2024", false],
+    ["Most people can be trusted", "Trust in people", "25.3% · US", "2024", false],
+    ["Favor", "Gun permits", "70.6% · US", "2024", false],
+    ["Too little", "Spending on education", "74.2% · US", "2024", false],
+    ["Yes", "Voted in 2024", "66.1% · US", "2024", false],
+    ["Liberal", "Political views", "29.8% · US", "2024", false],
+    ["Legal", "Marijuana", "68.4% · US", "2024", false],
+    ["Protestant", "Religion", "40.2% · US", "2024", false]
+  ]
+  const QUESTIONS = [
+    ["Social survey (GSS)", "Confidence in Congress", "“Would you say you have a great deal, only some, or hardly any confidence…”", "1973–2024", true],
+    ["Social survey (GSS)", "Confidence in the press", "“… confidence at all in the press?”", "1973–2024", false],
+    ["Polls", "Open primaries support", "“Which is a more fair way to select a nominee?”", "2016", false],
+    ["Polls", "Open primaries support", "“CO Proposition 131: how would you vote?”", "2024", false],
+    ["Results", "Open primaries support", "“AK Ballot Measure 2 (repeal of top-four)”", "2024", false],
+    ["Election study (ANES)", "Candidate trait: honest", "“How well does ‘honest’ describe…” (named in item text)", "1980–2024", false]
+  ]
+  const app = document.getElementById("app")
+  const rowsEl = document.getElementById("rows")
+  let unit = "metrics", opened = null
+  function draw() {
+    const data = unit === "metrics" ? METRICS : QUESTIONS
+    rowsEl.innerHTML = data.map(([who, subj, tz, date, star], i) => `
+      <div class="row${opened === i ? " on" : ""}" data-i="${i}">
+        <input type="checkbox" ${i < 2 && unit === "metrics" ? "checked" : ""} onclick="event.stopPropagation()" aria-label="Column">
+        <span class="star${star ? " lit" : ""}" onclick="event.stopPropagation();this.classList.toggle('lit')">★</span>
+        <span class="who">${unit === "metrics" ? who : who}</span>
+        <span class="subj"><b>${subj}</b> <span class="tz">- ${tz}</span></span>
+        <span class="date">${date}</span>
+      </div>`).join("")
+    for (const el of rowsEl.querySelectorAll(".row")) el.addEventListener("click", () => {
+      opened = Number(el.dataset.i)
+      document.getElementById("main").classList.add("split")
+      draw()
+    })
+    document.querySelector(".toolbar .count").textContent = `1–${data.length} of ${data.length}`
+  }
+  draw()
+  for (const [id, u] of [["u-metrics", "metrics"], ["u-questions", "questions"]])
+    document.getElementById(id).addEventListener("click", (e) => {
+      unit = u; opened = null
+      document.getElementById("main").classList.remove("split")
+      document.getElementById("about").classList.remove("open")
+      document.getElementById("u-metrics").classList.toggle("on", u === "metrics")
+      document.getElementById("u-questions").classList.toggle("on", u === "questions")
+      draw()
+    })
+  for (const [id, s] of [["s-option", "option"], ["s-source", "source"], ["s-none", "none"]])
+    document.getElementById(id).addEventListener("click", () => {
+      app.dataset.sender = s
+      for (const b of ["s-option", "s-source", "s-none"]) document.getElementById(b).classList.toggle("on", b === "s-" + s)
+      if (unit === "metrics" && s === "source") METRICS.forEach((m) => (m[0] = "Social survey (GSS)"))
+      else if (unit === "metrics") RESET()
+      draw()
+    })
+  const ORIG = METRICS.map((m) => m[0])
+  function RESET() { METRICS.forEach((m, i) => (m[0] = ORIG[i])) }
+  document.getElementById("burger").addEventListener("click", () => document.getElementById("rail").classList.toggle("shut"))
+  for (const cell of document.querySelectorAll(".cell")) cell.addEventListener("click", () => {
+    for (const c of document.querySelectorAll(".cell.sel")) c.classList.remove("sel")
+    cell.classList.add("sel")
+    document.getElementById("a-t").textContent = "Confidence in Congress — " + cell.dataset.seg
+    document.getElementById("about").classList.add("open")
+  })
+  document.getElementById("aboutx").addEventListener("click", () => {
+    document.getElementById("about").classList.remove("open")
+    for (const c of document.querySelectorAll(".cell.sel")) c.classList.remove("sel")
+  })
+</script>
+</body>
+</html>
