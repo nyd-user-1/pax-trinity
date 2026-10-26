@@ -216,7 +216,7 @@ export function BankSurface() {
                 <ResizableHandle withHandle />
                 <ResizablePanel className="min-w-0">
                   {openQ ? (
-                    <RowsView rows={openQ.rows} title={openQ.label} id={openQ.id} short={shortSource(SLICE_SOURCE)} />
+                    <RowsView rows={openQ.rows} title={openQ.label} id={openQ.id} short={shortSource(SLICE_SOURCE)} source={SLICE_SOURCE} />
                   ) : (
                     <div className="flex h-full items-center justify-center">
                       <p className="text-sm text-muted-foreground">{error ? `The data did not load: ${error}` : "Reading the source…"}</p>

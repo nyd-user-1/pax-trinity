@@ -127,6 +127,11 @@ export const mnemonicOf = (id: string) => MNEMONIC[id] ?? id.toUpperCase()
  *  a different administration — the card says so after the wording. */
 export const WEB_GRID = new Set(["abanyg", "abdefectg", "abhlthg", "abnomoreg", "abpoorg", "abrapeg", "absingleg"])
 
+/** The weight the loader's tally used, mirrored from audience/loaders/gss.py
+ *  (2024 codebook R3a): WTSSNRPS from 2004 on, WTSSPS before. Only GSS is
+ *  mapped; another source prints nothing until the export carries its weight. */
+export const weightOf = (source: string | null, y: string) => (source === "GSS" ? (Number(y) >= 2004 ? "WTSSNRPS" : "WTSSPS") : null)
+
 /** The names breakdown dimensions print under; a dim outside the list prints as itself. */
 export const DIM_LABELS: Record<string, string> = { age: "Age", age_5: "Age", educ: "Education", party: "Party", race: "Race", race_eth: "Race and ethnicity", sex: "Sex", income: "Income" }
 export const dimLabel = (d: string) => DIM_LABELS[d] ?? d.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase())

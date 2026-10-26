@@ -327,6 +327,7 @@ export function AudienceInbox() {
                     place={place}
                     info={info.get(tableMetric) as MetricInfo}
                     short={source ? shortSource(source) : ""}
+                    source={source}
                     about={about}
                     onPick={setAbout}
                   />

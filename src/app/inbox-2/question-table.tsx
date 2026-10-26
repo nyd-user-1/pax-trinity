@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import dynamic from "next/dynamic"
-import { Loader2 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -13,18 +12,19 @@ const QuestionChart = dynamic(() => import("./question-chart").then((m) => m.Que
   loading: () => <p className="p-6 text-sm text-muted-foreground">Drawing…</p>,
 })
 
-import { dimLabel, latestRow, num, period, value, year, type MetricInfo, type SourceRow } from "../audience/audience-data"
+import { dimLabel, latestRow, num, value, year, type MetricInfo, type SourceRow } from "../audience/audience-data"
+import { RowsView } from "../audience/rows-view"
 import { type About } from "../audience/audience-pane"
 
 // The clicked question, read the way a pollster reads one: a crosstab — the
 // answer options down the side, the banner across the top (Total, then every
 // breakdown), the latest wave's shares in the cells with unweighted bases
-// underneath, and the trend as its own block. The toggle turns the same rows
-// into Tidy data, the statistician's long format — one estimate per row with
-// its margin, base and provenance — ready for R or pandas. A clicked cell
-// hands its row to the About panel.
+// underneath, and the trend as its own block. The toggle's third position
+// mounts the shared Rows view (Brendan, 2026-10-26): wave, segment, band,
+// estimate, margin, base, geo and weight, newest first with the total before
+// its subgroups and the three filter pills. A clicked crosstab cell hands its
+// row to the About panel.
 
-const PER_READ = 25
 const MAX_BANNER_ROWS = 24
 
 export function QuestionTable({
@@ -35,6 +35,7 @@ export function QuestionTable({
   place,
   info,
   short,
+  source,
   about,
   onPick,
 }: {
@@ -45,14 +46,14 @@ export function QuestionTable({
   metric: string
   place: (code: string) => string
   info: MetricInfo
-  /** The source's short name, for the tidy view's Source column. */
+  /** The source's short name. */
   short: string
+  /** The source's key, for the Rows view's weight mapping. */
+  source: string | null
   about: About | null
   onPick: (a: About) => void
 }) {
   const [view, setView] = React.useState<"crosstab" | "chart" | "tidy">("crosstab")
-  const [depth, setDepth] = React.useState(PER_READ)
-  React.useEffect(() => setDepth(PER_READ), [view, rows])
 
   const tab = React.useMemo(() => {
     const base = info.baseGeo
@@ -82,9 +83,6 @@ export function QuestionTable({
     return { base, latestYear, options, capped, banner, cell, years, trendCell }
   }, [rows, info])
 
-  const shownTidy = rows.slice(0, depth)
-  const more = React.useCallback(() => setDepth((d) => d + PER_READ), [])
-
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
       {/* The toggle leads the header flush left; the body's own heading names
@@ -107,13 +105,17 @@ export function QuestionTable({
         <span className="ml-auto shrink-0 text-xs text-muted-foreground tabular-nums">{rows.length.toLocaleString("en-US")} rows</span>
       </div>
 
-      {/* Native scroll, not the ScrollArea primitive: radix's viewport sizes
-          itself to the banner's intrinsic width, which blew the pane out
-          sideways and swallowed the vertical scroll with it. */}
+      {view === "tidy" ? (
+        // The shared Rows view, bare: this pane's bar already carries the toggle.
+        <RowsView rows={rows} title={title} id={metric} short={short} source={source} bare />
+      ) : (
+      /* Native scroll, not the ScrollArea primitive: radix's viewport sizes
+         itself to the banner's intrinsic width, which blew the pane out
+         sideways and swallowed the vertical scroll with it. */
       <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
         {view === "chart" ? (
           <QuestionChart rows={rows} info={info} title={title} place={place} />
-        ) : view === "crosstab" ? (
+        ) : (
           <div className="p-5">
             <h2 className="text-[17px] font-semibold text-pax2-blue">{title}</h2>
             <p className="mb-5 text-xs text-muted-foreground">
@@ -192,39 +194,9 @@ export function QuestionTable({
               </>
             )}
           </div>
-        ) : (
-          <table className="w-full table-fixed border-collapse">
-            <thead>
-              <tr className="bg-muted/60">
-                <th className="w-[26%] px-2.5 py-2 text-left text-xs font-medium text-muted-foreground">Metric</th>
-                <th className="w-[16%] px-2.5 py-2 text-left text-xs font-medium text-muted-foreground">Value</th>
-                <th className="w-[16%] px-2.5 py-2 text-left text-xs font-medium text-muted-foreground">Geography</th>
-                <th className="w-[14%] px-2.5 py-2 text-left text-xs font-medium text-muted-foreground">Segment</th>
-                <th className="w-[9%] px-2.5 py-2 text-left text-xs font-medium text-muted-foreground">Period</th>
-                <th className="w-[9%] px-2.5 py-2 text-left text-xs font-medium text-muted-foreground">n</th>
-                <th className="w-[10%] px-2.5 py-2 text-left text-xs font-medium text-muted-foreground">Source</th>
-              </tr>
-            </thead>
-            <tbody>
-              {shownTidy.map((r, i) => (
-                <tr key={i} className="border-b">
-                  <td className="px-2.5 py-2.5 align-top">
-                    <p className="truncate text-sm font-semibold">{title}</p>
-                    {r[4] && <p className="truncate text-xs text-muted-foreground">{r[4]}</p>}
-                  </td>
-                  <td className="px-2.5 py-2.5 align-top text-sm tabular-nums">{value(r[7], r[8], r[9])}</td>
-                  <td className="truncate px-2.5 py-2.5 align-top text-sm text-muted-foreground">{place(r[1])}</td>
-                  <td className="truncate px-2.5 py-2.5 align-top text-sm text-muted-foreground">{r[5] ? `${r[5]}: ${r[6]}` : "All"}</td>
-                  <td className="px-2.5 py-2.5 align-top text-sm text-muted-foreground tabular-nums">{period(r[2], r[3])}</td>
-                  <td className="px-2.5 py-2.5 align-top text-sm text-muted-foreground tabular-nums">{r[11] != null ? num(r[11], 0) : ""}</td>
-                  <td className="truncate px-2.5 py-2.5 align-top text-sm text-muted-foreground">{short}</td>
-                </tr>
-              ))}
-              {depth < rows.length && <MoreRow onMore={more} />}
-            </tbody>
-          </table>
         )}
       </div>
+      )}
     </div>
   )
 }
@@ -260,23 +232,3 @@ function BaseCell({ r, latestYear, first }: { r: SourceRow | null; latestYear: s
   )
 }
 
-/** The end of the tidy table: reaching it reads twenty-five more. */
-function MoreRow({ onMore }: { onMore: () => void }) {
-  const mark = React.useRef<HTMLDivElement>(null)
-  React.useEffect(() => {
-    const el = mark.current
-    if (!el) return
-    const o = new IntersectionObserver((xs) => xs.some((x) => x.isIntersecting) && onMore())
-    o.observe(el)
-    return () => o.disconnect()
-  }, [onMore])
-  return (
-    <tr>
-      <td colSpan={7} className="py-3 text-center text-muted-foreground">
-        <div ref={mark}>
-          <Loader2 aria-label="Loading more" className="inline size-4 animate-spin" />
-        </div>
-      </td>
-    </tr>
-  )
-}

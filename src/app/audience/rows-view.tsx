@@ -6,7 +6,7 @@ import { ChevronDownIcon, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@govblock/ui/components/ny4/dropdown-menu"
 
-import { num, year, type SourceRow } from "./audience-data"
+import { num, weightOf, year, type SourceRow } from "./audience-data"
 
 // The Rows view — the raw rows exactly as the source reported them, the
 // instrument's default read: newest wave first, the total before its
@@ -21,6 +21,8 @@ export function RowsView({
   title,
   id,
   short,
+  source,
+  bare,
 }: {
   /** The open question's rows alone. */
   rows: SourceRow[]
@@ -28,6 +30,10 @@ export function RowsView({
   id: string
   /** The source's short name. */
   short: string
+  /** The source's key, for the weight mapping. */
+  source: string | null
+  /** True drops the title bar — the mounting view already carries one. */
+  bare?: boolean
 }) {
   const [wave, setWave] = React.useState("all")
   const [segment, setSegment] = React.useState("all")
@@ -94,12 +100,14 @@ export function RowsView({
 
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
-      <div className="flex h-[52px] shrink-0 items-center gap-2.5 border-b px-4">
-        <h2 className="truncate text-[15px] font-semibold">{title}</h2>
-        <span className="shrink-0 text-xs text-muted-foreground">
-          {short} · {id} · {geos} · {rows.length.toLocaleString("en-US")} rows
-        </span>
-      </div>
+      {!bare && (
+        <div className="flex h-[52px] shrink-0 items-center gap-2.5 border-b px-4">
+          <h2 className="truncate text-[15px] font-semibold">{title}</h2>
+          <span className="shrink-0 text-xs text-muted-foreground">
+            {short} · {id} · {geos} · {rows.length.toLocaleString("en-US")} rows
+          </span>
+        </div>
+      )}
 
       <div className="flex shrink-0 flex-wrap items-center gap-2 border-b px-4 py-2.5">
         <span className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Filter</span>
@@ -121,7 +129,7 @@ export function RowsView({
         <table className="w-full border-separate border-spacing-0 text-sm">
           <thead>
             <tr>
-              {["Wave", "Segment", "Band", "Est. %", "MoE", "n", "Geo"].map((h, i) => (
+              {["Wave", "Segment", "Band", "Est. %", "MoE", "n", "Geo", "Weight"].map((h, i) => (
                 <th key={h} className={cn("sticky top-0 z-10 border-b bg-background px-4 py-2 text-xs font-medium text-muted-foreground", i >= 3 && i <= 5 ? "text-right" : "text-left")}>
                   {h}
                 </th>
@@ -134,15 +142,17 @@ export function RowsView({
                 <td className="border-b px-4 py-2 text-muted-foreground tabular-nums">{year(r[3])}</td>
                 <td className="border-b px-4 py-2">{r[5] ? `${r[5]}: ${r[6]}` : "All"}</td>
                 <td className="border-b px-4 py-2">{r[4]}</td>
-                <td className="border-b px-4 py-2 text-right font-semibold tabular-nums">{num(r[7])}</td>
-                <td className="border-b px-4 py-2 text-right text-muted-foreground tabular-nums">{r[9] != null ? `±${num(r[9])}` : "—"}</td>
+                {/* The cell knows its estimate's type: a count prints whole, a lift signed in points, a share one-decimal. */}
+                <td className="border-b px-4 py-2 text-right font-semibold tabular-nums">{r[8] === "count" ? num(r[7], 0) : r[8] === "lift_pp" ? `${r[7] >= 0 ? "+" : "−"}${num(Math.abs(r[7]))}` : num(r[7])}</td>
+                <td className="border-b px-4 py-2 text-right text-muted-foreground tabular-nums">{r[9] != null ? `±${num(r[9], r[8] === "count" ? 0 : 1)}` : "—"}</td>
                 <td className="border-b px-4 py-2 text-right text-muted-foreground tabular-nums">{r[11] != null ? num(r[11], 0) : "—"}</td>
                 <td className="border-b px-4 py-2 text-muted-foreground">{r[1]}</td>
+                <td className="border-b px-4 py-2 text-muted-foreground">{weightOf(source, year(r[3])) ?? "—"}</td>
               </tr>
             ))}
             {!sorted.length && (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                <td colSpan={8} className="px-4 py-8 text-center text-sm text-muted-foreground">
                   Nothing matches the filters.
                 </td>
               </tr>
@@ -191,7 +201,7 @@ function MoreRow({ onMore }: { onMore: () => void }) {
   }, [onMore])
   return (
     <tr>
-      <td colSpan={7} className="py-3 text-center text-muted-foreground">
+      <td colSpan={8} className="py-3 text-center text-muted-foreground">
         <div ref={mark}>
           <Loader2 aria-label="Loading more" className="inline size-4 animate-spin" />
         </div>
