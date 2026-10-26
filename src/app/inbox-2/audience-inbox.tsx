@@ -39,6 +39,8 @@ export function AudienceInbox() {
   const [pinned, setPinned] = React.useState<string[]>([])
   const [about, setAbout] = React.useState<About | null>(null)
   const [mode, setMode] = React.useState<"list" | "table">("list")
+  // The question whose rows the flat table is scoped to; null is the whole source.
+  const [tableMetric, setTableMetric] = React.useState<string | null>(null)
   // The rail rides in the resizable row, not the shell's fixed sidebar, so it
   // drags on the same handle the panes share; the header trigger still folds it.
   const [railOpen, setRailOpen] = React.useState(true)
@@ -88,6 +90,7 @@ export function AudienceInbox() {
     setChecked([])
     setAbout(null)
     setTab("all")
+    setTableMetric(null)
   }, [source])
 
   const labels = React.useMemo(() => new Map((index?.constructs ?? []).map((c) => [c.construct, c.label])), [index])
@@ -107,9 +110,11 @@ export function AudienceInbox() {
   }, [files])
   const info = React.useMemo(() => (rows ? buildInfo(rows, geoLevel) : new Map()), [rows, geoLevel])
 
+  // A clicked question opens the flat table scoped to its rows (Brendan,
+  // 2026-10-26); the checkbox still builds grid columns.
   const open = (id: string) => {
-    setFocus(id)
-    setChecked((prev) => (prev.includes(id) || prev.length >= 4 ? prev : [...prev, id]))
+    setTableMetric(id)
+    setMode("table")
   }
   const check = (id: string) => setChecked((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : prev.length >= 4 ? prev : [...prev, id]))
 
@@ -154,7 +159,10 @@ export function AudienceInbox() {
           return next
         })
       }
-      onFlatTable={() => setMode("table")}
+      onFlatTable={() => {
+        setTableMetric(null)
+        setMode("table")
+      }}
       split={split}
       onSplit={setSplit}
       query={query}
@@ -250,7 +258,18 @@ export function AudienceInbox() {
             </header>
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           {mode === "table" ? (
-            <AudienceRows rows={rows} short={source ? shortSource(source) : ""} label={label} place={place} query={query} onBack={() => setMode("list")} error={error} />
+            <AudienceRows
+              rows={tableMetric && rows ? rows.filter((r) => r[0] === tableMetric) : rows}
+              short={source ? shortSource(source) : ""}
+              label={label}
+              place={place}
+              query={query}
+              onBack={() => {
+                setMode("list")
+                setTableMetric(null)
+              }}
+              error={error}
+            />
           ) : (
             <div className="relative flex h-full min-h-0 min-w-0">
               <ResizablePanelGroup orientation="horizontal" className="min-h-0 min-w-0 flex-1">
