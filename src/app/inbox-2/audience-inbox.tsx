@@ -13,9 +13,8 @@ import { TooltipProvider } from "@govblock/ui/components/ny4/tooltip"
 
 import { AboutPanel, BackButton, type About } from "../audience/audience-pane"
 import { AudienceRows } from "../audience/audience-rows"
-import { buildInfo, groupSources, latestRow, metricIdsOf, shortSource, type AudienceIndex, type MetricInfo, type SourceRow } from "../audience/audience-data"
+import { buildInfo, groupSources, metricIdsOf, shortSource, type AudienceIndex, type MetricInfo, type SourceRow } from "../audience/audience-data"
 import { SourceRail } from "./source-rail"
-import { BandList, type BandItem } from "./band-list"
 import { SegmentList, type ListTab, type Split } from "./segment-list"
 import { SegmentGrid } from "./segment-grid"
 
@@ -40,10 +39,6 @@ export function AudienceInbox() {
   const [pinned, setPinned] = React.useState<string[]>([])
   const [about, setAbout] = React.useState<About | null>(null)
   const [mode, setMode] = React.useState<"list" | "table">("list")
-  // The rail's branch: open under the picked source, and the segment picked
-  // from it, which turns the middle panel into that segment's bands.
-  const [branchOpen, setBranchOpen] = React.useState(true)
-  const [railSeg, setRailSeg] = React.useState<string | null>(null)
   // The rail rides in the resizable row, not the shell's fixed sidebar, so it
   // drags on the same handle the panes share; the header trigger still folds it.
   const [railOpen, setRailOpen] = React.useState(true)
@@ -93,7 +88,6 @@ export function AudienceInbox() {
     setChecked([])
     setAbout(null)
     setTab("all")
-    setRailSeg(null)
   }, [source])
 
   const labels = React.useMemo(() => new Map((index?.constructs ?? []).map((c) => [c.construct, c.label])), [index])
@@ -105,6 +99,12 @@ export function AudienceInbox() {
 
   const rows = source ? files[source] : undefined
   const metricIds = React.useMemo(() => (rows ? metricIdsOf(rows) : []), [rows])
+  // The rail's counts correct themselves as sources read.
+  const segCounts = React.useMemo(() => {
+    const m: Record<string, number> = {}
+    for (const [s, data] of Object.entries(files)) m[s] = metricIdsOf(data).length
+    return m
+  }, [files])
   const info = React.useMemo(() => (rows ? buildInfo(rows, geoLevel) : new Map()), [rows, geoLevel])
 
   const open = (id: string) => {
@@ -112,24 +112,6 @@ export function AudienceInbox() {
     setChecked((prev) => (prev.includes(id) || prev.length >= 4 ? prev : [...prev, id]))
   }
   const check = (id: string) => setChecked((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : prev.length >= 4 ? prev : [...prev, id]))
-
-  // The picked segment's bands, each with its latest topline at the segment's
-  // own baseline geography — the middle panel's rows.
-  const bandItems = React.useMemo<BandItem[] | null>(() => {
-    if (!railSeg || !rows) return null
-    const c = info.get(railSeg) as MetricInfo | undefined
-    if (!c) return null
-    const opts = c.options.length ? c.options : c.option != null ? [c.option] : []
-    return opts.map((opt) => ({ opt, r: latestRow(rows.filter((r) => r[0] === railSeg && (r[4] ?? null) === opt && !r[5] && r[1] === c.baseGeo)) }))
-  }, [railSeg, rows, info])
-
-  // Opening a band is the presto: the grid takes the pane with the segment
-  // focused and the band's own row already in the About panel's hand.
-  const openBand = (item: BandItem) => {
-    if (!railSeg) return
-    open(railSeg)
-    if (item.r) setAbout({ r: item.r, metric: railSeg, segment: item.opt })
-  }
 
   // A segment joins the survey draft as a question — its wording verbatim
   // where the source carries one (polls and results do), its label where it
@@ -148,18 +130,7 @@ export function AudienceInbox() {
   const showList = split === "vertical" || !focus
   const showPane = split === "vertical" || !!focus
 
-  const list = railSeg && bandItems ? (
-    <BandList
-      items={bandItems}
-      segment={label(railSeg)}
-      place={place}
-      onBack={() => setRailSeg(null)}
-      onOpen={openBand}
-      split={split}
-      onSplit={setSplit}
-      query={query}
-    />
-  ) : (
+  const list = (
     <SegmentList
       info={info}
       metricIds={metricIds}
@@ -196,26 +167,11 @@ export function AudienceInbox() {
     <SourceRail
       groups={groups}
       source={source}
-      branchOpen={branchOpen}
-      segmentIds={metricIds}
-      railSeg={railSeg}
-      label={label}
-      loading={!!source && !rows && !error}
+      segments={segCounts}
       onSource={(s) => {
-        if (s === source) setBranchOpen((v) => !v)
-        else {
-          setSource(s)
-          setBranchOpen(true)
-        }
+        setSource(s)
         setMode("list")
       }}
-      onSegment={(id) => {
-        setRailSeg(id)
-        setFocus(null)
-        setAbout(null)
-        setMode("list")
-      }}
-      onAddToSurvey={addToSurvey}
     />
   )
 
