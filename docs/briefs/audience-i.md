@@ -48,3 +48,58 @@ The committed export serves the 15 harmonized constructs unchanged plus the bulk
 ## Worker report
 
 (appended by the worker)
+
+### Landed
+
+`48a2335`: the bulk tier in the store, its loader, tests and shared machinery. The export is not committed. The GSS set regenerates to 72.6 MB, so it waits on the serving ruling below.
+
+- **5,526 bulk variables, 429,757 rows**: 85,247 toplines across every year asked, plus 344,510 latest-year breakdowns by age, education, party, race and sex. With the 15 harmonized constructs, GSS holds 461,581 rows and 5,541 constructs, 1972–2024.
+- **Definitions are Stata variable labels, not questionnaire wordings.** Each bulk construct's label is the variable label sentence-cased, and its definition is the same label verbatim. The 15 keep their hand-entered wordings. The Data Explorer list I fetched carries wordings (`surveyQuestion`) for 6,937 variables, cached in `raw/gss/data_explorer_variables.json`, if you want them later.
+- **Bands** are the value labels in coded order, with only the first letter capitalized. Codes labeled refused, don't know, no answer or uncodeable leave the base, alongside Stata's extended missing codes. A scale labeled only at its ends (CONBUSY 1–7, POLVIEWX 1–10, CLOSEBLK 1–9) keeps every point: "1 (Complete confidence)", "2", … "7 (No confidence)", the house EQWLTH style.
+- **provenance_url** is the variable's Data Explorer page, `https://gssdataexplorer.norc.org/variables/{id}/vshow`. The id comes from the Explorer's public variable list (CLASS and UNION are listed as `class_` and `union_`). VOTE_TS and PRES_TS are R3a recodes the Explorer doesn't list yet, so their 357 rows link to the Explorer's variable search.
+- **Shared changes, all inside `audience/**`:**
+  - `audience/bulk.py` holds the qualifying rules, latest-year breakdowns, a prune for a slice written in several batches, and `write_response_order`.
+  - Migration 007 adds `response_order`. The export's ORDER BY reads it, so a bulk construct's bands come out in coded order. Every construct without recorded order exports exactly as before.
+  - `survey.shares` now clamps `p(1-p)` at zero. A lone option's share landed a hair over 1 and crashed the square root.
+- **Store and S3.** The store is loaded (`python -m audience.load gss`, about 5 minutes, 1.07 GB peak). `data_explorer_variables.json` is synced to `s3://pax-trinity-audience-638175140432/raw/gss/`.
+- **Lock.** I took it at 05:27 with no wait and released it at 05:59.
+
+### Skipped: 1,417 variables, by reason (lists in `audience/reports/gss_bulk.json`)
+
+| Variables | Reason |
+|---:|---|
+| 603 | No value labels: continuous, a count or an identifier |
+| 292 | No year with an unweighted base of 50 or more |
+| 137 | Administrative, technical or paradata: ids, ballot, form, version, weights, design and sampling variables, interview date, mode, length, fees, language, interviewer traits and observations, module and consent flags, household-roster bookkeeping, occupation and industry coding status, vignette-assignment flags |
+| 125 | Continuous or partly labeled. Includes about 15 agree scales with one unlabeled code, left out rather than guessed (usually 5: BELTUP, EQINCOME, IMMCULT, IMMEDUC, MUSTRET, NOSMOKE, OPFAMILY, OPPROF, OPRICH, SHORTCOM; also EXJOBSAT 99, GVINFLU1/2 100, PRFMWHY8 9) |
+| 109 | Over 24 labeled categories |
+| 102 | One labeled code: a continuous variable's top code (AGE 89, CHILDS 8, HRS1 89) |
+| 27 | The 15 harmonized constructs' own variables |
+| 17 | No answers in the file |
+| 6 | Open answers coded from verbatims (SCITEXT, EXPTEXT, STORMTXT, LITMSTXT, FISHEXP2, ADHDKNW) |
+| 1 | Construct id already taken: SEX (the population construct `sex`) |
+
+### Checks
+
+- **pytest:** 42 passed (`test_bulk`, `test_gss`, `test_survey`, `test_store`, `test_export`, `test_audit`). `audience.audit` is clean.
+- **Spot-checks against Data Explorer's published 2024 counts:**
+  - ABANY: Yes 1,281, No 859 (59.9 / 40.1, n 2,140).
+  - CAPPUN: Favor 1,243, Oppose 824 (60.1 / 39.9, n 2,067).
+  - The store's toplines carry n 2,140 and 2,067, weight WTSSNRPS, and all five breakdowns.
+- **No construct lost rows.** Read from the regenerated files, all 15 harmonized constructs are identical, row for row and in order, to the committed `gss.json` and `gss-2.json`.
+- **Band order.** All 5,526 bulk constructs list their bands in value-label order; none is off.
+
+### Not committed, and why
+
+- **`gss.json` through `gss-19.json`: 72.6 MB**, 19 parts of at most 4.00 MB each. That is past the 25 MB gate.
+- **`index.json`: 0.88 MB**, up from 0.06 MB with 5,577 constructs listed. It names `gss-3` through `gss-19`, which git won't carry. The app rejects a whole source when one part is missing, so committing it would break the GSS folder in any clean checkout or deploy.
+- **`election_result.json`.** The store holds the MA 2024 presidential return (`presidential_vote`, 7,392 rows) that an earlier window loaded but never exported. It isn't mine to land, and it belongs with the index.
+- The working tree keeps all of these, so locally the GSS folder now pulls 73 MB when opened.
+
+### For the lead
+
+1. **Serving ruling.** S3 with per-question fetches, as the brief foresees. One alternative: toplines alone come to **19.0 MB** for the whole GSS set (harmonized plus every bulk trend), under the gate. That could land in git now, with the latest-year breakdowns served from S3 later.
+2. **Index hazard tonight.** The J, K and L windows will regenerate `index.json` from this store, so it will list `gss-3` through `gss-19`. Any commit of it before your ruling breaks GSS in clean checkouts. Their briefs tell them to stage regenerated shared files.
+3. **Band order for J, K and L.** Their bulk loaders don't write `response_order` yet, so their bands will export alphabetically. One call to `bulk.write_response_order(store, SOURCE, {construct: labels_in_coded_order})` per load fixes it.
+4. **Bare mnemonics collide across sources.** GSS registered `race`, `region`, `educ`, `degree`, `marital` and the like first. A CES or CPS variable with the same name is skipped as a collision under its brief. Prefixing bulk ids per source (`gss_race`) would avoid that, but it is your call, since it changes the id rule the briefs set.
+5. **`SEGMENT_SEED`.** GSS goes from 15 to 5,541 once the folder is served.
