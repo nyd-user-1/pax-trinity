@@ -95,34 +95,28 @@ export default async function ConsensusAdminPage({
           </div>
         </section>
 
-        <section className="flex flex-col gap-3">
-          <h3 className="text-lg font-semibold tracking-tight">Held back</h3>
-          {moderated.length ? (
-            <>
-              <p className="text-sm text-muted-foreground">
-                {moderated.length} statements a moderator pulled. They keep
-                their votes but are left out of the findings.
-              </p>
-              <ul className="flex flex-col gap-2 pt-1">
-                {moderated.slice(0, 10).map((s) => (
-                  <li
-                    key={s.tid}
-                    className="flex items-baseline justify-between gap-4 border-b pb-2 text-sm last:border-0"
-                  >
-                    <span>{s.text}</span>
-                    <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                      {Math.round(share(s.votes).agree)}% agreed
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </>
-          ) : (
+        {moderated.length > 0 && (
+          <section className="flex flex-col gap-3">
+            <h3 className="text-lg font-semibold tracking-tight">Held back</h3>
             <p className="text-sm text-muted-foreground">
-              Nothing has been pulled.
+              {moderated.length} statements a moderator pulled. They keep
+              their votes but are left out of the findings.
             </p>
-          )}
-        </section>
+            <ul className="flex flex-col gap-2 pt-1">
+              {moderated.slice(0, 10).map((s) => (
+                <li
+                  key={s.tid}
+                  className="flex items-baseline justify-between gap-4 border-b pb-2 text-sm last:border-0"
+                >
+                  <span>{s.text}</span>
+                  <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                    {Math.round(share(s.votes).agree)}% agreed
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
       </div>
     </DocsPage>
   )
