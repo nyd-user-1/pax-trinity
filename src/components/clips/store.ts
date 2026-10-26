@@ -21,7 +21,7 @@ export { CREATORS, creatorOf, type Creator } from "./desks"
 
 export * from "./catalog"
 
-import { type Clip, type Comment, PUBLISHED, SEED_COMMENTS } from "./catalog"
+import { type Clip, type Comment, PUBLISHED, SEED_COMMENTS, type Visibility } from "./catalog"
 
 
 /* ---- what the reader adds: S3 for the video, Aurora for the row, localStorage for the rest ---- */
