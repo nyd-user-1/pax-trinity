@@ -15,6 +15,7 @@ import { AboutPanel, BackButton, type About } from "../audience/audience-pane"
 import { AudienceRows } from "../audience/audience-rows"
 import { buildInfo, groupSources, metricIdsOf, shortSource, type AudienceIndex, type MetricInfo, type SourceRow } from "../audience/audience-data"
 import { SourceRail } from "./source-rail"
+import { QuestionTable } from "./question-table"
 import { SegmentList, type ListTab, type Split } from "./segment-list"
 import { SegmentGrid } from "./segment-grid"
 
@@ -257,17 +258,34 @@ export function AudienceInbox() {
               </div>
             </header>
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          {mode === "table" ? (
+          {mode === "table" && tableMetric && rows && info.get(tableMetric) ? (
+            <div className="relative flex h-full min-h-0 min-w-0">
+              <QuestionTable
+                rows={rows.filter((r) => r[0] === tableMetric)}
+                title={label(tableMetric)}
+                def={defs.get(tableMetric)}
+                metric={tableMetric}
+                place={place}
+                info={info.get(tableMetric) as MetricInfo}
+                short={source ? shortSource(source) : ""}
+                about={about}
+                onPick={setAbout}
+                onBack={() => {
+                  setMode("list")
+                  setTableMetric(null)
+                  setAbout(null)
+                }}
+              />
+              {about && <AboutPanel about={about} onClose={() => setAbout(null)} source={source} groups={groups} files={files} info={info} label={label} place={place} geoLevel={geoLevel} />}
+            </div>
+          ) : mode === "table" ? (
             <AudienceRows
-              rows={tableMetric && rows ? rows.filter((r) => r[0] === tableMetric) : rows}
+              rows={rows}
               short={source ? shortSource(source) : ""}
               label={label}
               place={place}
               query={query}
-              onBack={() => {
-                setMode("list")
-                setTableMetric(null)
-              }}
+              onBack={() => setMode("list")}
               error={error}
             />
           ) : (
