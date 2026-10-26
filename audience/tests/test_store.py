@@ -12,11 +12,13 @@ def count(store, where="1=1", params=()):
 
 def test_migrations_apply_clean_to_a_fresh_file(tmp_path):
     s = db.connect(duckdb_path=tmp_path / "fresh.duckdb")
-    assert migrate.apply(s, quiet=True) == ["001_schema", "002_seed_population"]
+    assert migrate.apply(s, quiet=True) == ["001_schema", "002_seed_population",
+                                            "003_survey_sources"]
     assert migrate.apply(s, quiet=True) == []
     for table in ("norms", "concordance", "sources", "schema_migrations"):
         assert s.table_exists(table)
-    assert {r[0] for r in s.query("SELECT source FROM sources")} == {"ACS", "CVAP"}
+    assert {r[0] for r in s.query("SELECT source FROM sources")} == {
+        "ACS", "CVAP", "CPS", "VOTERFILE_MA", "GSS", "ANES", "CES", "WVS"}
     assert all(r[0] and r[1] for r in s.query("SELECT url, license FROM sources"))
     assert {r[0] for r in s.query("SELECT construct FROM concordance")} == {
         "sex", "age_bucket", "race_eth", "education_4", "hh_income_bucket",

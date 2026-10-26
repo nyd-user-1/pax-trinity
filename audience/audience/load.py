@@ -7,21 +7,31 @@ import sys
 
 from . import migrate
 from .db import connect
-from .loaders import acs, cvap
+from .loaders import acs, anes, ces, cps, cvap, gss, voterfile_ma, wvs
 
-
-def _acs(store, args):
-    return acs.run(store, vintage=args.vintage, refresh=args.refresh)
-
-
-def _cvap(store, args):
-    return cvap.run(store, refresh=args.refresh)
-
-
-LOADERS = {
-    "acs": _acs,
-    "cvap": _cvap,
+# CLI name -> loader module. Each module exposes SOURCE and run(store, ...); the audit
+# reads this map to tell "loader exists, raw data absent" from "no loader".
+MODULES = {
+    "acs": acs,
+    "cvap": cvap,
+    "cps": cps,
+    "voterfile_ma": voterfile_ma,
+    "gss": gss,
+    "anes": anes,
+    "ces": ces,
+    "wvs": wvs,
 }
+
+
+def _run(name, store, args):
+    if name == "acs":
+        return acs.run(store, vintage=args.vintage, refresh=args.refresh)
+    if name == "cps":
+        return cps.run(store, refresh=args.refresh, wait_minutes=args.wait_minutes)
+    return MODULES[name].run(store, refresh=args.refresh)
+
+
+LOADERS = {name: (lambda store, args, _n=name: _run(_n, store, args)) for name in MODULES}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -31,6 +41,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="refetch raw files instead of using the raw/ cache")
     parser.add_argument("--vintage", type=int, default=acs.LATEST_VINTAGE,
                         help="ACS 5-year end year (acs only; default %(default)s)")
+    parser.add_argument("--wait-minutes", type=float, default=60,
+                        help="how long to wait for the IPUMS extract (cps only; default %(default)s)")
     args = parser.parse_args(argv)
     store = connect()
     try:

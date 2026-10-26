@@ -44,8 +44,21 @@ def run(store: Store) -> int:
         "SELECT s.source FROM sources s "
         "WHERE NOT EXISTS (SELECT 1 FROM norms n WHERE n.source = s.source) ORDER BY 1"
     )]
-    print(f"sources in the sources table with no rows loaded: {', '.join(unloaded) or 'none'}")
+    commands = loader_commands()
+    awaiting = [s for s in unloaded if s in commands]
+    no_loader = [s for s in unloaded if s not in commands]
+    print("sources in the sources table with no rows loaded:")
+    print(f"  awaiting raw file (loader exists, data absent): "
+          f"{', '.join(f'{s} (python -m audience.load {commands[s]})' for s in awaiting) or 'none'}")
+    print(f"  missing loader: {', '.join(no_loader) or 'none'}")
     return 1 if failures else 0
+
+
+def loader_commands() -> dict[str, str]:
+    """source -> the load subcommand whose loader writes it."""
+    from .load import MODULES
+
+    return {module.SOURCE: name for name, module in MODULES.items()}
 
 
 def main() -> int:
