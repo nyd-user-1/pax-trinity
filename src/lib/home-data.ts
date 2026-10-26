@@ -766,7 +766,7 @@ export const PAX_BOXES: HomeCardData[] = [
     body: "From brief to draft: the scripts the cuts are shot from, written and revised in place. Underway." },
   { href: "/audience", title: "Lift Benchmarks", accent: "", tag: "Data", value: 1_583, unit: "effects",
     body: "Ad-level effects from prior randomized tests. A new lift lands on this curve, not in a vacuum." },
-  { href: "/t/open-primaries-1", title: "Message Tests", accent: "", tag: "Platform", value: 5, unit: "arms",
+  { href: "/test/open-primaries-1", title: "Message Tests", accent: "", tag: "Platform", value: 5, unit: "arms",
     body: "Randomized placebo tests of video: each respondent watches one arm, answers the ballot, and the lift is measured against the placebo alone." },
   { href: "/clips", title: "Partners", accent: "", tag: "Platform", value: 4, unit: "desks",
     body: "Voter Freedom, Yes on 3, Unite America, and PAX: channels, rosters, and review threads." },

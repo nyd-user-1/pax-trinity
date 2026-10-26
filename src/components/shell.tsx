@@ -248,7 +248,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
   // Trinity's front door lives inside the shell; only the auth screens stay full bleed.
   const home = path === "/signup" || path === "/signin"
   // A message test's respondent page (/t/<id>) is a bare survey: no sidebar, nothing of the product.
-  if (path.startsWith("/t/")) return <>{children}</>
+  if (path.startsWith("/test/")) return <>{children}</>
   if (path === "/record" || (path.startsWith("/sign") && !home))
     return (
       <div className="min-h-dvh bg-white">
