@@ -10,7 +10,7 @@ Read first: `audience/audience/loaders/gss.py` whole, `audience/audience/survey.
 
 ## 1. The bulk tier
 
-Keep the 15 harmonized constructs exactly as they are. Add a bulk tier: **every variable asked in the 2024 wave** that qualifies:
+Keep the 15 harmonized constructs exactly as they are. Add a bulk tier: **every variable in the cumulative file, whatever wave it was asked in** — all of the GSS, 1972 to 2024 — that qualifies:
 
 - Categorical with 2 to 24 labeled categories in the Stata value labels. Continuous variables (age in years, income in dollars, hours, counts) are skipped — no invented banding.
 - Not administrative or technical: skip id, ballot, form, version, the weight variables (wt*, vstrat, vpsu, sampcode and kin), interview dates and paradata, and open-ended or verbatim-coded variables.
@@ -20,12 +20,12 @@ Per qualifying variable:
 
 - **Construct id**: the GSS mnemonic, lowercased. **Label**: the Stata variable label, sentence-cased. **Definition**: the same variable label verbatim (the questionnaire wording is not in the Stata file; the 15 keep their hand-entered wordings — say so in the report so nobody mistakes bulk definitions for wordings).
 - **Bands**: the value labels in their coded order, missing codes (DK, NA, IAP, skipped) excluded the way the loader already excludes them.
-- **Rows**: weighted topline shares for **every wave the variable was asked**, national; the five standard breakdowns (age, education_4, party_3, race, sex) for **the latest wave it was asked only** — that bound keeps the export loadable in a browser. Shares and margins from the survey.py machinery (Kish-effective-n), n the unweighted base, cells under n=50 dropped and the drop named on the topline, per house rule.
+- **Rows**: weighted topline shares for **every wave the variable was asked**, national; the five standard breakdowns (age, education_4, party_3, race, sex) for **the latest wave it was asked** — toplines carry the full history for the trend, the latest wave carries the banner. (Full breakdown history for every wave is a later phase if the lead calls for it.) Shares and margins from the survey.py machinery (Kish-effective-n), n the unweighted base, cells under n=50 dropped and the drop named on the topline, per house rule.
 - **provenance_url**: the variable's GSS Data Explorer page (https://gssdataexplorer.norc.org/variables — resolve the per-variable URL pattern and use it).
 
 ## 2. Export and bounds
 
-Regenerate the export. The 13-element row contract and index.json's shape are the app's and must not change; the splitter already parts a source at 4MB and the app concatenates the parts. Report the bulk tier's variable count, row count, and the GSS files' total size. **If the GSS set would exceed 20 MB on disk, stop before committing the export and bring the number to the lead as a ruling** — the browser fetches the whole folder when it opens.
+Regenerate the export. The 13-element row contract and index.json's shape are the app's and must not change; the splitter already parts a source at 4MB and the app concatenates the parts. At full-file scale the GSS set will likely run to thousands of variables and tens of megabytes — expect it. Report the bulk tier's variable count, row count, and the GSS files' total size. **If the GSS set exceeds 25 MB on disk, write the files but do not commit them to git**: leave them in place, put the sizes in your report, and bring serving to the lead as a ruling — at that weight the data belongs in S3 with the app fetching per question, which is the lead's side to build. Everything in the store (DuckDB) is committed work regardless; the ruling is only about the public/ export.
 
 ## 3. Checks
 
