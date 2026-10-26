@@ -25,6 +25,13 @@ export function saveDraft(texts: string[]): Conversation {
   return draft
 }
 
+/** Statements joining an existing draft, duplicates dropped; no draft starts one. */
+export function addToDraft(texts: string[]): Conversation {
+  const held = readDraft()
+  const kept = held ? held.statements.map((s) => s.text) : []
+  return saveDraft([...kept, ...texts.filter((t) => !kept.includes(t))])
+}
+
 export function readDraft(): Conversation | null {
   try {
     const raw = localStorage.getItem(KEY)

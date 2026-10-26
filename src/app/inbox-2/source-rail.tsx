@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { BarChart3, Banknote, Cake, ChevronDown, ChevronUp, Church, ClipboardList, Compass, EllipsisVertical, Flag, Folder, GraduationCap, HeartHandshake, Landmark, Scale, ShieldCheck, Thermometer, TrendingUp, UserCheck, UserRound, Users, Vote, Zap } from "lucide-react"
+import { BarChart3, Banknote, Cake, ChevronDown, ChevronUp, Church, ClipboardList, Compass, EllipsisVertical, Flag, Folder, GraduationCap, HeartHandshake, Landmark, ListPlus, Scale, ShieldCheck, Thermometer, TrendingUp, UserCheck, UserRound, Users, Vote, Zap } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { KebabMenu, MenuFoot, MenuHeader, MenuRow, MenuSeparator } from "@/components/kebab-menu"
@@ -51,6 +51,7 @@ export function SourceRail({
   loading,
   onSource,
   onSegment,
+  onAddToSurvey,
 }: {
   groups: SourceGroup[]
   source: string | null
@@ -62,6 +63,7 @@ export function SourceRail({
   loading: boolean
   onSource: (s: string) => void
   onSegment: (id: string) => void
+  onAddToSurvey: (id: string) => void
 }) {
   return (
     <>
@@ -138,6 +140,7 @@ export function SourceRail({
                                       <MenuHeader text={id} copy={id} />
                                       <MenuSeparator />
                                       <MenuRow icon={<BarChart3 />} label="Open the grid" onClick={() => onSegment(id)} />
+                                      <MenuRow icon={<ListPlus />} label="Add to survey" onClick={() => onAddToSurvey(id)} />
                                       <MenuSeparator />
                                       <MenuFoot title={label(id)} sub={g.label} />
                                     </KebabMenu>

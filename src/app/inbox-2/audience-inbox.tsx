@@ -1,8 +1,10 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import { PanelLeftIcon, Search, X } from "lucide-react"
 
+import { addToDraft } from "@/lib/consensus/draft"
 import { PathBar } from "@/components/create/path-bar"
 import { Button } from "@govblock/ui/components/nova/button"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@govblock/ui/components/ny4/resizable"
@@ -45,6 +47,9 @@ export function AudienceInbox() {
   // The rail rides in the resizable row, not the shell's fixed sidebar, so it
   // drags on the same handle the panes share; the header trigger still folds it.
   const [railOpen, setRailOpen] = React.useState(true)
+  // The survey-draft bar, Gmail's "Message sent": the draft's size for a few
+  // seconds after an add, with View opening the consensus admin that holds it.
+  const [drafted, setDrafted] = React.useState<number | null>(null)
 
   const groups = React.useMemo(() => (index ? groupSources(index.sources) : []), [index])
 
@@ -126,6 +131,23 @@ export function AudienceInbox() {
     if (item.r) setAbout({ r: item.r, metric: railSeg, segment: item.opt })
   }
 
+  // A segment joins the survey draft as its wording where the source carries
+  // one (polls and results do), its definition where it does not.
+  const addToSurvey = React.useCallback(
+    (id: string) => {
+      const texts: string[] = []
+      for (const r of rows ?? []) if (r[0] === id && r[10] && !texts.includes(r[10])) texts.push(r[10])
+      if (!texts.length) {
+        const d = defs.get(id)
+        texts.push(d ? `${label(id)} — ${d}` : label(id))
+      }
+      const draft = addToDraft(texts)
+      setDrafted(draft.statements.length)
+      window.setTimeout(() => setDrafted((current) => (current === draft.statements.length ? null : current)), 6000)
+    },
+    [rows, defs, label]
+  )
+
   const showList = split === "vertical" || !focus
   const showPane = split === "vertical" || !!focus
 
@@ -196,6 +218,7 @@ export function AudienceInbox() {
         setAbout(null)
         setMode("list")
       }}
+      onAddToSurvey={addToSurvey}
     />
   )
 
@@ -214,7 +237,7 @@ export function AudienceInbox() {
   // below the header. BlockShell itself cannot resize its sidebar.
   return (
     <TooltipProvider delayDuration={0}>
-    <div className="flex h-full min-h-0 w-full overflow-hidden bg-sidebar [--sidebar:var(--pax2-mist)] [--header-height:calc(var(--spacing)*12)]">
+    <div className="relative flex h-full min-h-0 w-full overflow-hidden bg-sidebar [--sidebar:var(--pax2-mist)] [--header-height:calc(var(--spacing)*12)]">
       <ResizablePanelGroup orientation="horizontal" className="min-h-0 min-w-0 flex-1">
         {/* react-resizable-panels v4 reads bare numbers as pixels. */}
         {railOpen && (
@@ -300,6 +323,7 @@ export function AudienceInbox() {
                         about={about}
                         onPick={setAbout}
                         back={split === "none" ? <BackButton onBack={() => setFocus(null)} /> : undefined}
+                        onAddToSurvey={focus ? () => addToSurvey(focus) : undefined}
                       />
                     ) : (
                       empty
@@ -314,6 +338,16 @@ export function AudienceInbox() {
           </div>
         </ResizablePanel>
       </ResizablePanelGroup>
+      {drafted != null && (
+        <div role="status" className="absolute bottom-4 left-4 z-20 flex items-center gap-4 rounded-md bg-foreground px-4 py-2.5 text-sm text-background shadow-lg">
+          <span>
+            In the survey draft: {drafted} {drafted === 1 ? "statement" : "statements"}
+          </span>
+          <Link href="/consensus/admin?c=audience-draft" className="font-medium text-background/80 hover:text-background">
+            View
+          </Link>
+        </div>
+      )}
     </div>
     </TooltipProvider>
   )

@@ -33,6 +33,7 @@ export function SegmentGrid({
   about,
   onPick,
   back,
+  onAddToSurvey,
 }: {
   rows: SourceRow[]
   info: Map<string, MetricInfo>
@@ -46,6 +47,8 @@ export function SegmentGrid({
   onPick: (a: About) => void
   /** The no-split back arrow; absent beside the list. */
   back?: React.ReactNode
+  /** Hands the opened segment's wording to the survey draft. */
+  onAddToSurvey?: () => void
 }) {
   const [geoSel, setGeoSel] = React.useState<string[] | null>(null)
   const [dimsOff, setDimsOff] = React.useState<string[]>([])
@@ -134,6 +137,11 @@ export function SegmentGrid({
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
+            )}
+            {onAddToSurvey && (
+              <button type="button" onClick={onAddToSurvey} className="rounded-[10px] border px-2.5 py-1.5 text-xs hover:bg-muted/50">
+                Add to survey
+              </button>
             )}
             <span className="ml-auto text-xs text-muted-foreground tabular-nums">{rows.length.toLocaleString("en-US")} rows</span>
           </div>

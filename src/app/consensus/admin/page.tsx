@@ -1,6 +1,7 @@
 import Link from "next/link"
 
 import { DocsPage } from "@/components/docs-page"
+import { DraftCard } from "@/components/consensus/draft-card"
 import { SplitBar } from "@/components/consensus/split-bar"
 import { share } from "@/lib/consensus/data"
 import { conversation, conversations } from "@/lib/consensus/store"
@@ -52,6 +53,7 @@ export default async function ConsensusAdminPage({
       next={{ name: "Consensus", url: "/consensus" }}
     >
       <div data-not-typeset="true" className="my-8 flex flex-col gap-10">
+        <DraftCard />
         <section className="flex flex-col gap-4">
           <h2 className="text-lg font-semibold tracking-tight">{c.topic}</h2>
           <div className="grid grid-cols-2 gap-6 rounded-xl border bg-card p-5 sm:grid-cols-4">
