@@ -23,8 +23,11 @@ import { RowsView } from "./rows-view"
 // datasets it lists are the ones the slice reads.
 
 const SLICE_SOURCE = "GSS"
-/** The slice: two questions asked in every wave since the seventies. */
-const SLICE = new Set(["confidence_congress", "party_id_7"])
+/** The slice, widened 2026-10-26: party identification beside every form of
+ *  confidence in Congress — the flagship battery item, the 1984 Version Z
+ *  experiment, the 1991-2018 second form, and the two recent trust
+ *  rewordings — so the versions of one construct sit side by side. */
+const SLICE = new Set(["party_id_7", "confidence_congress", "concong", "conlegiy", "trcong", "trlegis"])
 
 type Question = { id: string; label: string; def: string; span: string; waves: number; rows: SourceRow[] }
 
