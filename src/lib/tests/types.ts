@@ -64,8 +64,8 @@ export function blankTest(id = ""): TestRecord {
 const ID = /^[a-z0-9][a-z0-9-]{1,62}$/
 
 /** Every problem with a record, in words an admin can act on; an empty list means it can be saved.
- *  clipIds are the PUBLISHED ids an arm may name. The clips store is a client module, so the server
- *  passes null and checks the ids' form only; the setup form checks them against PUBLISHED. */
+ *  clipIds are the PUBLISHED ids an arm may name (the server reads them from
+ *  @/components/clips/catalog); null checks the ids' form only. */
 export function problems(t: TestRecord, clipIds: ReadonlySet<string> | null): string[] {
   const out: string[] = []
   if (!ID.test(t.id)) out.push("The id must be 2-63 lowercase letters, digits or hyphens, starting with a letter or digit.")

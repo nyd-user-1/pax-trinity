@@ -3,12 +3,15 @@
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
+import { PUBLISHED } from "@/components/clips/catalog"
 import { currentUser, forbidDemo } from "@/lib/auth"
 import { getTest, saveTest } from "@/lib/tests/store"
 import { parseEntry, parseSingle } from "@/lib/tests/text"
 import { PLACEBO, problems, STATUSES, type Status, type TestRecord } from "@/lib/tests/types"
 
 export type SaveState = { errors: string[] }
+
+const CLIP_IDS = new Set(PUBLISHED.map((c) => c.id))
 
 async function guard(): Promise<string | null> {
   const user = await currentUser()
@@ -49,7 +52,7 @@ export async function saveTestAction(_prev: SaveState, form: FormData): Promise<
     status: STATUSES.includes(status) ? status : "draft",
     panel: hasPanel ? { vendor, ...urls } : null,
   }
-  const errors = [...entry.errors, ...ballot.errors, ...comprehension.errors, ...problems(record, null)]
+  const errors = [...entry.errors, ...ballot.errors, ...comprehension.errors, ...problems(record, CLIP_IDS)]
   if (!record.explanationTitle) errors.push("The explanation needs a title.")
   if (!create && !(await getTest(record.id))) errors.push(`No test has the id ${record.id}.`)
   if (errors.length) return { errors }

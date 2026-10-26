@@ -1,13 +1,16 @@
 import { notFound } from "next/navigation"
 
+import { currentUser } from "@/lib/auth"
 import { getTest } from "@/lib/tests/store"
 
 import { Flow } from "./flow"
 
 // /test/<id>: the page a test respondent walks — bare, outside the shell, with nothing of the
 // product around it. The test comes from the tests table (src/lib/tests/store.ts); an id nobody
-// set up is a 404, and a closed test says so. The arm is drawn here, on the server, one per page
-// load from the test's own arms, so the assignment is settled before the first card renders.
+// set up is a 404, and a closed test says so. A draft is a preview for admins and reads as closed
+// to everyone else (the collector records only fielding tests either way). The arm is drawn here,
+// on the server, one per page load from the test's own arms, so the assignment is settled before
+// the first card renders.
 // A panel vendor's link carries ?pid=<their respondent id>, handed to the flow as is.
 
 export const dynamic = "force-dynamic"
@@ -22,7 +25,7 @@ export async function generateMetadata({ params }: Props) {
 export default async function RespondentPage({ params, searchParams }: Props) {
   const test = await getTest((await params).id)
   if (!test) notFound()
-  if (test.status === "closed") {
+  if (test.status === "closed" || (test.status === "draft" && !(await currentUser())?.admin)) {
     return (
       <main className="min-h-dvh bg-white">
         <div className="mx-auto flex min-h-dvh w-full max-w-[773px] flex-col justify-center px-6 py-10">
