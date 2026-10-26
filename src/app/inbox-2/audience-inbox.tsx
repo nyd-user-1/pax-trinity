@@ -219,6 +219,7 @@ export function AudienceInbox() {
       split={s}
       onSplit={setSplit}
       query={query}
+      onQuery={setQuery}
       loading={!!source && !rows && !error}
       error={error}
     />

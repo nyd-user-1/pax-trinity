@@ -53,7 +53,7 @@ export function QuestionTable({
   about: About | null
   onPick: (a: About) => void
 }) {
-  const [view, setView] = React.useState<"crosstab" | "chart" | "tidy">("crosstab")
+  const [view, setView] = React.useState<"crosstab" | "chart" | "tidy">("tidy")
 
   const tab = React.useMemo(() => {
     const base = info.baseGeo

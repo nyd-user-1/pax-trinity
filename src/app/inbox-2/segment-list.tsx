@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, EllipsisVerticalIcon, RefreshCwIcon, StarIcon } from "lucide-react"
+import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, EllipsisVerticalIcon, RefreshCwIcon, Search, StarIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
@@ -64,6 +64,7 @@ export function SegmentList({
   split,
   onSplit,
   query = "",
+  onQuery,
   loading,
   error,
 }: {
@@ -83,8 +84,9 @@ export function SegmentList({
   onFlatTable: () => void
   split: Split
   onSplit: (split: Split) => void
-  /** The header search's filter; empty shows everything. */
+  /** The search's filter; empty shows everything. */
   query?: string
+  onQuery: (q: string) => void
   loading: boolean
   error: string | null
 }) {
@@ -99,8 +101,24 @@ export function SegmentList({
   const more = React.useCallback(() => setDepth((d) => d + PER_READ), [])
   const allChecked = ordered.length > 0 && ordered.slice(0, MAX_COLS).every((id) => checked.includes(id))
 
+  // The chevrons walk the questions: the one before and after the open one.
+  const at = selected ? ordered.indexOf(selected) : -1
+  const prevId = at > 0 ? ordered[at - 1] : null
+  const nextId = at === -1 ? (ordered[0] ?? null) : at < ordered.length - 1 ? ordered[at + 1] : null
+
   return (
     <div className="flex h-full min-h-0 flex-col">
+      <div className="shrink-0 p-3">
+        <div className="flex items-center gap-2 rounded-lg border px-3 py-2">
+          <Search className="size-4 shrink-0 text-muted-foreground" />
+          <input
+            value={query}
+            onChange={(event) => onQuery(event.target.value)}
+            placeholder="Search wording or label…"
+            className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+          />
+        </div>
+      </div>
       <div className="flex h-[52px] shrink-0 items-center gap-1 border-b px-3">
         <div className="flex items-center">
           <Checkbox aria-label="Select columns" checked={allChecked} indeterminate={!allChecked && checked.length > 0} onCheckedChange={(value) => onCheckAll(value === true ? ordered.slice(0, MAX_COLS) : [])} />
@@ -143,10 +161,10 @@ export function SegmentList({
           </DropdownMenuContent>
         </DropdownMenu>
         <div className="ml-auto flex items-center gap-1">
-          <Button variant="ghost" size="icon-sm" aria-label="Newer" disabled>
+          <Button variant="ghost" size="icon-sm" aria-label="Previous question" disabled={!prevId} onClick={() => prevId && onOpen(prevId)}>
             <ChevronLeftIcon className="size-4" />
           </Button>
-          <Button variant="ghost" size="icon-sm" aria-label="Older" disabled>
+          <Button variant="ghost" size="icon-sm" aria-label="Next question" disabled={!nextId} onClick={() => nextId && onOpen(nextId)}>
             <ChevronRightIcon className="size-4" />
           </Button>
         </div>
