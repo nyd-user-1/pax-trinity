@@ -255,9 +255,8 @@ def _ballot(series: pd.Series, dem: int, rep: int, others) -> pd.Series:
                                   **{o: "Other" for o in others}})
 
 
-def prepare(df: pd.DataFrame, year: int) -> pd.DataFrame:
-    df = df.copy()
-    df["year"] = year
+def add_subgroups(df: pd.DataFrame, year: int) -> None:
+    """The five breakdown columns (_sex, _age, _race_eth, _educ, _party), in place."""
     if "gender4" in df:
         df["_sex"] = survey.recode(df["gender4"], {1: cat.SEX[0], 2: cat.SEX[1]})
     else:
@@ -266,6 +265,12 @@ def prepare(df: pd.DataFrame, year: int) -> pd.DataFrame:
     df["_race_eth"] = race_eth(df["race"], df.get("hispanic", pd.Series(np.nan, index=df.index)))
     df["_educ"] = survey.recode(df["educ"], EDUC)
     df["_party"] = survey.recode(df["pid7"], PARTY_FROM_PID7)
+
+
+def prepare(df: pd.DataFrame, year: int) -> pd.DataFrame:
+    df = df.copy()
+    df["year"] = year
+    add_subgroups(df, year)
     if year == 2020:
         df["_prim_state"] = df["CL_2020pvm"].notna().astype(int)
         df["_party_state"] = _ballot(df["CL_2020pep"], 1, 7, (2, 3, 4, 5, 6))
@@ -336,11 +341,13 @@ def write_concordance(store: Store, years) -> None:
 
 def run(store: Store, refresh: bool = False, raw_dir: Path | None = None,
         allow_synthetic: bool = False, min_n: int = MIN_CELL_N,
-        download: bool | None = None) -> int:
-    """download defaults to True for the real raw/ces/ and False when a test passes raw_dir."""
+        download: bool | None = None, bulk: bool = True) -> int:
+    """download defaults to True for the real raw/ces/ and False when a test passes raw_dir.
+    bulk adds the bulk tier (ces_bulk) after the 7 harmonized constructs."""
     write_concordance(store, RAW_COLUMNS)  # the crosswalk is recorded even before the data arrives
     files = locate(raw_dir)
-    if download if download is not None else raw_dir is None:
+    download = download if download is not None else raw_dir is None
+    if download:
         for year in FILES:
             if refresh or year not in files:
                 got = fetch(year, raw_dir)
@@ -357,5 +364,10 @@ def run(store: Store, refresh: bool = False, raw_dir: Path | None = None,
         written = store.upsert_norms(rows, prune=(SOURCE, source_version(year)))
         print(f"{source_version(year)}: {written} rows (US and MA)")
         total += written
+    if bulk:
+        from . import ces_bulk
+
+        total += ces_bulk.run(store, files, raw_dir=raw_dir, download=download, min_n=min_n,
+                              allow_synthetic=allow_synthetic)
     store.touch_source(SOURCE)
     return total

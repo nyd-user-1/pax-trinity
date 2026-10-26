@@ -94,7 +94,7 @@ def ces_real(tmp_path_factory):
         pytest.skip("no real CES common-content file under raw/ces/")
     s = db.connect(duckdb_path=tmp_path_factory.mktemp("ces") / "norms.duckdb")
     migrate.apply(s, quiet=True)
-    written = ces.run(s)
+    written = ces.run(s, bulk=False)   # the 7 alone; test_ces_bulk covers the bulk tier
     yield s, files, written
     s.close()
 
