@@ -115,3 +115,10 @@ Rerunning `gss`, `anes` and `ces` left every count unchanged.
 - **MA party enrollment by town is also public.** The Elections Division publishes town-level enrollment statistics (https://www.sec.state.ma.us/divisions/elections/research-and-statistics/enrollment-statistics.htm), a real source for this construct that doesn't need the restricted voter list.
 - **Edits to A's files:** `load.py` (six subcommands; `MODULES` now maps each subcommand to its source for the audit), `audit.py`, the README, `pyproject.toml` (pandas, pyreadstat, curl_cffi), and the migration-list assertions in `test_store.py` and `test_postgres.py`, which now expect `003_survey_sources`.
 - **Raw files** (gitignored), documentation included: GSS 652 MB, ANES 630 MB, CES 567 MB.
+
+## Lead rulings (2026-10-25)
+
+1. Approved — P20's convention stands (no-response stays in the denominator, stored as its own option); the brief had it backwards.
+2. Build the Census-direct CPS reader against the public November-supplement CSVs; the IPUMS path is dropped, no key, no registration. The P20 spot-check un-skips with it.
+3. Approved; give the CES loader the same self-download the GSS and ANES loaders have, since the files are CC0 and unwalled.
+4–7. Approved as implemented: codebook weights over the brief's names (GSS), the CDF's actual variables over the brief's list (ANES), wave-7 items under their own names with the Schwartz battery noted as a wave-6 option (WVS), and labeled `item_text` where the questionnaire is walled (WVS), each row's note saying so.

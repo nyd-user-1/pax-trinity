@@ -130,3 +130,7 @@ sources in the sources table with no rows loaded: none
 - **Shared category labels:** response options live in `audience/categories.py`, and B's CPS collapses should import them so rows line up. CPS FAMINC breaks at the same $25k/$50k/$75k/$100k/$150k boundaries as my income bands.
 - **Place names** are only in `provenance_note`. A geographies lookup table (code, name, level, parent) would make joins from the app easier; I didn't build one.
 - **Environment:** the venv is Python 3.14 via uv. I added `pytz` because DuckDB needs it to return timestamptz values.
+
+## Lead rulings (2026-10-25)
+
+All five approved as implemented: `estimate_type` joins the natural key; the ACS vintage is 2020–2024 (matching the lake's CVAP window); `geo_code` is the prefixless Census GEOID scheme at every level; loaders prune their own `(source, source_version)` slice in the same transaction; the concordance check lives in `upsert_norms` and the audit, not a database FK. Later loaders call `db.natural_key()` and never rebuild the key by hand.
