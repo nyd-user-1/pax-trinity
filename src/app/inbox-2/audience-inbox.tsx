@@ -136,14 +136,16 @@ export function AudienceInbox() {
   const showList = split === "vertical" || !focus
   const showPane = split === "vertical" || !!focus
 
-  const list = (
+  // The list keeps its place beside the crosstab (Brendan, 2026-10-26: "don't
+  // close the middle panel"), stacked the way the split folds it.
+  const listFor = (s: Split) => (
     <SegmentList
       info={info}
       metricIds={metricIds}
       source={source}
       label={label}
       place={place}
-      selected={focus}
+      selected={tableMetric ?? focus}
       checked={checked}
       pinned={pinned}
       tab={tab}
@@ -164,13 +166,14 @@ export function AudienceInbox() {
         setTableMetric(null)
         setMode("table")
       }}
-      split={split}
+      split={s}
       onSplit={setSplit}
       query={query}
       loading={!!source && !rows && !error}
       error={error}
     />
   )
+  const list = listFor(split)
 
   const railNode = (
     <SourceRail
@@ -260,22 +263,30 @@ export function AudienceInbox() {
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           {mode === "table" && tableMetric && rows && info.get(tableMetric) ? (
             <div className="relative flex h-full min-h-0 min-w-0">
-              <QuestionTable
-                rows={rows.filter((r) => r[0] === tableMetric)}
-                title={label(tableMetric)}
-                def={defs.get(tableMetric)}
-                metric={tableMetric}
-                place={place}
-                info={info.get(tableMetric) as MetricInfo}
-                short={source ? shortSource(source) : ""}
-                about={about}
-                onPick={setAbout}
-                onBack={() => {
-                  setMode("list")
-                  setTableMetric(null)
-                  setAbout(null)
-                }}
-              />
+              <ResizablePanelGroup orientation="horizontal" className="min-h-0 min-w-0 flex-1">
+                <ResizablePanel defaultSize={380} minSize={300} maxSize={560} className="min-w-0">
+                  {listFor("vertical")}
+                </ResizablePanel>
+                <ResizableHandle withHandle />
+                <ResizablePanel className="min-w-0">
+                  <QuestionTable
+                    rows={rows.filter((r) => r[0] === tableMetric)}
+                    title={label(tableMetric)}
+                    def={defs.get(tableMetric)}
+                    metric={tableMetric}
+                    place={place}
+                    info={info.get(tableMetric) as MetricInfo}
+                    short={source ? shortSource(source) : ""}
+                    about={about}
+                    onPick={setAbout}
+                    onBack={() => {
+                      setMode("list")
+                      setTableMetric(null)
+                      setAbout(null)
+                    }}
+                  />
+                </ResizablePanel>
+              </ResizablePanelGroup>
               {about && <AboutPanel about={about} onClose={() => setAbout(null)} source={source} groups={groups} files={files} info={info} label={label} place={place} geoLevel={geoLevel} />}
             </div>
           ) : mode === "table" ? (
