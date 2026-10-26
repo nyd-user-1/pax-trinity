@@ -14,6 +14,8 @@ Read first: `audience/README.md` and the loaders in `audience/audience/` (how co
 
 ## Sources, in order of preference
 
+**Addendum (lead, 18:20): read the cache first.** Brief I's worker already synced a Data Explorer wordings cache — **6,937 surveyQuestion entries** — to `s3://pax-trinity-audience-638175140432/raw/gss/data_explorer_variables.json`, and the lead approved it for exactly this pass. Start there: it likely covers most of the 5,541 outright. Fall to the routes below only for what the cache lacks, and report cache coverage vs. fetched coverage separately.
+
 1. **NORC's own machine-readable metadata.** The GSS Data Explorer (gssdataexplorer.norc.org) exposes per-variable question text; NORC also publishes the cumulative codebook. Find the most scriptable route and document it with URLs in the loader's docstring.
 2. **The gssr R package's `gss_dict`** (Kieran Healy) maps variable → question text if NORC's route resists scripting — verify its license and provenance before relying on it, and say which you used.
 3. **GSS Methodological Report MR133** (Cowan, Hout & Perrett, 2021 — the abortion time-series paper) carries the verbatim Rossi battery stem and the 2018 module texts. Use it to **spot-check** the abortion battery (abany, abdefect, abrape, abhlth, abnomore, abpoor, absingle, the abhelp quartet, abmoral, abstate1/2, abinspay, abmedgov1/2, abfelegl, abmelegl), not as the bulk source.
