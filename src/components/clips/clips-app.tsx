@@ -13,6 +13,7 @@ import { cn } from "@govblock/ui/lib/utils"
 import { Capture } from "./capture"
 import { CommentsPanel } from "./comments"
 import { PanelBlock } from "@/components/blocks"
+import { PAX2Search, PAX2Table2 } from "@/components/pax2-table2"
 import { MenuRow } from "@/components/kebab-menu"
 import { Creators } from "./creators"
 import { DEFAULT_AVATAR } from "@/lib/auth/use-account"
@@ -293,6 +294,10 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
       />
     ) : null
 
+  const [clipQuery, setClipQuery] = React.useState("")
+  const q = clipQuery.trim().toLowerCase()
+  const shown = q ? clips.filter((c) => [c.title, c.messenger ?? "", c.author.name, c.caption].some((s) => s.toLowerCase().includes(q))) : clips
+
   const viewToggle = (
     <div className="flex items-center rounded-full bg-muted p-0.5">
       <button type="button" onClick={() => setView("feed")} className={cn("flex size-8 items-center justify-center rounded-full", view === "feed" ? "bg-background shadow-sm" : "text-muted-foreground")} aria-label="Feed">
@@ -319,8 +324,6 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
               search="Search clips…"
               name="partners"
               rows={clipRows}
-              tools={viewToggle}
-              actions={<span className="text-xs whitespace-nowrap text-muted-foreground tabular-nums">{clips.length} clips</span>}
               menuItems={partnerRows.map((x) => (
                 <MenuRow key={x.id} label={x.name} checked={creator === x.id} onClick={() => setCreator(x.id)} />
               ))}
@@ -331,6 +334,15 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
         </aside>
 
         <main className="min-w-0">
+          {/* The row over the videos (restored 2026-10-26): the view pill and the
+              collapsed search on the left, the count on the right. */}
+          <div className="hidden h-14 items-center gap-2 lg:flex">
+            {viewToggle}
+            <PAX2Table2 value={clipQuery} onChange={setClipQuery}>
+              <PAX2Search placeholder="Search clips…" />
+            </PAX2Table2>
+            <span className="ml-auto text-xs whitespace-nowrap text-muted-foreground tabular-nums">{shown.length} clips</span>
+          </div>
           <div className="flex h-14 items-center gap-2 lg:hidden">
             {viewToggle}
             <div className="hidden">
@@ -392,9 +404,9 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
               )}
             </Empty>
           ) : view === "grid" ? (
-            <Grid clips={clips} onOpen={goToPost} className="-mx-2 lg:mx-0" />
+            <Grid clips={shown} onOpen={goToPost} className="-mx-2 lg:mx-0" />
           ) : (
-            <Feed clips={clips} activeId={activeId} onActive={setActiveId} muted={muted} onMuted={setMuted} reactions={reactions} className={cn(FEED_HEIGHT[frame], "-mx-2 lg:mx-0")} />
+            <Feed clips={shown} activeId={activeId} onActive={setActiveId} muted={muted} onMuted={setMuted} reactions={reactions} className={cn(FEED_HEIGHT[frame], "-mx-2 lg:mx-0")} />
           )}
 
           {creator === "you" && active?.mine && view === "feed" && (
