@@ -33,7 +33,7 @@
   {
    "source": "CPS",
    "label": "Current Population Survey, November Voting and Registration Supplement (U.S. Census Bureau)",
-   "rows": 2580,
+   "rows": 5457,
    "file": "cps.json"
   },
   {
@@ -268,6 +268,51 @@
    "definition": "Whether people mostly try to be helpful or mostly look out for themselves."
   },
   {
+   "construct": "pes3",
+   "label": "Which of the following was the main reason (you/name) (were/was) not registered to vote?",
+   "definition": "Which of the following was the main reason (you/name) (were/was) not registered to vote?"
+  },
+  {
+   "construct": "pes3_2020",
+   "label": "Which of the following was the main reason (you/name) (were/was) not registered to vote? (2020)",
+   "definition": "Which of the following was the main reason (you/name) (were/was) not registered to vote?"
+  },
+  {
+   "construct": "pes4",
+   "label": "What was the main reason (you/name) did not vote?",
+   "definition": "What was the main reason (you/name) did not vote?"
+  },
+  {
+   "construct": "pes4_2020",
+   "label": "What was the main reason (you/name) did not vote? (2020)",
+   "definition": "What was the main reason (you/name) did not vote?"
+  },
+  {
+   "construct": "pes5",
+   "label": "Did (you/he/she) vote in person or did (you/he/she) vote by mail?",
+   "definition": "Did (you/he/she) vote in person or did (you/he/she) vote by mail?"
+  },
+  {
+   "construct": "pes6",
+   "label": "Was that on election day or before election day?",
+   "definition": "Was that on election day or before election day?"
+  },
+  {
+   "construct": "pes7",
+   "label": "There are various places and ways people can register to vote. The last time (you/name) registered, how did (you/name) register to vote?",
+   "definition": "There are various places and ways people can register to vote. The last time (you/name) registered, how did (you/name) register to vote?"
+  },
+  {
+   "construct": "pes7_2008",
+   "label": "There are various places and ways people can register to vote. The last time (you/name) registered, how did (you/name) register to vote? (2008)",
+   "definition": "There are various places and ways people can register to vote. The last time (you/name) registered, how did (you/name) register to vote?"
+  },
+  {
+   "construct": "pes8",
+   "label": "How long (have you/has name) lived at this address? (2008-2012)",
+   "definition": "How long (have you/has name) lived at this address?"
+  },
+  {
    "construct": "pres_approval",
    "label": "Presidential job approval",
    "definition": "Approval of the way the sitting president is handling the job."
@@ -281,6 +326,11 @@
    "construct": "primary_turnout_validated",
    "label": "Primary turnout, validated",
    "definition": "Share of adults with a voter-file record of voting in the primary named in item_text; respondents with no record count as non-voters."
+  },
+  {
+   "construct": "prs8",
+   "label": "How long (have you/has name) lived at this address?",
+   "definition": "How long (have you/has name) lived at this address?"
   },
   {
    "construct": "race_eth",
