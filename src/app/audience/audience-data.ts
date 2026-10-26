@@ -59,12 +59,12 @@ export const shortSegment = (id: string, fallback: string) => SHORT_SEGMENT[id] 
  *  export; a regenerated export corrects itself on first read. */
 export const SEGMENT_SEED: Record<string, number> = {
   ACS: 6,
-  ANES: 13,
-  CES: 7,
-  CPS: 2,
+  ANES: 1518,
+  CES: 943,
+  CPS: 12,
   CVAP: 2,
   ELECTION_RESULT: 1,
-  GSS: 15,
+  GSS: 5541,
   LIFT_ARCHIVE: 3,
   MA_ENROLLMENT: 1,
   PAX_TEST: 2,

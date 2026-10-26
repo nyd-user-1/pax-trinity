@@ -112,3 +112,8 @@ public/sketches/
 # Client reports: originals live in private S3 (library/reports/), never in public/
 data/raw/reports
 public/clips-media/
+
+# The audience export serves from S3 (2026-10-26): the bucket's exports/ prefix
+# behind the Amplify rewrite on /audience-data/. Local copies stay for dev.
+public/audience-data/*
+!public/audience-data/README.md
