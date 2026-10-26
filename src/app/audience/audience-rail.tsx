@@ -2,7 +2,6 @@
 
 import { BarChart3, CheckSquare, ClipboardList, FlaskConical, Landmark, TrendingUp, Users, Vote } from "lucide-react"
 
-import { AccountFooter } from "@/components/admin/account-footer"
 import { SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@govblock/ui/components/ny4/sidebar"
 
 import { shortSource, type SourceGroup } from "./audience-data"
@@ -51,7 +50,6 @@ export function AudienceRail({ groups, source, onSource }: { groups: SourceGroup
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <AccountFooter go={() => {}} />
     </>
   )
 }
