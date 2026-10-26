@@ -1,0 +1,21 @@
+wave,period_start,period_end,geo_code,arm,outcome,subgroup,level,lift,sig,weighted_n,placebo_level,provenance_url,note
+1,2026-10-02,2026-10-07,25,Danielle Allen,support,all,,18,true,512,,file:///Users/brendanstanton/Downloads/MA-Test-1and2.pdf,Massachusetts Wave 1; placebo weighted n 494; lifts as published pre-rounding; overall levels not published
+1,2026-10-02,2026-10-07,25,Danielle Allen,comprehension,all,,3,false,512,,file:///Users/brendanstanton/Downloads/MA-Test-1and2.pdf,placebo weighted n 494
+1,2026-10-02,2026-10-07,25,Littlewood,support,all,,15,true,484,,file:///Users/brendanstanton/Downloads/MA-Test-1and2.pdf,placebo weighted n 494
+1,2026-10-02,2026-10-07,25,Littlewood,comprehension,all,,-3,false,484,,file:///Users/brendanstanton/Downloads/MA-Test-1and2.pdf,placebo weighted n 494
+1,2026-10-02,2026-10-07,25,Donut,support,all,,12,true,518,,file:///Users/brendanstanton/Downloads/MA-Test-1and2.pdf,placebo weighted n 494
+1,2026-10-02,2026-10-07,25,Donut,comprehension,all,,0,false,518,,file:///Users/brendanstanton/Downloads/MA-Test-1and2.pdf,placebo weighted n 494
+1,2026-10-02,2026-10-07,25,Official campaign ad,support,all,,11,true,491,,file:///Users/brendanstanton/Downloads/MA-Test-1and2.pdf,campaign-produced treatment arm; placebo weighted n 494
+1,2026-10-02,2026-10-07,25,Official campaign ad,comprehension,all,,3,false,491,,file:///Users/brendanstanton/Downloads/MA-Test-1and2.pdf,placebo weighted n 494
+1,2026-10-02,2026-10-07,25,Dustin,support,all,,11,true,520,,file:///Users/brendanstanton/Downloads/MA-Test-1and2.pdf,placebo weighted n 494
+1,2026-10-02,2026-10-07,25,Dustin,comprehension,all,,0,false,520,,file:///Users/brendanstanton/Downloads/MA-Test-1and2.pdf,placebo weighted n 494
+1,2026-10-02,2026-10-07,25,Rodriguez,support,all,,2,false,546,,file:///Users/brendanstanton/Downloads/MA-Test-1and2.pdf,placebo weighted n 494
+1,2026-10-02,2026-10-07,25,Rodriguez,comprehension,all,,0,false,546,,file:///Users/brendanstanton/Downloads/MA-Test-1and2.pdf,placebo weighted n 494
+2,2026-10-12,2026-10-15,25,Pahlow,support,all,57,10,true,482,47,file:///Users/brendanstanton/Downloads/MA-Test-1and2.pdf,Massachusetts Wave 2; placebo weighted n 443; lifts are differences of rounded displayed percentages
+2,2026-10-12,2026-10-15,25,Pahlow,comprehension,all,56,11,true,482,45,file:///Users/brendanstanton/Downloads/MA-Test-1and2.pdf,placebo weighted n 443
+2,2026-10-12,2026-10-15,25,DiZoglio,support,all,58,11,true,484,47,file:///Users/brendanstanton/Downloads/MA-Test-1and2.pdf,placebo weighted n 443
+2,2026-10-12,2026-10-15,25,DiZoglio,comprehension,all,54,9,true,484,45,file:///Users/brendanstanton/Downloads/MA-Test-1and2.pdf,placebo weighted n 443
+2,2026-10-12,2026-10-15,25,Matt Wilson,support,all,58,11,true,506,47,file:///Users/brendanstanton/Downloads/MA-Test-1and2.pdf,placebo weighted n 443
+2,2026-10-12,2026-10-15,25,Matt Wilson,comprehension,all,51,6,true,506,45,file:///Users/brendanstanton/Downloads/MA-Test-1and2.pdf,placebo weighted n 443
+2,2026-10-12,2026-10-15,25,Green,support,all,61,14,true,457,47,file:///Users/brendanstanton/Downloads/MA-Test-1and2.pdf,placebo weighted n 443
+2,2026-10-12,2026-10-15,25,Green,comprehension,all,50,5,false,457,45,file:///Users/brendanstanton/Downloads/MA-Test-1and2.pdf,placebo weighted n 443

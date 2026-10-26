@@ -55,6 +55,12 @@
    "file": "ma_enrollment.json"
   },
   {
+   "source": "PAX_TEST",
+   "label": "PAX message-test waves",
+   "rows": 30,
+   "file": "pax_test.json"
+  },
+  {
    "source": "POLL",
    "label": "Published public-opinion polls: toplines from pollsters' releases, and the AP-NORC May 2016 public-use file",
    "rows": 70,
@@ -173,9 +179,19 @@
    "definition": "Agreement that differences in income in America are too large."
   },
   {
+   "construct": "lift_comprehension",
+   "label": "Lift: comprehension",
+   "definition": "Effect of a tested cut on comprehension, arm minus placebo, in percentage points."
+  },
+  {
    "construct": "lift_favorability",
    "label": "Lift: candidate favorability",
    "definition": "Effect of one ad on the favorability index for its campaign's candidate, ad arm minus placebo, in points on a 0-100 scale."
+  },
+  {
+   "construct": "lift_support",
+   "label": "Lift: support",
+   "definition": "Effect of a tested cut on support, arm minus placebo, in percentage points."
   },
   {
    "construct": "lift_vote_choice",
