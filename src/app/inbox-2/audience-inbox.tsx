@@ -26,6 +26,19 @@ import { SegmentGrid } from "./segment-grid"
 // results grid takes the pane — and a cell hands its row to the About panel.
 // /audience keeps the earlier shape for comparison while this one settles.
 
+// Brendan's review slice (2026-10-26): the GSS list narrows to the abortion
+// battery in all 48 versions, party identification, and the five
+// confidence-in-Congress forms, so the depth of rows behind each question —
+// subgroups at every wave or at the latest alone — can be judged one click
+// at a time. Abortion first, then party, then Congress, A to Z by label
+// within each. Delete REVIEW_SLICE to restore the full GSS list.
+const SLICE_GROUPS: string[][] = [
+  ["abany", "abanyg", "abbelief", "abcare", "abchoose", "abdefct1", "abdefctw", "abdefect", "abdefectg", "abfelegl", "abfirm", "abgender", "abhave1", "abhave2", "abhave3", "abhelp1", "abhelp2", "abhelp3", "abhelp4", "abhlth", "abhlthg", "abimp", "abinfo", "abinspay", "ablegal", "abmedgov1", "abmedgov2", "abmelegl", "abmoral", "abnomore", "abnomoreg", "aborct", "abort12", "abpoor", "abpoor1", "abpoorg", "abpoorw", "abrape", "abrapeg", "absingle", "absingleg", "abspno", "abstate1", "abstate2", "gestate", "prochoic", "prolife", "salabort"],
+  ["party_id_7"],
+  ["confidence_congress", "concong", "conlegiy", "trcong", "trlegis"],
+]
+const REVIEW_SLICE = new Map(SLICE_GROUPS.flatMap((ids, rank) => ids.map((id) => [id, rank] as const)))
+
 export function AudienceInbox() {
   const [index, setIndex] = React.useState<AudienceIndex | null>(null)
   const [source, setSource] = React.useState<string | null>(null)
@@ -134,7 +147,11 @@ export function AudienceInbox() {
   const place = React.useCallback((code: string) => geoName.get(code) ?? code, [geoName])
 
   const rows = source ? files[source] : undefined
-  const metricIds = React.useMemo(() => (rows ? metricIdsOf(rows) : []), [rows])
+  const metricIds = React.useMemo(() => {
+    const all = rows ? metricIdsOf(rows) : []
+    if (source !== "GSS") return all
+    return all.filter((id) => REVIEW_SLICE.has(id)).sort((a, b) => (REVIEW_SLICE.get(a) ?? 9) - (REVIEW_SLICE.get(b) ?? 9) || label(a).localeCompare(label(b)))
+  }, [rows, source, label])
   // The rail's counts correct themselves as sources read.
   const segCounts = React.useMemo(() => {
     const m: Record<string, number> = {}
