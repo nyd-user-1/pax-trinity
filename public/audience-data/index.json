@@ -1,0 +1,69 @@
+{
+  "sources": [
+    {
+      "source": "census_cvap",
+      "label": "Census CVAP (fixture)",
+      "rows": 18,
+      "file": "census_cvap.json"
+    },
+    {
+      "source": "gss",
+      "label": "GSS (fixture)",
+      "rows": 26,
+      "file": "gss.json"
+    }
+  ],
+  "constructs": [
+    {
+      "construct": "cvap_total",
+      "label": "Citizen voting-age population",
+      "definition": "Citizens 18 and over, the denominator the weights rake to."
+    },
+    {
+      "construct": "turnout_2024",
+      "label": "Turnout, 2024",
+      "definition": "Share of citizen voting-age population that voted in 2024."
+    },
+    {
+      "construct": "party_id",
+      "label": "Party identification",
+      "definition": "Three-way party identification with leaners allocated."
+    },
+    {
+      "construct": "trust_media",
+      "label": "Trust in media",
+      "definition": "Trust in the press to report fully, accurately and fairly."
+    },
+    {
+      "construct": "open_primaries_support",
+      "label": "Open-primaries support",
+      "definition": "Support for a single primary open to all voters."
+    }
+  ],
+  "geographies": [
+    {
+      "code": "US",
+      "name": "United States",
+      "level": "nation",
+      "parent": null
+    },
+    {
+      "code": "25",
+      "name": "Massachusetts",
+      "level": "state",
+      "parent": "US"
+    },
+    {
+      "code": "36",
+      "name": "New York",
+      "level": "state",
+      "parent": "US"
+    },
+    {
+      "code": "36061",
+      "name": "New York County, NY",
+      "level": "county",
+      "parent": "36"
+    }
+  ]
+}
