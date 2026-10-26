@@ -49,6 +49,12 @@
    "file": "lift_archive.json"
   },
   {
+   "source": "MA_ENROLLMENT",
+   "label": "Massachusetts registered voters and party enrollment by city and town (Secretary of the Commonwealth, Elections Division)",
+   "rows": 35200,
+   "file": "ma_enrollment.json"
+  },
+  {
    "source": "POLL",
    "label": "Published public-opinion polls: toplines from pollsters' releases, and the AP-NORC May 2016 public-use file",
    "rows": 70,
@@ -245,6 +251,11 @@
    "construct": "registration",
    "label": "Voter registration",
    "definition": "Registered to vote for the given election."
+  },
+  {
+   "construct": "registration_by_party",
+   "label": "Registration by party",
+   "definition": "Registered voters by party enrollment, unenrolled status, or political designation, as the Secretary of the Commonwealth counts them."
   },
   {
    "construct": "religious_attendance",
