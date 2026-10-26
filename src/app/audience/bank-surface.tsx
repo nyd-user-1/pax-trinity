@@ -29,7 +29,23 @@ const SLICE_SOURCE = "GSS"
  *  rewordings — so the versions of one construct sit side by side. */
 const SLICE = new Set(["party_id_7", "confidence_congress", "concong", "conlegiy", "trcong", "trlegis"])
 
-type Question = { id: string; label: string; def: string; span: string; waves: number; rows: SourceRow[] }
+// Seeded survey wordings (Brendan authorized 2026-10-26): the card reads as
+// the question would on a survey. These hold until the codebook export lands
+// verbatim texts; scale wordings are phrased from each question's own
+// response bands in the store.
+const WORDING: Record<string, string> = {
+  confidence_congress: "Would you say you have a great deal of confidence, only some confidence, or hardly any confidence at all in the people running Congress?",
+  concong: "How much confidence do you have in Congress?",
+  conlegiy: "On a scale of 1 to 7, where 1 is complete confidence and 7 is no confidence at all, how much confidence do you have in the people running Congress?",
+  trcong: "On a scale of 0 to 10, where 0 is no trust at all and 10 is complete trust, how much do you personally trust Congress?",
+  trlegis: "On a scale of 0 to 10, how much do you trust the U.S. Congress?",
+  party_id_7: "Generally speaking, do you usually think of yourself as a Republican, Democrat, Independent, or what?",
+}
+/** The badge: the source's own mnemonic for the question. */
+const MNEMONIC: Record<string, string> = { confidence_congress: "CONLEGIS", party_id_7: "PARTYID" }
+const mnemonicOf = (id: string) => MNEMONIC[id] ?? id.toUpperCase()
+
+type Question = { id: string; label: string; def: string; wording?: string; span: string; waves: number; rows: SourceRow[] }
 
 export function BankSurface() {
   const [index, setIndex] = React.useState<AudienceIndex | null>(null)
@@ -101,7 +117,8 @@ export function BankSurface() {
       const ys = new Set<string>()
       for (const r of rs) ys.add(year(r[3]))
       const span = [...ys].sort()
-      qs.push({ id, label: defs.get(id)?.label ?? id, def: defs.get(id)?.definition ?? "", span: `${span[0]}–${span[span.length - 1]}`, waves: ys.size, rows: rs })
+      const last = span[span.length - 1]
+      qs.push({ id, label: defs.get(id)?.label ?? id, def: defs.get(id)?.definition ?? "", wording: WORDING[id], span: span[0] === last ? span[0] : `${span[0]}–${last}`, waves: ys.size, rows: rs })
     }
     return qs.sort((a, b) => a.label.localeCompare(b.label))
   }, [rows, index])
@@ -111,7 +128,7 @@ export function BankSurface() {
   }, [questions, open])
 
   const q = query.trim().toLowerCase()
-  const shown = questions.filter((x) => !q || x.label.toLowerCase().includes(q) || x.def.toLowerCase().includes(q) || x.id.toLowerCase().includes(q))
+  const shown = questions.filter((x) => !q || x.label.toLowerCase().includes(q) || x.def.toLowerCase().includes(q) || x.id.toLowerCase().includes(q) || (x.wording ?? "").toLowerCase().includes(q))
   const openQ = questions.find((x) => x.id === open)
 
   const rail = (
@@ -166,11 +183,14 @@ export function BankSurface() {
                 aria-current={open === x.id ? "true" : undefined}
                 className={cn("w-full px-4 py-3 text-left transition-colors hover:bg-accent/60", open === x.id && "bg-muted")}
               >
-                <p className="text-sm font-semibold">{x.label}</p>
-                {x.def && x.def !== x.label && <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">“{x.def}”</p>}
-                <p className="mt-1 text-xs text-muted-foreground tabular-nums">
-                  {x.span} · {x.waves} waves
-                </p>
+                <p className="text-sm font-semibold">{x.wording ?? x.label}</p>
+                {!x.wording && x.def && x.def !== x.label && <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">“{x.def}”</p>}
+                <div className="mt-1.5 flex items-end justify-between gap-2">
+                  <p className="text-xs text-muted-foreground tabular-nums">
+                    {x.span} · {x.waves} {x.waves === 1 ? "wave" : "waves"}
+                  </p>
+                  <span className="shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium tracking-wider text-muted-foreground">{mnemonicOf(x.id)}</span>
+                </div>
               </button>
             </li>
           ))}
