@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Audience — lead sketch</title>
+<style>
+  :root { --blue:#1e3a8a; --lightblue:#2563eb; --lav:#dbeafe; --mist:#f5f7fb; --rule:#e2e8f0; --ink:#0f172a; --mut:#64748b; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#fff; color:var(--ink); font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+  .nav { display:flex; gap:8px; padding:14px 40px; border-bottom:1px solid var(--rule); align-items:center; }
+  .nav a { padding:6px 14px; border-radius:999px; border:1px solid var(--rule); color:var(--mut); text-decoration:none; font-size:13px; }
+  .nav a.on { background:var(--blue); border-color:var(--blue); color:#fff; }
+  .wrap { padding:28px 40px; max-width:1200px; margin:0 auto; }
+  h1 { font-size:22px; letter-spacing:-0.01em; margin:0 0 16px; color:var(--blue); }
+  .chips { display:flex; gap:8px; align-items:center; margin-bottom:20px; }
+  .chip { padding:7px 12px; border:1px solid var(--rule); border-radius:10px; background:#fff; font-size:13px; color:var(--ink); }
+  .chip b { color:var(--blue); font-weight:600; }
+  .chip span.car { color:var(--mut); margin-left:6px; font-size:11px; }
+  .count { margin-left:auto; font-size:13px; color:var(--mut); font-variant-numeric:tabular-nums; }
+  table { border-collapse:collapse; width:100%; margin-bottom:36px; }
+  th, td { border:1px solid var(--rule); padding:9px 12px; text-align:left; font-size:13px; }
+  thead .group th { background:var(--mist); font-weight:600; color:var(--ink); border-bottom:none; }
+  thead .sub th { background:var(--mist); font-weight:500; color:var(--mut); font-size:12px; }
+  td.seg { width:190px; color:var(--ink); }
+  tr.band td { background:var(--mist); color:var(--mut); font-size:12px; font-weight:600; text-transform:none; padding:6px 12px; }
+  .cell { display:flex; align-items:center; gap:8px; font-variant-numeric:tabular-nums; }
+  .bar { height:12px; background:var(--lightblue); border-radius:2px; opacity:.85; }
+  .bar.lav { background:var(--lav); outline:1px solid #bfdbfe; }
+  .v { font-weight:600; }
+  .moe { color:var(--mut); font-size:11px; }
+  .weak { opacity:.38; }
+  .note { color:var(--mut); font-size:12px; margin:-26px 0 34px; }
+</style>
+</head>
+<body>
+<div class="nav">
+  <a class="on" href="audience-lead.html">Lead</a>
+  <a href="audience-inbox.html">Inbox</a>
+  <a href="audience-combined.html">Combined</a>
+  <a href="audience-refined.html">Refined</a>
+  <span style="margin-left:auto;color:#94a3b8;font-size:12px">The four moves on the existing table page — no rail, no panel</span>
+</div>
+<div class="wrap">
+  <h1>Audience</h1>
+
+  <div class="chips">
+    <div class="chip">Source <b>Polls</b><span class="car">▾</span></div>
+    <div class="chip">Metric <b>Open primaries support</b><span class="car">▾</span></div>
+    <div class="chip">Geography <b>United States</b><span class="car">▾</span></div>
+    <div class="chip">Period <b>2016</b><span class="car">▾</span></div>
+    <div class="count">70 rows · n 1,060</div>
+  </div>
+
+  <table>
+    <thead>
+      <tr class="group"><th rowspan="2" style="width:190px">Segment</th><th colspan="3">Open primaries support — "Which is a more fair way to select a nominee?"</th></tr>
+      <tr class="sub"><th>Open primary</th><th>Closed primary</th><th>Skipped</th></tr>
+    </thead>
+    <tbody>
+      <tr class="band"><td colspan="4">All respondents</td></tr>
+      <tr>
+        <td class="seg">Adults</td>
+        <td><div class="cell"><div class="bar" style="width:138px"></div><span class="v">69%</span><span class="moe">±3.9</span></div></td>
+        <td><div class="cell"><div class="bar lav" style="width:58px"></div><span class="v">29%</span><span class="moe">±3.8</span></div></td>
+        <td><div class="cell"><div class="bar lav" style="width:4px"></div><span class="v">2%</span></div></td>
+      </tr>
+      <tr class="band"><td colspan="4">Party</td></tr>
+      <tr>
+        <td class="seg">Democrat</td>
+        <td><div class="cell"><div class="bar" style="width:146px"></div><span class="v">73.0%</span></div></td>
+        <td><div class="cell"><div class="bar lav" style="width:50px"></div><span class="v">25.1%</span></div></td>
+        <td><div class="cell"><div class="bar lav" style="width:4px"></div><span class="v">1.9%</span></div></td>
+      </tr>
+      <tr>
+        <td class="seg">Independent</td>
+        <td><div class="cell"><div class="bar" style="width:148px"></div><span class="v">74.0%</span></div></td>
+        <td><div class="cell"><div class="bar lav" style="width:46px"></div><span class="v">23.2%</span></div></td>
+        <td><div class="cell"><div class="bar lav" style="width:6px"></div><span class="v">2.8%</span></div></td>
+      </tr>
+      <tr>
+        <td class="seg">Republican</td>
+        <td><div class="cell"><div class="bar" style="width:123px"></div><span class="v">61.5%</span></div></td>
+        <td><div class="cell"><div class="bar lav" style="width:74px"></div><span class="v">36.9%</span></div></td>
+        <td><div class="cell"><div class="bar lav" style="width:3px"></div><span class="v">1.6%</span></div></td>
+      </tr>
+      <tr class="band"><td colspan="4">Age</td></tr>
+      <tr>
+        <td class="seg">18–29</td>
+        <td><div class="cell"><div class="bar" style="width:153px"></div><span class="v">76.6%</span></div></td>
+        <td><div class="cell"><div class="bar lav" style="width:44px"></div><span class="v">21.8%</span></div></td>
+        <td><div class="cell weak"><div class="bar lav" style="width:3px"></div><span class="v">1.6%</span></div></td>
+      </tr>
+      <tr>
+        <td class="seg">65+</td>
+        <td><div class="cell"><div class="bar" style="width:129px"></div><span class="v">64.7%</span></div></td>
+        <td><div class="cell"><div class="bar lav" style="width:66px"></div><span class="v">33.1%</span></div></td>
+        <td><div class="cell weak"><div class="bar lav" style="width:4px"></div><span class="v">2.2%</span></div></td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="note">Options spread as columns under one metric header; breakdowns as band rows; a value is a bar at its level; thin cells fade rather than vanish.</p>
+
+  <table>
+    <thead>
+      <tr class="group"><th rowspan="2" style="width:190px">Geography</th><th colspan="4">Party enrollment — Massachusetts, February 1, 2025</th></tr>
+      <tr class="sub"><th>Democrat</th><th>Republican</th><th>Unenrolled</th><th>Other designations</th></tr>
+    </thead>
+    <tbody>
+      <tr class="band"><td colspan="5">Statewide</td></tr>
+      <tr>
+        <td class="seg">Massachusetts <span class="moe">n 5,025,826</span></td>
+        <td><div class="cell"><div class="bar" style="width:52px"></div><span class="v">25.8%</span></div></td>
+        <td><div class="cell"><div class="bar lav" style="width:17px"></div><span class="v">8.4%</span></div></td>
+        <td><div class="cell"><div class="bar" style="width:130px"></div><span class="v">64.8%</span></div></td>
+        <td><div class="cell"><div class="bar lav" style="width:2px"></div><span class="v">1.0%</span></div></td>
+      </tr>
+      <tr class="band"><td colspan="5">By town</td></tr>
+      <tr>
+        <td class="seg">Boston</td>
+        <td><div class="cell"><div class="bar" style="width:79px"></div><span class="v">39.4%</span></div></td>
+        <td><div class="cell"><div class="bar lav" style="width:9px"></div><span class="v">4.6%</span></div></td>
+        <td><div class="cell"><div class="bar" style="width:109px"></div><span class="v">54.6%</span></div></td>
+        <td><div class="cell"><div class="bar lav" style="width:3px"></div><span class="v">1.4%</span></div></td>
+      </tr>
+      <tr>
+        <td class="seg">Worcester</td>
+        <td><div class="cell"><div class="bar" style="width:64px"></div><span class="v">31.8%</span></div></td>
+        <td><div class="cell"><div class="bar lav" style="width:19px"></div><span class="v">9.3%</span></div></td>
+        <td><div class="cell"><div class="bar" style="width:115px"></div><span class="v">57.5%</span></div></td>
+        <td><div class="cell"><div class="bar lav" style="width:3px"></div><span class="v">1.4%</span></div></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+</body>
+</html>

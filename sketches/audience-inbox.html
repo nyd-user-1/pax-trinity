@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Audience — inbox sketch</title>
+<style>
+  :root { --blue:#1e3a8a; --lightblue:#2563eb; --lav:#dbeafe; --mist:#f5f7fb; --rule:#e2e8f0; --ink:#0f172a; --mut:#64748b; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#fff; color:var(--ink); font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+  .nav { display:flex; gap:8px; padding:14px 40px; border-bottom:1px solid var(--rule); align-items:center; }
+  .nav a { padding:6px 14px; border-radius:999px; border:1px solid var(--rule); color:var(--mut); text-decoration:none; font-size:13px; }
+  .nav a.on { background:var(--blue); border-color:var(--blue); color:#fff; }
+  .app { display:grid; grid-template-columns:210px 290px minmax(0,1fr) 420px; height:calc(100vh - 54px); }
+  .rail { border-right:1px solid var(--rule); padding:16px 10px; }
+  .rail h3, .list h3 { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--mut); margin:4px 10px 8px; }
+  .folder { display:flex; justify-content:space-between; padding:7px 10px; border-radius:10px; font-size:13px; color:#475569; }
+  .folder b { font-weight:400; }
+  .folder .n { color:#94a3b8; font-size:11px; font-variant-numeric:tabular-nums; }
+  .folder.on { background:var(--lav); color:var(--blue); font-weight:600; }
+  .list { border-right:1px solid var(--rule); padding:16px 10px; overflow:hidden; }
+  .item { padding:9px 10px; border-radius:10px; }
+  .item.on { background:var(--mist); }
+  .item .t { font-size:13px; font-weight:600; display:flex; justify-content:space-between; align-items:center; }
+  .item.on .t { color:var(--blue); }
+  .item .s { font-size:12px; color:var(--mut); margin-top:2px; }
+  .pin { color:#f59e0b; font-size:11px; }
+  .pane { padding:20px 24px; overflow:auto; }
+  .chips { display:flex; gap:8px; align-items:center; margin-bottom:16px; }
+  .chip { padding:6px 11px; border:1px solid var(--rule); border-radius:10px; font-size:12.5px; }
+  .chip b { color:var(--blue); font-weight:600; }
+  .count { margin-left:auto; font-size:12.5px; color:var(--mut); font-variant-numeric:tabular-nums; }
+  h2 { font-size:17px; margin:0 0 4px; color:var(--blue); }
+  .sub { color:var(--mut); font-size:12.5px; margin-bottom:16px; }
+  table { border-collapse:collapse; width:100%; }
+  th, td { border-bottom:1px solid var(--rule); padding:9px 10px; text-align:left; font-size:13px; }
+  thead th { color:var(--mut); font-weight:500; font-size:12px; background:#fff; }
+  tr.band td { background:var(--mist); color:var(--mut); font-size:12px; font-weight:600; padding:5px 10px; }
+  td.seg { width:150px; }
+  .cell { display:flex; align-items:center; gap:7px; font-variant-numeric:tabular-nums; cursor:pointer; }
+  .base { color:var(--mut); font-size:12px; width:34px; text-align:right; }
+  .pennant { height:13px; background:var(--lightblue); clip-path:polygon(0 0, calc(100% - 7px) 0, 100% 50%, calc(100% - 7px) 100%, 0 100%); }
+  .d { font-weight:600; }
+  .weak { opacity:.35; }
+  .cell.sel { outline:2px solid var(--lightblue); outline-offset:2px; border-radius:3px; }
+  .panel { border-left:1px solid var(--rule); padding:20px; overflow:auto; background:#fff; }
+  .panel h3 { margin:0 0 2px; font-size:14px; color:var(--blue); }
+  .panel .where { color:var(--mut); font-size:12px; margin-bottom:14px; }
+  .kv { display:grid; grid-template-columns:1fr auto; gap:6px 12px; font-size:13px; border-top:1px solid var(--rule); padding:10px 0; }
+  .kv .k { color:var(--mut); }
+  .kv .v { font-variant-numeric:tabular-nums; font-weight:600; text-align:right; }
+  .word { font-size:12.5px; color:var(--ink); background:var(--mist); border-radius:10px; padding:10px 12px; margin:10px 0; }
+  .prov { font-size:11.5px; color:var(--mut); word-break:break-all; }
+  .bench { margin-top:14px; border-top:1px solid var(--rule); padding-top:10px; }
+  .bench h4 { margin:0 0 8px; font-size:12px; color:var(--mut); font-weight:600; text-transform:uppercase; letter-spacing:.05em; }
+  .brow { display:flex; justify-content:space-between; font-size:12.5px; padding:4px 0; }
+  .brow .v { font-variant-numeric:tabular-nums; font-weight:600; }
+</style>
+</head>
+<body>
+<div class="nav">
+  <a href="audience-lead.html">Lead</a>
+  <a class="on" href="audience-inbox.html">Inbox</a>
+  <a href="audience-combined.html">Combined</a>
+  <a href="audience-refined.html">Refined</a>
+  <span style="margin-left:auto;color:#94a3b8;font-size:12px">The inbox dress: sources as folders, metrics as the list, a metric as the read</span>
+</div>
+<div class="app">
+  <div class="rail">
+    <h3>Sources</h3>
+    <div class="folder"><b>Census (ACS)</b><span class="n">23,488</span></div>
+    <div class="folder"><b>Voting-age citizens</b><span class="n">89,016</span></div>
+    <div class="folder on"><b>Turnout (CPS)</b><span class="n">2,580</span></div>
+    <div class="folder"><b>Election surveys</b><span class="n">61,568</span></div>
+    <div class="folder"><b>Social survey</b><span class="n">31,824</span></div>
+    <div class="folder"><b>MA enrollment</b><span class="n">35,200</span></div>
+    <div class="folder"><b>Polls</b><span class="n">70</span></div>
+    <div class="folder"><b>Results</b><span class="n">13</span></div>
+    <div class="folder"><b>Lift dataset</b><span class="n">1,583</span></div>
+  </div>
+  <div class="list">
+    <h3>Metrics</h3>
+    <div class="item on"><div class="t">Voted, 2024 <span class="pin">★</span></div><div class="s">65.3% of citizens · US</div></div>
+    <div class="item"><div class="t">Registered, 2024</div><div class="s">73.6% of citizens · US</div></div>
+    <div class="item"><div class="t">Trust in government</div><div class="s">22% · 2012, latest in series</div></div>
+    <div class="item"><div class="t">Open primaries support <span class="pin">★</span></div><div class="s">71% support · Jan 2026</div></div>
+    <div class="item"><div class="t">Party enrollment</div><div class="s">64.8% unenrolled · MA 2025</div></div>
+    <div class="item"><div class="t">Lift, favorability</div><div class="s">median +1.27 · 433 ads</div></div>
+  </div>
+  <div class="pane">
+    <div class="chips">
+      <div class="chip">Sources <b>1</b></div>
+      <div class="chip">Metrics <b>2</b></div>
+      <div class="chip">Segments <b>All ▾</b></div>
+      <div class="chip">Filter <b>MA + US ▾</b></div>
+      <div class="count">2,580 rows</div>
+    </div>
+    <h2>Voted, 2024</h2>
+    <div class="sub">Share of citizens who voted, November 2024 · the baseline is the national figure; the pennant is the segment against it</div>
+    <table>
+      <thead><tr><th style="width:150px">Segment</th><th>Voted, 2024</th><th>Registered, 2024</th></tr></thead>
+      <tbody>
+        <tr class="band"><td colspan="3">Geography</td></tr>
+        <tr>
+          <td class="seg">United States</td>
+          <td><div class="cell"><span class="base">65.3</span><span class="d" style="color:#64748b">baseline</span></div></td>
+          <td><div class="cell"><span class="base">73.6</span><span class="d" style="color:#64748b">baseline</span></div></td>
+        </tr>
+        <tr>
+          <td class="seg">Massachusetts</td>
+          <td><div class="cell sel"><span class="base">65.3</span><div class="pennant" style="width:46px"></div><span class="d">+3.6</span></div></td>
+          <td><div class="cell"><span class="base">73.6</span><div class="pennant" style="width:26px"></div><span class="d">+1.8</span></div></td>
+        </tr>
+        <tr class="band"><td colspan="3">Sex</td></tr>
+        <tr>
+          <td class="seg">Female</td>
+          <td><div class="cell"><span class="base">65.3</span><div class="pennant" style="width:22px"></div><span class="d">+1.7</span></div></td>
+          <td><div class="cell"><span class="base">73.6</span><div class="pennant" style="width:18px"></div><span class="d">+1.4</span></div></td>
+        </tr>
+        <tr>
+          <td class="seg">Male</td>
+          <td><div class="cell"><span class="base">65.3</span><div class="pennant" style="width:24px;transform:scaleX(-1)"></div><span class="d">−1.8</span></div></td>
+          <td><div class="cell"><span class="base">73.6</span><div class="pennant" style="width:20px;transform:scaleX(-1)"></div><span class="d">−1.5</span></div></td>
+        </tr>
+        <tr class="band"><td colspan="3">Age</td></tr>
+        <tr>
+          <td class="seg">18–29</td>
+          <td><div class="cell"><span class="base">65.3</span><div class="pennant" style="width:112px;transform:scaleX(-1)"></div><span class="d">−17.3</span></div></td>
+          <td><div class="cell"><span class="base">73.6</span><div class="pennant" style="width:82px;transform:scaleX(-1)"></div><span class="d">−12.8</span></div></td>
+        </tr>
+        <tr>
+          <td class="seg">65+</td>
+          <td><div class="cell"><span class="base">65.3</span><div class="pennant" style="width:66px"></div><span class="d">+10.2</span></div></td>
+          <td><div class="cell"><span class="base">73.6</span><div class="pennant" style="width:48px"></div><span class="d">+7.4</span></div></td>
+        </tr>
+        <tr class="band"><td colspan="3">Race and ethnicity</td></tr>
+        <tr>
+          <td class="seg">Other or multiracial</td>
+          <td><div class="cell weak"><span class="base">65.3</span><div class="pennant" style="width:8px"></div><span class="d">+0.6</span></div></td>
+          <td><div class="cell weak"><span class="base">73.6</span><div class="pennant" style="width:6px"></div><span class="d">+0.4</span></div></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="panel">
+    <h3>Voted, 2024 — Massachusetts</h3>
+    <div class="where">Turnout (CPS) · November 2024 supplement</div>
+    <div class="kv">
+      <span class="k">Estimate</span><span class="v">68.9%</span>
+      <span class="k">Margin of error</span><span class="v">±1.9</span>
+      <span class="k">Respondents</span><span class="v">1,912</span>
+      <span class="k">Weight</span><span class="v">PWSSWGT</span>
+    </div>
+    <div class="word">"In the election on November 5, 2024, did you vote?" — among citizens; no-response stays in the base.</div>
+    <div class="prov">www2.census.gov/programs-surveys/cps/datasets/2024/supp/nov24pub.csv</div>
+    <div class="bench">
+      <h4>Same metric, other sources</h4>
+      <div class="brow"><span>Official P20 table, MA 2024</span><span class="v">68.9%</span></div>
+      <div class="brow"><span>CPS, MA 2020</span><span class="v">66.3%</span></div>
+      <div class="brow"><span>CPS, US 2024</span><span class="v">65.3%</span></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
