@@ -131,21 +131,18 @@ export function AudienceInbox() {
     if (item.r) setAbout({ r: item.r, metric: railSeg, segment: item.opt })
   }
 
-  // A segment joins the survey draft as its wording where the source carries
-  // one (polls and results do), its definition where it does not.
+  // A segment joins the survey draft as a question — its wording verbatim
+  // where the source carries one (polls and results do), its label where it
+  // does not — with the segment's bands as the answer options.
   const addToSurvey = React.useCallback(
     (id: string) => {
-      const texts: string[] = []
-      for (const r of rows ?? []) if (r[0] === id && r[10] && !texts.includes(r[10])) texts.push(r[10])
-      if (!texts.length) {
-        const d = defs.get(id)
-        texts.push(d ? `${label(id)} — ${d}` : label(id))
-      }
-      const draft = addToDraft(texts)
-      setDrafted(draft.statements.length)
-      window.setTimeout(() => setDrafted((current) => (current === draft.statements.length ? null : current)), 6000)
+      const wording = (rows ?? []).find((r) => r[0] === id && r[10])?.[10] ?? null
+      const c = info.get(id) as MetricInfo | undefined
+      const draft = addToDraft([{ text: wording ?? label(id), options: c?.options ?? [] }])
+      setDrafted(draft.questions.length)
+      window.setTimeout(() => setDrafted((current) => (current === draft.questions.length ? null : current)), 6000)
     },
-    [rows, defs, label]
+    [rows, info, label]
   )
 
   const showList = split === "vertical" || !focus
@@ -341,7 +338,7 @@ export function AudienceInbox() {
       {drafted != null && (
         <div role="status" className="absolute bottom-4 left-4 z-20 flex items-center gap-4 rounded-md bg-foreground px-4 py-2.5 text-sm text-background shadow-lg">
           <span>
-            In the survey draft: {drafted} {drafted === 1 ? "statement" : "statements"}
+            In the survey draft: {drafted} {drafted === 1 ? "question" : "questions"}
           </span>
           <Link href="/consensus/admin?c=audience-draft" className="font-medium text-background/80 hover:text-background">
             View

@@ -1,41 +1,43 @@
-import type { Conversation } from "@/lib/consensus/data"
-
-// The drafted survey, held in the consensus store's local fallback: one
-// Conversation-shaped object in this browser's localStorage, written by the
-// audience Questions view and read by the consensus admin until it is wired
-// into a live conversation or discarded.
+// The drafted survey, held in this browser's localStorage: written by the
+// audience instrument's Add to survey and read by the consensus admin until
+// it is fielded or discarded. A picked segment arrives as a question — its
+// wording verbatim where the source carries one, its label where it does not
+// — with the segment's bands as the answer options, the shape a survey
+// actually needs. (Conversation-shaped until 2026-10-26, which could hold
+// only bare statements.)
 
 export const DRAFT_SLUG = "audience-draft"
 const KEY = "pax:consensus:draft"
 
-const tally = () => ({ agree: 0, disagree: 0, pass: 0, seen: 0 })
+export type DraftQuestion = { text: string; options: string[] }
+export type SurveyDraft = { slug: string; title: string; description: string; questions: DraftQuestion[] }
 
-export function saveDraft(texts: string[]): Conversation {
-  const draft: Conversation = {
+export function saveDraft(questions: DraftQuestion[]): SurveyDraft {
+  const draft: SurveyDraft = {
     slug: DRAFT_SLUG,
     title: "Draft survey",
-    topic: "Drafted from the audience database",
-    description: "Question wordings picked on /audience, verbatim from their sources.",
-    source: "/audience",
-    stats: { views: 0, voters: 0, commenters: 0, statements: texts.length, groups: 0, votes: 0 },
-    groups: [],
-    statements: texts.map((text, tid) => ({ tid, text, moderated: 0, votes: tally(), byGroup: {} })),
+    description: "Questions picked on the audience instrument, each with its source's own answer options.",
+    questions,
   }
   localStorage.setItem(KEY, JSON.stringify(draft))
   return draft
 }
 
-/** Statements joining an existing draft, duplicates dropped; no draft starts one. */
-export function addToDraft(texts: string[]): Conversation {
+/** Questions joining the held draft, duplicates by wording dropped; no draft starts one. */
+export function addToDraft(questions: DraftQuestion[]): SurveyDraft {
   const held = readDraft()
-  const kept = held ? held.statements.map((s) => s.text) : []
-  return saveDraft([...kept, ...texts.filter((t) => !kept.includes(t))])
+  const kept = held?.questions ?? []
+  const texts = kept.map((q) => q.text)
+  return saveDraft([...kept, ...questions.filter((q) => !texts.includes(q.text))])
 }
 
-export function readDraft(): Conversation | null {
+export function readDraft(): SurveyDraft | null {
   try {
     const raw = localStorage.getItem(KEY)
-    return raw ? (JSON.parse(raw) as Conversation) : null
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as SurveyDraft
+    // A Conversation-shaped draft from before the reshape reads as empty.
+    return Array.isArray(parsed.questions) ? parsed : null
   } catch {
     return null
   }
