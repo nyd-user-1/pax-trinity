@@ -50,8 +50,9 @@ def post(body, url=URL, raw=None):
     ({"watched": 1.5}, "watched must be"),
     ({"comprehensionCorrect": False}, "does not match"),
     ({"startedAt": "2099-01-01T00:00:00.000Z"}, "not in the future"),
-    ({"src": "javascript:alert(1)"}, "src must be"),
+    ({"src": "javascript:alert(1)"}, "not the video this arm plays"),
     ({"test": "another-test"}, "test does not match"),
+    ({"src": "https://elsewhere.example/other.mp4"}, "not the video this arm plays"),
 ])
 def test_bad_records_are_refused(over, message):
     r = post(record(**over))

@@ -3,7 +3,8 @@ import "server-only"
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb"
 import { DynamoDBDocumentClient, PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb"
 
-import type { TestRecord } from "@/lib/tests/types"
+import { PUBLISHED } from "@/components/clips/catalog"
+import { PLACEBO, type TestRecord } from "@/lib/tests/types"
 
 // Message-test responses: one DynamoDB table, append-only.
 //
@@ -14,7 +15,8 @@ import type { TestRecord } from "@/lib/tests/types"
 //
 // The id is minted here on the server, so its time prefix is receipt time. Nothing that
 // identifies the respondent is stored beyond the panel's own pid: no cookie, no IP, no user agent.
-// Every record is checked against its test's own record (getTest), never a static list.
+// Every record is checked against its test's own record (getTest), never a static list, and an
+// arm's video against the published clip catalog. Only a test in the field records anything.
 
 const TABLE = process.env.PAX_TRINITY_TEST_RESPONSES_TABLE ?? "pax-trinity-test-responses"
 const client = DynamoDBDocumentClient.from(new DynamoDBClient({ region: process.env.PAX2_REGION ?? "us-east-1" }), {
@@ -83,6 +85,15 @@ function pidOf(v: unknown): { ok: true; pid: string | null } | Invalid {
   return { ok: true, pid: v }
 }
 
+/** The video an arm plays: the test's placebo source, or the published clip's own src. Null when
+ *  the arm is not in the test, or its clip is missing from the catalog or has no playable file
+ *  (a YouTube-only clip cannot play in the flow's video element). */
+export function armSrc(test: TestRecord, arm: unknown): string | null {
+  if (typeof arm !== "string" || !test.arms.includes(arm)) return null
+  if (arm === PLACEBO) return test.placeboSrc
+  return PUBLISHED.find((c) => c.id === arm)?.src || null
+}
+
 /** Every question the test asks, key -> the values its choices allow. */
 function questionValues(test: TestRecord): Map<string, Set<string>> {
   const out = new Map<string, Set<string>>()
@@ -98,6 +109,7 @@ export function validateStart(test: TestRecord, body: Record<string, unknown>, n
   if (extra.length) return fail(`unknown fields: ${extra.join(", ")}`)
   if (body.test !== test.id) return fail("test does not match the URL")
   if (typeof body.arm !== "string" || !test.arms.includes(body.arm)) return fail("arm is not one of the test's arms")
+  if (!armSrc(test, body.arm)) return fail("the arm's clip is not a playable clip in the published catalog")
   if (isoTime(body.startedAt, now) === null) return fail("startedAt must be an ISO UTC time, not in the future")
   const pid = pidOf(body.pid)
   if (!pid.ok) return pid
@@ -127,7 +139,9 @@ export function validateRecord(
   if (!pid.ok) return pid
   if (body.test !== test.id) return fail("test does not match the URL")
   if (typeof body.arm !== "string" || !test.arms.includes(body.arm)) return fail("arm is not one of the test's arms")
-  if (body.src !== undefined && (typeof body.src !== "string" || body.src.length > 500 || !/^https:\/\//.test(body.src))) return fail("src must be an https URL")
+  const expectedSrc = armSrc(test, body.arm)
+  if (!expectedSrc) return fail("the arm's clip is not a playable clip in the published catalog")
+  if (body.src !== undefined && body.src !== expectedSrc) return fail("src is not the video this arm plays")
   const started = isoTime(body.startedAt, now)
   const completed = isoTime(body.completedAt, now)
   if (started === null || completed === null) return fail("startedAt and completedAt must be ISO UTC times, not in the future")
