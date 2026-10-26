@@ -3,7 +3,7 @@
 import * as React from "react"
 
 import { PUBLISHED } from "@/components/clips/store"
-import { PLACEBO_SRC, TEST, type Arm, type Choice } from "@/lib/tests/open-primaries"
+import { PLACEBO, panelRedirect, type Choice, type TestRecord } from "@/lib/tests/types"
 import { Button } from "@govblock/ui/components/nova/button"
 import { cn } from "@govblock/ui/lib/utils"
 import { ArrowLeft } from "lucide-react"
@@ -12,21 +12,40 @@ import { ArrowLeft } from "lucide-react"
 // the framing read once on the way in, one card at a time advancing on the
 // answer, back but never forward, a thin rule for progress.
 
-// Five entry questions, then the video, the explanation, the ballot and the
-// comprehension question.
-const STEPS = TEST.entry.length + 4
-const VIDEO = TEST.entry.length
-const EXPLANATION = VIDEO + 1
-const BALLOT = EXPLANATION + 1
-const COMPREHENSION = BALLOT + 1
+// The collector (/api/tests/<id>/responses). One retry after a short pause, then give up: the
+// respondent's completion never waits on more than that. A 4xx means the body itself was
+// refused, so it is not retried. keepalive lets the request outlive a tab closed on the code screen.
+async function send(url: string, body: object): Promise<boolean> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), keepalive: true })
+      if (r.ok) return true
+      if (r.status >= 400 && r.status < 500) return false
+    } catch {
+      // network failure: fall through to the retry
+    }
+    if (attempt === 0) await new Promise((resolve) => setTimeout(resolve, 1500))
+  }
+  return false
+}
 
-export function Flow({ arm }: { arm: Arm }) {
-  const src = arm === "placebo" ? PLACEBO_SRC : (PUBLISHED.find((c) => c.id === arm)?.src ?? PLACEBO_SRC)
+const COUNT: Record<number, string> = { 1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight", 9: "nine", 10: "ten" }
+
+export function Flow({ arm, pid, test }: { arm: string; pid: string | null; test: TestRecord }) {
+  // The entry questions, then the video, the explanation, the ballot and the comprehension question.
+  const STEPS = test.entry.length + 4
+  const VIDEO = test.entry.length
+  const EXPLANATION = VIDEO + 1
+  const BALLOT = EXPLANATION + 1
+  const COMPREHENSION = BALLOT + 1
+  const collector = `/api/tests/${test.id}/responses`
+  const src = arm === PLACEBO ? test.placeboSrc : (PUBLISHED.find((c) => c.id === arm)?.src ?? test.placeboSrc)
   const [entered, setEntered] = React.useState(false)
   const [at, setAt] = React.useState(0)
   const [answers, setAnswers] = React.useState<Record<string, string>>({})
   const [watched, setWatched] = React.useState(0)
   const [code, setCode] = React.useState<string | null>(null)
+  const [leaving, setLeaving] = React.useState(false)
   const startedAt = React.useRef(new Date().toISOString())
   const videoRef = React.useRef<HTMLVideoElement>(null)
 
@@ -49,23 +68,37 @@ export function Flow({ arm }: { arm: Arm }) {
 
   const finish = (comprehension: string) => {
     const record = {
-      test: TEST.id,
+      test: test.id,
+      status: "complete" as const,
+      pid,
       arm,
       src,
       startedAt: startedAt.current,
       completedAt: new Date().toISOString(),
       answers: { ...answers, comprehension },
-      comprehensionCorrect: comprehension === TEST.comprehension.correct,
+      comprehensionCorrect: comprehension === test.comprehension.correct,
       watched: Math.round(watched * 100) / 100,
       code: crypto.randomUUID().slice(0, 8).toUpperCase(),
     }
-    // The response stays in the browser for now: one object, kept in
-    // sessionStorage and logged. TODO: POST this same object to a collector
-    // route (/api/tests/[id]/responses) when one exists — this is the seam.
-    sessionStorage.setItem(`pax:test:${TEST.id}`, JSON.stringify(record))
-    console.log("message-test response", record)
+    // The record is kept in sessionStorage as well as posted. With a panel's complete template
+    // and a pid, the respondent goes back to the panel once the post has had its try (and its
+    // one retry); otherwise the code shows at once, and a failed post leaves that screen as it is.
+    sessionStorage.setItem(`pax:test:${test.id}`, JSON.stringify(record))
     setCode(record.code)
+    const back = test.panel && pid ? panelRedirect(test.panel.completeUrl, pid) : null
+    if (back) setLeaving(true)
     setAt((n) => n + 1)
+    void send(collector, record).then((ok) => {
+      sessionStorage.setItem(`pax:test:${test.id}:delivered`, ok ? "yes" : "no")
+      if (!ok) console.warn("message-test response not delivered; it stays in sessionStorage")
+      if (back) window.location.assign(back)
+    })
+  }
+
+  const start = () => {
+    setEntered(true)
+    // A start is logged so the monitor can count, per arm, who began and did not finish.
+    void send(collector, { kind: "start", test: test.id, arm, pid, startedAt: startedAt.current })
   }
 
   if (!entered)
@@ -73,14 +106,16 @@ export function Flow({ arm }: { arm: Arm }) {
       <main className="min-h-dvh bg-white">
         <div className="mx-auto flex min-h-dvh w-full max-w-[773px] flex-col justify-center px-6 py-10">
           <div className="flex flex-col gap-5 rounded-xl border border-slate-200 p-8">
-            <h1 className="text-2xl font-semibold tracking-tight text-pax2-blue">{TEST.title}</h1>
+            <h1 className="text-2xl font-semibold tracking-tight text-pax2-blue">{test.title}</h1>
             <ul className="flex list-disc flex-col gap-1.5 pl-5 text-sm text-slate-500">
-              <li>I ask five quick questions about you.</li>
+              <li>
+                I ask {COUNT[test.entry.length] ?? test.entry.length} quick question{test.entry.length === 1 ? "" : "s"} about you.
+              </li>
               <li>I play one short video. Watch it through.</li>
               <li>I ask how you would vote on a ballot measure, then one question about it.</li>
               <li>Your completion code is on the last screen.</li>
             </ul>
-            <Button onClick={() => setEntered(true)} className="self-start">
+            <Button onClick={start} className="self-start">
               Start
             </Button>
           </div>
@@ -89,13 +124,13 @@ export function Flow({ arm }: { arm: Arm }) {
     )
 
   const question =
-    at < VIDEO ? TEST.entry[at] : at === BALLOT ? { key: "ballot", ...TEST.ballot } : at === COMPREHENSION ? { key: "comprehension", ...TEST.comprehension } : null
+    at < VIDEO ? test.entry[at] : at === BALLOT ? { key: "ballot", ...test.ballot } : at === COMPREHENSION ? { key: "comprehension", ...test.comprehension } : null
 
   return (
     <main className="min-h-dvh bg-white">
       <div className="mx-auto flex w-full max-w-[773px] flex-col gap-6 px-6 py-10">
         <div className="flex items-center justify-between text-xs text-slate-500">
-          <span>{TEST.title}</span>
+          <span>{test.title}</span>
           {at < STEPS && (
             <span className="flex items-center gap-2 tabular-nums">
               {/* Back, never forward: a card can be revisited, not skipped ahead of. */}
@@ -157,11 +192,16 @@ export function Flow({ arm }: { arm: Arm }) {
           </section>
         ) : at === EXPLANATION ? (
           <section className="flex flex-col gap-4 rounded-xl border border-slate-200 p-6">
-            <h2 className="text-lg font-semibold tracking-tight text-slate-900">{TEST.explanationTitle}</h2>
-            <p className="text-sm leading-6 text-slate-600">{TEST.explanation}</p>
+            <h2 className="text-lg font-semibold tracking-tight text-slate-900">{test.explanationTitle}</h2>
+            <p className="text-sm leading-6 text-slate-600">{test.explanation}</p>
             <Button onClick={() => setAt((n) => n + 1)} className="self-start">
               Continue
             </Button>
+          </section>
+        ) : leaving ? (
+          <section className="flex flex-col gap-4 rounded-xl border border-slate-200 p-6">
+            <h2 className="text-lg font-semibold tracking-tight text-slate-900">That is everything</h2>
+            <p className="text-sm text-slate-600">Taking you back to the survey panel.</p>
           </section>
         ) : (
           <section className="flex flex-col gap-4 rounded-xl border border-slate-200 p-6">
