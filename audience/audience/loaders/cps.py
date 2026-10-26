@@ -1,31 +1,28 @@
-"""CPS November Voting and Registration Supplement, 2016-2024, via the IPUMS CPS API:
-turnout and registration for the US and Massachusetts, overall and by sex, age bucket,
-race_eth, education and family income, per election year.
+"""CPS November Voting and Registration Supplement, 2016-2024, read from the Census Bureau's
+public-use files: turnout and registration for the US and Massachusetts, overall and by sex,
+age bucket, race_eth, education and family income, per election year.
 
-IPUMS builds extracts asynchronously. The extract is defined once below; its sha256 names
-the cache directory raw/ipums/<hash>/. The loader:
-  1. uses raw/ipums/<hash>/*.csv.gz if it is there (no API call);
-  2. else, if raw/ipums/<hash>/submitted.json records an extract number, polls that extract
-     (it never resubmits a definition it has already submitted);
-  3. else submits the definition, records the number, polls until the extract is built,
-     and downloads it.
-A poll that outlasts --wait-minutes leaves the extract number in place; rerun to resume.
-Without IPUMS_API_KEY in audience/.env (and no cached file) it prints how to get a key and
-writes nothing.
+The files need no registration and are cached once under raw/cps/:
+  2020, 2022, 2024  nov<yy>pub.csv
+  2016, 2018        nov<yy>pub.dat.gz, fixed width; Census publishes no CSV for these years.
+Variable names, positions and codes come from each year's technical documentation
+(techdocs/cpsnov<yy>.pdf, record layout). The basic-CPS fields sit at the same positions in
+every year; only the supplement items PES1 and PES2 move. Every year's documentation says
+the supplement has no weight of its own and directs the basic final weight, PWSSWGT
+(4 implied decimals), for tallying supplement items.
 
 Rates follow the Census Bureau's P20 convention. The base is every U.S. citizen 18 and over
-in the civilian population. Refused, don't know, no response and supplement non-interviews
-stay in the base and are reported as their own option, "No response", so "Voted" is the
-P20 "percent voted (citizen)". Respondents who voted count as registered (the supplement
-does not ask them). Turnout among those who answered is Voted / (Voted + Did not vote).
+who is an adult civilian household member (PRTAGE >= 18, PRCITSHP 1-4, PRPERTYP 2) in an
+interviewed household. Don't know, refused and no response (PES1 -2, -3, -9) stay in the
+base and are reported as their own option, "No response", so "Voted" is the P20 "percent
+voted (citizen)". Respondents who voted count as registered (PES2 is asked only of
+non-voters). Turnout among those who answered is Voted / (Voted + Did not vote).
 """
 
 from __future__ import annotations
 
 import datetime as dt
-import hashlib
-import json
-import time
+import re
 from pathlib import Path
 
 import numpy as np
@@ -33,172 +30,173 @@ import pandas as pd
 
 from .. import categories as cat
 from .. import config
-from ..db import Store
 from .. import survey
+from ..db import Store
 from ..survey import MIN_CELL_N
 
 SOURCE = "CPS"
-SOURCE_VERSION = "CPS November Voting and Registration Supplement 2016-2024 (IPUMS CPS)"
-API = "https://api.ipums.org"
-IPUMS_URL = "https://cps.ipums.org/cps/"
 YEARS = (2016, 2018, 2020, 2022, 2024)
+DATASETS = "https://www2.census.gov/programs-surveys/cps/datasets"
+TECHDOCS = "https://www2.census.gov/programs-surveys/cps/techdocs"
+FILES = {
+    2016: "nov16pub.dat.gz",
+    2018: "nov18pub.dat.gz",
+    2020: "nov20pub.csv",
+    2022: "nov22pub.csv",
+    2024: "nov24pub.csv",
+}
+# Fixture and alternate names: nov20pub.csv, nov20pub_SYNTHETIC.csv, nov16pub.dat.gz ...
+FILE_NAME = re.compile(r"^nov(\d{2})pub.*\.(csv|dat|dat\.gz)$", re.I)
 
-# The brief's ten variables plus CITIZEN (the P20 base is citizens; VOTED alone cannot
-# separate non-citizens from supplement non-interviews) and POPSTAT (the P20 universe is
-# the civilian population; POPSTAT 1 = adult civilian).
-VARIABLES = ("VOSUPPWT", "VOTED", "VOREG", "AGE", "SEX", "RACE", "HISPAN", "EDUC", "FAMINC",
-             "STATEFIP", "CITIZEN", "POPSTAT")
+# Record layout, 1-based inclusive positions, from cpsnov16.pdf and cpsnov18.pdf (identical
+# for these fields in 2020-2024 as well).
+BASIC_LAYOUT = {
+    "HRYEAR4": (18, 21), "HEFAMINC": (39, 40), "HRINTSTA": (57, 58), "GESTFIPS": (93, 94),
+    "PRTAGE": (122, 123), "PESEX": (129, 130), "PEEDUCA": (137, 138), "PTDTRACE": (139, 140),
+    "PEHSPNON": (157, 158), "PRPERTYP": (161, 162), "PRCITSHP": (172, 173),
+    "PWSSWGT": (613, 622),
+}
+SUPPLEMENT_LAYOUT = {
+    2016: {"PES1": (951, 952), "PES2": (953, 954)},
+    2018: {"PES1": (1001, 1002), "PES2": (1003, 1004)},
+}
+COLUMNS = (*BASIC_LAYOUT, "PES1", "PES2")
+WEIGHT_DECIMALS = 10_000
 
-EXTRACT = {
-    "description": "PAX audience database: CPS November voting supplements 2016-2024",
-    "dataStructure": {"rectangular": {"on": "P"}},
-    "dataFormat": "csv",
-    "samples": {f"cps{y}_11s": {} for y in YEARS},
-    "variables": {v: {} for v in VARIABLES},
+# PES1 and PES2 as printed in each year's technical documentation. 2016 and 2018 print the
+# date as "November X, XXXX".
+_PES1 = ("In any election, some people are not able to vote because they are sick or busy or "
+         "have some other reason, and others do not want to vote. Did (you/name) vote in the "
+         "election held on Tuesday, {date}?")
+_PES2 = "(Were you/Was name) registered to vote in the {date} election?"
+ELECTION_DATE = {
+    2016: "November X, XXXX", 2018: "November X, XXXX", 2020: "November 3, 2020",
+    2022: "November 8, 2022", 2024: "November 5, 2024",
 }
 
-KEY_INSTRUCTIONS = """\
-IPUMS_API_KEY is not set, and no CPS extract is cached under {cache}/.
-Register (free) at https://account.ipums.org/user/new and request IPUMS CPS access, then
-create an API key at https://account.ipums.org/api_keys and add this line to audience/.env:
 
-    IPUMS_API_KEY=<your key>
-
-and rerun: python -m audience.load cps
-(IPUMS builds the extract in a few minutes; the loader waits for it.) No rows were written."""
+def item_text(construct: str, year: int) -> str:
+    template = _PES1 if construct == "turnout" else _PES2
+    return template.format(date=ELECTION_DATE[year])
 
 
-def extract_hash(definition: dict = EXTRACT) -> str:
-    blob = json.dumps(definition, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(blob.encode()).hexdigest()[:16]
+def data_url(year: int) -> str:
+    return f"{DATASETS}/{year}/supp/{FILES[year]}"
 
 
-def cache_dir(raw_dir: Path | None = None) -> Path:
-    base = Path(raw_dir) if raw_dir is not None else config.RAW / "ipums"
-    return base / extract_hash()
+def doc_url(year: int) -> str:
+    return f"{TECHDOCS}/cpsnov{year % 100:02d}.pdf"
 
 
-def cached_file(raw_dir: Path | None = None) -> Path | None:
-    d = cache_dir(raw_dir)
-    files = sorted(d.glob("*.csv.gz")) + sorted(d.glob("*.csv"))
-    return files[0] if files else None
+def source_version(year: int) -> str:
+    return f"CPS November {year} supplement (Census public-use file)"
 
 
-# -- IPUMS API ---------------------------------------------------------------------------
-
-def _headers(key: str) -> dict:
-    return {"Authorization": key, "Content-Type": "application/json"}
+def _dir(raw_dir: Path | None) -> Path:
+    return Path(raw_dir) if raw_dir is not None else config.RAW / "cps"
 
 
-def submit(key: str, session=None) -> int:
+def locate(raw_dir: Path | None = None) -> dict[int, Path]:
+    found: dict[int, Path] = {}
+    d = _dir(raw_dir)
+    if not d.exists():
+        return found
+    for p in sorted(d.iterdir()):
+        m = FILE_NAME.match(p.name)
+        if m and not p.name.endswith(".part"):
+            year = 2000 + int(m.group(1))
+            if year in YEARS:
+                found.setdefault(year, p)
+    return found
+
+
+def fetch(year: int, raw_dir: Path | None = None) -> Path | None:
+    """Download one year's public-use file into raw/cps/. None (after printing) on failure."""
     import requests
 
-    http = session or requests
-    resp = http.post(f"{API}/extracts?collection=cps&version=2", headers=_headers(key),
-                     data=json.dumps(EXTRACT), timeout=60)
-    resp.raise_for_status()
-    return int(resp.json()["number"])
-
-
-def status(key: str, number: int, session=None) -> dict:
-    import requests
-
-    http = session or requests
-    resp = http.get(f"{API}/extracts/{number}?collection=cps&version=2",
-                    headers=_headers(key), timeout=60)
-    resp.raise_for_status()
-    return resp.json()
-
-
-def download(key: str, url: str, target: Path, session=None) -> Path:
-    import requests
-
-    http = session or requests
-    with http.get(url, headers={"Authorization": key}, stream=True, timeout=600) as resp:
-        resp.raise_for_status()
-        tmp = target.with_suffix(target.suffix + ".part")
-        with open(tmp, "wb") as f:
-            for chunk in resp.iter_content(1 << 20):
-                f.write(chunk)
-    tmp.rename(target)
+    target = _dir(raw_dir) / FILES[year]
+    target.parent.mkdir(parents=True, exist_ok=True)
+    url = data_url(year)
+    print(f"downloading {url}")
+    try:
+        with requests.get(url, stream=True, timeout=120) as resp:
+            resp.raise_for_status()
+            tmp = target.with_name(target.name + ".part")
+            with open(tmp, "wb") as f:
+                for chunk in resp.iter_content(1 << 20):
+                    f.write(chunk)
+        tmp.rename(target)
+    except Exception as exc:  # network or HTTP failure
+        print(f"download failed: {exc}")
+        return None
     return target
 
 
-def fetch(key: str, raw_dir: Path | None = None, wait_minutes: float = 60,
-          poll_seconds: float = 30, session=None) -> Path | None:
-    """Submit (once) or resume the extract, wait for it, download it. None if not ready."""
-    d = cache_dir(raw_dir)
-    d.mkdir(parents=True, exist_ok=True)
-    record = d / "submitted.json"
-    if record.exists():
-        number = json.loads(record.read_text())["number"]
-        print(f"resuming IPUMS CPS extract {number}")
+def read_file(path: Path, year: int) -> pd.DataFrame:
+    """The needed columns of one year's file, as integers, with a year column."""
+    name = path.name.lower()
+    if name.endswith(".csv"):
+        df = pd.read_csv(path, usecols=lambda c: c.upper() in COLUMNS, low_memory=False)
+        df = df.rename(columns=str.upper)
     else:
-        number = submit(key, session)
-        record.write_text(json.dumps({"number": number, "definition": EXTRACT,
-                                      "submitted_at": dt.datetime.now().isoformat()}, indent=1))
-        print(f"submitted IPUMS CPS extract {number}")
-    deadline = time.monotonic() + wait_minutes * 60
-    while True:
-        info = status(key, number, session)
-        state = info.get("status")
-        if state == "completed":
-            url = info["downloadLinks"]["data"]["url"]
-            target = d / f"cps_{extract_hash()}.csv.gz"
-            print(f"downloading extract {number}")
-            return download(key, url, target, session)
-        if state in ("failed", "canceled"):
-            record.unlink()
-            raise RuntimeError(f"IPUMS extract {number} {state}; rerun to submit again")
-        if time.monotonic() > deadline:
-            print(f"extract {number} is still {state}; rerun later to resume. No rows were written.")
-            return None
-        print(f"  extract {number}: {state}")
-        time.sleep(poll_seconds)
+        import gzip
 
-
-def read_file(path: Path) -> pd.DataFrame:
-    wanted = {"YEAR", *VARIABLES}
-    return pd.read_csv(path, usecols=lambda c: c.upper() in wanted, low_memory=False)\
-             .rename(columns=str.upper)
+        layout = {**BASIC_LAYOUT, **SUPPLEMENT_LAYOUT[year]}
+        opener = gzip.open if name.endswith(".gz") else open
+        with opener(path, "rt", encoding="latin-1") as f:
+            df = pd.read_fwf(f, colspecs=[(a - 1, b) for a, b in layout.values()],
+                             names=list(layout), header=None, dtype=str)
+    missing = [c for c in COLUMNS if c not in df]
+    if missing:
+        raise RuntimeError(f"{path.name}: columns {missing} not found; check cpsnov{year % 100:02d}.pdf")
+    df = df[list(COLUMNS)].apply(pd.to_numeric, errors="coerce")
+    years = set(df["HRYEAR4"].dropna().astype(int))
+    if years != {year}:
+        raise RuntimeError(f"{path.name}: HRYEAR4 reads {sorted(years)}, expected {year}; "
+                           "the record layout has drifted")
+    df["year"] = year
+    return df
 
 
 # -- recodes and rates ---------------------------------------------------------------------
 
-def race_eth(race: pd.Series, hispan: pd.Series) -> pd.Series:
-    """HISPAN 100-612 -> Hispanic; else RACE 100 White, 200 Black, 650-652 Asian or Pacific
-    Islander, other codes (300, 700, 801-830) Other or multiracial; 999 blank -> NaN."""
-    out = pd.Series(np.nan, index=race.index, dtype=object)
-    out[race == 100] = cat.RACE_ETH[1]
-    out[race == 200] = cat.RACE_ETH[2]
-    out[race.isin([650, 651, 652])] = cat.RACE_ETH[3]
-    out[race.isin([300, 700]) | race.between(801, 830)] = cat.RACE_ETH[4]
-    out[hispan.between(100, 612)] = cat.RACE_ETH[0]
+def race_eth(ptdtrace: pd.Series, pehspnon: pd.Series) -> pd.Series:
+    """PEHSPNON 1 -> Hispanic; else PTDTRACE 1 White only, 2 Black only, 4 Asian only or
+    5 Hawaiian/Pacific Islander only -> Asian or Pacific Islander, 3 AIAN only and 6-26 (two
+    or more races) -> Other or multiracial."""
+    out = pd.Series(np.nan, index=ptdtrace.index, dtype=object)
+    out[ptdtrace == 1] = cat.RACE_ETH[1]
+    out[ptdtrace == 2] = cat.RACE_ETH[2]
+    out[ptdtrace.isin([4, 5])] = cat.RACE_ETH[3]
+    out[(ptdtrace == 3) | ptdtrace.between(6, 26)] = cat.RACE_ETH[4]
+    out[pehspnon == 1] = cat.RACE_ETH[0]
     return out
 
 
-def education_4(educ: pd.Series) -> pd.Series:
-    """EDUC 002-073 HS or less; 080-100 Some college (incl. associate's); 110-111 BA;
-    120-125 Grad; 000/001 NIU and 999 missing -> NaN."""
-    out = pd.Series(np.nan, index=educ.index, dtype=object)
-    out[educ.between(2, 73)] = cat.EDUCATION_4[0]
-    out[educ.between(80, 100)] = cat.EDUCATION_4[1]
-    out[educ.between(110, 111)] = cat.EDUCATION_4[2]
-    out[educ.between(120, 125)] = cat.EDUCATION_4[3]
+def education_4(peeduca: pd.Series) -> pd.Series:
+    """PEEDUCA 31-39 (less than 1st grade through high school diploma or GED) HS or less;
+    40-42 (some college, associate's) Some college; 43 BA; 44-46 (master's, professional,
+    doctorate) Grad."""
+    out = pd.Series(np.nan, index=peeduca.index, dtype=object)
+    out[peeduca.between(31, 39)] = cat.EDUCATION_4[0]
+    out[peeduca.between(40, 42)] = cat.EDUCATION_4[1]
+    out[peeduca == 43] = cat.EDUCATION_4[2]
+    out[peeduca.between(44, 46)] = cat.EDUCATION_4[3]
     return out
 
 
-def income_bucket(faminc: pd.Series) -> pd.Series:
-    """FAMINC bands to the six harmonized bands. Open-ended old codes that straddle a band
-    edge (800 '$50,000 and over', 840 '$75,000 and over') and 995-999 -> NaN."""
+def income_bucket(hefaminc: pd.Series) -> pd.Series:
+    """HEFAMINC's sixteen bands into six: 1-7 under $25,000; 8-11 $25,000-$49,999; 12-13
+    $50,000-$74,999; 14 $75,000-$99,999; 15 $100,000-$149,999; 16 $150,000 or more.
+    Negative codes (not in universe, refused, don't know) -> NaN."""
     b = cat.HH_INCOME_BUCKET
-    out = pd.Series(np.nan, index=faminc.index, dtype=object)
-    out[faminc.between(100, 600)] = b[0]
-    out[faminc.between(700, 740)] = b[1]
-    out[faminc.between(810, 830)] = b[2]
-    out[faminc == 841] = b[3]
-    out[faminc == 842] = b[4]
-    out[faminc == 843] = b[5]
+    out = pd.Series(np.nan, index=hefaminc.index, dtype=object)
+    out[hefaminc.between(1, 7)] = b[0]
+    out[hefaminc.between(8, 11)] = b[1]
+    out[hefaminc.between(12, 13)] = b[2]
+    out[hefaminc == 14] = b[3]
+    out[hefaminc == 15] = b[4]
+    out[hefaminc == 16] = b[5]
     return out
 
 
@@ -208,22 +206,20 @@ REGISTRATION = {"Registered": "Registered", "Not registered": "Not registered",
 
 
 def prepare(df: pd.DataFrame) -> pd.DataFrame:
-    """Restrict to the P20 universe and build the status and subgroup columns."""
-    df = df.rename(columns=str.upper)
-    citizen = df["CITIZEN"].isin([1, 2, 3, 4])
-    adult = df["AGE"] >= 18
-    civilian = df["POPSTAT"] == 1 if "POPSTAT" in df else True
-    d = df[citizen & adult & civilian & (df["VOSUPPWT"] > 0)].copy()
-    d["year"] = d["YEAR"].astype(int)
-    voted = d["VOTED"] == 2
-    d["_turnout"] = np.where(voted, "Voted", np.where(d["VOTED"] == 1, "Did not vote", "No response"))
-    d["_registration"] = np.where(voted | (d["VOREG"] == 2), "Registered",
-                                  np.where(d["VOREG"] == 1, "Not registered", "No response"))
-    d["_sex"] = survey.recode(d["SEX"], {1: cat.SEX[0], 2: cat.SEX[1]})
-    d["_age"] = survey.age_bucket(d["AGE"])
-    d["_race_eth"] = race_eth(d["RACE"], d["HISPAN"])
-    d["_educ"] = education_4(d["EDUC"])
-    d["_income"] = income_bucket(d["FAMINC"])
+    """Restrict to the P20 universe and build the weight, status and subgroup columns."""
+    universe = ((df["PRTAGE"] >= 18) & df["PRCITSHP"].isin([1, 2, 3, 4])
+                & (df["PRPERTYP"] == 2) & (df["HRINTSTA"] == 1) & (df["PWSSWGT"] > 0))
+    d = df[universe].copy()
+    d["_w"] = d["PWSSWGT"] / WEIGHT_DECIMALS
+    voted = d["PES1"] == 1
+    d["_turnout"] = np.select([voted, d["PES1"] == 2], ["Voted", "Did not vote"], "No response")
+    d["_registration"] = np.select([voted | (d["PES2"] == 1), d["PES2"] == 2],
+                                   ["Registered", "Not registered"], "No response")
+    d["_sex"] = survey.recode(d["PESEX"], {1: cat.SEX[0], 2: cat.SEX[1]})
+    d["_age"] = survey.age_bucket(d["PRTAGE"])
+    d["_race_eth"] = race_eth(d["PTDTRACE"], d["PEHSPNON"])
+    d["_educ"] = education_4(d["PEEDUCA"])
+    d["_income"] = income_bucket(d["HEFAMINC"])
     return d
 
 
@@ -231,22 +227,14 @@ SUBGROUPS = {"sex": "_sex", "age": "_age", "race_eth": "_race_eth", "educ": "_ed
              "income": "_income"}
 GEOS = (("US", "US", "United States", None), ("STATE", "25", "Massachusetts", 25))
 
-NOTE = ("CPS November supplement via IPUMS CPS ({extract}). Census P20 convention: the base "
-        "is citizens 18+ in the civilian population, weighted by VOSUPPWT; refused, don't know, "
-        "no response and supplement non-interviews stay in the base as 'No response', so "
-        "'Voted' matches the P20 percent voted (citizen). Those who voted count as registered. "
-        "count rows are weighted persons. n is the unweighted base. se uses the Kish effective n "
-        "(the CPS design effect is ignored); moe is 1.645 x se. income is family income "
-        "(FAMINC); race_eth puts Hispanic first.")
-
-# PES1 and PES2 as printed in the Census technical documentation (cpsnov20.pdf, 2020); the
-# date fill changes by year.
-ITEM_TEXT = {
-    "turnout": "In any election, some people are not able to vote because they are sick or busy "
-               "or have some other reason, and others do not want to vote. Did (you/name) vote "
-               "in the election held on Tuesday, November (date)?",
-    "registration": "(Were you/Was name) registered to vote in the November (date) election?",
-}
+NOTE = ("CPS November {year} supplement, Census public-use file {file}; layout and weight "
+        "from {doc}. Census P20 convention: the base is citizens 18+ who are adult civilian "
+        "household members, weighted by PWSSWGT (no supplement weight is published); don't "
+        "know, refused and no response stay in the base as 'No response', so 'Voted' matches "
+        "the P20 percent voted (citizen). Those who voted count as registered. count rows are "
+        "weighted persons. n is the unweighted base. se uses the Kish effective n (the CPS "
+        "design effect is ignored); moe is 1.645 x se. income is family income (HEFAMINC); "
+        "race_eth puts Hispanic first.")
 
 
 def period_dates(year) -> tuple[dt.date, dt.date]:
@@ -254,56 +242,77 @@ def period_dates(year) -> tuple[dt.date, dt.date]:
     return dt.date(y, 11, 1), dt.date(y, 11, 30)
 
 
-def build_rows(df: pd.DataFrame, extract_label: str = "cached extract",
-               min_n: int = MIN_CELL_N) -> list[dict]:
+def build_rows(df: pd.DataFrame, year: int, min_n: int = MIN_CELL_N,
+               file_name: str | None = None) -> list[dict]:
     d = prepare(df)
+    note = NOTE.format(year=year, file=file_name or FILES[year], doc=doc_url(year))
     rows: list[dict] = []
     for geography, geo_code, place, fips in GEOS:
-        sub = d if fips is None else d[d["STATEFIP"] == fips]
-        for construct, col, options, var in (("turnout", "_turnout", TURNOUT, "VOTED"),
-                                             ("registration", "_registration", REGISTRATION,
-                                              "VOREG, VOTED")):
-            cells, skipped = survey.shares(sub, col, "VOSUPPWT", options, SUBGROUPS,
+        sub = d if fips is None else d[d["GESTFIPS"] == fips]
+        for construct, col, options in (("turnout", "_turnout", TURNOUT),
+                                        ("registration", "_registration", REGISTRATION)):
+            cells, skipped = survey.shares(sub, col, "_w", options, SUBGROUPS,
                                            min_n=min_n, with_counts=True)
             rows += survey.norm_rows(
-                cells, skipped, source=SOURCE, source_version=SOURCE_VERSION,
+                cells, skipped, source=SOURCE, source_version=source_version(year),
                 geography=geography, geo_code=geo_code, place=place, construct=construct,
-                item_text=ITEM_TEXT[construct], weight_var="VOSUPPWT",
-                provenance_url=IPUMS_URL, note=NOTE.format(extract=extract_label),
-                period_dates=period_dates, with_counts=True)
+                item_text=item_text(construct, year), weight_var="PWSSWGT",
+                provenance_url=data_url(year), note=note, period_dates=period_dates,
+                with_counts=True)
     return rows
 
 
+CONCORDANCE = {
+    "turnout": ("PES1", "CPS PES1 (Census public-use files), P20 base: citizens 18+, with "
+                        "don't know, refused and no response kept as 'No response'."),
+    "registration": ("PES1, PES2", "CPS PES2 is asked only of non-voters (PES1 not 1); voters "
+                                   "count as registered."),
+}
+
+
 def write_concordance(store: Store) -> None:
-    survey.merge_concordance(
-        store, "turnout", "Turnout", "Voted in the given election.", cps_var="VOTED",
-        note="CPS VOTED, Census P20 base (citizens 18+, nonresponse kept as 'No response').")
-    survey.merge_concordance(
-        store, "registration", "Voter registration", "Registered to vote for the given election.",
-        cps_var="VOREG",
-        note="CPS VOREG is asked only of non-voters; voters count as registered.")
+    """Set the CPS variable names and note on the turnout and registration rows. CPS is the
+    only source writing these two, so its fields are replaced, not merged."""
+    for construct, (cps_var, note) in CONCORDANCE.items():
+        found = store.query("SELECT label, definition, acs_table FROM concordance "
+                            "WHERE construct = ?", [construct])
+        label, definition, acs_table = found[0]
+        store.upsert_concordance({"construct": construct, "label": label,
+                                  "definition": definition, "acs_table": acs_table,
+                                  "cps_var": cps_var, "notes": note})
+
+
+INSTRUCTIONS = """\
+The CPS November {year} public-use file is not under {raw}/ and could not be downloaded.
+It needs no registration:
+
+    {url}
+
+Save it into audience/raw/cps/ under that name, then rerun: python -m audience.load cps"""
 
 
 def run(store: Store, refresh: bool = False, raw_dir: Path | None = None,
-        allow_synthetic: bool = False, min_n: int = MIN_CELL_N, wait_minutes: float = 60) -> int:
-    write_concordance(store)  # the crosswalk is recorded even before the data arrives
-    path = None if refresh else cached_file(raw_dir)
-    label = f"extract definition {extract_hash()}"
-    if path is None:
-        key = config.env("IPUMS_API_KEY")
-        if not key:
-            print(KEY_INSTRUCTIONS.format(cache=cache_dir(raw_dir)))
-            return 0
-        path = fetch(key, raw_dir, wait_minutes=wait_minutes)
+        allow_synthetic: bool = False, min_n: int = MIN_CELL_N, download: bool | None = None,
+        years: tuple[int, ...] = YEARS) -> int:
+    """download defaults to True for the real raw/cps/ and False when a test passes raw_dir."""
+    download = raw_dir is None if download is None else download
+    write_concordance(store)
+    found = {} if refresh else locate(raw_dir)
+    total = 0
+    for year in years:
+        path = found.get(year)
+        if path is None and download:
+            path = fetch(year, raw_dir)
         if path is None:
-            return 0
-    record = cache_dir(raw_dir) / "submitted.json"
-    if record.exists():
-        label = f"extract {json.loads(record.read_text())['number']}, definition {extract_hash()}"
-    survey.refuse_synthetic([path], allow_synthetic)
-    rows = build_rows(read_file(path), label, min_n=min_n)
-    written = store.upsert_norms(rows, prune=(SOURCE, SOURCE_VERSION))
-    store.touch_source(SOURCE)
-    years = sorted({r["period_start"].year for r in rows})
-    print(f"{SOURCE_VERSION}: {written} rows, US and MA, {years}")
-    return written
+            print(INSTRUCTIONS.format(year=year, raw=_dir(raw_dir), url=data_url(year)))
+            continue
+        survey.refuse_synthetic([path], allow_synthetic)
+        rows = build_rows(read_file(path, year), year, min_n=min_n, file_name=path.name)
+        written = store.upsert_norms(rows, prune=(SOURCE, source_version(year)))
+        print(f"{source_version(year)}: {written} rows, US and MA")
+        total += written
+    if total:
+        store.touch_source(SOURCE)
+    else:
+        print("No CPS rows were written.")
+    return total

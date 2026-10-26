@@ -186,42 +186,45 @@ def anes(rng) -> None:
     write(HERE / "anes" / "anes_cdf_SYNTHETIC.csv", header, rows)
 
 
-# -- IPUMS CPS November supplement (cps.ipums.org variable codes) ----------------------------
+# -- CPS November supplement, Census public-use file (cpsnov20.pdf record layout) -----------
 
 def cps(rng) -> None:
-    header = ["YEAR", "SERIAL", "MONTH", "PERNUM", "STATEFIP", "AGE", "SEX", "RACE", "HISPAN",
-              "EDUC", "FAMINC", "CITIZEN", "POPSTAT", "VOTED", "VOREG", "VOSUPPWT"]
+    header = ["HRYEAR4", "HRHHID", "PULINENO", "HRINTSTA", "GESTFIPS", "PRTAGE", "PESEX",
+              "PTDTRACE", "PEHSPNON", "PEEDUCA", "HEFAMINC", "PRCITSHP", "PRPERTYP", "PES1",
+              "PES2", "PWSSWGT"]
     fixed = [
-        dict(AGE=40, CITIZEN=1, POPSTAT=1, VOTED=2, VOREG=99),          # voted -> registered
-        dict(AGE=30, CITIZEN=4, POPSTAT=1, VOTED=1, VOREG=2),           # registered non-voter
-        dict(AGE=50, CITIZEN=1, POPSTAT=1, VOTED=1, VOREG=1),           # not registered
-        dict(AGE=60, CITIZEN=1, POPSTAT=1, VOTED=98, VOREG=98),         # no response
-        dict(AGE=70, CITIZEN=1, POPSTAT=1, VOTED=99, VOREG=99),         # supplement non-interview
-        dict(AGE=35, CITIZEN=5, POPSTAT=1, VOTED=99, VOREG=99),         # non-citizen: out
-        dict(AGE=17, CITIZEN=1, POPSTAT=3, VOTED=99, VOREG=99),         # minor: out
-        dict(AGE=25, CITIZEN=1, POPSTAT=2, VOTED=99, VOREG=99),         # armed forces: out
-        dict(AGE=45, CITIZEN=1, POPSTAT=1, VOTED=96, VOREG=99, RACE=200, HISPAN=100),  # Hispanic
-        dict(AGE=45, CITIZEN=1, POPSTAT=1, VOTED=2, VOREG=99, EDUC=92, FAMINC=841),
-        dict(AGE=45, CITIZEN=1, POPSTAT=1, VOTED=2, VOREG=99, FAMINC=800),  # straddling band
+        dict(PRTAGE=40, PRCITSHP=1, PRPERTYP=2, PES1=1, PES2=-1),     # voted -> registered
+        dict(PRTAGE=30, PRCITSHP=4, PRPERTYP=2, PES1=2, PES2=1),      # registered non-voter
+        dict(PRTAGE=50, PRCITSHP=1, PRPERTYP=2, PES1=2, PES2=2),      # not registered
+        dict(PRTAGE=60, PRCITSHP=1, PRPERTYP=2, PES1=-2, PES2=-2),    # don't know
+        dict(PRTAGE=70, PRCITSHP=1, PRPERTYP=2, PES1=-9, PES2=-1),    # supplement no response
+        dict(PRTAGE=35, PRCITSHP=5, PRPERTYP=2, PES1=-1, PES2=-1),    # non-citizen: out
+        dict(PRTAGE=17, PRCITSHP=1, PRPERTYP=1, PES1=-1, PES2=-1),    # minor: out
+        dict(PRTAGE=25, PRCITSHP=1, PRPERTYP=3, PES1=-1, PES2=-1),    # armed forces: out
+        dict(PRTAGE=45, PRCITSHP=1, PRPERTYP=2, PES1=-3, PES2=-1,
+             PTDTRACE=2, PEHSPNON=1),                                  # refused; Hispanic
+        dict(PRTAGE=45, PRCITSHP=1, PRPERTYP=2, PES1=1, PES2=-1, PEEDUCA=41, HEFAMINC=14),
+        dict(PRTAGE=45, PRCITSHP=1, PRPERTYP=2, PES1=1, PES2=-1, HEFAMINC=-3),  # income refused
     ]
     rows = []
     for i in range(50):
         r = dict(
-            YEAR=2020 if i < 30 else 2022, SERIAL=1000 + i, MONTH=11, PERNUM=1,
-            STATEFIP=25 if i % 2 == 0 else pick(rng, [6, 36]), AGE=int(rng.integers(18, 86)),
-            SEX=pick(rng, [1, 2]), RACE=pick(rng, [100, 200, 651, 300, 801], [0.7, 0.12, 0.08, 0.05, 0.05]),
-            HISPAN=pick(rng, [0, 100, 200], [0.85, 0.1, 0.05]),
-            EDUC=pick(rng, [60, 73, 81, 92, 111, 123, 125]),
-            FAMINC=pick(rng, [300, 600, 710, 740, 820, 830, 841, 842, 843, 996]),
-            CITIZEN=pick(rng, [1, 4], [0.9, 0.1]), POPSTAT=1,
-            VOTED=pick(rng, [2, 1, 98], [0.65, 0.25, 0.1]),
-            VOSUPPWT=round(float(rng.uniform(1500, 4500)), 4),
+            HRYEAR4=2020 if i < 30 else 2022, HRHHID=1000 + i, PULINENO=1, HRINTSTA=1,
+            GESTFIPS=25 if i % 2 == 0 else pick(rng, [6, 36]), PRTAGE=int(rng.integers(18, 86)),
+            PESEX=pick(rng, [1, 2]), PTDTRACE=pick(rng, [1, 2, 4, 3, 6], [0.7, 0.12, 0.08, 0.05, 0.05]),
+            PEHSPNON=pick(rng, [2, 1], [0.88, 0.12]),
+            PEEDUCA=pick(rng, [37, 39, 40, 42, 43, 44, 46]),
+            HEFAMINC=pick(rng, [3, 7, 9, 11, 12, 13, 14, 15, 16, -2]),
+            PRCITSHP=pick(rng, [1, 4], [0.9, 0.1]), PRPERTYP=2,
+            PES1=pick(rng, [1, 2, -9], [0.65, 0.25, 0.1]),
+            PWSSWGT=int(rng.integers(15_000_000, 45_000_000)),  # 4 implied decimals
         )
-        r["VOREG"] = 99 if r["VOTED"] == 2 else pick(rng, [2, 1, 98], [0.5, 0.4, 0.1])
+        r["PES2"] = -1 if r["PES1"] == 1 else pick(rng, [1, 2, -9], [0.5, 0.4, 0.1])
         if i < len(fixed):
             r.update(fixed[i])
         rows.append(r)
-    write(HERE / "cps" / "cps_ipums_SYNTHETIC.csv", header, rows)
+    write(HERE / "cps" / "nov20pub_SYNTHETIC.csv", header, [r for r in rows if r["HRYEAR4"] == 2020])
+    write(HERE / "cps" / "nov22pub_SYNTHETIC.csv", header, [r for r in rows if r["HRYEAR4"] == 2022])
 
 
 def main() -> None:

@@ -26,3 +26,15 @@ def test_gss_unzips_a_cached_zip(tmp_path):
     path = gss.locate(tmp_path)
     assert path.name == "gss7224_r3a.dta" and path.exists()
     assert gss.source_version(path) == "GSS 1972-2024 cumulative, Release 3A"
+
+
+def test_ces_downloads_missing_years_into_raw(store, tmp_path, monkeypatch):
+    from audience.loaders import ces
+
+    seen = []
+    monkeypatch.setattr(ces, "fetch", lambda year, raw_dir=None: seen.append(year) or None)
+    assert ces.run(store, raw_dir=tmp_path, download=True) == 0
+    assert seen == sorted(ces.FILES)
+    seen.clear()
+    ces.run(store, raw_dir=tmp_path)            # a test's raw_dir never downloads by default
+    assert seen == []

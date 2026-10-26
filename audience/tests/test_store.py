@@ -20,12 +20,15 @@ def test_migrations_apply_clean_to_a_fresh_file(tmp_path):
         assert s.table_exists(table)
     assert {r[0] for r in s.query("SELECT source FROM sources")} >= {
         "ACS", "CVAP", "CPS", "VOTERFILE_MA", "GSS", "ANES", "CES", "WVS",
-        "LIFT_ARCHIVE", "PAX_TEST"}
+        "LIFT_ARCHIVE", "PAX_TEST", "POLL", "ELECTION_RESULT"}
     assert all(r[0] and r[1] for r in s.query("SELECT url, license FROM sources"))
-    assert {r[0] for r in s.query("SELECT construct FROM concordance")} == {
+    assert {r[0] for r in s.query("SELECT construct FROM concordance")} >= {
         "sex", "age_bucket", "race_eth", "education_4", "hh_income_bucket",
         "citizenship", "cvap", "registration", "turnout",
+        "open_primaries_support", "closed_primaries_favorability", "top_two_favorability",
+        "top_four_favorability",
     }
+    assert s.table_exists("geographies")
     s.close()
 
 

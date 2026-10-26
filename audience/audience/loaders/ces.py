@@ -5,7 +5,8 @@ and party.
 
 The loader parses whatever common-content files sit in raw/ces/ (CSV or Stata; the year is
 read from the file name, e.g. CES20_Common_OUTPUT_vv.csv). The files are CC0 and need no
-login; when none is present the loader prints where to get them and writes nothing.
+login, so a year that is missing is downloaded from Harvard Dataverse into raw/ces/ (about
+190 MB each); if that fails the loader prints the links and writes nothing for that year.
 
 Weights follow the CES guide: commonweight for pre-election items, commonpostweight for
 post-election items, vvweight for validated-voter analyses (party of the primary ballot).
@@ -43,6 +44,32 @@ FILES = {
     2024: ("CCES24_Common_OUTPUT_vv_topost_final.csv", 12050325),
 }
 YEAR_IN_NAME = re.compile(r"C?CES(\d{2})_Common", re.I)
+
+
+def file_url(year: int) -> str:
+    return f"https://dataverse.harvard.edu/api/access/datafile/{FILES[year][1]}?format=original"
+
+
+def fetch(year: int, raw_dir: Path | None = None) -> Path | None:
+    """Download one year's common-content file into raw/ces/. None (after printing) on failure."""
+    import requests
+
+    target = _dir(raw_dir) / FILES[year][0]
+    target.parent.mkdir(parents=True, exist_ok=True)
+    url = file_url(year)
+    print(f"downloading CES {year} from {url}")
+    try:
+        with requests.get(url, stream=True, timeout=120) as resp:
+            resp.raise_for_status()
+            tmp = target.with_name(target.name + ".part")
+            with open(tmp, "wb") as f:
+                for chunk in resp.iter_content(1 << 20):
+                    f.write(chunk)
+        tmp.rename(target)
+    except Exception as exc:  # network or HTTP failure
+        print(f"download failed: {exc}")
+        return None
+    return target
 
 
 def instructions(raw: Path) -> str:
@@ -308,9 +335,17 @@ def write_concordance(store: Store, years) -> None:
 
 
 def run(store: Store, refresh: bool = False, raw_dir: Path | None = None,
-        allow_synthetic: bool = False, min_n: int = MIN_CELL_N) -> int:
+        allow_synthetic: bool = False, min_n: int = MIN_CELL_N,
+        download: bool | None = None) -> int:
+    """download defaults to True for the real raw/ces/ and False when a test passes raw_dir."""
     write_concordance(store, RAW_COLUMNS)  # the crosswalk is recorded even before the data arrives
     files = locate(raw_dir)
+    if download if download is not None else raw_dir is None:
+        for year in FILES:
+            if refresh or year not in files:
+                got = fetch(year, raw_dir)
+                if got is not None:
+                    files[year] = got
     if not files:
         print(instructions(_dir(raw_dir)))
         return 0

@@ -39,6 +39,8 @@ def test_postgres_migrate_load_rerun_audit(pg, capsys):
     pg.upsert_concordance({"construct": "trust_gov", "label": "Trust", "definition": "d",
                            "anes_var": ["VCF0604"]})
     assert pg.query("SELECT anes_var FROM concordance WHERE construct = 'trust_gov'")[0][0] == ["VCF0604"]
+    from audience import geographies
+    geographies.refresh(pg, quiet=True)
     assert audit.run(pg) == 0
 
 
@@ -57,5 +59,29 @@ def test_postgres_survey_loaders_merge_concordance_arrays(pg):
     ces.run(pg, raw_dir=FIXTURES / "ces", allow_synthetic=True, min_n=5)
     anes_var, ces_var = pg.query(
         "SELECT anes_var, ces_var FROM concordance WHERE construct = 'trust_gov'")[0]
-    assert anes_var == ["VCF0604"] and ces_var == ["CC22_423"]
+    # The CES crosswalk records every year's variable, data present or not.
+    assert anes_var == ["VCF0604"] and ces_var == ["CC22_423", "CC24_423"]
+    pg.replace_rows("geographies", ("geo_code", "name", "level", "parent_code"),
+                    [("US", "United States", "US", None), ("25", "Massachusetts", "STATE", "US")])
+    assert audit.run(pg) == 0
+
+
+def test_postgres_polls_geographies_and_export(pg, tmp_path):
+    """The seed loader, the geographies rewrite (COPY) and the export on Postgres."""
+    import json
+
+    from audience import export, geographies
+    from audience.loaders import polls
+
+    migrate.apply(pg, quiet=True)
+    n = polls.run(pg)
+    assert n and polls.run(pg) == n == pg.query("SELECT count(*) FROM norms")[0][0]
+    named, unnamed = geographies.refresh(pg, quiet=True)
+    if unnamed:
+        pytest.skip("Census name caches (raw/cvap/) absent")
+    assert named == pg.query("SELECT count(DISTINCT geo_code) FROM norms")[0][0]
+    index = export.export(pg, tmp_path / "out")
+    assert {s["source"] for s in index["sources"]} == {"POLL", "ELECTION_RESULT"}
+    rows = json.loads((tmp_path / "out" / "poll.json").read_text())
+    assert len(rows) == next(s["rows"] for s in index["sources"] if s["source"] == "POLL")
     assert audit.run(pg) == 0

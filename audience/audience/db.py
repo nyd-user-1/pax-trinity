@@ -11,9 +11,10 @@ import datetime as dt
 import hashlib
 import json
 import math
+import time
 import uuid
 from pathlib import Path
-from typing import Any, Iterable, Iterator
+from typing import Any, Iterable, Iterator, Sequence
 
 from . import config
 
@@ -256,6 +257,29 @@ class Store:
     def touch_source(self, source: str) -> None:
         self.execute("UPDATE sources SET last_loaded = now() WHERE source = ?", [source])
 
+    def replace_rows(self, table: str, columns: Sequence[str], rows: Sequence[Sequence[Any]]) -> int:
+        """Replace a whole table's contents in one transaction (plain text/number columns)."""
+        cols = ", ".join(columns)
+        with self.transaction():
+            self.execute(f"DELETE FROM {table}")
+            if not rows:
+                return 0
+            if self.dialect == "postgres":
+                with self.conn.cursor() as cur:
+                    with cur.copy(f"COPY {table} ({cols}) FROM STDIN") as copy:
+                        for r in rows:
+                            copy.write_row(tuple(r))
+            else:
+                import pyarrow as pa
+
+                batch = pa.Table.from_pylist([dict(zip(columns, r)) for r in rows])
+                self.conn.register("_replace_batch", batch)
+                try:
+                    self.conn.execute(f"INSERT INTO {table} ({cols}) SELECT {cols} FROM _replace_batch")
+                finally:
+                    self.conn.unregister("_replace_batch")
+        return len(rows)
+
 
 def _brief(row: dict) -> str:
     return "/".join(str(row.get(f)) for f in ("source", "geo_code", "construct", "response_option"))
@@ -275,7 +299,27 @@ def connect(database_url: str | None = None, duckdb_path: str | Path | None = No
 
     path = Path(duckdb_path) if duckdb_path is not None else config.DEFAULT_DUCKDB
     path.parent.mkdir(parents=True, exist_ok=True)
-    return Store("duckdb", duckdb.connect(str(path)), label=str(path))
+    return Store("duckdb", _open_duckdb(duckdb, path), label=str(path))
+
+
+LOCK_TRIES = 20
+LOCK_WAIT_SECONDS = 30
+
+
+def _open_duckdb(duckdb, path: Path, tries: int | None = None, wait: float | None = None):
+    """Open the file, waiting out another process's write lock: up to LOCK_TRIES attempts,
+    LOCK_WAIT_SECONDS apart (two windows may load into the same file)."""
+    tries = LOCK_TRIES if tries is None else tries
+    wait = LOCK_WAIT_SECONDS if wait is None else wait
+    for attempt in range(1, tries + 1):
+        try:
+            return duckdb.connect(str(path))
+        except duckdb.IOException as exc:
+            if "lock" not in str(exc).lower() or attempt == tries:
+                raise
+            print(f"{path.name} is locked by another process; retry {attempt}/{tries - 1} "
+                  f"in {wait:g}s", flush=True)
+            time.sleep(wait)
 
 
 def _redact(url: str) -> str:

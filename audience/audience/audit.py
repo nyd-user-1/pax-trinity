@@ -1,6 +1,7 @@
 """Store health check: python -m audience.audit
 
-Exits 1 if any row lacks provenance_url or any construct lacks a concordance row.
+Exits 1 if any row lacks provenance_url, any construct lacks a concordance row, or any
+geo_code in norms is missing from geographies.
 """
 
 from __future__ import annotations
@@ -40,6 +41,13 @@ def run(store: Store) -> int:
     print(f"constructs in norms lacking a concordance row: {', '.join(orphans) or 'none'}")
     failures += bool(orphans)
 
+    if store.table_exists("geographies"):
+        unnamed = store.query(
+            "SELECT count(DISTINCT n.geo_code) FROM norms n "
+            "LEFT JOIN geographies g ON g.geo_code = n.geo_code WHERE g.geo_code IS NULL")[0][0]
+        print(f"norms geo_codes missing from geographies: {unnamed}")
+        failures += unnamed > 0
+
     unloaded = [r[0] for r in store.query(
         "SELECT s.source FROM sources s "
         "WHERE NOT EXISTS (SELECT 1 FROM norms n WHERE n.source = s.source) ORDER BY 1"
@@ -58,7 +66,11 @@ def loader_commands() -> dict[str, str]:
     """source -> the load subcommand whose loader writes it."""
     from .load import MODULES
 
-    return {module.SOURCE: name for name, module in MODULES.items()}
+    commands: dict[str, str] = {}
+    for name, module in MODULES.items():
+        for source in getattr(module, "SOURCES", (module.SOURCE,)):
+            commands.setdefault(source, name)
+    return commands
 
 
 def main() -> int:
