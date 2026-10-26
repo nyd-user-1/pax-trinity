@@ -167,8 +167,8 @@ const EDITS = [
   { who: "Admin", ago: "22h", text: "Frame 7 swapped, new vert added.", image: "/pax-avatar.svg" },
   { who: "Sajeela", ago: "24h", text: "Swap frame 7 🎞️, settle down. 💅", image: "/sajeela.jpeg" },
   { who: "Ted", ago: "28h", text: "Act on 🧊 2 findings. I will fight you", image: "/ted.jpeg" },
-  { who: "Garrett", ago: "36h", text: "This guy 👆 Also, MA-3 asked for an update", image: "/garrett.jpeg" },
-  { who: "Brendan", ago: "48h", text: "🎃 is not 🍕.", image: "/avatars/default.jpg" },
+  { who: "Garrett", ago: "36h", text: "This guy 👇 Also, MA-3 asked for an update", image: "/garrett.jpeg" },
+  { who: "Brendan", ago: "48h", text: "🥘 is not 🍕.", image: "/avatars/default.jpg" },
 ]
 
 // The cut's randomized-test readout: lifts against the wave's own placebo, the
