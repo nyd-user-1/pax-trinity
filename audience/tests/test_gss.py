@@ -1,5 +1,8 @@
-"""GSS: recode logic on the synthetic fixture, and a spot-check of the real cumulative file
-against the 2024 codebook's published frequencies."""
+"""GSS: recode logic on the synthetic fixture, a spot-check of the real cumulative file
+against the 2024 codebook's published frequencies, and two bulk-tier variables against the
+GSS Data Explorer's published 2024 counts."""
+
+import json
 
 import pandas as pd
 import pytest
@@ -73,7 +76,7 @@ def gss_real(tmp_path_factory):
         pytest.skip("GSS cumulative file not under raw/gss/ (python -m audience.load gss fetches it)")
     s = db.connect(duckdb_path=tmp_path_factory.mktemp("gss") / "norms.duckdb")
     migrate.apply(s, quiet=True)
-    written = gss.run(s)
+    written = gss.run(s, bulk_tier=False)   # the harmonized constructs; the bulk tier below
     yield s, path, written
     s.close()
 
@@ -106,3 +109,75 @@ def test_real_run_shape(gss_real):
     for total in pct_cells(rows).values():
         assert total == pytest.approx(100.0, abs=1e-3)
     assert all(r["provenance_url"] == gss.DATA_URL for r in rows)
+
+
+# -- the bulk tier, real data ------------------------------------------------------------------
+
+SPOT = ("abany", "cappun")
+
+
+@pytest.fixture(scope="session")
+def gss_bulk(tmp_path_factory):
+    path = gss.locate()
+    if path is None or survey.SYNTHETIC_MARK in path.name.upper():
+        pytest.skip("GSS cumulative file not under raw/gss/ (python -m audience.load gss fetches it)")
+    s = db.connect(duckdb_path=tmp_path_factory.mktemp("gss_bulk") / "norms.duckdb")
+    migrate.apply(s, quiet=True)
+    version = gss.source_version(path)
+    scan, keys = gss.load_bulk(s, path, version, only=list(SPOT) + ["sex", "wtssnrps", "age"])
+    yield s, path, scan
+    s.close()
+
+
+@pytest.mark.parametrize("var, counts", [
+    # GSS Data Explorer, ABANY (https://gssdataexplorer.norc.org/variables/607/vshow), 2024:
+    # YES 1281, NO 859; .i 1067, .n 18, .d 65, .s 19 left out.
+    ("abany", {"Yes": 1281, "No": 859}),
+    # GSS Data Explorer, CAPPUN (https://gssdataexplorer.norc.org/variables/268/vshow), 2024:
+    # FAVOR 1243, OPPOSE 824; .i 1116, .n 14, .d 83, .s 29 left out.
+    ("cappun", {"Favor": 1243, "Oppose": 824}),
+])
+def test_spot_check_bulk_2024_against_data_explorer(gss_bulk, var, counts):
+    store, path, _ = gss_bulk
+    n = sum(counts.values())
+    df = gss.read_columns(path, ["year", var])
+    df = df[df["year"] == 2024].assign(one=1.0)
+    import pyreadstat
+
+    _, meta = pyreadstat.read_dta(str(path), metadataonly=True, encoding=gss.ENCODING)
+    options, _ = gss.bulk.options_for(df[var], meta.variable_value_labels[var])
+    cells, _ = survey.shares(df, var, "one", options, min_n=1)
+    got = {c.option: round(c.estimate, 1) for c in cells}
+    assert got == {k: round(100 * v / n, 1) for k, v in counts.items()}
+    assert {c.n for c in cells} == {n}
+    stored = norm_rows(store, f"construct = '{var}' AND period_start = DATE '2024-01-01'")
+    top = [r for r in stored if r["subgroup_dim"] == "all"]
+    assert {r["n"] for r in top} == {n} and {r["response_option"] for r in top} == set(counts)
+    assert {r["weight_var"] for r in stored} == {"WTSSNRPS"}
+    assert {r["subgroup_dim"] for r in stored} == {"all", "sex", "age", "race", "educ", "party"}
+    assert {r["provenance_url"] for r in stored} == {gss.explorer_url(var, gss.explorer_catalog())}
+    for total in pct_cells(stored).values():
+        assert total == pytest.approx(100.0, abs=1e-3)
+
+
+def test_bulk_years_carry_toplines_only_before_the_latest(gss_bulk):
+    store, _, scan = gss_bulk
+    rows = norm_rows(store, "construct = 'abany'")
+    years = sorted({r["period_start"].year for r in rows})
+    assert years == scan.years["abany"] and years[0] == 1977 and years[-1] == 2024
+    assert {r["subgroup_dim"] for r in rows if r["period_start"].year < 2024} == {"all"}
+    assert min(r["n"] for r in rows) >= survey.MIN_CELL_N
+
+
+def test_bulk_skips_collisions_and_admin(gss_bulk):
+    store, _, scan = gss_bulk
+    assert sorted(scan.taken) == sorted(SPOT)
+    assert scan.skipped["construct id already taken"] == ["sex"]          # the ACS construct
+    assert scan.skipped["administrative, technical or paradata"] == ["wtssnrps"]
+    label, definition, gvars, notes = store.query(
+        "SELECT label, definition, gss_var, notes FROM concordance WHERE construct = 'abany'")[0]
+    assert label == definition == "Abortion if woman wants for any reason"
+    assert gss.BULK_NOTE in notes and json.loads(gvars) == ["ABANY"]
+    order = store.query("SELECT response_option FROM response_order WHERE construct = 'abany' "
+                        "ORDER BY ordinal")
+    assert [r[0] for r in order] == ["Yes", "No"]

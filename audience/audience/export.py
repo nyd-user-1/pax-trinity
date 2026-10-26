@@ -15,7 +15,8 @@ out everywhere. Estimates and moe are rounded to 1 decimal, counts to whole numb
 is carried for POLL and ELECTION_RESULT rows only (null elsewhere). A topline row's
 subgroup_dim and subgroup_value (the store's "all") are null, which the page shows as All.
 Dates are ISO strings. n is the unweighted base (or the registered-voter base) where the store
-has one, else null. A source file over
+has one, else null. Within a cell, response options run in the coded order response_order
+records (the bulk tier's constructs), else alphabetically. A source file over
 MAX_BYTES is split into <source>-2.json, <source>-3.json, ..., each listed in index.json as
 its own entry. constructs lists those with exported rows; geographies lists US, STATE,
 COUNTY and TOWN.
@@ -50,12 +51,20 @@ def _round(value, estimate_type: str):
 
 
 def source_rows(store: Store, source: str) -> list[list]:
+    # A construct's response options follow their coded order where response_order records
+    # one (the bulk tier), else the alphabet.
+    ordered = store.table_exists("response_order")
+    join = ("LEFT JOIN response_order o ON o.source = n.source AND o.construct = n.construct "
+            "AND o.response_option = n.response_option " if ordered else "")
     rows = store.query(
-        "SELECT construct, geo_code, period_start, period_end, response_option, subgroup_dim, "
-        "subgroup_value, estimate, estimate_type, moe, item_text, n, provenance_url FROM norms "
-        "WHERE source = ? AND geography <> 'BLOCKGROUP' "
-        "ORDER BY construct, geo_code, period_start, period_end, item_text, subgroup_dim, "
-        "subgroup_value, response_option, estimate_type", [source])
+        "SELECT n.construct, n.geo_code, n.period_start, n.period_end, n.response_option, "
+        "n.subgroup_dim, n.subgroup_value, n.estimate, n.estimate_type, n.moe, n.item_text, n.n, "
+        f"n.provenance_url FROM norms n {join}"
+        "WHERE n.source = ? AND n.geography <> 'BLOCKGROUP' "
+        "ORDER BY n.construct, n.geo_code, n.period_start, n.period_end, n.item_text, "
+        "n.subgroup_dim, n.subgroup_value, "
+        f"{'o.ordinal NULLS LAST, ' if ordered else ''}n.response_option, n.estimate_type",
+        [source])
     keep_text = source in ITEM_TEXT_SOURCES
     out = []
     for (construct, geo, start, end, option, dim, value, est, etype, moe, text, n, url) in rows:

@@ -13,10 +13,21 @@ form, ballot and Black-oversample corrections.
 Cells: sex, age bucket, race (GSS RACE: White / Black / Other; Hispanic origin is not
 separated), education (4 groups) and party (leaners with their party). A cell with an
 unweighted base under 50 is not stored; the year's topline row names it.
+
+Beside the harmonized constructs, the bulk tier (audience/bulk.py) carries every other
+categorical variable of the file: construct = the GSS mnemonic lowercased, label and
+definition = the Stata variable label (the questionnaire wording is not in the file),
+response options = the value labels in coded order. Toplines for every year asked,
+breakdowns for the latest year asked. Administrative and paradata variables are skipped
+(ADMIN_VARS, admin()). Each bulk row links to the variable's GSS Data Explorer page; the
+mnemonic-to-page map is the Explorer's public variable list, cached in raw/gss/.
 """
 
 from __future__ import annotations
 
+import json
+import re
+import time
 import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -24,10 +35,11 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from .. import bulk
 from .. import categories as cat
 from .. import config
 from ..constructs import CONSTRUCTS
-from ..db import Store
+from ..db import Store, natural_key
 from .. import survey
 from ..survey import IDEOLOGY_7, MIN_CELL_N, PARTY_3, PARTY_ID_7
 
@@ -299,8 +311,255 @@ def write_concordance(store: Store) -> None:
                                  note=CONCORDANCE_NOTES.get(construct))
 
 
+# -- the bulk tier ---------------------------------------------------------------------------
+
+EXPLORER_API = "https://3ilfsaj2lj.execute-api.us-east-1.amazonaws.com/prod/guest-variable"
+EXPLORER_PAGE = "https://gssdataexplorer.norc.org/variables/{id}/vshow"
+EXPLORER_SEARCH = "https://gssdataexplorer.norc.org/variables/vfilter"
+EXPLORER_CATALOG = "data_explorer_variables.json"
+BULK_NOTE = ("GSS bulk tier: the label and definition are the Stata variable label, not the "
+             "questionnaire wording (the file does not carry it); the response options are "
+             "the file's value labels in coded order.")
+
+# Administrative, technical and paradata variables: ids, ballots, forms and versions,
+# weights and design variables, sampling and subsampling flags, interview dates, mode,
+# length, fees and language, interviewer characteristics and observations, module
+# completion flags, consent and record-linkage flags, the household-enumeration roster's
+# bookkeeping, and occupation/industry coding status.
+ADMIN_VARS = frozenset({
+    "id", "id_", "year", "ballot", "form", "formwt", "version", "fileversion", "creator",
+    "batch", "issp", "sample", "sampcode", "oversamp", "phase", "vstrat", "vpsu", "kish",
+    "random", "dateintv", "intid", "mode", "feeused", "feelevel", "lngthinv", "easyget",
+    "consent", "adminconsent", "death", "found", "spaneng", "spanint", "spanself", "coop",
+    "coop2", "comprend", "saqissp", "saqsex", "saqgene", "huadd", "huaddwhy", "kidsinhh",
+    "respond", "incuspop", "neisafe", "rlooks", "rgroomed", "rweight", "rhlthend", "hlthstrt",
+    "dwellpre", "dwelling", "hhrace", "hefinfo", "respnum", "phone", "res2006", "res2008",
+    "res2010", "res2012", "cshutyp06", "cshutyp08", "cshutyp10", "cshutyp12", "cohort",
+    "marcohrt", "aneseligible", "anespre_status", "anespost_status", "suitime1", "suitime2",
+    "termvig", "vigvermy", "docvig", "sciintro",  # which vignette or version R was shown
+    *(f"whoelse{i}" for i in range(1, 7)),
+})
+# Open answers coded after the fact (the science-literacy explanations).
+OPEN_ENDED = frozenset({"scitext", "exptext", "stormtxt", "litmstxt", "fishexp2"})
+ADMIN_NAME = re.compile(
+    r"^wtss|^int(age|sex|ethn|yrs|hisp|race\d*|id)$|(occ|ind)(status|tag)$|occindv$")
+# "interviewer" as a trait or an observation ("Age of interviewer", "R skin tone via
+# interviewer"), not an instruction printed in a question ("INTERVIEWER: READ LIST").
+ADMIN_LABEL = re.compile(r"interviewer(?!\s*:)|verbatim retrieved|coding (status|tag)|"
+                         r"\bweight variable\b", re.I)
+
+
+def admin(var: str, label: str) -> bool:
+    return var in ADMIN_VARS or bool(ADMIN_NAME.search(var)) or bool(ADMIN_LABEL.search(label or ""))
+
+
+def open_ended(var: str, label: str) -> bool:
+    return var in OPEN_ENDED or bool(re.search(r"\(verbatim\)", label or "", re.I))
+
+
+def explorer_catalog(raw_dir: Path | None = None, refresh: bool = False) -> dict[str, int]:
+    """GSS mnemonic -> its Data Explorer page id, from the Explorer's public variable list,
+    cached as raw/gss/data_explorer_variables.json (id, name, description, wording)."""
+    path = _dirs(raw_dir) / EXPLORER_CATALOG
+    if refresh or not path.exists():
+        import requests
+
+        found: dict[int, dict] = {}
+        headers = {"User-Agent": "Mozilla/5.0 (audience loader)",
+                   "Origin": "https://gssdataexplorer.norc.org"}
+        page, empty = 1, 0
+        try:
+            while empty < 3:  # the page size is uneven; read until pages come back empty
+                resp = requests.get(EXPLORER_API, params={"page": page, "limit": 100},
+                                    headers=headers, timeout=120)
+                resp.raise_for_status()
+                got = resp.json().get("variables") or []
+                empty = 0 if got else empty + 1
+                for v in got:
+                    found[v["id"]] = {"id": v["id"], "name": v["name"],
+                                      "description": v.get("description"),
+                                      "surveyQuestion": v.get("surveyQuestion")}
+                page += 1
+                time.sleep(0.2)
+        except Exception as exc:
+            print(f"Data Explorer variable list unavailable ({exc}); bulk rows link to "
+                  f"{EXPLORER_SEARCH}")
+            return {}
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(sorted(found.values(), key=lambda v: v["id"])))
+    by_name: dict[str, int] = {}
+    for v in json.loads(path.read_text()):
+        by_name.setdefault(v["name"].lower(), v["id"])
+    return by_name
+
+
+def explorer_url(var: str, catalog: dict[str, int]) -> str:
+    vid = catalog.get(var) or catalog.get(f"{var}_")  # CLASS and UNION are class_, union_
+    return EXPLORER_PAGE.format(id=vid) if vid else EXPLORER_SEARCH
+
+
+@dataclass
+class BulkScan:
+    """What the bulk tier took and what it skipped, with reasons."""
+    taken: list[str] = field(default_factory=list)
+    skipped: dict[str, list[str]] = field(default_factory=dict)
+    years: dict[str, list[int]] = field(default_factory=dict)  # construct -> years stored
+    rows: int = 0
+
+    def skip(self, reason: str, var: str) -> None:
+        self.skipped.setdefault(reason, []).append(var)
+
+
+def bulk_candidates(path: Path, store: Store | None = None,
+                    only: list[str] | None = None) -> tuple[list[tuple[str, str]], BulkScan, dict]:
+    """(var, verbatim label) for every variable that passes the metadata tests, in file
+    order; the scan with the metadata skips; the value labels by variable."""
+    import pyreadstat
+
+    _, meta = pyreadstat.read_dta(str(path), metadataonly=True, encoding=ENCODING)
+    labels = dict(zip(meta.column_names, meta.column_labels))
+    harmonized = {i.var for i in ITEMS}
+    taken_elsewhere = _construct_owners(store) if store is not None else {}
+    scan = BulkScan()
+    out = []
+    for var in meta.column_names:
+        if only is not None and var not in only:
+            continue
+        label = labels.get(var) or ""
+        construct = var.lower()
+        n_labeled = len(bulk.labeled_codes(meta.variable_value_labels.get(var)))
+        if var in harmonized:
+            scan.skip("already one of the 15 harmonized constructs", var)
+        elif admin(var, label):
+            scan.skip("administrative, technical or paradata", var)
+        elif open_ended(var, label):
+            scan.skip("open-ended, coded from verbatims", var)
+        elif n_labeled == 0:
+            scan.skip("no value labels (continuous, a count or an identifier)", var)
+        elif n_labeled == 1:
+            scan.skip("one labeled code (a continuous variable's top or bottom code)", var)
+        elif n_labeled > bulk.MAX_BANDS:
+            scan.skip(f"over {bulk.MAX_BANDS} labeled categories", var)
+        elif construct in CONSTRUCTS or construct in taken_elsewhere:
+            scan.skip("construct id already taken", var)
+        else:
+            out.append((var, label))
+    return out, scan, meta.variable_value_labels
+
+
+def _construct_owners(store: Store) -> set[str]:
+    """Construct ids already in the concordance that are not this loader's bulk rows."""
+    taken = set()
+    for construct, gss_var, anes_var, ces_var, wvs_var, acs_table, cps_var, notes in store.query(
+            "SELECT construct, gss_var, anes_var, ces_var, wvs_var, acs_table, cps_var, notes "
+            "FROM concordance"):
+        others = (survey._as_list(anes_var) + survey._as_list(ces_var)
+                  + survey._as_list(wvs_var) + [x for x in (acs_table, cps_var) if x])
+        mine = (survey._as_list(gss_var) == [construct.upper()] and not others
+                and BULK_NOTE in (notes or ""))
+        if not mine:
+            taken.add(construct)
+    return taken
+
+
+def read_columns(path: Path, cols: list[str]) -> pd.DataFrame:
+    import pyreadstat
+
+    df, _ = pyreadstat.read_dta(str(path), usecols=cols, encoding=ENCODING)
+    return df
+
+
+BULK_CHUNK = 400  # columns per read of the 600 MB file: about 240 MB of float64 at a time
+
+
+def bulk_rows(path: Path, version: str, store: Store | None = None,
+              catalog: dict[str, int] | None = None, min_n: int = MIN_CELL_N,
+              only: list[str] | None = None, chunk: int = BULK_CHUNK):
+    """Yield (rows, concordance entries, option orders) one column chunk at a time; the scan
+    (returned by the generator) names what was taken and skipped."""
+    candidates, scan, value_labels = bulk_candidates(path, store, only)
+    catalog = catalog or {}
+    base = prepare(read_frame_base(path))
+    cols = ["year", "_wt", *SUBGROUPS.values()]
+    for i in range(0, len(candidates), chunk):
+        part = candidates[i:i + chunk]
+        frame = read_columns(path, [v for v, _ in part])
+        rows, entries, orders = [], [], {}
+        for var, label in part:
+            options, why = bulk.options_for(frame[var], value_labels.get(var))
+            if options is None:
+                scan.skip(why, var)
+                continue
+            d = base[cols].assign(**{var: frame[var].to_numpy()})
+            cells, skipped, latest = bulk.cells(d, var, "_wt", options, SUBGROUPS,
+                                                min_n=min_n)
+            if not cells:
+                scan.skip(f"no year with an unweighted base of {min_n} or more", var)
+                continue
+            construct = var.lower()
+            note = (f"GSS {var.upper()}, survey year; toplines for every year asked, breakdowns "
+                    f"for the latest ({latest}). Weight WTSSNRPS from 2004, WTSSPS before (2024 "
+                    f"codebook). race is GSS RACE (Hispanic origin not separated). "
+                    f"{survey.BASE_NOTE}")
+            rows += survey.norm_rows(
+                cells, skipped, source=SOURCE, source_version=version, geography="US",
+                geo_code="US", place="United States", construct=construct, item_text=label,
+                weight_var=weight_var, provenance_url=explorer_url(construct, catalog),
+                note=note, period_dates=survey.year_dates)
+            entries.append((construct, bulk.sentence_case(label) or var.upper(),
+                            label or var.upper(), var.upper()))
+            orders[construct] = list(options.values())
+            scan.taken.append(construct)
+            scan.years[construct] = sorted({int(c.period) for c in cells})
+        del frame
+        scan.rows += len(rows)
+        yield rows, entries, orders
+    return scan
+
+
+def read_frame_base(path: Path) -> pd.DataFrame:
+    return read_columns(path, list(COLUMNS))
+
+
+def write_bulk_concordance(store: Store, entries) -> None:
+    for construct, label, definition, var in entries:
+        survey.merge_concordance(store, construct, label, definition, gss_var=[var],
+                                 note=BULK_NOTE)
+
+
+def load_bulk(store: Store, path: Path, version: str, raw_dir: Path | None = None,
+              min_n: int = MIN_CELL_N, only: list[str] | None = None) -> tuple[BulkScan, set[str]]:
+    """Write the bulk tier chunk by chunk; returns the scan and the natural keys written."""
+    catalog = explorer_catalog(raw_dir)
+    keys: set[str] = set()
+    orders: dict[str, list[str]] = {}
+    gen = bulk_rows(path, version, store, catalog, min_n=min_n, only=only)
+    while True:
+        try:
+            rows, entries, part_orders = next(gen)
+        except StopIteration as stop:
+            scan = stop.value
+            break
+        write_bulk_concordance(store, entries)
+        store.upsert_norms(rows)
+        keys.update(natural_key(r) for r in rows)
+        orders.update(part_orders)
+        print(f"  bulk: {len(orders):,} variables, {len(keys):,} rows", flush=True)
+    bulk.write_response_order(store, SOURCE, orders)
+    return scan, keys
+
+
+def write_bulk_report(scan: BulkScan, path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({
+        "variables": len(scan.taken), "rows": scan.rows,
+        "skipped": {k: sorted(v) for k, v in sorted(scan.skipped.items())},
+        "years": scan.years,
+    }, indent=1))
+
+
 def run(store: Store, refresh: bool = False, raw_dir: Path | None = None,
-        allow_synthetic: bool = False, min_n: int = MIN_CELL_N) -> int:
+        allow_synthetic: bool = False, min_n: int = MIN_CELL_N, bulk_tier: bool = True) -> int:
     write_concordance(store)  # the crosswalk is recorded even before the data arrives
     path = None if refresh else locate(raw_dir)
     if path is None:
@@ -312,7 +571,19 @@ def run(store: Store, refresh: bool = False, raw_dir: Path | None = None,
     version = source_version(path)
     print(f"reading {path.name} ({len(COLUMNS) + len(ITEMS)} of its columns)")
     rows = build_rows(read_frame(path), version, min_n=min_n)
-    written = store.upsert_norms(rows, prune=(SOURCE, version))
+    if not bulk_tier:
+        written = store.upsert_norms(rows, prune=(SOURCE, version))
+    else:
+        written = store.upsert_norms(rows)
+        keys = {natural_key(r) for r in rows}
+        scan, bulk_keys = load_bulk(store, path, version, raw_dir, min_n=min_n)
+        keys |= bulk_keys
+        written += len(bulk_keys)
+        pruned = bulk.prune_slice(store, SOURCE, version, keys)
+        write_bulk_report(scan, config.ROOT / "reports" / "gss_bulk.json")
+        print(f"bulk tier: {len(scan.taken):,} variables, {len(bulk_keys):,} rows; "
+              f"{sum(len(v) for v in scan.skipped.values()):,} variables skipped; "
+              f"{pruned:,} stale rows pruned")
     store.touch_source(SOURCE)
     years = sorted({r["period_start"].year for r in rows})
     print(f"{version}: {written} rows, {len(years)} survey years {years[0]}-{years[-1]}")

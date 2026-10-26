@@ -142,7 +142,8 @@ def shares(
                 cells.append(Cell(
                     period=per, dim=dim, value=value, option=label,
                     estimate=round(100 * p, 6),
-                    se=round(100 * math.sqrt(p * (1 - p) / neff), 6),
+                    # max(): a lone option's p can land a hair over 1 in floating point
+                    se=round(100 * math.sqrt(max(p * (1 - p), 0.0) / neff), 6),
                     n=n, count=round(w, 3) if with_counts else None,
                 ))
     return cells, skipped
