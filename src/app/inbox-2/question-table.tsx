@@ -109,7 +109,7 @@ export function QuestionTable({
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
       {view === "tidy" ? (
-        <RowsView rows={rows} title={title} id={metric} short={short} source={source} header={heading} trailing={toggle} />
+        <RowsView rows={rows} title={title} id={metric} short={short} source={source} header={heading} trailing={toggle} about={about} onPick={onPick} />
       ) : (
         <>
       <div className="flex h-[52px] shrink-0 items-center gap-2 border-b px-4">

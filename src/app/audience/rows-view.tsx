@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@govblock/ui/components/ny4/dropdown-menu"
 
 import { num, weightOf, year, type SourceRow } from "./audience-data"
+import { type About } from "./audience-pane"
 
 // The Rows view — the raw rows exactly as the source reported them, the
 // instrument's default read: newest wave first, the total before its
@@ -22,7 +23,10 @@ export function RowsView({
   id,
   short,
   source,
-  bare,
+  header,
+  trailing,
+  about,
+  onPick,
 }: {
   /** The open question's rows alone. */
   rows: SourceRow[]
@@ -36,6 +40,9 @@ export function RowsView({
    *  showing note its right, and `trailing` the filter row's right. */
   header?: React.ReactNode
   trailing?: React.ReactNode
+  /** A clicked row hands itself to the About panel, where the mount has one. */
+  about?: About | null
+  onPick?: (a: About) => void
 }) {
   const [wave, setWave] = React.useState("all")
   const [segment, setSegment] = React.useState("all")
@@ -149,7 +156,15 @@ export function RowsView({
           </thead>
           <tbody>
             {listed.map((r, i) => (
-              <tr key={i} className={cn(!r[5] && "bg-muted/40")}>
+              <tr
+                key={i}
+                onClick={onPick ? () => onPick({ r, metric: id, segment: r[5] ? `${r[5]}: ${r[6]}` : "All" }) : undefined}
+                className={cn(
+                  !r[5] && "bg-muted/40",
+                  onPick && "cursor-pointer transition-[background-color,box-shadow] hover:bg-accent/60 hover:shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]",
+                  onPick && about?.r === r && "bg-muted shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]"
+                )}
+              >
                 <td className="border-b px-4 py-2 text-muted-foreground tabular-nums">{year(r[3])}</td>
                 <td className="border-b px-4 py-2">{r[5] ? `${r[5]}: ${r[6]}` : "All"}</td>
                 <td className="border-b px-4 py-2">{r[4]}</td>
