@@ -57,3 +57,63 @@ export const dimLabel = (d: string) => DIM_LABELS[d] ?? d.replace(/_/g, " ").rep
 
 const LEVEL_RANK: Record<string, number> = { US: 0, STATE: 1, COUNTY: 2, TOWN: 3 }
 export const levelRank = (level: string | undefined) => LEVEL_RANK[level ?? ""] ?? 9
+
+/** The latest-period row of a set, by period_end. */
+export const latestRow = (rs: SourceRow[]) => rs.reduce<SourceRow | null>((b, r) => (!b || r[3] > b[3] ? r : b), null)
+
+/** A metric's read: its lead response option, baseline geography and topline. */
+export type MetricInfo = {
+  id: string
+  option: string | null
+  type: string
+  baseGeo: string
+  topline: SourceRow | null
+  /** The lead option's rows, the ones the grid reads. */
+  rs: SourceRow[]
+  /** An archive of one-shot lifts reads as their median, not a baseline. */
+  median: { v: number; n: number } | null
+}
+
+export const metricIdsOf = (rows: SourceRow[]) => {
+  const seen: string[] = []
+  for (const r of rows) if (!seen.includes(r[0])) seen.push(r[0])
+  return seen
+}
+
+export function buildInfo(rows: SourceRow[], geoLevel: Map<string, string>): Map<string, MetricInfo> {
+  const m = new Map<string, MetricInfo>()
+  for (const id of metricIdsOf(rows)) {
+    const all = rows.filter((r) => r[0] === id)
+    const option = all.find((r) => r[4] != null)?.[4] ?? null
+    const rs = all.filter((r) => (r[4] ?? null) === option)
+    const type = rs[0]?.[8] ?? "pct"
+    // The baseline geography is the highest level the metric reaches: US
+    // before a state, a state before its towns.
+    let baseGeo = rs[0]?.[1] ?? "US"
+    for (const r of rs) if (levelRank(geoLevel.get(r[1])) < levelRank(geoLevel.get(baseGeo))) baseGeo = r[1]
+    const topline = latestRow(rs.filter((r) => !r[5] && r[1] === baseGeo))
+    let median: MetricInfo["median"] = null
+    if (type === "lift_pp") {
+      const perOpt = new Map<string, SourceRow>()
+      for (const r of all) {
+        const k = r[4] ?? ""
+        const had = perOpt.get(k)
+        if (!had || r[3] > had[3]) perOpt.set(k, r)
+      }
+      const vals = [...perOpt.values()].map((r) => r[7]).sort((a, b) => a - b)
+      if (vals.length) median = { v: vals[Math.floor(vals.length / 2)], n: vals.length }
+    }
+    m.set(id, { id, option, type, baseGeo, topline, rs, median })
+  }
+  return m
+}
+
+/** The list row's teaser: the topline the way the inbox snippets a thread. */
+export function snippetOf(c: MetricInfo | undefined, place: (code: string) => string) {
+  if (!c) return ""
+  if (c.median) return `median ${c.median.v >= 0 ? "+" : "−"}${num(Math.abs(c.median.v))} pp · ${c.median.n.toLocaleString("en-US")} entries`
+  const t = c.topline
+  if (!t) return ""
+  const head = t[8] === "count" ? num(t[7], 0) : `${num(t[7])}%`
+  return `${head} · ${place(c.baseGeo)} · ${year(t[3])}`
+}
