@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, EllipsisVerticalIcon, PanelRightIcon, RefreshCwIcon, RowsIcon, StarIcon } from "lucide-react"
+import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, EllipsisVerticalIcon, RefreshCwIcon, StarIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
@@ -13,8 +13,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components
 import { mnemonicOf, WEB_GRID, WORDING, year, type MetricInfo } from "../audience/audience-data"
 
 // The question list in the thread list's frame: the same toolbar —
-// select-all with its menu, refresh, more; the count, the pager and the split
-// toggle at the right — then one card per question, reading as the question
+// select-all with its menu, refresh, the more menu (tabs, the split, the
+// flat table); the pager at the right — then one card per question, reading as the question
 // would on a survey (Brendan, 2026-10-26): the wording where the bank carries
 // one, the source label where it does not, the span and wave count under it
 // with the source's mnemonic as the badge at the card's bottom right. Opening
@@ -98,7 +98,6 @@ export function SegmentList({
   const listed = ordered.slice(0, depth)
   const more = React.useCallback(() => setDepth((d) => d + PER_READ), [])
   const allChecked = ordered.length > 0 && ordered.slice(0, MAX_COLS).every((id) => checked.includes(id))
-  const stacked = split === "vertical"
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -135,31 +134,21 @@ export function SegmentList({
               <DropdownMenuRadioItem value="pinned">Pinned only</DropdownMenuRadioItem>
             </DropdownMenuRadioGroup>
             <DropdownMenuSeparator />
+            <DropdownMenuRadioGroup value={split} onValueChange={(value) => onSplit(value as Split)}>
+              <DropdownMenuRadioItem value="none">No split</DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="vertical">Vertical split</DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onFlatTable}>Open the flat table</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
         <div className="ml-auto flex items-center gap-1">
-          <span className="px-2 text-xs text-muted-foreground tabular-nums">{ordered.length ? `1–${Math.min(depth, ordered.length).toLocaleString("en-US")} of ${ordered.length.toLocaleString("en-US")}` : "0 of 0"}</span>
           <Button variant="ghost" size="icon-sm" aria-label="Newer" disabled>
             <ChevronLeftIcon className="size-4" />
           </Button>
           <Button variant="ghost" size="icon-sm" aria-label="Older" disabled>
             <ChevronRightIcon className="size-4" />
           </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" aria-label="Toggle split pane" className="gap-0.5 px-1.5">
-                {stacked ? <PanelRightIcon className="size-4" /> : <RowsIcon className="size-4" />}
-                <ChevronDownIcon className="size-3" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-max min-w-44">
-              <DropdownMenuRadioGroup value={split} onValueChange={(value) => onSplit(value as Split)}>
-                <DropdownMenuRadioItem value="none">No split</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="vertical">Vertical split</DropdownMenuRadioItem>
-              </DropdownMenuRadioGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </div>
 

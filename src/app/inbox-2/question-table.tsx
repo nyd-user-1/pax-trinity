@@ -90,7 +90,7 @@ export function QuestionTable({
           (Brendan, 2026-10-26) — the list beside the pane is the way back. */}
       <div className="flex h-[52px] shrink-0 items-center gap-2 border-b px-4">
         <div className="flex rounded-lg border p-0.5 text-xs">
-          {(["crosstab", "chart", "tidy"] as const).map((v) => (
+          {(["tidy", "crosstab", "chart"] as const).map((v) => (
             <button
               key={v}
               type="button"
@@ -98,7 +98,7 @@ export function QuestionTable({
               onClick={() => setView(v)}
               className={cn("rounded-md px-2.5 py-1 transition-colors", view === v ? "bg-pax2-mist font-semibold text-pax2-blue" : "text-muted-foreground hover:text-foreground")}
             >
-              {v === "crosstab" ? "Crosstab" : v === "chart" ? "Trend" : "Tidy data"}
+              {v === "crosstab" ? "Crosstab" : v === "chart" ? "Trend" : "Data"}
             </button>
           ))}
         </div>
