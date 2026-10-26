@@ -5,7 +5,6 @@ import { ArrowLeft, Loader2 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
-import { ScrollArea } from "@govblock/ui/components/ny4/scroll-area"
 
 import { dimLabel, latestRow, num, period, value, year, type MetricInfo, type SourceRow } from "../audience/audience-data"
 import { type About } from "../audience/audience-pane"
@@ -82,7 +81,7 @@ export function QuestionTable({
   const more = React.useCallback(() => setDepth((d) => d + PER_READ), [])
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col">
+    <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
       <div className="flex h-[52px] shrink-0 items-center gap-2 border-b px-4">
         <Button variant="ghost" size="sm" aria-label="Back to the questions" onClick={onBack}>
           <ArrowLeft className="size-4" />
@@ -106,7 +105,10 @@ export function QuestionTable({
         </div>
       </div>
 
-      <ScrollArea className="min-h-0 flex-1">
+      {/* Native scroll, not the ScrollArea primitive: radix's viewport sizes
+          itself to the banner's intrinsic width, which blew the pane out
+          sideways and swallowed the vertical scroll with it. */}
+      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
         {view === "crosstab" ? (
           <div className="p-5">
             <h2 className="text-[17px] font-semibold text-pax2-blue">{title}</h2>
@@ -218,7 +220,7 @@ export function QuestionTable({
             </tbody>
           </table>
         )}
-      </ScrollArea>
+      </div>
     </div>
   )
 }
