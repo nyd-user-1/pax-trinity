@@ -2,10 +2,9 @@
 
 import * as React from "react"
 import dynamic from "next/dynamic"
-import { ArrowLeft, Loader2 } from "lucide-react"
+import { Loader2 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
-import { Button } from "@govblock/ui/components/nova/button"
 
 // The Trend view loads only when clicked: the chart file carries the ECharts
 // modules, and this dynamic mount keeps that chunk off every route until then.
@@ -38,7 +37,6 @@ export function QuestionTable({
   short,
   about,
   onPick,
-  onBack,
 }: {
   /** The question's rows alone. */
   rows: SourceRow[]
@@ -51,7 +49,6 @@ export function QuestionTable({
   short: string
   about: About | null
   onPick: (a: About) => void
-  onBack: () => void
 }) {
   const [view, setView] = React.useState<"crosstab" | "chart" | "tidy">("crosstab")
   const [depth, setDepth] = React.useState(PER_READ)
@@ -90,27 +87,24 @@ export function QuestionTable({
 
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
+      {/* The toggle leads the header flush left; the body's own heading names
+          the question, so the bar carries no title and no back arrow
+          (Brendan, 2026-10-26) — the list beside the pane is the way back. */}
       <div className="flex h-[52px] shrink-0 items-center gap-2 border-b px-4">
-        <Button variant="ghost" size="sm" aria-label="Back to the questions" onClick={onBack}>
-          <ArrowLeft className="size-4" />
-        </Button>
-        <span className="truncate text-sm font-medium">{title}</span>
-        <div className="ml-auto flex shrink-0 items-center gap-3">
-          <div className="flex rounded-lg border p-0.5 text-xs">
-            {(["crosstab", "chart", "tidy"] as const).map((v) => (
-              <button
-                key={v}
-                type="button"
-                aria-pressed={view === v}
-                onClick={() => setView(v)}
-                className={cn("rounded-md px-2.5 py-1 transition-colors", view === v ? "bg-pax2-mist font-semibold text-pax2-blue" : "text-muted-foreground hover:text-foreground")}
-              >
-                {v === "crosstab" ? "Crosstab" : v === "chart" ? "Trend" : "Tidy data"}
-              </button>
-            ))}
-          </div>
-          <span className="text-xs text-muted-foreground tabular-nums">{rows.length.toLocaleString("en-US")} rows</span>
+        <div className="flex rounded-lg border p-0.5 text-xs">
+          {(["crosstab", "chart", "tidy"] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              aria-pressed={view === v}
+              onClick={() => setView(v)}
+              className={cn("rounded-md px-2.5 py-1 transition-colors", view === v ? "bg-pax2-mist font-semibold text-pax2-blue" : "text-muted-foreground hover:text-foreground")}
+            >
+              {v === "crosstab" ? "Crosstab" : v === "chart" ? "Trend" : "Tidy data"}
+            </button>
+          ))}
         </div>
+        <span className="ml-auto shrink-0 text-xs text-muted-foreground tabular-nums">{rows.length.toLocaleString("en-US")} rows</span>
       </div>
 
       {/* Native scroll, not the ScrollArea primitive: radix's viewport sizes

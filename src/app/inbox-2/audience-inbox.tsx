@@ -329,11 +329,6 @@ export function AudienceInbox() {
                     short={source ? shortSource(source) : ""}
                     about={about}
                     onPick={setAbout}
-                    onBack={() => {
-                      setMode("list")
-                      setTableMetric(null)
-                      setAbout(null)
-                    }}
                   />
                 </ResizablePanel>
               </ResizablePanelGroup>
