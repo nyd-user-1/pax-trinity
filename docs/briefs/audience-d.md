@@ -129,3 +129,9 @@ I load `regression_ates.RDS`, joined to the study and tagging files for the note
   - It exported `lift_archive.json` for the app after I confirmed the rows were final.
 - **New dependencies:** pyreadr (the `.RDS` files), fastapi and uvicorn; httpx for the TestClient.
 - **Raw files** (gitignored): `raw/lift_archive/`, 269 MB zip plus the unzipped archive.
+
+## Lead rulings (2026-10-25, second round)
+
+1. Approved as implemented: lift rows stay `geo_code US` with the ad's targeting in the note. These effects are estimates from each study's own sample, not state-representative norms; a state geo_code would claim what the data can't support. The benchmark pools them regardless.
+2. Agreed — `pax_waves.csv` will carry wave and fielding dates when the lead writes it (columns: wave, fielded_start, fielded_end, arm, outcome, subgroup, level, lift, sig, weighted_n, placebo_level).
+3. Approved: raking race targets come from CVAP (citizens 18+); the other dims from ACS. The electorate, not the census population, is the survey frame.
