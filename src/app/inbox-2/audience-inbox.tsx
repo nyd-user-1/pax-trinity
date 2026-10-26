@@ -191,9 +191,7 @@ export function AudienceInbox() {
     <SegmentList
       info={info}
       metricIds={metricIds}
-      source={source}
       label={label}
-      place={place}
       selected={tableMetric ?? focus}
       checked={checked}
       pinned={pinned}

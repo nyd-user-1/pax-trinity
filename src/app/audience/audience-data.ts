@@ -79,6 +79,50 @@ export const value = (estimate: number, type: string, moe: number | null) => {
   return moe == null ? body : `${body} ± ${num(moe, type === "count" ? 0 : 1)}`
 }
 
+// Seeded survey wordings (Brendan, 2026-10-26): a question card reads as the
+// question would on a survey. Verified seeds only — the Rossi abortion
+// battery and the 2018 module from GSS Methodological Report 133, the
+// Congress forms phrased from their own response bands, PARTYID's canonical
+// text — until Brief P lands the codebook's verbatim texts in the export.
+// A question outside this map prints its source label.
+const ROSSI = "Please tell me whether or not you think it should be possible for a pregnant woman to obtain a legal abortion if"
+const ABHELP = "If a close family member or friend decided to have an abortion, which of the following kinds of help, if any, would you give if you were able —"
+export const WORDING: Record<string, string> = {
+  confidence_congress: "Would you say you have a great deal of confidence, only some confidence, or hardly any confidence at all in the people running Congress?",
+  concong: "How much confidence do you have in Congress?",
+  conlegiy: "On a scale of 1 to 7, where 1 is complete confidence and 7 is no confidence at all, how much confidence do you have in the people running Congress?",
+  trcong: "On a scale of 0 to 10, where 0 is no trust at all and 10 is complete trust, how much do you personally trust Congress?",
+  trlegis: "On a scale of 0 to 10, how much do you trust the U.S. Congress?",
+  party_id_7: "Generally speaking, do you usually think of yourself as a Republican, Democrat, Independent, or what?",
+  abdefect: `${ROSSI} there is a strong chance of serious defect in the baby?`,
+  abdefectg: `${ROSSI} there is a strong chance of serious defect in the baby?`,
+  abnomore: `${ROSSI} she is married and does not want any more children?`,
+  abnomoreg: `${ROSSI} she is married and does not want any more children?`,
+  abhlth: `${ROSSI} the woman's own health is seriously endangered by the pregnancy?`,
+  abhlthg: `${ROSSI} the woman's own health is seriously endangered by the pregnancy?`,
+  abpoor: `${ROSSI} the family has a very low income and cannot afford any more children?`,
+  abpoorg: `${ROSSI} the family has a very low income and cannot afford any more children?`,
+  abrape: `${ROSSI} she became pregnant as a result of rape?`,
+  abrapeg: `${ROSSI} she became pregnant as a result of rape?`,
+  absingle: `${ROSSI} she is not married and does not want to marry the man?`,
+  absingleg: `${ROSSI} she is not married and does not want to marry the man?`,
+  abany: `${ROSSI} the woman wants it for any reason?`,
+  abanyg: `${ROSSI} the woman wants it for any reason?`,
+  abfelegl: "Leaving aside what you think of abortion for yourself, do you think a woman should continue to be able to have an abortion legally or not, or would you say it depends?",
+  abmelegl: "Leaving aside what you think of abortion for those close to you, do you think a woman should continue to be able to have an abortion legally or not, or would you say it depends?",
+  abmoral: "Leaving aside whether you think abortion should be legal, are you morally opposed to abortion or not, or would you say it depends?",
+  abstate1: "Here in your state, how easy or hard do you think it is for a woman to get an abortion?",
+  abstate2: "Here in your state, do you think that laws should be changed to make it easier for a woman to get an abortion, be changed to make it harder for a woman to get an abortion, or should the laws stay as they are now?",
+  abhelp1: `${ABHELP} help with arrangements, like a ride or childcare?`,
+  abhelp2: `${ABHELP} help paying for the abortion?`,
+  abhelp3: `${ABHELP} help paying for costs other than the abortion, like for a ride or hotel if she needs to stay overnight?`,
+  abhelp4: `${ABHELP} help by providing emotional support?`,
+  abinspay: "People use their health insurance to help cover the cost of receiving health care. Do you think people should be able to use their health insurance to help cover the cost of receiving an abortion?",
+}
+/** The badge: the source's own mnemonic for the question. */
+const MNEMONIC: Record<string, string> = { confidence_congress: "CONLEGIS", party_id_7: "PARTYID" }
+export const mnemonicOf = (id: string) => MNEMONIC[id] ?? id.toUpperCase()
+
 /** The names breakdown dimensions print under; a dim outside the list prints as itself. */
 export const DIM_LABELS: Record<string, string> = { age: "Age", age_5: "Age", educ: "Education", party: "Party", race: "Race", race_eth: "Race and ethnicity", sex: "Sex", income: "Income" }
 export const dimLabel = (d: string) => DIM_LABELS[d] ?? d.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase())

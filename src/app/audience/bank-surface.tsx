@@ -10,7 +10,7 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@govblock/
 import { Separator } from "@govblock/ui/components/ny4/separator"
 import { SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader } from "@govblock/ui/components/ny4/sidebar"
 
-import { groupSources, shortSource, year, type AudienceIndex, type SourceRow } from "./audience-data"
+import { groupSources, mnemonicOf, shortSource, WORDING, year, type AudienceIndex, type SourceRow } from "./audience-data"
 import { RowsView } from "./rows-view"
 
 // /audience — the normative database: the reference instrument a pollster
@@ -28,22 +28,6 @@ const SLICE_SOURCE = "GSS"
  *  experiment, the 1991-2018 second form, and the two recent trust
  *  rewordings — so the versions of one construct sit side by side. */
 const SLICE = new Set(["party_id_7", "confidence_congress", "concong", "conlegiy", "trcong", "trlegis"])
-
-// Seeded survey wordings (Brendan authorized 2026-10-26): the card reads as
-// the question would on a survey. These hold until the codebook export lands
-// verbatim texts; scale wordings are phrased from each question's own
-// response bands in the store.
-const WORDING: Record<string, string> = {
-  confidence_congress: "Would you say you have a great deal of confidence, only some confidence, or hardly any confidence at all in the people running Congress?",
-  concong: "How much confidence do you have in Congress?",
-  conlegiy: "On a scale of 1 to 7, where 1 is complete confidence and 7 is no confidence at all, how much confidence do you have in the people running Congress?",
-  trcong: "On a scale of 0 to 10, where 0 is no trust at all and 10 is complete trust, how much do you personally trust Congress?",
-  trlegis: "On a scale of 0 to 10, how much do you trust the U.S. Congress?",
-  party_id_7: "Generally speaking, do you usually think of yourself as a Republican, Democrat, Independent, or what?",
-}
-/** The badge: the source's own mnemonic for the question. */
-const MNEMONIC: Record<string, string> = { confidence_congress: "CONLEGIS", party_id_7: "PARTYID" }
-const mnemonicOf = (id: string) => MNEMONIC[id] ?? id.toUpperCase()
 
 type Question = { id: string; label: string; def: string; wording?: string; span: string; waves: number; rows: SourceRow[] }
 

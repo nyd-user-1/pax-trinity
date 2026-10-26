@@ -10,15 +10,16 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuRadioG
 import { ScrollArea } from "@govblock/ui/components/ny4/scroll-area"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/ny4/tooltip"
 
-import { shortSource, snippetOf, year, type MetricInfo } from "../audience/audience-data"
+import { mnemonicOf, WORDING, year, type MetricInfo } from "../audience/audience-data"
 
-// The segment list in the thread list's exact shape: the same toolbar —
+// The question list in the thread list's frame: the same toolbar —
 // select-all with its menu, refresh, more; the count, the pager and the split
-// toggle at the right — then one row per segment, Gmail's anatomy. Full
-// width, a row is one line: box, star, the source where the sender sits, the
-// segment in bold with its bands and topline after a dash, the latest year
-// where the time sits. Opening a row is the presto: the grid takes the pane.
-// The box is the column picker (four at most), the star pins.
+// toggle at the right — then one card per question, reading as the question
+// would on a survey (Brendan, 2026-10-26): the wording where the bank carries
+// one, the source label where it does not, the span and wave count under it
+// with the source's mnemonic as the badge at the card's bottom right. Opening
+// a card is the presto: the data takes the pane. The box is the column picker
+// (four at most), the star pins.
 
 export type Split = "none" | "vertical"
 export type ListTab = "all" | "pinned"
@@ -35,20 +36,20 @@ function Tip({ label, children }: { label: string; children: React.ReactNode }) 
   )
 }
 
-/** The line after the dash: the bands, then the topline the way the inbox teases a thread. */
-function teaserOf(c: MetricInfo | undefined, place: (code: string) => string) {
-  if (!c) return ""
-  const base = snippetOf(c, place)
-  if (c.median || c.options.length < 2) return base
-  return base ? `${c.options.length} bands · ${base}` : `${c.options.length} bands`
+/** The card's foot: the question's span and wave count, read off its topline rows. */
+function spanOf(c: MetricInfo | undefined) {
+  if (!c) return null
+  const ys = new Set<string>()
+  for (const r of c.rs) ys.add(year(r[3]))
+  const s = [...ys].sort()
+  if (!s.length) return null
+  return { span: s[0] === s[s.length - 1] ? s[0] : `${s[0]}–${s[s.length - 1]}`, waves: ys.size }
 }
 
 export function SegmentList({
   info,
   metricIds,
-  source,
   label,
-  place,
   selected,
   checked,
   pinned,
@@ -68,9 +69,7 @@ export function SegmentList({
 }: {
   info: Map<string, MetricInfo>
   metricIds: string[]
-  source: string | null
   label: (id: string) => string
-  place: (code: string) => string
   selected: string | null
   checked: string[]
   pinned: string[]
@@ -100,7 +99,6 @@ export function SegmentList({
   const more = React.useCallback(() => setDepth((d) => d + PER_READ), [])
   const allChecked = ordered.length > 0 && ordered.slice(0, MAX_COLS).every((id) => checked.includes(id))
   const stacked = split === "vertical"
-  const who = source ? shortSource(source) : ""
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -174,8 +172,7 @@ export function SegmentList({
             const c = info.get(id)
             const active = selected === id
             const atCap = !checked.includes(id) && checked.length >= MAX_COLS
-            const teaser = teaserOf(c, place)
-            const date = c?.topline ? year(c.topline[3]) : ""
+            const foot = spanOf(c)
             const star = (
               <button
                 type="button"
@@ -195,38 +192,22 @@ export function SegmentList({
                 key={id}
                 data-active={active}
                 className={cn(
-                  "group/row relative flex cursor-pointer items-start gap-3 px-3 text-sm transition-[background-color,box-shadow] hover:z-10 hover:bg-accent/60 hover:shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]",
-                  stacked ? "py-2.5" : "h-10 items-center",
+                  "group/row relative flex cursor-pointer items-start gap-3 px-3 py-2.5 text-sm transition-[background-color,box-shadow] hover:z-10 hover:bg-accent/60 hover:shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]",
                   active && "bg-muted"
                 )}
                 onClick={() => onOpen(id)}
               >
-                <span className={cn("flex shrink-0 items-center gap-2", stacked && "pt-0.5")} onClick={(event) => event.stopPropagation()}>
+                <span className="flex shrink-0 items-center gap-2 pt-0.5" onClick={(event) => event.stopPropagation()}>
                   <Checkbox aria-label={`A column for ${label(id)}`} checked={checked.includes(id)} disabled={atCap} title={atCap ? "Four at most" : undefined} onCheckedChange={() => onCheck(id)} />
-                  {!stacked && star}
+                  {star}
                 </span>
-                {stacked ? (
-                  <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <span className="flex items-center gap-2">
-                      <span className="truncate font-medium">{who}</span>
-                      <span className="ml-auto shrink-0 text-xs text-muted-foreground tabular-nums">{date}</span>
-                    </span>
-                    <span className="truncate font-medium">{label(id)}</span>
-                    <span className="flex items-center gap-2">
-                      <span className="truncate text-muted-foreground">{teaser}</span>
-                      <span className="ml-auto">{star}</span>
-                    </span>
+                <span className="flex min-w-0 flex-1 flex-col gap-1">
+                  <span className="font-semibold">{WORDING[id] ?? label(id)}</span>
+                  <span className="flex items-end justify-between gap-2">
+                    <span className="text-xs text-muted-foreground tabular-nums">{foot ? `${foot.span} · ${foot.waves} ${foot.waves === 1 ? "wave" : "waves"}` : ""}</span>
+                    <span className="shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium tracking-wider text-muted-foreground">{mnemonicOf(id)}</span>
                   </span>
-                ) : (
-                  <>
-                    <span className="w-44 shrink-0 truncate font-medium">{who}</span>
-                    <span className="min-w-0 flex-1 truncate">
-                      <span className="font-medium">{label(id)}</span>
-                      {teaser && <span className="text-muted-foreground"> - {teaser}</span>}
-                    </span>
-                    <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{date}</span>
-                  </>
-                )}
+                </span>
               </li>
             )
           })}
