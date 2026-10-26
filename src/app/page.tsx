@@ -26,7 +26,7 @@ export default async function HomePage() {
             <HomeMasthead ledger={LEDGER} />
           </RevealFx>
           <RevealFx delay={0.22} translateY={5}>
-            <HomeContents initial={CARDS} />
+            <HomeContents />
           </RevealFx>
         </div>
       </SwitchboardProvider>

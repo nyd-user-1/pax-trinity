@@ -748,6 +748,35 @@ export const KINDS = { Platform: "#033882", Data: "#0e7490", Model: "#7c3aed", T
 export type Kind = keyof typeof KINDS;
 
 /**
+ * The pax plate (2026-10-25): the ten boxes of this platform, built or
+ * underway, replacing the imported NYSgpt deck on the contents rail. A box
+ * wears its kind's colour (KINDS) like the old deck; counts are the store's
+ * and the library's real figures on the day they were written.
+ */
+export const PAX_BOXES: HomeCardData[] = [
+  { href: "/audience", title: "Audience", accent: "", tag: "Data", value: 213_518, unit: "rows",
+    body: "Who the electorate is, where attitudes stand, and what the priors say: the census, the turnout record, five decades of surveys, and the enrollment rolls, one store." },
+  { href: "/chat", title: "Chat", accent: "", tag: "Platform", value: 0, unit: "",
+    body: "Ask across everything here, in one conversation." },
+  { href: "/clips", title: "Clips", accent: "", tag: "Platform", value: 209, unit: "videos",
+    body: "The partners' cuts and shorts in one library: watched, discussed, and sent to test." },
+  { href: "/consensus", title: "Consensus", accent: "", tag: "Tool", value: 0, unit: "",
+    body: "Gather opinion at scale; groups emerge from the votes, not the loudest voice." },
+  { href: "", title: "Scripts", accent: "", tag: "Platform", value: 0, unit: "",
+    body: "From brief to draft: the scripts the cuts are shot from, written and revised in place. Underway." },
+  { href: "/audience", title: "Lift Benchmarks", accent: "", tag: "Data", value: 1_583, unit: "effects",
+    body: "Ad-level effects from prior randomized tests. A new lift lands on this curve, not in a vacuum." },
+  { href: "/t/open-primaries-1", title: "Message Tests", accent: "", tag: "Platform", value: 5, unit: "arms",
+    body: "Randomized placebo tests of video: each respondent watches one arm, answers the ballot, and the lift is measured against the placebo alone." },
+  { href: "/clips", title: "Partners", accent: "", tag: "Platform", value: 4, unit: "desks",
+    body: "Voter Freedom, Yes on 3, Unite America, and PAX: channels, rosters, and review threads." },
+  { href: "/audience", title: "Polls", accent: "", tag: "Data", value: 20, unit: "polls",
+    body: "Thirteen polls and seven official measure results on open primaries, 2014 through the 2026 Massachusetts tracking." },
+  { href: "", title: "Reports", accent: "", tag: "Platform", value: 0, unit: "",
+    body: "The wave readout, rebuilt from scratch: lifts against the placebo, weighted to the audience store, placed on the benchmark. Underway." },
+];
+
+/**
  * The masthead: the four layers, one figure each (2026-10-08).
  *  - Data: every record held, in every database and inside every file: the
  *    full count of 2026-10-01 (12,021,607,502, docs/TASK-SWITCHBOARD-COUNTS.md)

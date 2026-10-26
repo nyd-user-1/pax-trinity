@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { HomeCard } from './HomeCard'
-import { APIS, IN_HOUSE, KINDS, SWITCHBOARD, PRODUCT_EXTRAS, TOOLS, HF_MODELS, type HomeCardData, type Kind } from '@/lib/home-data'
+import { IN_HOUSE, KINDS, PAX_BOXES, SWITCHBOARD, HF_MODELS, type HomeCardData, type Kind } from '@/lib/home-data'
 import dynamic from 'next/dynamic'
 import { CardDialog } from './CardDialog'
 import { X } from 'lucide-react'
@@ -27,14 +27,6 @@ const InspectorMode = dynamic(() => import('./InspectorMode').then(m => m.Inspec
  * refresh that dealt recent papers into the plate (retired with the heading).
  */
 
-/**
- * Off the rail (2026-10-08, the tightening): Sports, which fits none of the
- * four verticals; Solar, the same app as Energy, whose box now carries both;
- * and Compiler, Lake and Loaders, which the Pipeline box now speaks for. They
- * stay in the data, the switchboard and the gate.
- */
-const OFF_RAIL = new Set(['Sports', 'Solar', 'Compiler', 'Lake', 'Loaders'])
-
 /** The box that opens the Dev Tools frame. */
 const DEV_TOOLS = 'Dev Tools'
 
@@ -44,16 +36,14 @@ const DEV_TOOLS = 'Dev Tools'
  *  since the rail stretches both frames to the taller. */
 const FRAME = 'isolate flex shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-[var(--paper-rule)]'
 
-export function HomeContents({ initial: products }: { initial: HomeCardData[] }) {
-  /** Every box but the dev tools, A–Z; each product carries its dialog from
-   *  PRODUCT_EXTRAS. A box wears its kind's colour (KINDS), not its own. */
+export function HomeContents() {
+  /** The ten pax boxes, A–Z. A box wears its kind's colour (KINDS), not its own. */
   const boxes = useMemo(
     () =>
-      [...products.map(c => ({ ...c, ...PRODUCT_EXTRAS[c.title], tag: 'Platform' })), ...TOOLS, ...APIS]
-        .filter(c => !OFF_RAIL.has(c.title))
+      PAX_BOXES
         .map(c => (c.tag ? { ...c, accent: KINDS[c.tag as Kind] } : c))
         .sort((a, b) => a.title.localeCompare(b.title)),
-    [products],
+    [],
   )
   /** The dev tools are tools: they wear the Tool colour and chip. */
   const devTools = useMemo(() => IN_HOUSE.map(c => ({ ...c, tag: 'Tool', accent: KINDS.Tool })), [])
@@ -168,7 +158,7 @@ export function HomeContents({ initial: products }: { initial: HomeCardData[] })
         <div className={`${FRAME} relative z-10 w-full bg-[var(--paper)]`}>
           <div className="no-scrollbar -m-px flex-1 snap-x snap-proximity overflow-x-auto overscroll-x-contain">
             <div
-              className="grid h-full grid-flow-col grid-rows-[repeat(2,minmax(210px,auto))] border-t border-l border-[var(--paper-rule)] [&>*]:snap-start"
+              className="grid h-full grid-rows-[repeat(2,minmax(210px,auto))] border-t border-l border-[var(--paper-rule)] [&>*]:snap-start"
               style={{ width: `calc(${columns} * var(--col))`, gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
             >
               {boxes.map((card, i) => (
