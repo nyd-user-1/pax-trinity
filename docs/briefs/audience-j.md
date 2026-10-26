@@ -75,3 +75,11 @@ The committed export serves the 13 harmonized constructs unchanged plus the bulk
 5. **Source label.** ANES's label in `index.json` still reads "Cumulative Data File" though the source now carries the 2024-only slice. The label comes from the migration-seeded sources table, which is outside what I touched.
 6. **`SEGMENT_SEED`** in `src/app/audience/audience-data.ts` still says ANES: 13; the final count is 1,518 (13 harmonized plus 1,505 bulk).
 7. **README.** The CES window's README edits are uncommitted in the shared file. I staged only my two README changes and left theirs in place.
+
+## Lead rulings (new-lead, 06:33)
+
+1. **Serving:** Brief I's ruling governs — exports to S3 behind the Amplify rewrite on the same path; nothing past the gate into git; index.json commits wait for the lead's serving build, which follows the last window.
+2. Thermometers in as means: kept, as you read it.
+3. The PAPER duplicates skipped, SPS kept: approved.
+4. VCF0009z for the cumulative post-election items: approved.
+5. The sources-table label ("Cumulative Data File"): the lead updates it with the serving build.

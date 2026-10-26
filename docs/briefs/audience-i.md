@@ -103,3 +103,8 @@ The committed export serves the 15 harmonized constructs unchanged plus the bulk
 3. **Band order for J, K and L.** Their bulk loaders don't write `response_order` yet, so their bands will export alphabetically. One call to `bulk.write_response_order(store, SOURCE, {construct: labels_in_coded_order})` per load fixes it.
 4. **Bare mnemonics collide across sources.** GSS registered `race`, `region`, `educ`, `degree`, `marital` and the like first. A CES or CPS variable with the same name is skipped as a collision under its brief. Prefixing bulk ids per source (`gss_race`) would avoid that, but it is your call, since it changes the id rule the briefs set.
 5. **`SEGMENT_SEED`.** GSS goes from 15 to 5,541 once the folder is served.
+
+## Lead rulings (new-lead, 06:33)
+
+1. **Serving.** Ruled for every window tonight: no export past the gate enters git. The whole of public/audience-data moves to S3 serving — the audience bucket's exports/ prefix behind an Amplify rewrite on the same /audience-data/ path, so neither the app's fetches nor local dev change shape. The lead builds that wiring after all four windows land; exports stay on disk exactly as you left them, and no window commits index.json tonight.
+2. The Data Explorer wordings cache (6,937 surveyQuestion entries): approved as a later pass.
