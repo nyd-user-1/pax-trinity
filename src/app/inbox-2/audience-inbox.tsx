@@ -13,7 +13,7 @@ import { TooltipProvider } from "@govblock/ui/components/ny4/tooltip"
 
 import { AboutPanel, BackButton, type About } from "../audience/audience-pane"
 import { AudienceRows } from "../audience/audience-rows"
-import { buildInfo, groupSources, metricIdsOf, shortSource, type AudienceIndex, type MetricInfo, type SourceRow } from "../audience/audience-data"
+import { buildInfo, groupSources, metricIdsOf, shortSource, WORDING, type AudienceIndex, type MetricInfo, type SourceRow } from "../audience/audience-data"
 import { SourceRail } from "./source-rail"
 import { QuestionTable } from "./question-table"
 import { SegmentList, type ListTab, type Split } from "./segment-list"
@@ -150,7 +150,10 @@ export function AudienceInbox() {
   const metricIds = React.useMemo(() => {
     const all = rows ? metricIdsOf(rows) : []
     if (source !== "GSS") return all
-    return all.filter((id) => REVIEW_SLICE.has(id)).sort((a, b) => (REVIEW_SLICE.get(a) ?? 9) - (REVIEW_SLICE.get(b) ?? 9) || label(a).localeCompare(label(b)))
+    // A–Z by what the card shows — the wording where one exists — so the
+    // reading order matches the visible text, not the hidden variable label.
+    const shownText = (id: string) => WORDING[id] ?? label(id)
+    return all.filter((id) => REVIEW_SLICE.has(id)).sort((a, b) => (REVIEW_SLICE.get(a) ?? 9) - (REVIEW_SLICE.get(b) ?? 9) || shownText(a).localeCompare(shownText(b)))
   }, [rows, source, label])
   // The rail's counts correct themselves as sources read.
   const segCounts = React.useMemo(() => {

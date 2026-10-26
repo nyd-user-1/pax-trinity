@@ -10,7 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuRadioG
 import { ScrollArea } from "@govblock/ui/components/ny4/scroll-area"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/ny4/tooltip"
 
-import { mnemonicOf, WORDING, year, type MetricInfo } from "../audience/audience-data"
+import { mnemonicOf, WEB_GRID, WORDING, year, type MetricInfo } from "../audience/audience-data"
 
 // The question list in the thread list's frame: the same toolbar —
 // select-all with its menu, refresh, more; the count, the pager and the split
@@ -202,7 +202,10 @@ export function SegmentList({
                   {star}
                 </span>
                 <span className="flex min-w-0 flex-1 flex-col gap-1">
-                  <span className="font-semibold">{WORDING[id] ?? label(id)}</span>
+                  <span className="font-semibold">
+                    {WORDING[id] ?? label(id)}
+                    {WEB_GRID.has(id) && <span className="font-normal text-muted-foreground"> (web grid)</span>}
+                  </span>
                   <span className="flex items-end justify-between gap-2">
                     <span className="text-xs text-muted-foreground tabular-nums">{foot ? `${foot.span} · ${foot.waves} ${foot.waves === 1 ? "wave" : "waves"}` : ""}</span>
                     <span className="shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium tracking-wider text-muted-foreground">{mnemonicOf(id)}</span>

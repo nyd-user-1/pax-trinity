@@ -10,7 +10,7 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@govblock/
 import { Separator } from "@govblock/ui/components/ny4/separator"
 import { SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader } from "@govblock/ui/components/ny4/sidebar"
 
-import { groupSources, mnemonicOf, shortSource, WORDING, year, type AudienceIndex, type SourceRow } from "./audience-data"
+import { groupSources, mnemonicOf, shortSource, WEB_GRID, WORDING, year, type AudienceIndex, type SourceRow } from "./audience-data"
 import { RowsView } from "./rows-view"
 
 // /audience — the normative database: the reference instrument a pollster
@@ -104,7 +104,8 @@ export function BankSurface() {
       const last = span[span.length - 1]
       qs.push({ id, label: defs.get(id)?.label ?? id, def: defs.get(id)?.definition ?? "", wording: WORDING[id], span: span[0] === last ? span[0] : `${span[0]}–${last}`, waves: ys.size, rows: rs })
     }
-    return qs.sort((a, b) => a.label.localeCompare(b.label))
+    // A–Z by what the card shows, so the reading order matches the visible text.
+    return qs.sort((a, b) => (a.wording ?? a.label).localeCompare(b.wording ?? b.label))
   }, [rows, index])
 
   React.useEffect(() => {
@@ -167,7 +168,10 @@ export function BankSurface() {
                 aria-current={open === x.id ? "true" : undefined}
                 className={cn("w-full px-4 py-3 text-left transition-colors hover:bg-accent/60", open === x.id && "bg-muted")}
               >
-                <p className="text-sm font-semibold">{x.wording ?? x.label}</p>
+                <p className="text-sm font-semibold">
+                  {x.wording ?? x.label}
+                  {WEB_GRID.has(x.id) && <span className="font-normal text-muted-foreground"> (web grid)</span>}
+                </p>
                 {!x.wording && x.def && x.def !== x.label && <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">“{x.def}”</p>}
                 <div className="mt-1.5 flex items-end justify-between gap-2">
                   <p className="text-xs text-muted-foreground tabular-nums">

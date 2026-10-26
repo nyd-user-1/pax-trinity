@@ -123,6 +123,10 @@ export const WORDING: Record<string, string> = {
 const MNEMONIC: Record<string, string> = { confidence_congress: "CONLEGIS", party_id_7: "PARTYID" }
 export const mnemonicOf = (id: string) => MNEMONIC[id] ?? id.toUpperCase()
 
+/** The 2021 web transition's grid re-fieldings: verbatim their parents' text,
+ *  a different administration — the card says so after the wording. */
+export const WEB_GRID = new Set(["abanyg", "abdefectg", "abhlthg", "abnomoreg", "abpoorg", "abrapeg", "absingleg"])
+
 /** The names breakdown dimensions print under; a dim outside the list prints as itself. */
 export const DIM_LABELS: Record<string, string> = { age: "Age", age_5: "Age", educ: "Education", party: "Party", race: "Race", race_eth: "Race and ethnicity", sex: "Sex", income: "Income" }
 export const dimLabel = (d: string) => DIM_LABELS[d] ?? d.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase())
