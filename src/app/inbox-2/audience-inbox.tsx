@@ -49,7 +49,17 @@ export function AudienceInbox() {
   // seconds after an add, with View opening the consensus admin that holds it.
   const [drafted, setDrafted] = React.useState<number | null>(null)
 
-  const groups = React.useMemo(() => (index ? groupSources(index.sources) : []), [index])
+  // The rail reads A to Z by display name; the tests and the lift archive
+  // have their own surfaces (/lift) and stay out of the normative bank.
+  const groups = React.useMemo(
+    () =>
+      index
+        ? groupSources(index.sources)
+            .filter((g) => g.source !== "LIFT_ARCHIVE" && g.source !== "PAX_TEST")
+            .sort((a, b) => shortSource(a.source).localeCompare(shortSource(b.source), "en", { sensitivity: "base" }))
+        : [],
+    [index]
+  )
 
   React.useEffect(() => {
     let on = true
@@ -58,16 +68,18 @@ export function AudienceInbox() {
       .then((idx: AudienceIndex) => {
         if (!on) return
         setIndex(idx)
-        // The rail's first folder opens first. (Until 2026-10-26 the smallest
-        // source did, a load-cost habit the performance scoping retired — it
-        // made Tests the front door, which read as arbitrary.)
-        setSource(groupSources(idx.sources)[0]?.source ?? null)
       })
       .catch((e: Error) => on && setError(e.message))
     return () => {
       on = false
     }
   }, [])
+
+  // The rail's first folder opens first. (Until 2026-10-26 the smallest
+  // source did, a load-cost habit the performance scoping retired.)
+  React.useEffect(() => {
+    if (!source && groups.length) setSource(groups[0].source)
+  }, [groups, source])
 
   React.useEffect(() => {
     // Once a source's parts are kept, the early return keeps this effect idle.
