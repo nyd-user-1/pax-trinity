@@ -24,7 +24,8 @@ def test_index_and_files_follow_the_contract(loaded, tmp_path):
     index, out = run_export(store, tmp_path)
     assert set(index) == {"sources", "constructs", "geographies"}
     assert all(set(s) == {"source", "label", "rows", "file"} for s in index["sources"])
-    assert all(set(c) == {"construct", "label", "definition"} for c in index["constructs"])
+    assert all({"construct", "label", "definition"} <= set(c)
+               <= {"construct", "label", "definition", "wording"} for c in index["constructs"])
     assert all(set(g) == {"code", "name", "level", "parent"} for g in index["geographies"])
     assert {g["level"] for g in index["geographies"]} == {"US", "STATE", "COUNTY", "TOWN"}
     files: dict[str, list[str]] = {}

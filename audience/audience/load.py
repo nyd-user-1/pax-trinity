@@ -10,6 +10,7 @@ from .db import connect
 from .loaders import acs, anes, ces, cps, cvap, gss, ma_enrollment, wvs
 from .loaders import apnorc, polls
 from .loaders import lift_archive, ma_results, pax_tests
+from .loaders import gss_wording
 
 # CLI name -> loader module. Each module exposes SOURCE and run(store, ...); the audit
 # reads this map to tell "loader exists, raw data absent" from "no loader".
@@ -19,6 +20,7 @@ MODULES = {
     "cps": cps,
     "ma_enrollment": ma_enrollment,
     "gss": gss,
+    "gss_wording": gss_wording,
     "anes": anes,
     "ces": ces,
     "wvs": wvs,

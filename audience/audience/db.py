@@ -128,6 +128,12 @@ class Store:
         )
         return rows[0][0] > 0
 
+    def column_exists(self, table: str, column: str) -> bool:
+        rows = self.query(
+            "SELECT count(*) FROM information_schema.columns "
+            "WHERE table_name = ? AND column_name = ?", [table, column])
+        return rows[0][0] > 0
+
     # -- writes -------------------------------------------------------------------
 
     def upsert_norms(self, rows: Iterable[dict], prune: tuple[str, str] | None = None) -> int:

@@ -20,7 +20,9 @@ definition = the Stata variable label (the questionnaire wording is not in the f
 response options = the value labels in coded order. Toplines for every year asked,
 breakdowns for the latest year asked. Administrative and paradata variables are skipped
 (ADMIN_VARS, admin()). Each bulk row links to the variable's GSS Data Explorer page; the
-mnemonic-to-page map is the Explorer's public variable list, cached in raw/gss/.
+mnemonic-to-page map is the Explorer's public variable list, cached in raw/gss/. The same list
+carries each variable's question text, which gss_wording.py stores as concordance.gss_wording
+for every construct this loader writes.
 """
 
 from __future__ import annotations
@@ -584,6 +586,10 @@ def run(store: Store, refresh: bool = False, raw_dir: Path | None = None,
         print(f"bulk tier: {len(scan.taken):,} variables, {len(bulk_keys):,} rows; "
               f"{sum(len(v) for v in scan.skipped.values()):,} variables skipped; "
               f"{pruned:,} stale rows pruned")
+    from . import gss_wording  # imported here: gss_wording imports this module
+
+    # the question texts of the constructs just written; the report on a full run only
+    gss_wording.run(store, raw_dir=raw_dir, report=bulk_tier)
     store.touch_source(SOURCE)
     years = sorted({r["period_start"].year for r in rows})
     print(f"{version}: {written} rows, {len(years)} survey years {years[0]}-{years[-1]}")

@@ -3,7 +3,7 @@
 Writes public/audience-data/ at the repo root, committed with the app:
 
   index.json   {sources: [{source, label, rows, file}],
-                constructs: [{construct, label, definition}],
+                constructs: [{construct, label, definition, wording?}],
                 geographies: [{code, name, level, parent}]}
   <source>.json   one per source (lowercased): an array of rows
                   [construct, geo_code, period_start, period_end, response_option,
@@ -19,7 +19,8 @@ has one, else null. Within a cell, response options run in the coded order respo
 records (the bulk tier's constructs), else alphabetically. A source file over
 MAX_BYTES is split into <source>-2.json, <source>-3.json, ..., each listed in index.json as
 its own entry. constructs lists those with exported rows; geographies lists US, STATE,
-COUNTY and TOWN.
+COUNTY and TOWN. A constructs entry carries wording, the verbatim GSS question text, where
+concordance.gss_wording holds one (audience/loaders/gss_wording.py); the key is absent elsewhere.
 """
 
 from __future__ import annotations
@@ -111,10 +112,13 @@ def export(store: Store, out: Path = OUT) -> dict:
             written.add(name)
             index_sources.append({"source": source, "label": labels.get(source, source),
                                   "rows": len(chunk), "file": name})
+    worded = store.column_exists("concordance", "gss_wording")
     constructs = [
-        {"construct": c, "label": label, "definition": definition}
-        for c, label, definition in store.query(
-            "SELECT construct, label, definition FROM concordance WHERE construct IN "
+        {"construct": c, "label": label, "definition": definition,
+         **({"wording": wording} if wording else {})}
+        for c, label, definition, wording in store.query(
+            f"SELECT construct, label, definition, {'gss_wording' if worded else 'NULL'} "
+            "FROM concordance WHERE construct IN "
             "(SELECT DISTINCT construct FROM norms WHERE geography <> 'BLOCKGROUP') ORDER BY 1")]
     placeholders = ", ".join("?" for _ in LEVELS)
     level_order = {lvl: i for i, lvl in enumerate(LEVELS)}
@@ -142,7 +146,9 @@ def main() -> int:
     for s in index["sources"]:
         size = (OUT / s["file"]).stat().st_size
         print(f"  {s['file']:<24}{s['rows']:>8,} rows  {size / 1e6:6.2f} MB")
-    print(f"index.json: {len(index['sources'])} files, {len(index['constructs'])} constructs, "
+    worded = sum(1 for c in index["constructs"] if "wording" in c)
+    print(f"index.json: {len(index['sources'])} files, {len(index['constructs'])} constructs "
+          f"({worded:,} worded), "
           f"{len(index['geographies'])} geographies -> {OUT}")
     return 0
 
