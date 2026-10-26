@@ -20,3 +20,31 @@ You are the audience-k window, taking Brief M. Ground rules as before: commit lo
 ## Worker report
 
 (appended by the worker)
+
+### Landed
+
+`019af45`: `src/app/data-dictionary/` with three files. `page.tsx` and `dictionary-rows.tsx` are the glossary's two files duplicated with the content swapped. `dictionary-data.ts` builds the rows from the served index.
+
+- **8,028 rows**, one per construct in `exports/index.json`, fetched on every request (`force-dynamic`). Term is the label, Definition the definition, Section the source's short name (SHORT_SOURCE copied in). The sort is A to Z by the glossary's letters-only collation, ties broken by construct id: 377 labels repeat across constructs.
+- **The glossary's dress, line for line:** the same TableBlock, `fill`, the same column widths, header search, one-line rows that unfold on click, and the menu's Download. Title and metadata read "Data dictionary"; the search placeholder reads "Search the dictionary…". The glossary's "Shown as" line is gone, since the index carries no short name.
+- **Section for constructs several sources carry** lists each source: `party_id_7` reads "ANES, CES, GSS", `trust_gov` "ANES, CES". Five constructs have more than one source.
+
+### Seam: the index doesn't say which source holds a construct
+
+`constructs` carries construct, label and definition; `sources` names files. Nothing links them, so Section can't come from the index. Every source file is sorted by construct with one row per line, so the page streams the 41 files and keeps only each line's first field. The resulting map is held per server process until the index's ETag changes. Checked in Node against the bucket:
+
+- 8,028 rows, ids unique, every construct sectioned.
+- Counts per source match the rail's seeds: GSS 5,541, ANES 1,518, CES 943, Turnout 12, U.S. Census 6, Polls 4, Lift 3, Voting Age 2, Tests 2, Results 2, Enrollment 1.
+- First view after a restart or a re-export: 132 MB pulled from S3, about 4 seconds, 167 MB peak in a standalone Node process. After that, a 1.3 MB index fetch, about 0.1 seconds.
+
+### Checks
+
+- The dev server wasn't up on 3000, so I didn't load the route. I diffed both duplicated files against the glossary's: the differences are the content fields, the dropped "Shown as" line, and the comments.
+- I ran `dictionary-data.ts` in Node against the live bucket (above). No tsc or build, per the rules. I used the repo's `TextDecoder` reader pattern and typed the map's tuples explicitly, to stay clear of the stream and tuple types that trip strict mode.
+- Nothing outside `src/app/data-dictionary/` and this report moved.
+
+### For the lead
+
+1. **The scan is a stopgap worth replacing.** If the exporter wrote each construct's sources into its `constructs` entry (`"sources": ["ANES", "CES", "GSS"]`, about 100 KB on the index), the page would drop the scan and the 132 MB first view. It's additive, but earlier briefs fixed index.json's shape, so it's your call.
+2. **Page weight.** 8,028 server-rendered rows: the row data is 1.15 MB of JSON in the payload, plus several MB of HTML. Search hides non-matching rows by text on each keystroke. I pass one array to both the rows and Download, so the data travels once instead of twice. As a side effect, Download carries the construct id as a column.
+3. **Navigation** is yours, as the brief says.
