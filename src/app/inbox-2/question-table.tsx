@@ -36,6 +36,7 @@ export function QuestionTable({
   info,
   short,
   source,
+  wording,
   about,
   onPick,
 }: {
@@ -50,6 +51,8 @@ export function QuestionTable({
   short: string
   /** The source's key, for the Rows view's weight mapping. */
   source: string | null
+  /** The verbatim wording where the bank carries one; the bar reads it over the label. */
+  wording: string | null
   about: About | null
   onPick: (a: About) => void
 }) {
@@ -83,32 +86,36 @@ export function QuestionTable({
     return { base, latestYear, options, capped, banner, cell, years, trendCell }
   }, [rows, info])
 
+  // The bar reads the question itself (Brendan, 2026-10-26) and the chevrons
+  // changing the open question change it with them; the toggle rides the
+  // filter row's right in the Data view and the bar's right elsewhere.
+  const heading = <span className="min-w-0 truncate text-sm font-semibold">{wording ?? title}</span>
+  const toggle = (
+    <div className="flex shrink-0 rounded-lg border p-0.5 text-xs">
+      {(["tidy", "crosstab", "chart"] as const).map((v) => (
+        <button
+          key={v}
+          type="button"
+          aria-pressed={view === v}
+          onClick={() => setView(v)}
+          className={cn("rounded-md px-2.5 py-1 transition-colors", view === v ? "bg-pax2-mist font-semibold text-pax2-blue" : "text-muted-foreground hover:text-foreground")}
+        >
+          {v === "crosstab" ? "Crosstab" : v === "chart" ? "Trend" : "Data"}
+        </button>
+      ))}
+    </div>
+  )
+
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
-      {/* The toggle leads the header flush left; the body's own heading names
-          the question, so the bar carries no title and no back arrow
-          (Brendan, 2026-10-26) — the list beside the pane is the way back. */}
-      <div className="flex h-[52px] shrink-0 items-center gap-2 border-b px-4">
-        <div className="flex rounded-lg border p-0.5 text-xs">
-          {(["tidy", "crosstab", "chart"] as const).map((v) => (
-            <button
-              key={v}
-              type="button"
-              aria-pressed={view === v}
-              onClick={() => setView(v)}
-              className={cn("rounded-md px-2.5 py-1 transition-colors", view === v ? "bg-pax2-mist font-semibold text-pax2-blue" : "text-muted-foreground hover:text-foreground")}
-            >
-              {v === "crosstab" ? "Crosstab" : v === "chart" ? "Trend" : "Data"}
-            </button>
-          ))}
-        </div>
-        <span className="ml-auto shrink-0 text-xs text-muted-foreground tabular-nums">{rows.length.toLocaleString("en-US")} rows</span>
-      </div>
-
       {view === "tidy" ? (
-        // The shared Rows view, bare: this pane's bar already carries the toggle.
-        <RowsView rows={rows} title={title} id={metric} short={short} source={source} bare />
+        <RowsView rows={rows} title={title} id={metric} short={short} source={source} header={heading} trailing={toggle} />
       ) : (
+        <>
+      <div className="flex h-[52px] shrink-0 items-center gap-2 border-b px-4">
+        {heading}
+        <div className="ml-auto flex shrink-0 items-center">{toggle}</div>
+      </div>
       /* Native scroll, not the ScrollArea primitive: radix's viewport sizes
          itself to the banner's intrinsic width, which blew the pane out
          sideways and swallowed the vertical scroll with it. */
@@ -196,6 +203,7 @@ export function QuestionTable({
           </div>
         )}
       </div>
+        </>
       )}
     </div>
   )

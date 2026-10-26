@@ -26,19 +26,6 @@ import { SegmentGrid } from "./segment-grid"
 // results grid takes the pane — and a cell hands its row to the About panel.
 // /audience keeps the earlier shape for comparison while this one settles.
 
-// Brendan's review slice (2026-10-26): the GSS list narrows to the abortion
-// battery in all 48 versions, party identification, and the five
-// confidence-in-Congress forms, so the depth of rows behind each question —
-// subgroups at every wave or at the latest alone — can be judged one click
-// at a time. Abortion first, then party, then Congress, A to Z by label
-// within each. Delete REVIEW_SLICE to restore the full GSS list.
-const SLICE_GROUPS: string[][] = [
-  ["abany", "abanyg", "abbelief", "abcare", "abchoose", "abdefct1", "abdefctw", "abdefect", "abdefectg", "abfelegl", "abfirm", "abgender", "abhave1", "abhave2", "abhave3", "abhelp1", "abhelp2", "abhelp3", "abhelp4", "abhlth", "abhlthg", "abimp", "abinfo", "abinspay", "ablegal", "abmedgov1", "abmedgov2", "abmelegl", "abmoral", "abnomore", "abnomoreg", "aborct", "abort12", "abpoor", "abpoor1", "abpoorg", "abpoorw", "abrape", "abrapeg", "absingle", "absingleg", "abspno", "abstate1", "abstate2", "gestate", "prochoic", "prolife", "salabort"],
-  ["party_id_7"],
-  ["confidence_congress", "concong", "conlegiy", "trcong", "trlegis"],
-]
-const REVIEW_SLICE = new Map(SLICE_GROUPS.flatMap((ids, rank) => ids.map((id) => [id, rank] as const)))
-
 export function AudienceInbox() {
   const [index, setIndex] = React.useState<AudienceIndex | null>(null)
   const [source, setSource] = React.useState<string | null>(null)
@@ -140,21 +127,28 @@ export function AudienceInbox() {
   }, [source])
 
   const labels = React.useMemo(() => new Map((index?.constructs ?? []).map((c) => [c.construct, c.label])), [index])
+  // The export's verbatim wording first (Brief P), the hand seeds second, nothing third.
+  const wordings = React.useMemo(() => new Map((index?.constructs ?? []).filter((c) => c.wording).map((c) => [c.construct, c.wording as string])), [index])
   const defs = React.useMemo(() => new Map((index?.constructs ?? []).map((c) => [c.construct, c.definition])), [index])
   const geoName = React.useMemo(() => new Map((index?.geographies ?? []).map((g) => [g.code, g.name])), [index])
   const geoLevel = React.useMemo(() => new Map((index?.geographies ?? []).map((g) => [g.code, g.level])), [index])
   const label = React.useCallback((id: string) => labels.get(id) ?? id, [labels])
+  const wordingOf = React.useCallback((id: string) => wordings.get(id) ?? WORDING[id] ?? null, [wordings])
   const place = React.useCallback((code: string) => geoName.get(code) ?? code, [geoName])
 
   const rows = source ? files[source] : undefined
   const metricIds = React.useMemo(() => {
     const all = rows ? metricIdsOf(rows) : []
     if (source !== "GSS") return all
-    // A–Z by what the card shows — the wording where one exists — so the
-    // reading order matches the visible text, not the hidden variable label.
-    const shownText = (id: string) => WORDING[id] ?? label(id)
-    return all.filter((id) => REVIEW_SLICE.has(id)).sort((a, b) => (REVIEW_SLICE.get(a) ?? 9) - (REVIEW_SLICE.get(b) ?? 9) || shownText(a).localeCompare(shownText(b)))
-  }, [rows, source, label])
+    // The full GSS library (the review slice retired once Brief P's wordings
+    // landed), A–Z by what the card shows — the wording where one exists — so
+    // the reading order matches the visible text, not the hidden label.
+    const text = (id: string) => wordingOf(id) ?? label(id)
+    return all
+      .map((id) => [text(id), id] as const)
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([, id]) => id)
+  }, [rows, source, label, wordingOf])
   // The rail's counts correct themselves as sources read.
   const segCounts = React.useMemo(() => {
     const m: Record<string, number> = {}
@@ -195,6 +189,7 @@ export function AudienceInbox() {
       info={info}
       metricIds={metricIds}
       label={label}
+      wordingOf={wordingOf}
       selected={tableMetric ?? focus}
       checked={checked}
       pinned={pinned}
@@ -329,6 +324,7 @@ export function AudienceInbox() {
                     info={info.get(tableMetric) as MetricInfo}
                     short={source ? shortSource(source) : ""}
                     source={source}
+                    wording={wordingOf(tableMetric)}
                     about={about}
                     onPick={setAbout}
                   />

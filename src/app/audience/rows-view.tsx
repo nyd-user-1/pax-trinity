@@ -32,8 +32,10 @@ export function RowsView({
   short: string
   /** The source's key, for the weight mapping. */
   source: string | null
-  /** True drops the title bar — the mounting view already carries one. */
-  bare?: boolean
+  /** A mounting view's own bar content: it takes the title bar's left, the
+   *  showing note its right, and `trailing` the filter row's right. */
+  header?: React.ReactNode
+  trailing?: React.ReactNode
 }) {
   const [wave, setWave] = React.useState("all")
   const [segment, setSegment] = React.useState("all")
@@ -98,9 +100,20 @@ export function RowsView({
   const more = React.useCallback(() => setDepth((d) => d + PER_READ), [])
   const geos = React.useMemo(() => [...new Set(rows.map((r) => r[1]))].join(" · "), [rows])
 
+  const note = (
+    <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+      Showing {sorted.length ? `1–${Math.min(depth, sorted.length).toLocaleString("en-US")}` : "0"} of {sorted.length.toLocaleString("en-US")}
+    </span>
+  )
+
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
-      {!bare && (
+      {header ? (
+        <div className="flex h-[52px] shrink-0 items-center gap-2 border-b px-4">
+          {header}
+          {note}
+        </div>
+      ) : (
         <div className="flex h-[52px] shrink-0 items-center gap-2.5 border-b px-4">
           <h2 className="truncate text-[15px] font-semibold">{title}</h2>
           <span className="shrink-0 text-xs text-muted-foreground">
@@ -120,9 +133,7 @@ export function RowsView({
           items={[{ value: "total", label: "Total only" }, ...order.segments.map((s) => ({ value: s, label: s }))]}
         />
         <Pill label="Band" value={band} display={band} onPick={setBand} items={order.bands.map((b) => ({ value: b, label: b }))} />
-        <span className="ml-auto text-xs text-muted-foreground">
-          newest first · total before subgroups · showing {sorted.length ? `1–${Math.min(depth, sorted.length).toLocaleString("en-US")}` : "0"} of {sorted.length.toLocaleString("en-US")}
-        </span>
+        {header ? <div className="ml-auto flex shrink-0 items-center">{trailing}</div> : note}
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">

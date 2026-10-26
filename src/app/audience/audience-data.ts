@@ -6,7 +6,8 @@
 export type SourceFile = { source: string; label: string; rows: number; file: string }
 export type AudienceIndex = {
   sources: SourceFile[]
-  constructs: { construct: string; label: string; definition: string }[]
+  /** wording arrived with Brief P (2026-10-26): the codebook's verbatim question text, absent where none is sourced. */
+  constructs: { construct: string; label: string; definition: string; wording?: string }[]
   geographies: { code: string; name: string; level: string; parent: string | null }[]
 }
 // [metric, geo_code, period_start, period_end, response_option, subgroup_dim,

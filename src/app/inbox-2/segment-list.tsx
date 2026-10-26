@@ -10,7 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuRadioG
 import { ScrollArea } from "@govblock/ui/components/ny4/scroll-area"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/ny4/tooltip"
 
-import { mnemonicOf, WEB_GRID, WORDING, year, type MetricInfo } from "../audience/audience-data"
+import { mnemonicOf, WEB_GRID, year, type MetricInfo } from "../audience/audience-data"
 
 // The question list in the thread list's frame: the same toolbar —
 // select-all with its menu, refresh, the more menu (tabs, the split, the
@@ -50,6 +50,7 @@ export function SegmentList({
   info,
   metricIds,
   label,
+  wordingOf,
   selected,
   checked,
   pinned,
@@ -71,6 +72,8 @@ export function SegmentList({
   info: Map<string, MetricInfo>
   metricIds: string[]
   label: (id: string) => string
+  /** The question's verbatim wording where the bank carries one. */
+  wordingOf: (id: string) => string | null
   selected: string | null
   checked: string[]
   pinned: string[]
@@ -92,7 +95,7 @@ export function SegmentList({
 }) {
   const q = query.trim().toLowerCase()
   const shown = metricIds
-    .filter((id) => !q || label(id).toLowerCase().includes(q) || id.toLowerCase().includes(q))
+    .filter((id) => !q || label(id).toLowerCase().includes(q) || id.toLowerCase().includes(q) || (wordingOf(id) ?? "").toLowerCase().includes(q))
     .filter((id) => tab === "all" || pinned.includes(id))
   const ordered = [...shown.filter((id) => pinned.includes(id)), ...shown.filter((id) => !pinned.includes(id))]
   const [depth, setDepth] = React.useState(PER_READ)
@@ -202,7 +205,7 @@ export function SegmentList({
                 data-active={active}
                 className={cn(
                   "group/row relative flex cursor-pointer items-start gap-3 px-3 py-2.5 text-sm transition-[background-color,box-shadow] hover:z-10 hover:bg-accent/60 hover:shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]",
-                  active && "bg-muted"
+                  active && "z-10 bg-muted shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]"
                 )}
                 onClick={() => onOpen(id)}
               >
@@ -212,7 +215,7 @@ export function SegmentList({
                 </span>
                 <span className="flex min-w-0 flex-1 flex-col gap-1">
                   <span className="font-semibold">
-                    {WORDING[id] ?? label(id)}
+                    {wordingOf(id) ?? label(id)}
                     {WEB_GRID.has(id) && <span className="font-normal text-muted-foreground"> (web grid)</span>}
                   </span>
                   <span className="flex items-end justify-between gap-2">

@@ -102,7 +102,7 @@ export function BankSurface() {
       for (const r of rs) ys.add(year(r[3]))
       const span = [...ys].sort()
       const last = span[span.length - 1]
-      qs.push({ id, label: defs.get(id)?.label ?? id, def: defs.get(id)?.definition ?? "", wording: WORDING[id], span: span[0] === last ? span[0] : `${span[0]}–${last}`, waves: ys.size, rows: rs })
+      qs.push({ id, label: defs.get(id)?.label ?? id, def: defs.get(id)?.definition ?? "", wording: defs.get(id)?.wording ?? WORDING[id], span: span[0] === last ? span[0] : `${span[0]}–${last}`, waves: ys.size, rows: rs })
     }
     // A–Z by what the card shows, so the reading order matches the visible text.
     return qs.sort((a, b) => (a.wording ?? a.label).localeCompare(b.wording ?? b.label))
