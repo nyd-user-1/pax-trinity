@@ -21,6 +21,7 @@ Two places where this file differs from the variable names in the brief:
 
 from __future__ import annotations
 
+import json
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -31,7 +32,9 @@ from .. import categories as cat
 from .. import config
 from ..constructs import CONSTRUCTS
 from ..db import Store
+from .. import bulk as bulk_shared
 from .. import survey
+from . import anes_bulk
 from ..survey import IDEOLOGY_7, MIN_CELL_N, PARTY_3, PARTY_ID_7
 
 SOURCE = "ANES"
@@ -238,11 +241,13 @@ def source_version(path: Path) -> str:
     return f"ANES Time Series CDF 1948-2024, release {release}"
 
 
+HARMONIZED_COLUMNS = list(dict.fromkeys(COLUMNS + tuple(i.var for i in ITEMS)))
+
+
 def read_frame(path: Path) -> pd.DataFrame:
     import pyreadstat
 
-    cols = list(dict.fromkeys(COLUMNS + tuple(i.var for i in ITEMS)))
-    df, _ = pyreadstat.read_dta(str(path), usecols=cols)
+    df, _ = pyreadstat.read_dta(str(path), usecols=HARMONIZED_COLUMNS)
     return df
 
 
@@ -255,8 +260,9 @@ EDUC_7_TO_4 = {1: cat.EDUCATION_4[0], 2: cat.EDUCATION_4[0], 3: cat.EDUCATION_4[
                7: cat.EDUCATION_4[3]}
 
 
-def prepare(df: pd.DataFrame) -> pd.DataFrame:
-    df = df.copy()
+def add_recodes(df: pd.DataFrame) -> pd.DataFrame:
+    """The study year and the five subgroup recodes, written into df in place (the bulk
+    tier's frame carries every column, too wide to copy)."""
     df["year"] = df["VCF0004"].astype(int)
     df["_sex"] = survey.recode(df["VCF0104"], {1: cat.SEX[0], 2: cat.SEX[1]})
     df["_age"] = survey.age_bucket(df["VCF0101"].where(df["VCF0101"] > 0))
@@ -264,6 +270,10 @@ def prepare(df: pd.DataFrame) -> pd.DataFrame:
     df["_educ"] = survey.recode(df["VCF0140a"], EDUC_7_TO_4)
     df["_party"] = survey.recode(df["VCF0303"], {1: PARTY_3[0], 2: PARTY_3[1], 3: PARTY_3[2]})
     return df
+
+
+def prepare(df: pd.DataFrame) -> pd.DataFrame:
+    return add_recodes(df.copy())
 
 
 SUBGROUPS = {"sex": "_sex", "age": "_age", "race_eth": "_race_eth", "educ": "_educ",
@@ -311,8 +321,122 @@ def write_concordance(store: Store) -> None:
                                  note=CONCORDANCE_NOTES.get(construct))
 
 
+# -- the bulk tier (anes_bulk.py) -------------------------------------------------------------
+
+# The subgroup sources: as bulk variables they keep every breakdown but their own.
+RECODE_DIMS = {"VCF0104": "sex", "VCF0101": "age", "VCF0105b": "race_eth", "VCF0140a": "educ",
+               "VCF0303": "party"}
+BULK_NOTE = ("Bulk tier: the label and definition are the variable label from the Stata file, "
+             "not the questionnaire wording.")
+STUDY_SUBGROUP_NOTE = ("Breakdowns are the CDF's own recodes of the same respondents, matched "
+                       "on case id (VCF0006 = V240001): " + SUBGROUP_NOTE)
+
+
+def _collisions(store: Store, bulk: list) -> tuple[list, list]:
+    """Split off bulk variables whose construct id another construct already holds."""
+    held = {c: a for c, a in store.query("SELECT construct, anes_var FROM concordance")}
+    keep, clash = [], []
+    for bv in bulk:
+        owner = held.get(bv.construct)
+        if owner is not None and bv.var not in survey._as_list(owner):
+            clash.append(bv)
+        else:
+            keep.append(bv)
+    return keep, clash
+
+
+def run_bulk(store: Store, df: pd.DataFrame, meta, version: str,
+             raw_dir: Path | None = None, min_n: int = MIN_CELL_N) -> tuple[list[dict], dict]:
+    """Bulk-tier rows from the whole CDF frame (recoded in place), and the manifest."""
+    codebook = anes_bulk.load_codebook(RELEASE, raw_dir)
+    if codebook is None:
+        print("the CDF variable codebook could not be read; missing codes come from labels alone")
+        codebook = {}
+    keep, skips = anes_bulk.qualify_cdf(
+        meta.column_names_to_labels, meta.variable_value_labels, anes_bulk.observed_codes(df),
+        codebook, {i.var for i in ITEMS}, RECODE_DIMS)
+    keep, clash = _collisions(store, keep)
+    skips += [anes_bulk.Skip(b.var, b.definition, "collides with an existing construct id")
+              for b in clash]
+    anes_bulk.write_concordance(store, keep, BULK_NOTE)
+    add_recodes(df)
+    rows = anes_bulk.build_rows(df, keep, source=SOURCE, version=version, subgroups=SUBGROUPS,
+                                subgroup_note=SUBGROUP_NOTE, file_note="ANES CDF, study year,",
+                                min_n=min_n)
+    return rows, _manifest(version, keep, skips, rows, codebook=codebook)
+
+
+def _manifest(version: str, keep: list, skips: list, rows: list[dict], **extra) -> dict:
+    stored = {r["construct"] for r in rows}
+    years: dict[str, list[int]] = {}
+    for r in rows:
+        if r["subgroup_dim"] == "all":
+            years.setdefault(r["construct"], []).append(r["period_start"].year)
+    kept = [b for b in keep if b.construct in stored]
+    skipped = anes_bulk.skip_report(skips)
+    no_rows = [b.var for b in keep if b.construct not in stored]
+    if no_rows:
+        skipped[f"no year with an unweighted base of {MIN_CELL_N} or more"] = no_rows
+    return dict(version=version, variables=len(kept), rows=len(rows),
+                means=[b.var for b in kept if b.kind == "mean"],
+                orders=anes_bulk.response_orders(kept), skipped=skipped,
+                years={c: sorted(set(y)) for c, y in years.items()}, **extra)
+
+
+def run_study(store: Store, cdf: pd.DataFrame, codebook: dict, raw_dir: Path | None = None,
+              refresh: bool = False, allow_synthetic: bool = False,
+              min_n: int = MIN_CELL_N) -> tuple[int, dict]:
+    """The 2024 Time Series Study's variables the CDF does not carry, as their own slice."""
+    import pyreadstat
+
+    path = None if refresh else anes_bulk.locate_study(raw_dir)
+    if path is None:
+        path = anes_bulk.fetch_study(raw_dir)
+    if path is None:
+        print(f"the 2024 study is not under raw/anes/ and could not be downloaded "
+              f"({anes_bulk.STUDY_PAGE}); its variables are left out")
+        return 0, {}
+    survey.refuse_synthetic([path], allow_synthetic)
+    version = anes_bulk.study_version(path)
+    print(f"reading {path.name} (every column)")
+    sdf, meta = pyreadstat.read_dta(str(path))
+    in_cdf = {n for e in codebook.values() for n in e.sources.get(2024, ())}
+    keep, skips = anes_bulk.qualify_study(meta.column_names_to_labels,
+                                          meta.variable_value_labels,
+                                          anes_bulk.observed_codes(sdf), in_cdf)
+    keep, clash = _collisions(store, keep)
+    skips += [anes_bulk.Skip(b.var, b.definition, "collides with an existing construct id")
+              for b in clash]
+    recodes = cdf.loc[cdf["year"] == 2024, ["VCF0006", *SUBGROUPS.values()]]
+    recodes = recodes.set_index(recodes["VCF0006"].astype(int))
+    case = sdf["V240001"].astype(int)
+    unmatched = int((~case.isin(recodes.index)).sum())
+    extra = {"year": pd.Series(2024, index=sdf.index)}
+    for col in SUBGROUPS.values():
+        extra[col] = case.map(recodes[col])
+    sdf = pd.concat([sdf, pd.DataFrame(extra)], axis=1)
+    anes_bulk.write_concordance(store, keep, BULK_NOTE + " 2024 study only.")
+    rows = anes_bulk.build_rows(sdf, keep, source=SOURCE, version=version, subgroups=SUBGROUPS,
+                                subgroup_note=STUDY_SUBGROUP_NOTE,
+                                file_note="ANES 2024 Time Series Study (not in the CDF),",
+                                min_n=min_n)
+    written = store.upsert_norms(rows, prune=(SOURCE, version))
+    manifest = _manifest(version, keep, skips, rows, unmatched_cases=unmatched)
+    print(f"{version}: {written} rows, {manifest['variables']} variables the CDF does not carry")
+    return written, manifest
+
+
+REPORT = config.ROOT / "reports" / "anes_bulk.json"
+
+
+def write_report(cdf: dict, study: dict, path: Path = REPORT) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    strip = lambda m: {k: v for k, v in m.items() if k not in ("orders", "codebook")}
+    path.write_text(json.dumps({"cdf": strip(cdf), "study_2024": strip(study)}, indent=1))
+
+
 def run(store: Store, refresh: bool = False, raw_dir: Path | None = None,
-        allow_synthetic: bool = False, min_n: int = MIN_CELL_N) -> int:
+        allow_synthetic: bool = False, min_n: int = MIN_CELL_N, bulk: bool = True) -> int:
     write_concordance(store)  # the crosswalk is recorded even before the data arrives
     path = None if refresh else locate(raw_dir)
     if path is None:
@@ -322,10 +446,28 @@ def run(store: Store, refresh: bool = False, raw_dir: Path | None = None,
         return 0
     survey.refuse_synthetic([path], allow_synthetic)
     version = source_version(path)
-    print(f"reading {path.name} ({len(COLUMNS) + len(ITEMS)} of its columns)")
-    rows = build_rows(read_frame(path), version, min_n=min_n)
-    written = store.upsert_norms(rows, prune=(SOURCE, version))
+    if not bulk:
+        print(f"reading {path.name} ({len(HARMONIZED_COLUMNS)} of its columns)")
+        rows = build_rows(read_frame(path), version, min_n=min_n)
+        written = store.upsert_norms(rows, prune=(SOURCE, version))
+        store.touch_source(SOURCE)
+        years = sorted({r["period_start"].year for r in rows})
+        print(f"{version}: {written} rows, {len(years)} study years {years[0]}-{years[-1]}")
+        return written
+    import pyreadstat
+
+    print(f"reading {path.name} (every column)")
+    df, meta = pyreadstat.read_dta(str(path))
+    rows = build_rows(df[HARMONIZED_COLUMNS], version, min_n=min_n)
+    harmonized = len(rows)
+    bulk_rows, cdf = run_bulk(store, df, meta, version, raw_dir=raw_dir, min_n=min_n)
+    written = store.upsert_norms(rows + bulk_rows, prune=(SOURCE, version))
     store.touch_source(SOURCE)
-    years = sorted({r["period_start"].year for r in rows})
-    print(f"{version}: {written} rows, {len(years)} study years {years[0]}-{years[-1]}")
-    return written
+    print(f"{version}: {written} rows ({harmonized} harmonized; bulk tier {cdf['variables']} "
+          f"variables, {cdf['rows']} rows)")
+    study_written, study = run_study(store, df, cdf.pop("codebook"), raw_dir=raw_dir,
+                                     refresh=refresh, allow_synthetic=allow_synthetic,
+                                     min_n=min_n)
+    bulk_shared.write_response_order(store, SOURCE, {**cdf["orders"], **study.get("orders", {})})
+    write_report(dict(cdf, harmonized_rows=harmonized), study)
+    return written + study_written
