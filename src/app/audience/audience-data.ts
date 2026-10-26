@@ -105,18 +105,38 @@ export type MetricInfo = {
 }
 
 export const metricIdsOf = (rows: SourceRow[]) => {
-  const seen: string[] = []
-  for (const r of rows) if (!seen.includes(r[0])) seen.push(r[0])
-  return seen
+  // A Set, one pass: the includes scan was quadratic, and at GSS scale
+  // (5,541 metrics over 461K rows) it alone cost billions of comparisons.
+  const seen = new Set<string>()
+  const ids: string[] = []
+  for (const r of rows)
+    if (!seen.has(r[0])) {
+      seen.add(r[0])
+      ids.push(r[0])
+    }
+  return ids
 }
 
 export function buildInfo(rows: SourceRow[], geoLevel: Map<string, string>): Map<string, MetricInfo> {
+  // One pass groups the rows by metric; every per-metric read then works its
+  // own slice alone. The old shape filtered the whole file once per metric,
+  // which was quadratic and froze the tab the moment a bulk source opened.
+  const groups = new Map<string, SourceRow[]>()
+  for (const r of rows) {
+    const g = groups.get(r[0])
+    if (g) g.push(r)
+    else groups.set(r[0], [r])
+  }
   const m = new Map<string, MetricInfo>()
-  for (const id of metricIdsOf(rows)) {
-    const all = rows.filter((r) => r[0] === id)
+  for (const [id, all] of groups) {
     const option = all.find((r) => r[4] != null)?.[4] ?? null
+    const optSet = new Set<string>()
     const options: string[] = []
-    for (const r of all) if (r[4] != null && !options.includes(r[4])) options.push(r[4])
+    for (const r of all)
+      if (r[4] != null && !optSet.has(r[4])) {
+        optSet.add(r[4])
+        options.push(r[4])
+      }
     const rs = all.filter((r) => (r[4] ?? null) === option)
     const type = rs[0]?.[8] ?? "pct"
     // The baseline geography is the highest level the metric reaches: US

@@ -72,14 +72,31 @@ export function AudienceInbox() {
     const g = groupSources(index.sources).find((x) => x.source === source)
     if (!g) return
     let on = true
-    Promise.all(g.files.map((f) => fetch(`/audience-data/${f}`).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`${f} answered ${r.status}`))))))
-      .then((parts: SourceRow[][]) => {
-        if (!on) return
-        const data = parts.flat()
+    // The parts download in parallel but parse one at a time, the main thread
+    // handed back between each — a bulk source is twenty files and seventy
+    // megabytes, and parsing them in one gulp froze the tab.
+    ;(async () => {
+      try {
+        const responses = await Promise.all(
+          g.files.map(async (f) => {
+            const r = await fetch(`/audience-data/${f}`)
+            if (!r.ok) throw new Error(`${f} answered ${r.status}`)
+            return r
+          })
+        )
+        const data: SourceRow[] = []
+        for (const r of responses) {
+          const part: SourceRow[] = await r.json()
+          for (const row of part) data.push(row)
+          if (!on) return
+          await new Promise((settle) => setTimeout(settle, 0))
+        }
         if (data.length !== g.rows) console.warn(`audience: ${source} concatenated to ${data.length} rows; the index says ${g.rows}`)
-        setFiles((prev) => ({ ...prev, [source]: data }))
-      })
-      .catch((e: Error) => on && setError(e.message))
+        if (on) setFiles((prev) => ({ ...prev, [source]: data }))
+      } catch (e) {
+        if (on) setError(e instanceof Error ? e.message : String(e))
+      }
+    })()
     return () => {
       on = false
     }

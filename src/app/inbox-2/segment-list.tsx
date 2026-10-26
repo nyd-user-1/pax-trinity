@@ -23,6 +23,8 @@ import { shortSource, snippetOf, year, type MetricInfo } from "../audience/audie
 export type Split = "none" | "vertical"
 export type ListTab = "all" | "pinned"
 const MAX_COLS = 4
+/** Sixty rows to a read, sixty more on reaching the end — a bulk folder holds thousands. */
+const PER_READ = 60
 
 function Tip({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -92,6 +94,10 @@ export function SegmentList({
     .filter((id) => !q || label(id).toLowerCase().includes(q) || id.toLowerCase().includes(q))
     .filter((id) => tab === "all" || pinned.includes(id))
   const ordered = [...shown.filter((id) => pinned.includes(id)), ...shown.filter((id) => !pinned.includes(id))]
+  const [depth, setDepth] = React.useState(PER_READ)
+  React.useEffect(() => setDepth(PER_READ), [query, tab, metricIds])
+  const listed = ordered.slice(0, depth)
+  const more = React.useCallback(() => setDepth((d) => d + PER_READ), [])
   const allChecked = ordered.length > 0 && ordered.slice(0, MAX_COLS).every((id) => checked.includes(id))
   const stacked = split === "vertical"
   const who = source ? shortSource(source) : ""
@@ -135,7 +141,7 @@ export function SegmentList({
           </DropdownMenuContent>
         </DropdownMenu>
         <div className="ml-auto flex items-center gap-1">
-          <span className="px-2 text-xs text-muted-foreground tabular-nums">{ordered.length ? `1–${ordered.length} of ${ordered.length}` : "0 of 0"}</span>
+          <span className="px-2 text-xs text-muted-foreground tabular-nums">{ordered.length ? `1–${Math.min(depth, ordered.length).toLocaleString("en-US")} of ${ordered.length.toLocaleString("en-US")}` : "0 of 0"}</span>
           <Button variant="ghost" size="icon-sm" aria-label="Newer" disabled>
             <ChevronLeftIcon className="size-4" />
           </Button>
@@ -164,7 +170,7 @@ export function SegmentList({
         {!error && loading && <p className="p-6 text-center text-sm text-muted-foreground">Reading the source…</p>}
         {!error && !loading && ordered.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">{tab === "pinned" ? "Nothing pinned." : q ? `Nothing matching “${query.trim()}”.` : "Nothing on file."}</p>}
         <ul className="divide-y">
-          {ordered.map((id) => {
+          {listed.map((id) => {
             const c = info.get(id)
             const active = selected === id
             const atCap = !checked.includes(id) && checked.length >= MAX_COLS
@@ -225,7 +231,21 @@ export function SegmentList({
             )
           })}
         </ul>
+        {depth < ordered.length && <MoreMark onMore={more} />}
       </ScrollArea>
     </div>
   )
+}
+
+/** The end of the list: reaching it reads sixty more. */
+function MoreMark({ onMore }: { onMore: () => void }) {
+  const mark = React.useRef<HTMLDivElement>(null)
+  React.useEffect(() => {
+    const el = mark.current
+    if (!el) return
+    const o = new IntersectionObserver((xs) => xs.some((x) => x.isIntersecting) && onMore())
+    o.observe(el)
+    return () => o.disconnect()
+  }, [onMore])
+  return <div ref={mark} aria-hidden className="h-8" />
 }
