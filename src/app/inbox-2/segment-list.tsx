@@ -108,8 +108,10 @@ export function SegmentList({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="shrink-0 p-3">
-        <div className="flex items-center gap-2 rounded-lg border px-3 py-2">
+      {/* The search row stands 52px like the toggle bar beside it; the toolbar
+          under it stands 44px like the filter row beside it — the borders line up. */}
+      <div className="flex h-[52px] shrink-0 items-center border-b px-3">
+        <div className="flex w-full items-center gap-2 rounded-lg border px-3 py-1.5">
           <Search className="size-4 shrink-0 text-muted-foreground" />
           <input
             value={query}
@@ -119,7 +121,7 @@ export function SegmentList({
           />
         </div>
       </div>
-      <div className="flex h-[52px] shrink-0 items-center gap-1 border-b px-3">
+      <div className="flex h-11 shrink-0 items-center gap-1 border-b px-3">
         <div className="flex items-center">
           <Checkbox aria-label="Select columns" checked={allChecked} indeterminate={!allChecked && checked.length > 0} onCheckedChange={(value) => onCheckAll(value === true ? ordered.slice(0, MAX_COLS) : [])} />
           <DropdownMenu>

@@ -109,7 +109,7 @@ export function RowsView({
         </div>
       )}
 
-      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b px-4 py-2.5">
+      <div className="flex h-11 shrink-0 items-center gap-2 overflow-hidden border-b px-4">
         <span className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Filter</span>
         <Pill label="Wave" value={wave} display={wave} onPick={setWave} items={order.waves.map((w) => ({ value: w, label: w }))} />
         <Pill
