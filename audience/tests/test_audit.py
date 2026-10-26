@@ -15,10 +15,11 @@ def test_unloaded_sources_split_by_whether_a_loader_exists(store, capsys):
     awaiting = next(l for l in out.splitlines() if "awaiting raw file" in l)
     missing = next(l for l in out.splitlines() if "missing loader" in l)
     for source, cmd in (("CPS", "cps"), ("GSS", "gss"), ("ANES", "anes"), ("CES", "ces"),
-                        ("WVS", "wvs"), ("VOTERFILE_MA", "voterfile_ma"), ("CVAP", "cvap"),
+                        ("WVS", "wvs"), ("MA_ENROLLMENT", "ma_enrollment"), ("CVAP", "cvap"),
                         ("POLL", "polls"), ("ELECTION_RESULT", "polls")):
         assert f"{source} (python -m audience.load {cmd})" in awaiting
     assert "ACS" not in awaiting
+    assert "VOTERFILE_MA" not in out
     assert missing.strip().endswith("NEWSOURCE")
 
 

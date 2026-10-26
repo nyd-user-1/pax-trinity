@@ -113,25 +113,16 @@ def wvs(rng) -> None:
     write(HERE / "wvs" / "WVS7_USA_SYNTHETIC.csv", header, rows)
 
 
-# -- MA voter file (party codes D/R/U/L and a city/town column) -----------------------------
+# -- MA voter file (retired; its random draws are kept) ---------------------------------------
 
-def voterfile(rng) -> None:
-    header = ["Voter ID", "Last Name", "First Name", "Party Affiliation", "Ward", "Precinct",
-              "City/Town", "Voter Status"]
-    towns = ["BOSTON"] * 18 + ["WORCESTER"] * 10 + ["CAMBRIDGE"] * 8 + \
-            ["MANCHESTER BY THE SEA"] * 6 + ["SPRINGFIELD"] * 6 + ["ATLANTIS"] * 2
-    parties = ["U"] * 28 + ["D"] * 14 + ["R"] * 5 + ["L"] * 3
-    order = rng.permutation(50)
-    rows = []
-    for i in range(50):
-        rows.append({
-            "Voter ID": f"SYN{i + 1:05d}", "Last Name": f"SYNTHETIC-{i + 1:03d}",
-            "First Name": "TEST", "Party Affiliation": parties[order[i]],
-            "Ward": int(rng.integers(1, 10)), "Precinct": int(rng.integers(1, 6)),
-            "City/Town": towns[i], "Voter Status": pick(rng, ["A", "I"], [0.9, 0.1]),
-        })
-    rows[0]["Party Affiliation"] = " d "  # case and whitespace are normalized
-    write(HERE / "ma_voterfile" / "ma_voterfile_20261001_SYNTHETIC.csv", header, rows)
+def retired_voterfile(rng) -> None:
+    """The MA voter-file fixture is retired (the loader was replaced by ma_enrollment). Its
+    draws are kept so the fixtures built after it from the same seed stay byte-identical."""
+    rng.permutation(50)
+    for _ in range(50):
+        rng.integers(1, 10)
+        rng.integers(1, 6)
+        pick(rng, ["A", "I"], [0.9, 0.1])
 
 
 # -- GSS cumulative (GSS 2024 Codebook R3a; Stata missing codes arrive as NaN) ---------------
@@ -229,7 +220,7 @@ def cps(rng) -> None:
 
 def main() -> None:
     rng = np.random.default_rng(20261025)
-    for build in (ces, wvs, voterfile, gss, anes, cps):
+    for build in (ces, wvs, retired_voterfile, gss, anes, cps):
         build(rng)
 
 

@@ -99,9 +99,6 @@ CONSTRUCTS: dict[str, tuple[str, str]] = {
                          "Effect of one ad on the vote-choice index for its campaign's candidate, ad arm minus placebo, in points on a 0-100 scale."),
     "lift_vote_choice_dichotomized": ("Lift: vote choice, dichotomized",
                                       "Effect of one ad on the share leaning to its campaign's candidate (vote-choice index above its midpoint, exactly at it counting half), in percentage points."),
-    # registration by party (voter file)
-    "party_registration": ("Party enrollment",
-                           "Registered voters by party enrollment or political designation, from the voter file."),
 }
 
 

@@ -14,6 +14,7 @@ dependencies = [
   "pyreadstat>=1.2",  # GSS, ANES, WVS Stata/SPSS files, read by column
   "curl_cffi>=0.7",   # ANES download (electionstudies.org refuses plain HTTP clients)
   "pyreadr>=0.5",     # the lift dataset's .RDS files
+  "pdfplumber>=0.11",  # MA enrollment breakdowns (PDF), read by word position
   "fastapi>=0.110",   # audience/server.py, the read-only JSON router
   "uvicorn>=0.29",
 ]

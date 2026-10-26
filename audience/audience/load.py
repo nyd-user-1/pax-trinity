@@ -7,7 +7,7 @@ import sys
 
 from . import geographies, migrate
 from .db import connect
-from .loaders import acs, anes, ces, cps, cvap, gss, voterfile_ma, wvs
+from .loaders import acs, anes, ces, cps, cvap, gss, ma_enrollment, wvs
 from .loaders import apnorc, polls
 from .loaders import lift_archive, pax_tests
 
@@ -17,7 +17,7 @@ MODULES = {
     "acs": acs,
     "cvap": cvap,
     "cps": cps,
-    "voterfile_ma": voterfile_ma,
+    "ma_enrollment": ma_enrollment,
     "gss": gss,
     "anes": anes,
     "ces": ces,
