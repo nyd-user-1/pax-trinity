@@ -241,7 +241,8 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
   // Which group rows are folded open. Every load starts with all of them shut; nothing is remembered.
   const [openGroups, setOpenGroups] = React.useState<string[]>([])
   const toggleGroup = (label: string) => setOpenGroups((g) => (g.includes(label) ? g.filter((x) => x !== label) : [...g, label]))
-  const findable = React.useMemo(() => [...NAV, ...RESEARCH, ...(admin ? ADMIN : [])], [admin])
+  // The switcher and the header search offer only pages that exist (Brendan, 2026-10-25): the LIVE set, once per address.
+  const findable = React.useMemo(() => [...new Map([...NAV, ...RESEARCH, ...(admin ? ADMIN : [])].filter((l) => LIVE.has(l.href)).map((l) => [l.href, l])).values()], [admin])
   // The front door (landing, record entry, sign-in) is full bleed; the recording flow, from /recording on, sits in the shell.
   // /signup and /signin are the landing's first screen with a form in place of the hero, sidebar and all.
   // Trinity's front door lives inside the shell; only the auth screens stay full bleed.
