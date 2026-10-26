@@ -273,11 +273,18 @@ def place_lift(lift_pp: float, outcome_type: str, *, store: Store | None = None)
             raise LookupError(f"no lift estimates for {construct}")
         bench = get_lift_benchmark(construct, store=s)
     pct = 100 * (np.sum(values < x) + 0.5 * np.sum(values == x)) / values.size
-    pax = " It also includes PAX's own tests." if "PAX_TEST" in sources else ""
-    caveat = (
-        f"The benchmark is {values.size} ad-level estimates, mostly campaign ads from the "
-        f"{'/'.join(map(str, cycles))} cycles, each measured under forced exposure in an "
-        f"online survey experiment against a placebo.{pax} The placement is context for the "
-        f"result, not a ranking of it.")
+    if "LIFT_ARCHIVE" in sources:
+        pax = " It also includes PAX's own tests." if "PAX_TEST" in sources else ""
+        caveat = (
+            f"The benchmark is {values.size} ad-level estimates, mostly campaign ads from the "
+            f"{'/'.join(map(str, cycles))} cycles, each measured under forced exposure in an "
+            f"online survey experiment against a placebo.{pax} The placement is context for the "
+            f"result, not a ranking of it.")
+    else:
+        caveat = (
+            f"The benchmark is {values.size} lift estimates from PAX's own earlier message tests "
+            f"({'/'.join(map(str, cycles))}), each arm measured under forced exposure against a "
+            f"placebo. A set this small and this close to the test being placed is a check on "
+            f"consistency, and the placement is context for the result, not a ranking of it.")
     return Placement(lift_pp=x, outcome_type=construct, percentile=round(float(pct), 2),
                      benchmark=bench, caveat=caveat)

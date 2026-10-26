@@ -110,3 +110,17 @@ Set `AUDIENCE_TEST_DATABASE_URL` to also run the Postgres test; it works in a th
 ## Export
 
 `python -m audience.export` writes `public/audience-data/` at the repo root for the `/audience` page: `index.json` (`sources` with label, row count and file; `constructs` with label and definition; `geographies` at US, STATE, COUNTY and TOWN level) and one `<source>.json` per source, an array of `[construct, geo_code, period_start, period_end, response_option, subgroup_dim, subgroup_value, estimate, estimate_type, moe, item_text, n, provenance_url]`. Block groups are left out; estimates and moe round to 1 decimal and counts to whole numbers; `item_text` is kept for POLL and ELECTION_RESULT only; `n` is null where the store has none; a topline's subgroup fields are null; dates are ISO. A file over 4 MB splits into `<source>-2.json`, each part listed in the index.
+
+## Message-test analysis
+
+```sh
+.venv/bin/python -m audience.analyze open-primaries-1   # report to reports/open-primaries-1.json
+.venv/bin/python -m audience.analyze --simulate         # validation to reports/simulation.json
+```
+
+- Reads every item for the test from the DynamoDB table `pax-trinity-test-responses` (machine credentials), written by the app's collector at `/api/tests/<id>/responses`. `--env production` drops dev walks, which the collector stamps `development`.
+- Outcomes are 0/100 per respondent: `support` (Yes on the ballot question) and `comprehension` (the correct description), so lifts are percentage points against the placebo.
+- Three estimators per arm: unweighted difference in means; weighted, raked to Massachusetts ACS education shares (the only entry question with a population target; weights capped at 5x the mean); and covariate-adjusted (Lin 2013, centered entry-question dummies and their interactions with the arm), the headline. Standard errors are HC2. The 90% criterion calls a lift detectable when its 90% interval excludes 0; Holm-adjusted p-values across arms sit beside the unadjusted ones.
+- Subgroup lifts per entry question keep every cell and flag those under 50 in either arm. Headline lifts are placed with `api.place_lift` against PAX's own earlier waves and, for support, the lift dataset's dichotomized vote choice.
+- The report schema is in the `audience/analysis.py` docstring. A quantity the data cannot support is null with a note saying why.
+- The simulator plants lifts of 6, 3, 0 and -2 points, skews education away from the targets so the weights move, and runs the same analysis path many times: 40 runs at 50,000 per arm for bias, 1,000 runs at 500 per arm for 90% coverage.

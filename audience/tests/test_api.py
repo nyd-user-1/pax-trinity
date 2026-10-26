@@ -134,3 +134,16 @@ def test_lock_is_waited_out(tmp_path, monkeypatch):
     s = api.open_store(duckdb_path=path, wait=0)
     assert len(calls) == 3
     s.close()
+
+
+def test_a_pax_only_benchmark_gets_its_own_caveat(store):
+    store.upsert_concordance({"construct": "lift_support", "label": "Lift: support",
+                              "definition": "Effect on support."})
+    store.upsert_norms([make_row(source="PAX_TEST", source_version="PAX test waves",
+                                 geography="US", geo_code="US", construct="lift_support",
+                                 period_start=dt.date(2026, 10, 1), period_end=dt.date(2026, 10, 7),
+                                 response_option=f"cut-{i}", estimate_type="lift_pp", estimate=float(i))
+                        for i in range(5)])
+    placed = api.place_lift(2.0, "support", store=store)
+    assert placed["percentile"] == 50.0
+    assert "PAX's own earlier message tests" in placed["caveat"] and "2018" not in placed["caveat"]

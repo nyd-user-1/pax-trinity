@@ -17,6 +17,7 @@ dependencies = [
   "pdfplumber>=0.11",  # MA enrollment breakdowns (PDF), read by word position
   "fastapi>=0.110",   # audience/server.py, the read-only JSON router
   "uvicorn>=0.29",
+  "boto3>=1.34",      # audience/analysis.py reads the message-test responses from DynamoDB
 ]
 
 [project.optional-dependencies]
