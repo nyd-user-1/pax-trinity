@@ -53,7 +53,7 @@ def test_cvap_levels_and_provenance(loaded):
     levels = dict(q(store, "SELECT geography, count(DISTINCT geo_code) FROM norms "
                            "WHERE source = 'CVAP' GROUP BY 1"))
     assert set(levels) == {"US", "STATE", "COUNTY", "TOWN", "BLOCKGROUP"}
-    assert levels["COUNTY"] == 14 and levels["BLOCKGROUP"] > 5000
+    assert levels["COUNTY"] == 14 and levels["TOWN"] == 351 and levels["BLOCKGROUP"] > 5000
     urls = q(store, "SELECT DISTINCT provenance_url FROM norms WHERE source = 'CVAP'")
     assert urls == [(cvap.RELEASE_URL,)]
     assert q(store, "SELECT count(*) FROM norms WHERE source = 'CVAP' "

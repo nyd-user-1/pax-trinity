@@ -156,9 +156,11 @@ def build_rows() -> tuple[list[dict], Counter]:
             if any(lines[n]["cvap_est"] is None for n in LINE_TITLES):
                 skipped["geographies with an unparseable CVAP value"] += 1
                 continue
-            # Water-only pseudo-towns ("County subdivisions not defined") have no people but
-            # carry noise-level CVAP values; skip them, as the ACS loader does.
-            if "tot_est" in lines[1] and (lines[1]["tot_est"] or 0) <= 0:
+            # County subdivision 00000 is "County subdivisions not defined": water with no
+            # residents in ACS, but noise-level values here (Bristol's reads 3 people, 0
+            # adults, 2 adult citizens). Skip those and any other place with no population.
+            not_defined = geography == "TOWN" and code.endswith("00000")
+            if not_defined or ("tot_est" in lines[1] and (lines[1]["tot_est"] or 0) <= 0):
                 skipped["geographies with no population"] += 1
                 continue
             cvap_total = lines[1]["cvap_est"]
