@@ -27,7 +27,7 @@ const DiscussionPanel = dynamic(() => import("@/components/discussion-panel").th
 // as a route, off the sidebar.
 // The pages trinity starts with; every other destination renders in place but goes nowhere
 // until its page exists (Brendan, 2026-10-24).
-const LIVE = new Set(["/", "/chat", "/consensus", "/consensus/survey", "/consensus/report", "/consensus/admin", "/clips", "/inbox", "/glossary", "/audience", "/changelog", "/signin", "/signup", "/erd", "/pipeline-2"])
+const LIVE = new Set(["/", "/chat", "/consensus", "/consensus/survey", "/consensus/report", "/consensus/admin", "/clips", "/inbox", "/glossary", "/audience", "/changelog", "/signin", "/signup", "/erd", "/pipeline-2", "/message-tests"])
 
 type NavLink = { href: string; label: string; icon: typeof House }
 type NavGroup = { label: string; icon: typeof House; children: NavLink[]; admin?: boolean }
@@ -63,6 +63,8 @@ const NAV_TREE: (NavLink | NavGroup)[] = [
   { href: "/glossary", label: "Glossary", icon: BookA },
   { href: "/audience", label: "Audience", icon: Users },
   { href: "/changelog", label: "Changelog", icon: History },
+  // Admins only: the admin surfaces that exist so far.
+  { label: "Admin", icon: ShieldCheck, admin: true, children: ADMIN.filter((l) => LIVE.has(l.href)) },
 ]
 
 // The product's pages, in order: the search's list and the phone's strip.

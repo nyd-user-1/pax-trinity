@@ -64,15 +64,20 @@ export function blankTest(id = ""): TestRecord {
 const ID = /^[a-z0-9][a-z0-9-]{1,62}$/
 
 /** Every problem with a record, in words an admin can act on; an empty list means it can be saved.
- *  clipIds are the PUBLISHED ids an arm may name. */
-export function problems(t: TestRecord, clipIds: ReadonlySet<string>): string[] {
+ *  clipIds are the PUBLISHED ids an arm may name. The clips store is a client module, so the server
+ *  passes null and checks the ids' form only; the setup form checks them against PUBLISHED. */
+export function problems(t: TestRecord, clipIds: ReadonlySet<string> | null): string[] {
   const out: string[] = []
   if (!ID.test(t.id)) out.push("The id must be 2-63 lowercase letters, digits or hyphens, starting with a letter or digit.")
   if (!t.title.trim()) out.push("The title is empty.")
   if (!t.arms.includes(PLACEBO)) out.push("The arms must include the placebo.")
   if (t.arms.length < 2) out.push("Pick at least one clip besides the placebo.")
   if (new Set(t.arms).size !== t.arms.length) out.push("An arm is listed twice.")
-  for (const a of t.arms) if (a !== PLACEBO && !clipIds.has(a)) out.push(`No published clip has the id ${a}.`)
+  for (const a of t.arms) {
+    if (a === PLACEBO) continue
+    if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,80}$/.test(a)) out.push(`${a} is not a clip id.`)
+    else if (clipIds && !clipIds.has(a)) out.push(`No published clip has the id ${a}.`)
+  }
   if (!/^https:\/\/\S+$/.test(t.placeboSrc)) out.push("The placebo source must be an https URL.")
   if (!Number.isInteger(t.targetPerArm) || t.targetPerArm < 1) out.push("The target per arm must be a whole number of at least 1.")
   if (!t.entry.length) out.push("There are no entry questions.")
