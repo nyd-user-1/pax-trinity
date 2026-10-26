@@ -6,7 +6,6 @@ import { File, Inbox, PenSquare, Send, Star, Trash2 } from "lucide-react"
 
 import { unreadIn, type Folder, type Thread } from "@/lib/agents/inbox"
 import { cn } from "@/lib/utils"
-import { AccountFooter } from "@/components/admin/account-footer"
 import { SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@govblock/ui/components/ny4/sidebar"
 
 // The Agentic Inbox's rail: Compose above the folders, where mail clients put
@@ -98,8 +97,6 @@ export function InboxRail({
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      {/* The dashboard rail's account block. De-wired here: trinity has no /workspace dashboard, so the menu's settings rows go nowhere. */}
-      <AccountFooter go={() => {}} />
     </>
   )
 }
