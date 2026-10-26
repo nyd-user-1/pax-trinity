@@ -26,8 +26,7 @@ def pg():
 
 
 def test_postgres_migrate_load_rerun_audit(pg, capsys):
-    assert migrate.apply(pg, quiet=True) == ["001_schema", "002_seed_population",
-                                             "003_survey_sources"]
+    assert migrate.apply(pg, quiet=True) == [p.stem for p in migrate.migration_files()]
     assert migrate.apply(pg, quiet=True) == []
     with pytest.raises(db.RowRejected):
         pg.upsert_norms([make_row(provenance_url="")])

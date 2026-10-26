@@ -13,10 +13,13 @@ dependencies = [
   "pandas>=2.2",      # survey loaders: weighted cells
   "pyreadstat>=1.2",  # GSS, ANES, WVS Stata/SPSS files, read by column
   "curl_cffi>=0.7",   # ANES download (electionstudies.org refuses plain HTTP clients)
+  "pyreadr>=0.5",     # the lift dataset's .RDS files
+  "fastapi>=0.110",   # audience/server.py, the read-only JSON router
+  "uvicorn>=0.29",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8"]
+dev = ["pytest>=8", "httpx>=0.27"]  # httpx: FastAPI TestClient
 
 [build-system]
 requires = ["setuptools>=68"]

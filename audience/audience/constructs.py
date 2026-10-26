@@ -92,6 +92,13 @@ CONSTRUCTS: dict[str, tuple[str, str]] = {
                                   "Share of adults with a voter-file record of voting in the primary named in item_text; respondents with no record count as non-voters."),
     "primary_party_validated": ("Party primary voted in, validated",
                                 "Among adults with a voter-file record of voting in the primary named in item_text, whose primary they voted in."),
+    # persuasion lift (ad-level effects from survey experiments)
+    "lift_favorability": ("Lift: candidate favorability",
+                          "Effect of one ad on the favorability index for its campaign's candidate, ad arm minus placebo, in points on a 0-100 scale."),
+    "lift_vote_choice": ("Lift: vote choice",
+                         "Effect of one ad on the vote-choice index for its campaign's candidate, ad arm minus placebo, in points on a 0-100 scale."),
+    "lift_vote_choice_dichotomized": ("Lift: vote choice, dichotomized",
+                                      "Effect of one ad on the share leaning to its campaign's candidate (vote-choice index above its midpoint, exactly at it counting half), in percentage points."),
     # registration by party (voter file)
     "party_registration": ("Party enrollment",
                            "Registered voters by party enrollment or political designation, from the voter file."),

@@ -8,6 +8,7 @@ import sys
 from . import migrate
 from .db import connect
 from .loaders import acs, anes, ces, cps, cvap, gss, voterfile_ma, wvs
+from .loaders import lift_archive, pax_tests
 
 # CLI name -> loader module. Each module exposes SOURCE and run(store, ...); the audit
 # reads this map to tell "loader exists, raw data absent" from "no loader".
@@ -20,6 +21,8 @@ MODULES = {
     "anes": anes,
     "ces": ces,
     "wvs": wvs,
+    "lift_archive": lift_archive,
+    "pax_tests": pax_tests,
 }
 
 

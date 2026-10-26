@@ -13,6 +13,8 @@
 | `CES` | Cooperative Election Study common content 2020, 2022, 2024 (Harvard) | https://doi.org/10.7910/DVN/E9N6PH, https://doi.org/10.7910/DVN/PR4L8P, https://doi.org/10.7910/DVN/X11EP6 | CC0 1.0 | N (Harvard Dataverse, no login) | `raw/ces/`, the common-content CSV or Stata files under their Dataverse names; the loader prints the links |
 | `WVS` | World Values Survey wave 7 (2017-2022), United States (WVS Association) | https://www.worldvaluessurvey.org/WVSDocumentationWV7.jsp | WVSA conditions of use, non-commercial, with citation | Y (WVSA registration form) | `raw/wvs/`, the US file or the cross-national wave-7 file (Stata, SPSS or CSV) |
 
+| `LIFT_ARCHIVE` | Ad-level persuasion effects from campaigns' own experiments, 2018 and 2020 cycles (replication archive of Hewitt, Broockman, Coppock et al., APSR 2024) | https://doi.org/10.7910/DVN/LBPSSV | CC0 1.0 | N (Harvard Dataverse, no login) | `raw/lift_archive/`, `replication_archive.zip` downloaded once and unzipped |
+| `PAX_TEST` | PAX message-test waves | https://github.com/nyd-user-1/pax-trinity/blob/main/audience/seed/pax_waves.csv | Internal | N (supplied by the lead) | `seed/pax_waves.csv` |
 `raw/`, `store/`, `.venv/` and `.env` are gitignored.
 
 ## Setup
@@ -43,6 +45,8 @@ DATABASE_URL=postgresql://...         # optional: use Postgres instead of store/
 .venv/bin/python -m audience.load cps         # US and MA, 2016-2024; needs IPUMS_API_KEY
 .venv/bin/python -m audience.load voterfile_ma  # MA and towns, from raw/ma_voterfile/; after acs
 .venv/bin/python -m audience.load wvs         # US, wave 7, from raw/wvs/
+.venv/bin/python -m audience.load lift_archive  # US, 2018 and 2020 ad-level effects; downloads once
+.venv/bin/python -m audience.load pax_tests  # from seed/pax_waves.csv when present
 .venv/bin/python -m audience.audit            # exits 1 on missing provenance or orphan constructs
 .venv/bin/python -m pytest
 ```
@@ -77,4 +81,21 @@ Set `AUDIENCE_TEST_DATABASE_URL` to also run the Postgres test; it works in a th
 - CES: weights per the CES guide (commonweight, commonpostweight for post-election items, vvweight for validated voters). Validated primary turnout is over all adults, with no voter-file record counted as not voting. The 2024 presidential primary is stored for Massachusetts only: states that held one combined primary record the vote under TS_p2024.
 - WVS: wave 7 has no Schwartz value battery; importance of life domains (Q1-Q6) and freedom versus security (Q150) are stored instead. `item_text` is the codebook variable label.
 - Voter file: towns match their GEOID through the ACS/CVAP TOWN rows, so load `acs` first. Party codes D, R, U and L; any other designation is pooled.
+- Lift dataset: one row per study x ad x outcome from the archive's `output/processed_data/regression_ates.RDS`, the ad arm against its study's placebo (lm_robust with the study's pre-treatment covariates). Constructs `lift_favorability`, `lift_vote_choice` and `lift_vote_choice_dichotomized`; `estimate_type` `lift_pp`; `se` as published, `moe` 1.645 x se; period the cycle year. Favorability and vote choice are 0-100 indices, so their lifts are index points; the dichotomized outcome's are percentage points. `response_option` is `<ad id> (study <study id>)`, because one ad was tested in two studies. Each `provenance_note` carries the study's cycle, race level, states, test date, days to the election, n, the published 95% CI and p, and the coders' tone and focus. The archive has no turnout outcome.
+- PAX tests: `seed/pax_waves.csv` rows become a `lift_pp` row and a `pct` level row under `lift_<outcome>` (response_option the arm), plus one `Placebo` level row per outcome x subgroup x wave. Outcomes named like the lift dataset's (favorability, vote_choice) share its constructs, so the benchmark pools them.
 - Test fixtures under `tests/fixtures/` are synthetic and carry `SYNTHETIC` in their names; every loader refuses such a file unless a test passes `allow_synthetic=True`.
+
+## Query layer
+
+`audience/api.py`, read-only (DuckDB opened `read_only=True`, Postgres sessions set read-only; a held write lock is retried every 30 s, up to 20 times):
+
+- `get_norm(construct, geography, geo_code, subgroup_dim=None, year=None)`: rows as dicts. `year` is an int (periods overlapping that year), `(a, b)`, or `"latest"` (each source's most recent period).
+- `get_population_targets(geo_code, dims=...)`: `{dim: {category: share}}`, shares summing to 1, from the latest ACS pct rows; `race_eth` from CVAP (citizens 18+), falling back to ACS.
+- `get_topic_series(construct)`: POLL and ELECTION_RESULT rows ordered by `period_end`, toplines by default.
+- `get_lift_benchmark(outcome_type)`: `{p10, p25, p50, p75, p90, n_ads, cycles}` over LIFT_ARCHIVE and PAX_TEST lifts; `n_ads` counts ad-level estimates.
+- `place_lift(lift_pp, outcome_type)`: the percentile of a lift among them (ties count half), with the benchmark and a `caveat`.
+
+```sh
+.venv/bin/uvicorn audience.server:app   # GET /norms, /population-targets, /topic-series/{construct},
+                                        #     /lift-benchmark/{outcome_type}, /place-lift/{outcome_type}?lift_pp=
+```

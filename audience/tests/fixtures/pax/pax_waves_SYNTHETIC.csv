@@ -1,0 +1,11 @@
+wave,arm,outcome,subgroup,level,lift,sig,weighted_n,placebo_level,period_start,period_end
+2,synthetic_cut_a,support,all,57.0,9.0,yes,480.4,48.0,2026-10-01,2026-10-07
+2,synthetic_cut_b,support,all,52.0,4.0,no,470.2,48.0,2026-10-01,2026-10-07
+2,synthetic_cut_a,comprehension,all,70.0,10.0,yes,480.4,60.0,2026-10-01,2026-10-07
+2,synthetic_cut_b,comprehension,all,63.0,3.0,no,470.2,60.0,2026-10-01,2026-10-07
+2,synthetic_cut_a,support,party=Democrat,66.0,8.0,yes,160.0,58.0,2026-10-01,2026-10-07
+2,synthetic_cut_b,support,party=Democrat,61.0,3.0,no,151.0,58.0,2026-10-01,2026-10-07
+2,synthetic_cut_a,vote_choice,all,51.0,2.5,no,480.4,48.5,2026-10-01,2026-10-07
+2,synthetic_cut_b,Vote Choice,all,50.0,1.5,no,470.2,48.5,2026-10-01,2026-10-07
+3,synthetic_cut_c,support,all,55.0,6.0,yes,500.0,49.0,2026-10-15,2026-10-21
+3,placebo,support,all,49.0,0.0,n/a,495.0,49.0,2026-10-15,2026-10-21

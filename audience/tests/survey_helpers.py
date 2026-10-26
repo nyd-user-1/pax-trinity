@@ -15,7 +15,7 @@ def fixture_frame(name: str) -> pd.DataFrame:
 
 
 def norm_rows(store, where: str = "1=1", params=()) -> list[dict]:
-    cur_cols = ["source", "source_version", "geography", "geo_code", "period_start",
+    cur_cols = ["source", "source_version", "geography", "geo_code", "period_start", "period_end",
                 "construct", "item_text", "response_option", "subgroup_dim", "subgroup_value",
                 "estimate", "estimate_type", "n", "se", "moe", "weight_var",
                 "provenance_url", "provenance_note"]
