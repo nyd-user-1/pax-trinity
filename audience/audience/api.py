@@ -184,13 +184,79 @@ TARGET_SOURCE = {"race_eth": ("CVAP", "ACS")}
 TARGET_DEFAULT = ("ACS", "CVAP")
 
 
+# Two targets built for the message-test entry questions, keyed by their answer values:
+#   party_id_3  the latest CES party_id_7 at geo_code, collapsed as the entry question asks it
+#               ("a Democrat, a Republican, or something else?", no leaner follow-up): strong and
+#               weak partisans with their party; leaners, independents and not-sure respondents
+#               together as independent-other
+#   vote_2024   the official 2024 presidential return (ELECTION_RESULT presidential_vote) over the
+#               CVAP count of citizens 18+ at geo_code: the Democratic ticket, the Republican ticket,
+#               every other ticket plus write-ins and blank ballots as other (they voted), and the
+#               rest of the CVAP as did-not-vote
+PARTY_3_FROM_7 = {
+    "Strong Democrat": "democrat", "Weak Democrat": "democrat",
+    "Lean Democrat": "independent-other", "Independent": "independent-other",
+    "Lean Republican": "independent-other", "Not sure": "independent-other",
+    "Weak Republican": "republican", "Strong Republican": "republican",
+}
+
+
+def _party_id_3(s: Store, geo_code: str) -> dict[str, float]:
+    rows = _rows(s, "source = 'CES' AND construct = 'party_id_7' AND geo_code = ? AND "
+                    "subgroup_dim = 'all' AND estimate_type = 'pct'", [geo_code], "period_end DESC")
+    if not rows:
+        raise LookupError(f"no CES party_id_7 rows at {geo_code}")
+    version = rows[0]["source_version"]
+    pooled: dict[str, float] = {}
+    for r in rows:
+        if r["source_version"] == version:
+            pooled[PARTY_3_FROM_7[r["response_option"]]] = pooled.get(PARTY_3_FROM_7[r["response_option"]], 0.0) + r["estimate"]
+    total = sum(pooled.values())
+    return {k: v / total for k, v in pooled.items()}
+
+
+def _vote_2024(s: Store, geo_code: str) -> dict[str, float]:
+    votes = _rows(s, "source = 'ELECTION_RESULT' AND construct = 'presidential_vote' AND geo_code = ? "
+                     "AND estimate_type = 'count' AND period_end BETWEEN DATE '2024-01-01' AND "
+                     "DATE '2024-12-31'", [geo_code], "response_option")
+    cvap = _rows(s, "source = 'CVAP' AND construct = 'cvap' AND geo_code = ? AND subgroup_dim = 'all' "
+                    "AND estimate_type = 'count'", [geo_code], "period_end DESC")
+    if not votes or not cvap:
+        raise LookupError(f"no 2024 presidential return or CVAP count at {geo_code}")
+    counts = {"democrat": 0.0, "republican": 0.0, "other": 0.0}
+    total = None
+    for r in votes:
+        opt = r["response_option"]
+        if opt.lower().startswith("total votes"):
+            total = r["estimate"]
+        elif opt.endswith("(Democratic)"):
+            counts["democrat"] += r["estimate"]
+        elif opt.endswith("(Republican)"):
+            counts["republican"] += r["estimate"]
+        else:
+            counts["other"] += r["estimate"]
+    citizens = cvap[0]["estimate"]
+    cast = total if total is not None else sum(counts.values())
+    if cast > citizens:
+        raise ValueError(f"{geo_code}: votes cast ({cast:,.0f}) exceed the CVAP estimate ({citizens:,.0f})")
+    counts["did-not-vote"] = citizens - cast
+    return {k: v / citizens for k, v in counts.items()}
+
+
+DERIVED_TARGETS = {"party_id_3": _party_id_3, "vote_2024": _vote_2024}
+
+
 def get_population_targets(geo_code: str, dims: Sequence[str] = DEFAULT_DIMS, *,
                            store: Store | None = None) -> dict[str, dict[str, float]]:
     """Raking targets: for each dim, {category: share} summing to 1, from the latest
-    ACS / CVAP pct rows for geo_code (subgroup 'all')."""
+    ACS / CVAP pct rows for geo_code (subgroup 'all'), or for party_id_3 and vote_2024 the
+    derived targets above."""
     out: dict[str, dict[str, float]] = {}
     with _using(store) as s:
         for dim in dims:
+            if dim in DERIVED_TARGETS:
+                out[dim] = DERIVED_TARGETS[dim](s, geo_code)
+                continue
             rows = _rows(s, "construct = ? AND geo_code = ? AND subgroup_dim = 'all' AND "
                             "estimate_type = 'pct' AND source IN ('ACS', 'CVAP')",
                          [dim, geo_code], "period_end DESC, source, response_option")

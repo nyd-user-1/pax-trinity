@@ -1,8 +1,9 @@
 """The analysis's validation: synthetic respondents with planted lifts, run through the same
 analysis.analyze_items path as a real test, many times.
 
-Each simulated respondent gets entry answers drawn from fixed shares, with education skewed
-away from the Massachusetts targets so the raking weights vary. Their chance of answering Yes
+Each simulated respondent gets entry answers drawn from fixed shares, with education, party
+and 2024 vote all skewed away from the targets (more college graduates, more Democrats, more
+voters than Massachusetts, as online panels run) so the raking weights work on three dims. Their chance of answering Yes
 on the ballot, and of getting the comprehension question right, depends on party, ideology,
 education and 2024 vote, then rises by the arm's planted lift (the same for everyone, so
 the population effect equals the planted one for every estimator). Outcomes are Bernoulli.
@@ -34,7 +35,13 @@ CHOICES = {
     "vote2024": (["democrat", "republican", "other", "did-not-vote"], [0.50, 0.28, 0.04, 0.18]),
     "mediaTrust": (["tv-broadcast", "direct-to-camera", "podcast-clip"], [0.45, 0.30, 0.25]),
 }
-TARGETS = {"education_4": {"HS or less": 0.30, "Some college": 0.24, "BA": 0.26, "Grad": 0.20}}
+# Targets in the shape api.get_population_targets returns, near the Massachusetts values
+# (education 31/22/47, party 37/48/15, 2024 vote 41/24/3/32).
+TARGETS = {
+    "education_4": {"HS or less": 0.30, "Some college": 0.24, "BA": 0.26, "Grad": 0.20},
+    "party_id_3": {"democrat": 0.37, "independent-other": 0.48, "republican": 0.15},
+    "vote_2024": {"democrat": 0.41, "republican": 0.24, "other": 0.03, "did-not-vote": 0.32},
+}
 
 
 def _base(ans: dict[str, np.ndarray], outcome: str) -> np.ndarray:

@@ -92,6 +92,9 @@ CONSTRUCTS: dict[str, tuple[str, str]] = {
                                   "Share of adults with a voter-file record of voting in the primary named in item_text; respondents with no record count as non-voters."),
     "primary_party_validated": ("Party primary voted in, validated",
                                 "Among adults with a voter-file record of voting in the primary named in item_text, whose primary they voted in."),
+    # election returns
+    "presidential_vote": ("Presidential vote",
+                          "Official votes cast for each presidential ticket, with all-others write-ins and blank ballots."),
     # persuasion lift (ad-level effects from survey experiments)
     "lift_favorability": ("Lift: candidate favorability",
                           "Effect of one ad on the favorability index for its campaign's candidate, ad arm minus placebo, in points on a 0-100 scale."),

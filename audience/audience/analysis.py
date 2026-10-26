@@ -13,9 +13,11 @@ Outcomes, each 0/100 per respondent so levels and lifts are in percent and perce
 
 Estimators, each treatment arm against the placebo:
   unweighted  difference in means; HC2 standard error (equal to the Neyman variance)
-  weighted    raked to Massachusetts targets from api.get_population_targets on the entry
-              questions that have a target (education only: party, 2024 vote, ideology and
-              media trust have no ACS/CVAP target); WLS of the outcome on the arm, HC2
+  weighted    raked to Massachusetts targets from api.get_population_targets on the three entry
+              questions that have one: education (ACS education_4, BA and Grad pooled), party
+              (party_id_3, CES party ID collapsed as the question asks it) and 2024 vote
+              (vote_2024, the official return over CVAP adults); ideology and media trust have
+              none. WLS of the outcome on the arm, HC2
   adjusted    Lin (2013): OLS of the outcome on the arm, the entry-question dummies centered
               at their mean, and arm x centered-dummy interactions; HC2. The headline estimate.
 Inference: normal p-values; the 90% criterion labels a lift "detectable" when its 90%
@@ -205,14 +207,24 @@ def holm(pvalues: Sequence[float | None]) -> list[float | None]:
 
 # -- weighting -----------------------------------------------------------------------------
 
-def education_targets(targets_by_dim: Mapping[str, Mapping[str, float]]) -> dict[str, dict[str, float]]:
-    """ACS education_4 shares pooled to the entry question's three categories."""
-    edu = targets_by_dim.get("education_4")
-    if not edu:
-        return {}
-    pooled = {cat: sum(edu.get(a, 0.0) for a in acs) for cat, acs in EDUCATION_MAP.items()}
-    total = sum(pooled.values())
-    return {"education": {k: v / total for k, v in pooled.items()}} if total else {}
+# Store target dims -> the entry question each one weights. education_4 is pooled to the entry
+# question's three categories; party_id_3 and vote_2024 already use its answer values.
+TARGET_DIMS = {"education_4": "education", "party_id_3": "party", "vote_2024": "vote2024"}
+
+
+def entry_targets(targets_by_dim: Mapping[str, Mapping[str, float]]) -> dict[str, dict[str, float]]:
+    """The store's targets keyed by entry question, each normalized to sum to 1."""
+    out: dict[str, dict[str, float]] = {}
+    for dim, question in TARGET_DIMS.items():
+        shares = targets_by_dim.get(dim)
+        if not shares:
+            continue
+        if dim == "education_4":
+            shares = {cat: sum(shares.get(a, 0.0) for a in acs) for cat, acs in EDUCATION_MAP.items()}
+        total = sum(shares.values())
+        if total:
+            out[question] = {k: v / total for k, v in shares.items()}
+    return out
 
 
 def rake(df: pd.DataFrame, targets: Mapping[str, Mapping[str, float]], cap: float = WEIGHT_CAP,
@@ -297,7 +309,7 @@ def analyze_items(items: list[dict], targets_by_dim: Mapping[str, Mapping[str, f
     if n_complete == 0:
         notes.append("No completed responses yet: every estimate is null.")
 
-    targets = education_targets(targets_by_dim or {})
+    targets = entry_targets(targets_by_dim or {})
     if df.empty or not targets:
         w, winfo = np.ones(len(df)), {"targets": {}, "dropped_target_categories": {},
                                       "design_effect": None, "max_weight": None, "capped": 0}
@@ -307,14 +319,16 @@ def analyze_items(items: list[dict], targets_by_dim: Mapping[str, Mapping[str, f
         w, winfo = rake(df, targets)
     df = df.assign(_w=w)
     weighting = {
-        "dims": sorted(winfo["targets"]), "dims_without_target": [d for d in ENTRY if d != "education"],
+        "dims": sorted(winfo["targets"]), "dims_without_target": [d for d in ENTRY if d not in winfo["targets"]],
         "sample_shares": {d: {k: float(v) for k, v in df[d].value_counts(normalize=True).items()}
                           for d in winfo["targets"]} if n_complete else {},
         **winfo,
-        "note": ("Raked to Massachusetts ACS education shares (25 and over), pooled to the entry "
-                 "question's three categories; weights capped at "
-                 f"{WEIGHT_CAP:g}x the mean. Party, 2024 vote, ideology and media trust have no "
-                 "ACS/CVAP target, so they are adjusted for (Lin) but not weighted to."),
+        "note": ("Raked to Massachusetts targets: education from ACS (25 and over; BA and Grad "
+                 "pooled), party from the latest CES party ID (strong and weak partisans with their "
+                 "party, leaners and independents as independent-other, as the entry question "
+                 "asks it), and 2024 vote from the official return over CVAP adults (blank ballots "
+                 f"with other). Weights capped at {WEIGHT_CAP:g}x the mean. Questions without a "
+                 "target are adjusted for (Lin) but not weighted to."),
     }
 
     estimates: dict = {}
@@ -416,12 +430,16 @@ def placements(outcome: str, est: dict) -> dict:
 
 
 def population_targets() -> dict:
+    """Massachusetts targets for the entry questions; a dim the store cannot build is skipped."""
     from . import api
 
-    try:
-        return api.get_population_targets("25", dims=["education_4"])
-    except Exception:
-        return {}
+    out = {}
+    for dim in TARGET_DIMS:
+        try:
+            out.update(api.get_population_targets("25", dims=[dim]))
+        except Exception:
+            continue
+    return out
 
 
 def clean(obj):

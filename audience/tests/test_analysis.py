@@ -76,9 +76,27 @@ def test_rake_hits_the_targets_and_reports_empty_categories():
     assert info2["targets"]["education"]["some-college"] == pytest.approx(0.25 / 0.70)
 
 
-def test_education_targets_pool_ba_and_grad():
-    t = an.education_targets({"education_4": {"HS or less": 0.3, "Some college": 0.2, "BA": 0.3, "Grad": 0.2}})
-    assert t == {"education": pytest.approx({"hs-or-less": 0.3, "some-college": 0.2, "bachelors-plus": 0.5})}
+def test_entry_targets_map_the_store_dims_to_the_entry_questions():
+    t = an.entry_targets({"education_4": {"HS or less": 0.3, "Some college": 0.2, "BA": 0.3, "Grad": 0.2},
+                          "party_id_3": {"democrat": 0.4, "independent-other": 0.45, "republican": 0.15},
+                          "vote_2024": {"democrat": 0.4, "republican": 0.25, "other": 0.05, "did-not-vote": 0.3}})
+    assert t["education"] == pytest.approx({"hs-or-less": 0.3, "some-college": 0.2, "bachelors-plus": 0.5})
+    assert set(t) == {"education", "party", "vote2024"}
+    assert t["vote2024"]["did-not-vote"] == pytest.approx(0.3)
+    assert an.entry_targets({"party_id_3": {"democrat": 1.0}}) == {"party": {"democrat": 1.0}}
+
+
+def test_raking_on_three_dims_meets_every_margin():
+    rng = np.random.default_rng(2)
+    items = simulate_items(rng, 400)
+    targets = an.entry_targets(TARGETS)
+    df = an.respondents(items)
+    w, info = an.rake(df, targets)
+    for question, shares in targets.items():
+        got = df.assign(w=w).groupby(question)["w"].sum() / w.sum()
+        for cat, share in shares.items():
+            assert got[cat] == pytest.approx(share, abs=1e-6), (question, cat)
+    assert info["capped"] == 0 and info["design_effect"] > 1
 
 
 def _item(arm, ballot="yes", correct=True, party="democrat", education="bachelors-plus"):
@@ -108,7 +126,8 @@ def test_report_shape_and_flags_on_simulated_data():
         assert e[kind]["lift"] is not None and e[kind]["criterion"] in ("detectable", "inconclusive")
         assert e[kind]["holm_p"] >= e[kind]["p"]
     assert e["headline"] == "adjusted"
-    assert r["weighting"]["dims"] == ["education"] and r["weighting"]["design_effect"] > 1
+    assert r["weighting"]["dims"] == ["education", "party", "vote2024"] and r["weighting"]["design_effect"] > 1
+    assert r["weighting"]["dims_without_target"] == ["ideology", "mediaTrust"]
     cell = r["subgroups"]["support"]["party"]["republican"]["arm-a"]
     assert cell["small_cell"] is True and cell["n_arm"] < 50   # flagged, not dropped
 
@@ -119,6 +138,9 @@ def test_simulator_in_miniature_recovers_planted_lifts():
         # Each mean is within 4 standard errors of the planted lift, using the analysis's own
         # reported se (8 runs estimate the spread too noisily to judge by).
         assert abs(c["bias"]) <= 4 * c["mean_reported_se"] / math.sqrt(r["runs"]), c
-        # The reported se tracks the actual spread of the estimates.
-        assert 0.5 < c["sd_of_estimates"] / c["mean_reported_se"] < 1.8, c
+    # The reported se tracks the actual spread, judged per estimator over its eight cells: one
+    # cell's spread from 8 runs falls below half its se by chance often enough to flake.
+    for k in ("unweighted", "weighted", "adjusted"):
+        ratios = [c["sd_of_estimates"] / c["mean_reported_se"] for c in r["cells"] if c["estimator"] == k]
+        assert 0.7 < sum(ratios) / len(ratios) < 1.3, (k, ratios)
     assert 0.7 <= r["pooled"]["adjusted"]["coverage90"] <= 1.0

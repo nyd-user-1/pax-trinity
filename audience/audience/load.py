@@ -9,7 +9,7 @@ from . import geographies, migrate
 from .db import connect
 from .loaders import acs, anes, ces, cps, cvap, gss, ma_enrollment, wvs
 from .loaders import apnorc, polls
-from .loaders import lift_archive, pax_tests
+from .loaders import lift_archive, ma_results, pax_tests
 
 # CLI name -> loader module. Each module exposes SOURCE and run(store, ...); the audit
 # reads this map to tell "loader exists, raw data absent" from "no loader".
@@ -26,6 +26,7 @@ MODULES = {
     "apnorc": apnorc,
     "lift_archive": lift_archive,
     "pax_tests": pax_tests,
+    "ma_results": ma_results,
 }
 
 
