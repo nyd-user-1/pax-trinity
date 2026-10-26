@@ -7,13 +7,15 @@ Writes public/audience-data/ at the repo root, committed with the app:
                 geographies: [{code, name, level, parent}]}
   <source>.json   one per source (lowercased): an array of rows
                   [construct, geo_code, period_start, period_end, response_option,
-                   subgroup_dim, subgroup_value, estimate, estimate_type, moe, item_text]
+                   subgroup_dim, subgroup_value, estimate, estimate_type, moe, item_text,
+                   n, provenance_url]
 
 The contract is fixed: the app's /audience page reads exactly this. BLOCKGROUP rows are left
 out everywhere. Estimates and moe are rounded to 1 decimal, counts to whole numbers. item_text
 is carried for POLL and ELECTION_RESULT rows only (null elsewhere). A topline row's
 subgroup_dim and subgroup_value (the store's "all") are null, which the page shows as All.
-Dates are ISO strings. A source file over
+Dates are ISO strings. n is the unweighted base (or the registered-voter base) where the store
+has one, else null. A source file over
 MAX_BYTES is split into <source>-2.json, <source>-3.json, ..., each listed in index.json as
 its own entry. constructs lists those with exported rows; geographies lists US, STATE,
 COUNTY and TOWN.
@@ -33,7 +35,8 @@ MAX_BYTES = 4_000_000
 ITEM_TEXT_SOURCES = ("POLL", "ELECTION_RESULT")
 LEVELS = ("US", "STATE", "COUNTY", "TOWN")
 ROW_FIELDS = ("construct", "geo_code", "period_start", "period_end", "response_option",
-              "subgroup_dim", "subgroup_value", "estimate", "estimate_type", "moe", "item_text")
+              "subgroup_dim", "subgroup_value", "estimate", "estimate_type", "moe", "item_text",
+              "n", "provenance_url")
 
 
 def _round(value, estimate_type: str):
@@ -49,18 +52,18 @@ def _round(value, estimate_type: str):
 def source_rows(store: Store, source: str) -> list[list]:
     rows = store.query(
         "SELECT construct, geo_code, period_start, period_end, response_option, subgroup_dim, "
-        "subgroup_value, estimate, estimate_type, moe, item_text FROM norms "
+        "subgroup_value, estimate, estimate_type, moe, item_text, n, provenance_url FROM norms "
         "WHERE source = ? AND geography <> 'BLOCKGROUP' "
         "ORDER BY construct, geo_code, period_start, period_end, item_text, subgroup_dim, "
         "subgroup_value, response_option, estimate_type", [source])
     keep_text = source in ITEM_TEXT_SOURCES
     out = []
-    for (construct, geo, start, end, option, dim, value, est, etype, moe, text) in rows:
+    for (construct, geo, start, end, option, dim, value, est, etype, moe, text, n, url) in rows:
         if dim == "all":
             dim = value = None
         out.append([construct, geo, start.isoformat(), end.isoformat(), option, dim, value,
                     _round(est, etype), etype, _round(moe, etype),
-                    text if keep_text else None])
+                    text if keep_text else None, None if n is None else int(n), url])
     return out
 
 

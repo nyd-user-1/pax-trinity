@@ -1,15 +1,15 @@
 [
-["open_primaries_support","02","2024-11-05","2024-11-05","Against open primaries (Yes on repeal)",null,null,49.9,"pct",null,"AK Ballot Measure 2 (repeal of top-four with ranked-choice), 2024"],
-["open_primaries_support","02","2024-11-05","2024-11-05","For open primaries (No on repeal)",null,null,50.1,"pct",null,"AK Ballot Measure 2 (repeal of top-four with ranked-choice), 2024"],
-["open_primaries_support","08","2024-11-05","2024-11-05","No",null,null,53.5,"pct",null,"CO Proposition 131 (top-four with ranked-choice general), 2024"],
-["open_primaries_support","08","2024-11-05","2024-11-05","Yes",null,null,46.5,"pct",null,"CO Proposition 131 (top-four with ranked-choice general), 2024"],
-["open_primaries_support","11","2024-11-05","2024-11-05","Yes",null,null,73.0,"pct",null,"DC Initiative 83 (semi-open primaries with ranked-choice), 2024"],
-["open_primaries_support","16","2024-11-05","2024-11-05","No",null,null,70.0,"pct",null,"ID Proposition 1 (top-four with ranked-choice general), 2024"],
-["open_primaries_support","16","2024-11-05","2024-11-05","Yes",null,null,30.0,"pct",null,"ID Proposition 1 (top-four with ranked-choice general), 2024"],
-["open_primaries_support","32","2022-11-08","2022-11-08","No",null,null,47.0,"pct",null,"NV Question 3 (top-five primary with ranked-choice general), 2022"],
-["open_primaries_support","32","2022-11-08","2022-11-08","Yes",null,null,53.0,"pct",null,"NV Question 3 (top-five primary with ranked-choice general), 2022"],
-["open_primaries_support","32","2024-11-05","2024-11-05","No",null,null,54.3,"pct",null,"NV Question 3 (top-five primary with ranked-choice general), 2024"],
-["open_primaries_support","32","2024-11-05","2024-11-05","Yes",null,null,45.7,"pct",null,"NV Question 3 (top-five primary with ranked-choice general), 2024"],
-["open_primaries_support","46","2024-11-05","2024-11-05","No",null,null,65.6,"pct",null,"SD Amendment H (top-two primary), 2024"],
-["open_primaries_support","46","2024-11-05","2024-11-05","Yes",null,null,34.4,"pct",null,"SD Amendment H (top-two primary), 2024"]
+["open_primaries_support","02","2024-11-05","2024-11-05","Against open primaries (Yes on repeal)",null,null,49.9,"pct",null,"AK Ballot Measure 2 (repeal of top-four with ranked-choice), 2024",null,"https://www.elections.alaska.gov/election-results/"],
+["open_primaries_support","02","2024-11-05","2024-11-05","For open primaries (No on repeal)",null,null,50.1,"pct",null,"AK Ballot Measure 2 (repeal of top-four with ranked-choice), 2024",null,"https://www.elections.alaska.gov/election-results/"],
+["open_primaries_support","08","2024-11-05","2024-11-05","No",null,null,53.5,"pct",null,"CO Proposition 131 (top-four with ranked-choice general), 2024",2980316,"https://www.coloradosos.gov/pubs/elections/Results/Archives.html"],
+["open_primaries_support","08","2024-11-05","2024-11-05","Yes",null,null,46.5,"pct",null,"CO Proposition 131 (top-four with ranked-choice general), 2024",2980316,"https://www.coloradosos.gov/pubs/elections/Results/Archives.html"],
+["open_primaries_support","11","2024-11-05","2024-11-05","Yes",null,null,73.0,"pct",null,"DC Initiative 83 (semi-open primaries with ranked-choice), 2024",null,"https://electionresults.dcboe.org"],
+["open_primaries_support","16","2024-11-05","2024-11-05","No",null,null,70.0,"pct",null,"ID Proposition 1 (top-four with ranked-choice general), 2024",null,"https://voteidaho.gov/election-results/"],
+["open_primaries_support","16","2024-11-05","2024-11-05","Yes",null,null,30.0,"pct",null,"ID Proposition 1 (top-four with ranked-choice general), 2024",null,"https://voteidaho.gov/election-results/"],
+["open_primaries_support","32","2022-11-08","2022-11-08","No",null,null,47.0,"pct",null,"NV Question 3 (top-five primary with ranked-choice general), 2022",null,"https://www.nvsos.gov/sos/elections/election-information/precinct-level-results"],
+["open_primaries_support","32","2022-11-08","2022-11-08","Yes",null,null,53.0,"pct",null,"NV Question 3 (top-five primary with ranked-choice general), 2022",null,"https://www.nvsos.gov/sos/elections/election-information/precinct-level-results"],
+["open_primaries_support","32","2024-11-05","2024-11-05","No",null,null,54.3,"pct",null,"NV Question 3 (top-five primary with ranked-choice general), 2024",null,"https://www.nvsos.gov/sos/elections/election-information/precinct-level-results"],
+["open_primaries_support","32","2024-11-05","2024-11-05","Yes",null,null,45.7,"pct",null,"NV Question 3 (top-five primary with ranked-choice general), 2024",null,"https://www.nvsos.gov/sos/elections/election-information/precinct-level-results"],
+["open_primaries_support","46","2024-11-05","2024-11-05","No",null,null,65.6,"pct",null,"SD Amendment H (top-two primary), 2024",411618,"https://sdsos.gov/elections-voting/election-resources/election-history/past-election-results.aspx"],
+["open_primaries_support","46","2024-11-05","2024-11-05","Yes",null,null,34.4,"pct",null,"SD Amendment H (top-two primary), 2024",411618,"https://sdsos.gov/elections-voting/election-resources/election-history/past-election-results.aspx"]
 ]

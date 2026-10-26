@@ -3,14 +3,26 @@
   {
    "source": "ACS",
    "label": "American Community Survey 5-year estimates (U.S. Census Bureau)",
-   "rows": 23488,
+   "rows": 19000,
    "file": "acs.json"
+  },
+  {
+   "source": "ACS",
+   "label": "American Community Survey 5-year estimates (U.S. Census Bureau)",
+   "rows": 4488,
+   "file": "acs-2.json"
   },
   {
    "source": "ANES",
    "label": "ANES Time Series Cumulative Data File 1948-2024 (American National Election Studies)",
-   "rows": 26593,
+   "rows": 22331,
    "file": "anes.json"
+  },
+  {
+   "source": "ANES",
+   "label": "ANES Time Series Cumulative Data File 1948-2024 (American National Election Studies)",
+   "rows": 4262,
+   "file": "anes-2.json"
   },
   {
    "source": "CES",
@@ -39,8 +51,14 @@
   {
    "source": "GSS",
    "label": "General Social Survey cumulative cross-section 1972-2024 (NORC at the University of Chicago)",
-   "rows": 31824,
+   "rows": 20767,
    "file": "gss.json"
+  },
+  {
+   "source": "GSS",
+   "label": "General Social Survey cumulative cross-section 1972-2024 (NORC at the University of Chicago)",
+   "rows": 11057,
+   "file": "gss-2.json"
   },
   {
    "source": "LIFT_ARCHIVE",
@@ -51,8 +69,14 @@
   {
    "source": "MA_ENROLLMENT",
    "label": "Massachusetts registered voters and party enrollment by city and town (Secretary of the Commonwealth, Elections Division)",
-   "rows": 35200,
+   "rows": 17710,
    "file": "ma_enrollment.json"
+  },
+  {
+   "source": "MA_ENROLLMENT",
+   "label": "Massachusetts registered voters and party enrollment by city and town (Secretary of the Commonwealth, Elections Division)",
+   "rows": 17490,
+   "file": "ma_enrollment-2.json"
   },
   {
    "source": "PAX_TEST",
