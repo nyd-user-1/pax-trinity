@@ -58,7 +58,10 @@ export function AudienceInbox() {
       .then((idx: AudienceIndex) => {
         if (!on) return
         setIndex(idx)
-        setSource([...groupSources(idx.sources)].sort((a, b) => a.rows - b.rows)[0]?.source ?? null)
+        // The rail's first folder opens first. (Until 2026-10-26 the smallest
+        // source did, a load-cost habit the performance scoping retired — it
+        // made Tests the front door, which read as arbitrary.)
+        setSource(groupSources(idx.sources)[0]?.source ?? null)
       })
       .catch((e: Error) => on && setError(e.message))
     return () => {
