@@ -64,9 +64,10 @@ export function blankTest(id = ""): TestRecord {
 const ID = /^[a-z0-9][a-z0-9-]{1,62}$/
 
 /** Every problem with a record, in words an admin can act on; an empty list means it can be saved.
- *  clipIds are the PUBLISHED ids an arm may name (the server reads them from
- *  @/components/clips/catalog); null checks the ids' form only. */
-export function problems(t: TestRecord, clipIds: ReadonlySet<string> | null): string[] {
+ *  clipIds are the PUBLISHED ids an arm may name, playable clips only (the server reads them from
+ *  @/components/clips/catalog); null checks the ids' form only. unplayable names published clips
+ *  with no video file (YouTube-only), which the survey's player can't show. */
+export function problems(t: TestRecord, clipIds: ReadonlySet<string> | null, unplayable?: ReadonlySet<string>): string[] {
   const out: string[] = []
   if (!ID.test(t.id)) out.push("The id must be 2-63 lowercase letters, digits or hyphens, starting with a letter or digit.")
   if (!t.title.trim()) out.push("The title is empty.")
@@ -76,6 +77,7 @@ export function problems(t: TestRecord, clipIds: ReadonlySet<string> | null): st
   for (const a of t.arms) {
     if (a === PLACEBO) continue
     if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,80}$/.test(a)) out.push(`${a} is not a clip id.`)
+    else if (unplayable?.has(a)) out.push(`The clip ${a} has no video file (it plays on YouTube only), so the survey can't show it.`)
     else if (clipIds && !clipIds.has(a)) out.push(`No published clip has the id ${a}.`)
   }
   if (!/^https:\/\/\S+$/.test(t.placeboSrc)) out.push("The placebo source must be an https URL.")

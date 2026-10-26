@@ -11,7 +11,9 @@ import { PLACEBO, problems, STATUSES, type Status, type TestRecord } from "@/lib
 
 export type SaveState = { errors: string[] }
 
-const CLIP_IDS = new Set(PUBLISHED.map((c) => c.id))
+// An arm must be a published clip with a video file: the survey's <video> can't play a YouTube-only clip.
+const CLIP_IDS = new Set(PUBLISHED.filter((c) => c.src).map((c) => c.id))
+const UNPLAYABLE = new Set(PUBLISHED.filter((c) => !c.src).map((c) => c.id))
 
 async function guard(): Promise<string | null> {
   const user = await currentUser()
@@ -52,7 +54,7 @@ export async function saveTestAction(_prev: SaveState, form: FormData): Promise<
     status: STATUSES.includes(status) ? status : "draft",
     panel: hasPanel ? { vendor, ...urls } : null,
   }
-  const errors = [...entry.errors, ...ballot.errors, ...comprehension.errors, ...problems(record, CLIP_IDS)]
+  const errors = [...entry.errors, ...ballot.errors, ...comprehension.errors, ...problems(record, CLIP_IDS, UNPLAYABLE)]
   if (!record.explanationTitle) errors.push("The explanation needs a title.")
   if (!create && !(await getTest(record.id))) errors.push(`No test has the id ${record.id}.`)
   if (errors.length) return { errors }

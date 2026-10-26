@@ -13,9 +13,9 @@ import { cn } from "@/ui/lib/utils"
 
 import { saveTestAction, type SaveState } from "./actions"
 
-// The clips an arm can be: the clips store's PUBLISHED, by id. The store is a client module, so the
-// form reads it here, and is the one that refuses an arm no published clip has.
-const CLIPS = PUBLISHED.map((c) => ({ id: c.id, title: c.title, duration: c.duration ?? null }))
+// The clips an arm can be: the clips store's PUBLISHED with a video file, by id. A YouTube-only clip
+// (empty src) can't play in the survey, so it isn't offered; the server refuses it too.
+const CLIPS = PUBLISHED.filter((c) => c.src).map((c) => ({ id: c.id, title: c.title, duration: c.duration ?? null }))
 const CLIP_IDS = new Set(CLIPS.map((c) => c.id))
 
 const mmss = (s: number | null) => (s == null ? "" : `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`)
@@ -53,7 +53,7 @@ export function SetupForm({ mode, initial }: { mode: "create" | "edit"; initial:
   const toggle = (id: string) => setArms((a) => (a.includes(id) ? a.filter((x) => x !== id) : [...a, id]))
   // An arm saved earlier whose clip has since left the store shows here until it is unchecked.
   const missing = arms.filter((a) => !CLIP_IDS.has(a))
-  const clips = [...CLIPS, ...missing.map((id) => ({ id, title: "Not in the clips store", duration: null }))]
+  const clips = [...CLIPS, ...missing.map((id) => ({ id, title: PUBLISHED.some((c) => c.id === id) ? "No video file (YouTube only)" : "Not in the clips store", duration: null }))]
   const [blocked, setBlocked] = React.useState(false)
   const submit = (e: React.FormEvent) => {
     if (missing.length) {
@@ -164,7 +164,7 @@ export function SetupForm({ mode, initial }: { mode: "create" | "edit"; initial:
 
       {(state.errors.length > 0 || (blocked && missing.length > 0)) && (
         <ul role="alert" className="flex flex-col gap-1 rounded-xl border border-pax2-red/40 bg-pax2-red/5 px-4 py-3 text-sm text-pax2-red">
-          {blocked && missing.map((id) => <li key={id}>No published clip has the id {id}; uncheck it.</li>)}
+          {blocked && missing.map((id) => <li key={id}>The arm {id} isn't a playable published clip; uncheck it.</li>)}
           {state.errors.map((e) => (
             <li key={e}>{e}</li>
           ))}
