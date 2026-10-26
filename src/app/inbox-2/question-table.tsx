@@ -1,10 +1,18 @@
 "use client"
 
 import * as React from "react"
+import dynamic from "next/dynamic"
 import { ArrowLeft, Loader2 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
+
+// The Trend view loads only when clicked: the chart file carries the ECharts
+// modules, and this dynamic mount keeps that chunk off every route until then.
+const QuestionChart = dynamic(() => import("./question-chart").then((m) => m.QuestionChart), {
+  ssr: false,
+  loading: () => <p className="p-6 text-sm text-muted-foreground">Drawing…</p>,
+})
 
 import { dimLabel, latestRow, num, period, value, year, type MetricInfo, type SourceRow } from "../audience/audience-data"
 import { type About } from "../audience/audience-pane"
@@ -45,7 +53,7 @@ export function QuestionTable({
   onPick: (a: About) => void
   onBack: () => void
 }) {
-  const [view, setView] = React.useState<"crosstab" | "tidy">("crosstab")
+  const [view, setView] = React.useState<"crosstab" | "chart" | "tidy">("crosstab")
   const [depth, setDepth] = React.useState(PER_READ)
   React.useEffect(() => setDepth(PER_READ), [view, rows])
 
@@ -89,7 +97,7 @@ export function QuestionTable({
         <span className="truncate text-sm font-medium">{title}</span>
         <div className="ml-auto flex shrink-0 items-center gap-3">
           <div className="flex rounded-lg border p-0.5 text-xs">
-            {(["crosstab", "tidy"] as const).map((v) => (
+            {(["crosstab", "chart", "tidy"] as const).map((v) => (
               <button
                 key={v}
                 type="button"
@@ -97,7 +105,7 @@ export function QuestionTable({
                 onClick={() => setView(v)}
                 className={cn("rounded-md px-2.5 py-1 transition-colors", view === v ? "bg-pax2-mist font-semibold text-pax2-blue" : "text-muted-foreground hover:text-foreground")}
               >
-                {v === "crosstab" ? "Crosstab" : "Tidy data"}
+                {v === "crosstab" ? "Crosstab" : v === "chart" ? "Trend" : "Tidy data"}
               </button>
             ))}
           </div>
@@ -109,7 +117,9 @@ export function QuestionTable({
           itself to the banner's intrinsic width, which blew the pane out
           sideways and swallowed the vertical scroll with it. */}
       <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
-        {view === "crosstab" ? (
+        {view === "chart" ? (
+          <QuestionChart rows={rows} info={info} title={title} place={place} />
+        ) : view === "crosstab" ? (
           <div className="p-5">
             <h2 className="text-[17px] font-semibold text-pax2-blue">{title}</h2>
             <p className="mb-5 text-xs text-muted-foreground">
