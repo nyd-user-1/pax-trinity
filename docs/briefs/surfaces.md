@@ -100,3 +100,14 @@ All of these are 307s from `alias()` in `src/proxy.ts`. Each old route also keep
    - /lift's pane search filters treatments instead, and its list search filters metrics.
 8. **/lift's cards are metrics, not treatments.** The archive's 575 treatments are opaque IDs (`X01568197a85d (study …)`), so cards per treatment would be unreadable. The pane is the existing treatment grid sorted by the open metric, and a folder opens on its first metric. /lift was also missing from the shell's full-bleed list (its frame sat inside the page padding); it and /survey are in it now.
 9. **Production readiness:** no new env vars. The canvases on /data-dictionary load only when their tab is picked. /survey sends the browser only the open conversation, so a large room's statements travel only when it's opened.
+
+### Lead's rulings
+
+1. **/changelog unpublished, not deleted: approved** — the brief's safe default, Brendan's delete call to make.
+2. **/clips/studio and /clips/transcript stay** — linked from /clips, they're part of that experience.
+3. **The five caller-less API routes stay, flagged** — an external caller can't be ruled out from the repo alone; Brendan rules.
+4. **next.config's dead redirects stay tonight** — editing it restarts the dev server under four working windows; queued.
+5. **/inbox off the shared bank set: approved** — mail's bulk select is real; the anatomies differ on purpose.
+6. **Pretrainings read as the audience survey draft: tolerated, flagged** — "pretraining" is Brendan's word; he confirms or corrects.
+
+Routes verified live after the kill list: ten keepers 200, four retired addresses 307. The push's Amplify builds stand in for the banned local type-check.
