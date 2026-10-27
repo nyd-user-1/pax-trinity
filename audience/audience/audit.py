@@ -1,7 +1,8 @@
 """Store health check: python -m audience.audit
 
-Exits 1 if any row lacks provenance_url, any construct lacks a concordance row, or any
-geo_code in norms is missing from geographies.
+Exits 1 if any row lacks provenance_url, any construct lacks a concordance row, any
+geo_code in norms is missing from geographies, or a construct layer member (migration 009)
+names no question or carries a relation outside construct_layer.RELATIONS.
 """
 
 from __future__ import annotations
@@ -40,6 +41,24 @@ def run(store: Store) -> int:
     )]
     print(f"constructs in norms lacking a concordance row: {', '.join(orphans) or 'none'}")
     failures += bool(orphans)
+
+    if store.table_exists("construct_member"):
+        from .construct_layer import RELATIONS
+
+        stray = [f"{c}/{q} ({why})" for c, q, why in store.query(
+            "SELECT m.construct_id, m.question_id, CASE "
+            "WHEN k.construct_id IS NULL THEN 'no construct row' "
+            "WHEN c.construct IS NULL THEN 'no concordance row' "
+            "ELSE 'relation ' || m.relation END "
+            "FROM construct_member m "
+            "LEFT JOIN construct k ON k.construct_id = m.construct_id "
+            "LEFT JOIN concordance c ON c.construct = m.question_id "
+            f"WHERE k.construct_id IS NULL OR c.construct IS NULL "
+            f"OR m.relation NOT IN ({', '.join('?' for _ in RELATIONS)}) ORDER BY 1, 2",
+            list(RELATIONS))]
+        print(f"construct members that are no question or carry an unknown relation: "
+              f"{', '.join(stray) or 'none'}")
+        failures += bool(stray)
 
     if store.table_exists("geographies"):
         unnamed = store.query(

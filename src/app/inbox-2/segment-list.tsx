@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Blocks, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, EllipsisVerticalIcon, GripVerticalIcon, RefreshCwIcon, Search, StarIcon, X } from "lucide-react"
+import { Blocks, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, EllipsisVerticalIcon, GripVerticalIcon, PanelRightIcon, RefreshCwIcon, RowsIcon, Search, StarIcon, X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
@@ -195,24 +195,11 @@ export function SegmentList({
             <RefreshCwIcon className="size-4" />
           </Button>
         </Tip>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon-sm" aria-label="More">
-              <EllipsisVerticalIcon className="size-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-max min-w-48">
-            <DropdownMenuRadioGroup value={tab} onValueChange={(value) => onTab(value as ListTab)}>
-              <DropdownMenuRadioItem value="all">All segments</DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="pinned">Pinned only</DropdownMenuRadioItem>
-            </DropdownMenuRadioGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuRadioGroup value={split} onValueChange={(value) => onSplit(value as Split)}>
-              <DropdownMenuRadioItem value="none">No split</DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="vertical">Vertical split</DropdownMenuRadioItem>
-            </DropdownMenuRadioGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <Tip label={stacked ? "Turn off the vertical split" : "Vertical split"}>
+          <Button variant="ghost" size="icon-sm" aria-label="Toggle vertical split" aria-pressed={stacked} onClick={() => onSplit(stacked ? "none" : "vertical")}>
+            {stacked ? <PanelRightIcon className="size-4" /> : <RowsIcon className="size-4" />}
+          </Button>
+        </Tip>
         <div className="ml-auto flex items-center gap-1">
           <Button variant="ghost" size="icon-sm" aria-label="Previous question" disabled={!prevId} onClick={() => prevId && onOpen(prevId)}>
             <ChevronLeftIcon className="size-4" />
@@ -220,6 +207,24 @@ export function SegmentList({
           <Button variant="ghost" size="icon-sm" aria-label="Next question" disabled={!nextId} onClick={() => nextId && onOpen(nextId)}>
             <ChevronRightIcon className="size-4" />
           </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon-sm" aria-label="More">
+                <EllipsisVerticalIcon className="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-max min-w-48">
+              <DropdownMenuRadioGroup value={tab} onValueChange={(value) => onTab(value as ListTab)}>
+                <DropdownMenuRadioItem value="all">All segments</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="pinned">Pinned only</DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuRadioGroup value={split} onValueChange={(value) => onSplit(value as Split)}>
+                <DropdownMenuRadioItem value="none">No split</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="vertical">Vertical split</DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -292,10 +297,10 @@ export function SegmentList({
                 {stacked ? (
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <span className="flex items-center gap-2">
-                      <span className="truncate text-xs font-medium tracking-wide" title={mnemonicOf(id)}>
+                      <span className="max-w-40 shrink-0 truncate rounded-full border px-2 py-0.5 text-[10px] font-medium tracking-wider text-muted-foreground" title={mnemonicOf(id)}>
                         {mnemonicOf(id)}
                       </span>
-                      {foot && <span className="ml-auto shrink-0 text-xs text-muted-foreground tabular-nums">{foot.span}</span>}
+                      {foot && <span className={cn("ml-auto shrink-0 text-xs tabular-nums", imp ? "font-semibold" : "text-muted-foreground")}>{foot.span}</span>}
                     </span>
                     <span className="font-semibold">
                       {normalizeWording(wordingOf(id) ?? label(id))}
@@ -313,10 +318,6 @@ export function SegmentList({
                   </span>
                 ) : (
                   <>
-                    {/* The mnemonic where Gmail's sender sits: plain text, fixed width, truncating — a pill overflowed ANES's long ids. */}
-                    <span className="w-44 shrink-0 truncate font-medium" title={mnemonicOf(id)}>
-                      {mnemonicOf(id)}
-                    </span>
                     <span className="min-w-0 flex-1 truncate" title={wordingOf(id) ?? label(id)}>
                       <span className="font-semibold">
                         {normalizeWording(wordingOf(id) ?? label(id))}
@@ -330,7 +331,11 @@ export function SegmentList({
                         </span>
                       )}
                     </span>
-                    {foot && <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{foot.span}</span>}
+                    {/* The mnemonic as a chip just before the year (Brendan, 2026-10-26). */}
+                    <span className="max-w-40 shrink-0 truncate rounded-full border px-2 py-0.5 text-[10px] font-medium tracking-wider text-muted-foreground" title={mnemonicOf(id)}>
+                      {mnemonicOf(id)}
+                    </span>
+                    {foot && <span className={cn("shrink-0 text-xs tabular-nums", imp ? "font-semibold" : "text-muted-foreground")}>{foot.span}</span>}
                   </>
                 )}
               </li>

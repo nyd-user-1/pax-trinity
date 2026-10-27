@@ -51,6 +51,7 @@ DATABASE_URL=postgresql://...         # optional: use Postgres instead of store/
 .venv/bin/python -m audience.load pax_tests  # from seed/pax_waves.csv when present
 .venv/bin/python -m audience.load polls       # seed/open_primary_polls.csv
 .venv/bin/python -m audience.load apnorc      # AP-NORC May 2016 subgroups; after polls; downloads once
+.venv/bin/python -m audience.construct_layer  # the construct layer from its seed; after the loaders
 .venv/bin/python -m audience.audit            # exits 1 on missing provenance, orphan constructs or unnamed geo_codes
 .venv/bin/python -m audience.export           # the app's JSON, into ../public/audience-data/
 .venv/bin/python -m pytest
@@ -112,9 +113,15 @@ Set `AUDIENCE_TEST_DATABASE_URL` to also run the Postgres test; it works in a th
                                         #     /lift-benchmark/{outcome_type}, /place-lift/{outcome_type}?lift_pp=
 ```
 
+## Construct layer
+
+A question is one asked instrument (abany, abanyg, conlegiy), a `concordance` row. A construct groups the versions of one question across rewordings, administrations and sources: a recorded, citable claim that they measure one thing, nothing averaged. `python -m audience.construct_layer` replaces the `construct` and `construct_member` tables (migration 009) with `SEED` in `audience/construct_layer.py`, the whole library, in one transaction. Each construct carries an `anchor`, the citation that makes the grouping the field's (GSS replicating core, MR133), or a `note` saying whose judgment it is. A member is `core` (exactly one per construct), `version` (a rewording or experiment) or `mode` (the same text in another administration, naming its `parent`); members keep the seed's order. The 15 harmonized GSS constructs enter as one-member constructs of themselves. A construct joins the seed only once it has been ruled on.
+
 ## Export
 
 `python -m audience.export` writes `public/audience-data/` at the repo root for the `/audience` page: `index.json` (`sources` with label, row count and file; `constructs` with label and definition, and `wording` where a GSS question has one; `geographies` at US, STATE, COUNTY and TOWN level) and one `<source>.json` per source, an array of `[construct, geo_code, period_start, period_end, response_option, subgroup_dim, subgroup_value, estimate, estimate_type, moe, item_text, n, provenance_url]`. Block groups are left out; estimates and moe round to 1 decimal and counts to whole numbers; `item_text` is kept for POLL and ELECTION_RESULT only; `n` is null where the store has none; a topline's subgroup fields are null; dates are ISO. A file over 4 MB splits into `<source>-2.json`, each part listed in the index. A cell's response options follow the coded order in `response_order` (migration 007, written by the bulk tier), else the alphabet.
+
+`index.json` also carries `families`, the construct layer: `{id, label, definition, anchor, note?, members: [{question, relation, of?}]}` per construct, members in seed order, a mode member's `of` naming the member it repeats. A member without exported rows is left out; the key is absent while the layer is empty.
 
 ## Message-test analysis
 

@@ -4,7 +4,9 @@ Writes public/audience-data/ at the repo root, committed with the app:
 
   index.json   {sources: [{source, label, rows, file}],
                 constructs: [{construct, label, definition, wording?}],
-                geographies: [{code, name, level, parent}]}
+                geographies: [{code, name, level, parent}],
+                families?: [{id, label, definition, anchor, note?,
+                             members: [{question, relation, of?}]}]}
   <source>.json   one per source (lowercased): an array of rows
                   [construct, geo_code, period_start, period_end, response_option,
                    subgroup_dim, subgroup_value, estimate, estimate_type, moe, item_text,
@@ -21,6 +23,12 @@ MAX_BYTES is split into <source>-2.json, <source>-3.json, ..., each listed in in
 its own entry. constructs lists those with exported rows; geographies lists US, STATE,
 COUNTY and TOWN. A constructs entry carries wording, the verbatim GSS question text, where
 concordance.gss_wording holds one (audience/loaders/gss_wording.py); the key is absent elsewhere.
+
+families is the construct layer (migration 009, audience/construct_layer.py), named so that
+constructs keeps meaning what it means: each construct groups the questions that measure one
+thing, members in the seed's order, a question being a constructs entry's id. anchor is the
+grouping's citation (null where none; note then says whose judgment it is); a mode member
+names as of the member it administers again. The key is absent while the layer is empty.
 """
 
 from __future__ import annotations
@@ -95,6 +103,25 @@ def _write_array(path: Path, lines: list[str]) -> None:
     path.write_text("[\n" + ",\n".join(lines) + "\n]\n", encoding="utf-8")
 
 
+def construct_families(store: Store, exported: set[str]) -> list[dict]:
+    """The construct layer, members in their seed order. A member without exported rows is
+    left out, so every member is a constructs entry; a construct left with none goes too."""
+    if not store.table_exists("construct_member"):
+        return []
+    members: dict[str, list[dict]] = {}
+    for cid, question, relation, parent in store.query(
+            "SELECT construct_id, question_id, relation, parent FROM construct_member "
+            "ORDER BY construct_id, ordinal"):
+        if question in exported:
+            members.setdefault(cid, []).append(
+                {"question": question, "relation": relation, **({"of": parent} if parent else {})})
+    return [{"id": cid, "label": label, "definition": definition, "anchor": anchor,
+             **({"note": note} if note else {}), "members": members[cid]}
+            for cid, label, definition, anchor, note in store.query(
+                "SELECT construct_id, label, definition, anchor, note FROM construct ORDER BY 1")
+            if cid in members]
+
+
 def export(store: Store, out: Path = OUT) -> dict:
     out.mkdir(parents=True, exist_ok=True)
     labels = dict(store.query("SELECT source, name FROM sources"))
@@ -129,6 +156,9 @@ def export(store: Store, out: Path = OUT) -> dict:
              f"WHERE level IN ({placeholders})", list(LEVELS))),
         key=lambda g: (level_order[g["level"]], g["code"]))
     index = {"sources": index_sources, "constructs": constructs, "geographies": geos}
+    families = construct_families(store, {c["construct"] for c in constructs})
+    if families:
+        index["families"] = families
     (out / "index.json").write_text(json.dumps(index, ensure_ascii=False, indent=1) + "\n",
                                     encoding="utf-8")
     for stale in out.glob("*.json"):
@@ -150,6 +180,9 @@ def main() -> int:
     print(f"index.json: {len(index['sources'])} files, {len(index['constructs'])} constructs "
           f"({worded:,} worded), "
           f"{len(index['geographies'])} geographies -> {OUT}")
+    families = index.get("families", [])
+    print(f"families: {len(families)} constructs, "
+          f"{sum(len(f['members']) for f in families)} member questions")
     return 0
 
 
