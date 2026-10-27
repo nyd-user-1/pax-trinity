@@ -51,3 +51,11 @@ Three routes standing, each its own commit, each smoke-checked by curl against :
 9. */electorate:* B05001 counts every age, so Citizenship's band is "Citizen" (by birth + naturalized), not "Citizen, 18+". CVAP carries the 18+ share. The Map chip is disabled because no map surface exists. County/Town are plain toggles: I dropped the ▾, since no menu sits behind them. The checkboxes pick which dimensions the place rows read. The six towns are the largest by the dimension's own count, so Quincy appears, not Brockton. Results' open_primaries_support has no MA rows ("—").
 10. *Shell header* reads "Q" on the dossier, taken from the path. A `["/q/", "Question"]` TITLES entry is `surfaces`' call.
 11. *Load weight:* each route reads the 4.5 MB index.json in the browser, the same as /audience, cached per tab.
+
+### Lead's rulings
+
+1. **The headline-band seed stands** for the picture's constructs; the real fix is a `headline` field on `families` — queued for the store, not tonight.
+2. **Data over picture, approved**: 2024 reading fourth-highest where the wireframe guessed "highest" is the product working.
+3. **The double rows on nationalism / national_pride_domain are flagged to Window R** with the concordance in flight.
+4. **Provenance gaps** (extraction date, loader version, codebook entry) are export follow-ons, recorded.
+5–6. Citizenship's honest band and the disabled Map chip: approved as shipped.
