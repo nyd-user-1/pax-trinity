@@ -356,7 +356,7 @@ export function AudienceInbox() {
       <span>
         In the survey draft: {drafted} {drafted === 1 ? "question" : "questions"}
       </span>
-      <Link href="/consensus/admin?c=audience-draft" className="font-medium text-background/80 hover:text-background">
+      <Link href="/consensus?tab=admin&c=audience-draft" className="font-medium text-background/80 hover:text-background">
         View
       </Link>
     </div>

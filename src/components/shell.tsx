@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Activity, ArrowLeft, Database, Sigma, BadgeCheck, Beaker, Bell, BookA, Brain, ClipboardList, ChevronDown, History, Users, ChevronUp, ChevronsUpDown, Clapperboard, Columns2, Columns3, Compass, EllipsisVertical, ExternalLink, Film, FlaskConical, GanttChart, Gauge, Hammer, House, Inbox, LayoutDashboard, Library, LifeBuoy, Link2, ListChecks, LogIn, LogOut, MessagesSquare, Microscope, NotebookPen, PanelLeftClose, PanelLeftOpen, Search, Settings, ShieldCheck, Star, Tag, Target, Tv, TvMinimal, User2, Video, Vote, Workflow, X } from "lucide-react"
+import { Activity, ArrowLeft, Database, Sigma, BadgeCheck, Beaker, Bell, BookA, Brain, ClipboardList, ChevronDown, History, Users, ChevronUp, ChevronsUpDown, Clapperboard, Columns2, Columns3, Compass, EllipsisVertical, ExternalLink, Film, FlaskConical, GanttChart, Gauge, Hammer, House, Inbox, LayoutDashboard, Library, LifeBuoy, Link2, LogIn, LogOut, MessagesSquare, Microscope, PanelLeftClose, PanelLeftOpen, Search, Settings, ShieldCheck, Star, Tag, Target, Tv, TvMinimal, User2, Video, Vote, Workflow, X } from "lucide-react"
 
 import dynamic from "next/dynamic"
 import { SidebarChats } from "@/components/sidebar-chats"
@@ -29,7 +29,7 @@ const DiscussionPanel = dynamic(() => import("@/components/discussion-panel").th
 // until its page exists (Brendan, 2026-10-24).
 // /erd is unpublished (Brendan, 2026-10-26): the page stands for a rewrite-or-drop
 // decision, reachable by URL alone.
-const LIVE = new Set(["/", "/chat", "/consensus", "/consensus/survey", "/consensus/report", "/consensus/admin", "/clips", "/inbox", "/glossary", "/audience", "/changelog", "/signin", "/signup", "/message-tests"])
+const LIVE = new Set(["/", "/chat", "/consensus", "/clips", "/inbox", "/glossary", "/audience", "/changelog", "/signin", "/signup", "/message-tests"])
 
 type NavLink = { href: string; label: string; icon: typeof House }
 type NavGroup = { label: string; icon: typeof House; children: NavLink[]; admin?: boolean }
@@ -57,9 +57,6 @@ const ADMIN = [
 const NAV_TREE: (NavLink | NavGroup)[] = [
   { href: "/chat", label: "Chat", icon: MessagesSquare },
   { href: "/consensus", label: "Consensus", icon: Vote },
-  { href: "/consensus/survey", label: "Consensus survey", icon: ListChecks },
-  { href: "/consensus/report", label: "Consensus report", icon: NotebookPen },
-  { href: "/consensus/admin", label: "Consensus admin", icon: Settings },
   { href: "/clips", label: "Clips", icon: Film },
   { href: "/inbox", label: "Inbox", icon: Inbox },
   { href: "/glossary", label: "Glossary", icon: BookA },
