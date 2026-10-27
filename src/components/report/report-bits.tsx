@@ -64,7 +64,7 @@ export function Box({ title, children, className, tone = "tint" }: { title?: Rea
   return (
     <div className={cn("rounded-xl p-4 text-[13px] leading-relaxed", tone === "tint" ? "bg-[var(--r-tint)]" : "border border-[var(--paper-rule)]/25", className)}>
       {title && <p className="mb-1 text-[11px] font-semibold tracking-[0.12em] text-[var(--paper-muted)] uppercase">{title}</p>}
-      <div className="text-[var(--paper-text)]">{children}</div>
+      <div className="whitespace-pre-line text-[var(--paper-text)]">{children}</div>
     </div>
   )
 }

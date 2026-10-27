@@ -24,6 +24,7 @@ const PLACED = [
   "overview-1", "overview-2", "overview-3", "overview-4", "card-iteration", "reading-a-lift", "between-videos", "frames-supplied",
   "step-1", "step-2", "step-3", "step-4", "step-5", "written-explanation",
   "breakdowns-levels", "breakdowns-comparisons", "breakdowns-small-cells", "breakdowns-description",
+  "media-trust-wording", "media-trust-stated", "media-trust-experimental",
   "media-trust-self-selected", "media-trust-within-group", "media-trust-not-targeting",
 ]
 const story = (rs: ResultSet | undefined, id: string): Story | undefined => rs?.stories.find((s) => s.id === id)
@@ -43,7 +44,6 @@ export function ReportDoc({ name, waves }: { name: string; waves: ResultSet[] })
   const subtitle = story(latest, "study-subtitle")
   const self = latest.dimensions.find((d) => d.selfSelected)
   const tagline = listed([...latest.outcomes.map((o) => o.name), ...(self ? [self.name.replace(/\s*\(.*\)$/, "")] : [])].map((s, i) => (i === 0 ? s : lower(s))))
-  const samePopulation = waves.every((rs) => rs.population === latest.population)
 
   return (
     <article className="report-doc mx-auto w-full max-w-[1120px] px-6 py-10 text-[var(--paper-text)] sm:px-10" data-report={name}>
@@ -67,7 +67,7 @@ export function ReportDoc({ name, waves }: { name: string; waves: ResultSet[] })
           {waves.length > 1 && (
             <div className="border-t border-[var(--paper-rule)] pt-3 text-[14px] leading-relaxed">
               <p className="mb-1 text-[11px] font-semibold tracking-[0.14em] text-[var(--paper-strong)] uppercase">{waves.length === 2 ? "Both waves" : "Every wave"}</p>
-              {samePopulation ? latest.population : waves.map((rs) => `W${rs.wave}: ${rs.population}`).join("; ")} · separate samples
+              {latest.population} · separate samples
             </div>
           )}
         </div>
@@ -182,13 +182,10 @@ function ComprehensionSummary({ waves }: { waves: ResultSet[] }) {
       {iteration && (
         <div className="mt-8 grid gap-4 md:grid-cols-2">
           <StoryBox story={iteration} tone="line" />
-          {latest.notes.limitations.length > 0 && (
-            <Box title={latest.notes.limitations.length > 1 ? "Limitations" : "Limitation"} tone="line" className="border-[var(--paper-text)]">
-              <ul className={cn(latest.notes.limitations.length > 1 && "list-disc space-y-1 pl-5", "font-semibold")}>
-                {latest.notes.limitations.map((l) => (
-                  <li key={l}>{l}</li>
-                ))}
-              </ul>
+          {/* The printed box beside the iteration is the wave's first limitation; the rest stand on its methodology page. */}
+          {latest.notes.limitations[0] && (
+            <Box title="Limitation" tone="line" className="border-[var(--paper-text)]">
+              <p className="text-[15px] font-semibold">{latest.notes.limitations[0]}</p>
             </Box>
           )}
         </div>
@@ -202,20 +199,22 @@ function SetupSummary({ waves }: { waves: ResultSet[] }) {
   const flow = stories(latest, ["flow-1", "flow-2", "flow-3", "flow-4", "flow-5"])
   const qs = stories(latest, ["question-trust", "question-vote", "question-understand"])
   const self = waves.map((rs) => ({ rs, d: rs.dimensions.find((d) => d.selfSelected && d.categories.some((c) => c.sharePct != null)) })).filter((x): x is { rs: ResultSet; d: NonNullable<typeof x.d> } => !!x.d)
-  const ballot = latest.outcomes.find((o) => o.id === BALLOT)
-  const trust = latest.dimensions.find((d) => d.selfSelected)
   if (!flow.length && !qs.length && !self.length) return null
   return (
     <Block title={`${Word(qs.length || latest.outcomes.length + latest.dimensions.filter((d) => d.selfSelected && d.askedBeforeExposure).length)} questions, ${word(latest.outcomes.length)} outcomes`}>
       {flow.length > 0 && (
         <ol className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          {flow.map((s, i) => (
-            <li key={s.id} className={cn("rounded-xl border border-[var(--paper-rule)]/25 p-3", i === flow.length - 1 && "border-[var(--paper-text)] bg-[var(--r-tint)]")}>
-              <span className="block text-[11px] text-[var(--paper-muted)] tabular-nums">{String(i + 1).padStart(2, "0")}</span>
-              <span className="mt-1 block text-[13px] leading-snug font-semibold">{s.title}</span>
-              {s.body && <span className="mt-1 block text-[12px] text-[var(--paper-muted)]">{s.body}</span>}
-            </li>
-          ))}
+          {flow.map((s, i) => {
+            // A step's number prints once: the story's own where its title is one, else its place.
+            const numbered = /^\d+$/.test(s.title.trim())
+            return (
+              <li key={s.id} className={cn("rounded-xl border border-[var(--paper-rule)]/25 p-3", i === flow.length - 1 && "border-[var(--paper-text)] bg-[var(--r-tint)]")}>
+                <span className="block text-[11px] text-[var(--paper-muted)] tabular-nums">{numbered ? s.title.trim() : String(i + 1).padStart(2, "0")}</span>
+                <span className="mt-1 block text-[13px] leading-snug font-semibold">{numbered ? s.body : s.title}</span>
+                {!numbered && s.body && <span className="mt-1 block text-[12px] text-[var(--paper-muted)]">{s.body}</span>}
+              </li>
+            )
+          })}
         </ol>
       )}
       {qs.length > 0 && (
@@ -228,15 +227,7 @@ function SetupSummary({ waves }: { waves: ResultSet[] }) {
                   {before ? "Before the video" : "After the video"}
                 </span>
                 <h4 className="text-[19px] leading-snug font-semibold">{s.title}</h4>
-                {s.body && <p className="mt-2 text-[13px] leading-relaxed text-[var(--paper-muted)]">{s.body}</p>}
-                {before && trust && (
-                  <ul className="mt-2 text-[13px]">
-                    {trust.categories.map((c) => (
-                      <li key={c.id}>· {c.name}</li>
-                    ))}
-                  </ul>
-                )}
-                {s.id === "question-vote" && ballot?.options && <p className="mt-2 text-[13px]">{ballot.options.join(" · ")}</p>}
+                {s.body && <p className="mt-2 text-[13px] leading-relaxed whitespace-pre-line text-[var(--paper-muted)]">{s.body}</p>}
               </div>
             )
           })}
@@ -265,7 +256,7 @@ function WaveSection({ rs, a, latest }: { rs: ResultSet; a: ReturnType<typeof ax
   const steps = stories(rs, ["step-1", "step-2", "step-3", "step-4", "step-5"])
   const explanation = story(rs, "written-explanation")
   const strip = stories(rs, ["breakdowns-levels", "breakdowns-comparisons", "breakdowns-small-cells", "breakdowns-description"])
-  const trustCards = stories(rs, ["media-trust-self-selected", "media-trust-within-group", "media-trust-not-targeting"])
+  const trustCards = stories(rs, ["media-trust-wording", "media-trust-stated", "media-trust-experimental", "media-trust-self-selected", "media-trust-within-group", "media-trust-not-targeting"])
   const groups = [...new Set(rs.dimensions.map((d) => d.group))]
   const loose = rs.stories.filter((s) => !PLACED.includes(s.id) || (!latest && s.id === "seen-in-both"))
   const comprehension = rs.outcomes.find((o) => o.id === COMPREHENSION)
@@ -284,7 +275,7 @@ function WaveSection({ rs, a, latest }: { rs: ResultSet; a: ReturnType<typeof ax
                 <p className="text-[15px] font-semibold">
                   {i + 1} · {s.title}
                 </p>
-                <p className="mt-1 text-[13px] leading-relaxed">{s.body}</p>
+                <p className="mt-1 text-[13px] leading-relaxed whitespace-pre-line">{s.body}</p>
               </li>
             ))}
           </ol>
@@ -302,7 +293,8 @@ function WaveSection({ rs, a, latest }: { rs: ResultSet; a: ReturnType<typeof ax
       </Block>
 
       <Block title={`The ${word(treat.length)} videos and their results`}>
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {/* Rows that close: three across for six, two across for four. */}
+        <div className={cn("grid gap-5 sm:grid-cols-2", treat.length % 3 === 0 && "lg:grid-cols-3")}>
           {treat.map((arm, i) => (
             <VideoCard key={arm.id} rs={rs} arm={arm} index={i} a={a} />
           ))}
@@ -324,7 +316,7 @@ function WaveSection({ rs, a, latest }: { rs: ResultSet; a: ReturnType<typeof ax
                   <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-[var(--paper-rule)]/30 text-[12px] font-semibold">{i + 1}</span>
                   <span>
                     <span className="block text-[14px] font-semibold">{s.title}</span>
-                    <span className="block text-[13px] leading-relaxed text-[var(--paper-muted)]">{s.body}</span>
+                    <span className="block text-[13px] leading-relaxed whitespace-pre-line text-[var(--paper-muted)]">{s.body}</span>
                   </span>
                 </li>
               ))}
