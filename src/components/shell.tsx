@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { ArrowLeft, BadgeCheck, Bell, BookA, ClipboardList, ChevronDown, Users, ChevronUp, ChevronsUpDown, Columns2, Columns3, EllipsisVertical, ExternalLink, Film, FlaskConical, Gauge, House, Inbox, LifeBuoy, Link2, LogIn, LogOut, MessagesSquare, PanelLeftClose, PanelLeftOpen, Search, Settings, ShieldCheck, Star, User2, Video, Vote, X, ListChecks } from "lucide-react"
+import { ArrowLeft, BadgeCheck, Bell, BookA, ClipboardList, ChevronDown, Users, ChevronUp, ChevronsUpDown, Columns2, Columns3, EllipsisVertical, ExternalLink, Film, FlaskConical, Gauge, House, Inbox, LifeBuoy, Link2, LogIn, LogOut, MessagesSquare, PanelLeftClose, PanelLeftOpen, Search, Settings, ShieldCheck, Star, User2, Video, Vote, X, ListChecks, FileText } from "lucide-react"
 
 import dynamic from "next/dynamic"
 import { SidebarChats } from "@/components/sidebar-chats"
@@ -25,9 +25,9 @@ const DiscussionPanel = dynamic(() => import("@/components/discussion-panel").th
 // then Create, Explore and Lab as group rows, then Learn, then Research and Admin as group rows too.
 // A group row folds its pages open and shut with its chevron; every group starts shut. /app/home stays
 // as a route, off the sidebar.
-// The pages trinity keeps (the 2026-10-27 kill list): every other destination renders in place but
+// The pages trinity keeps (the 2026-10-27 kill list, /reports since): every other destination renders in place but
 // goes nowhere. /changelog is unpublished pending Brendan's word, reachable by URL alone.
-const LIVE = new Set(["/", "/chat", "/clips", "/audience", "/inbox", "/survey", "/consensus", "/lift", "/message-tests", "/data-dictionary", "/signin", "/signup"])
+const LIVE = new Set(["/", "/chat", "/clips", "/audience", "/inbox", "/survey", "/consensus", "/lift", "/reports", "/message-tests", "/data-dictionary", "/signin", "/signup"])
 
 type NavLink = { href: string; label: string; icon: typeof House }
 type NavGroup = { label: string; icon: typeof House; children: NavLink[]; admin?: boolean }
@@ -42,6 +42,7 @@ const NAV_TREE: (NavLink | NavGroup)[] = [
   { href: "/data-dictionary", label: "Data dictionary", icon: BookA },
   { href: "/audience", label: "Audience", icon: Users },
   { href: "/lift", label: "Lift", icon: FlaskConical },
+  { href: "/reports", label: "Reports", icon: FileText },
   // Admins only: the admin surfaces that exist so far.
   { label: "Admin", icon: ShieldCheck, admin: true, children: ADMIN.filter((l) => LIVE.has(l.href)) },
 ]
