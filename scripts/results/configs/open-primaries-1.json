@@ -1,0 +1,22 @@
+{
+  "test": "open-primaries-1",
+  "study": "Open Primaries Message Test",
+  "wave": 1,
+  "population": "Panel respondents who completed the survey — not a verified or representative sample",
+  "env": "production",
+  "threshold": 0.9,
+  "minCell": 50,
+  "trim": 5,
+  "targetsSource": "PLACEHOLDER targets, round numbers for exercising the raking path only — not sourced. Replace with the test's declared population targets before reading any weighted figure.",
+  "factors": {
+    "party": { "democrat": 0.3, "independent-other": 0.55, "republican": 0.15 },
+    "education": { "hs-or-less": 0.33, "some-college": 0.22, "bachelors-plus": 0.45 }
+  },
+  "dimensions": [
+    { "key": "ideology", "name": "Political ideology", "group": "ideology-party" },
+    { "key": "party", "name": "Party ID", "group": "ideology-party" },
+    { "key": "education", "name": "Education", "group": "education-vote" },
+    { "key": "vote2024", "name": "2024 presidential vote choice", "group": "education-vote" },
+    { "key": "mediaTrust", "name": "Media trust", "group": "media-trust", "selfSelected": true }
+  ]
+}
