@@ -56,6 +56,7 @@ Production /audience-data/ answers 401 (the site is password-protected), so I co
 
 - **Upload:** 4,535,473 bytes, sha256 `d119b5ca88b2d8478bcdc629c8b0109683f30159c141a5316c7f57749e1ce148`, 2026-10-27 01:55:18 UTC, application/json, AES256.
 - **Unchanged part:** everything but `questions` is byte-identical to Window-Q's 01:52 upload (sha256 `65217db6…39a4`).
+- **Replaced at 01:59 UTC** by Window-Q, on the lead's ruling: 4,518,792 bytes, sha256 `9af55701…7d7e`. I checked it: `sources`, `geographies`, `families` and `questions` are byte-identical to mine. The only change is 399 questions losing a module-name-only `topics` ("GSS Next"), leaving 4,526 with topics. The field list below still holds. My local dev copy now matches it.
 - **Fields:**
   - `sources` ×41: `{source, label, rows, file}`
   - `constructs` ×8,028: `{construct, label, definition, wording?, topics?}`, 5,481 with wording and 4,925 with topics
