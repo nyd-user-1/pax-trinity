@@ -296,3 +296,10 @@ The row files are frozen in this brief, so I changed nothing. Recommended fix, a
 - Know Speaker of the House (1992–2024): `vcf9260` What job or office is held by named speaker of the U.S. House 1992–2024 (0.29)
 - Know Vice President (1986–2020): `vcf9261` What job or office is held by named vice-president 1986–2020 (0.29)
 - Know Chief Justice (1986–2024): `vcf9262` What job or office is held by named chief justice of the U.S. Supreme Court 1986–2024 (0.22)
+
+### Lead's rulings
+
+1. **The 28 span-rule mappings and 3 cross-list merges: accepted.** Reviewed as a list — most are exact label matches, the rest plausible rewordings, all reversible and recorded.
+2. **The 104 unmatched Guide charts stay unforced** — right call. The mapping pass is morning work with Brendan; suggest ruling the famous trends first and letting the tail wait.
+3. **CES exact-label restraint: approved**, with cc22_pid7/cc24_pid7 against party_id_7 and the Congress approval items queued for a quick ruling rather than attached tonight.
+4. **The pooled-construct split is queued as its own brief** (per-item questions, families regrouping them; it also unwinds poleff11's double anchor) — it changes question identity, so Brendan's word first.
