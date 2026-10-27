@@ -6,7 +6,7 @@ import { Blocks, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, EllipsisVer
 import { cn } from "@/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
 import { Checkbox } from "@govblock/ui/components/checkbox"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@govblock/ui/components/ny4/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@govblock/ui/components/ny4/dropdown-menu"
 import { ScrollArea } from "@govblock/ui/components/ny4/scroll-area"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/ny4/tooltip"
 
@@ -87,7 +87,6 @@ export function SegmentList({
   onCheckAll,
   onBlock,
   onRefresh,
-  onFlatTable,
   split,
   onSplit,
   query = "",
@@ -115,7 +114,6 @@ export function SegmentList({
   /** Hands the question and its data to the right side's Blocks panel. */
   onBlock: (id: string) => void
   onRefresh: () => void
-  onFlatTable: () => void
   split: Split
   onSplit: (split: Split) => void
   /** The search's filter; empty shows everything. */
@@ -133,6 +131,19 @@ export function SegmentList({
   React.useEffect(() => setDepth(PER_READ), [query, tab, metricIds])
   const listed = ordered.slice(0, depth)
   const more = React.useCallback(() => setDepth((d) => d + PER_READ), [])
+  // Opening a question (a click, a chevron) brings its row into view in the
+  // folded list: the window deepens to reach it, then the active row scrolls in.
+  const rootRef = React.useRef<HTMLDivElement>(null)
+  const orderedRef = React.useRef(ordered)
+  orderedRef.current = ordered
+  React.useEffect(() => {
+    if (!selected) return
+    const at = orderedRef.current.indexOf(selected)
+    if (at === -1) return
+    setDepth((d) => (at >= d ? Math.ceil((at + 1) / PER_READ) * PER_READ : d))
+    const t = window.setTimeout(() => rootRef.current?.querySelector('[data-active="true"]')?.scrollIntoView({ block: "nearest" }), 50)
+    return () => window.clearTimeout(t)
+  }, [selected])
   const allChecked = ordered.length > 0 && ordered.slice(0, MAX_COLS).every((id) => checked.includes(id))
   // Gmail's own behavior: the one-line anatomy at full width, the stacked
   // anatomy when the list is folded beside an open question.
@@ -144,7 +155,7 @@ export function SegmentList({
   const nextId = at === -1 ? (ordered[0] ?? null) : at < ordered.length - 1 ? ordered[at + 1] : null
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div ref={rootRef} className="flex h-full min-h-0 flex-col">
       {/* The search row stands 52px like the toggle bar beside it; the toolbar
           under it stands 44px like the filter row beside it — the borders line up. */}
       <div className="flex h-[52px] shrink-0 items-center border-b px-3">
@@ -200,8 +211,6 @@ export function SegmentList({
               <DropdownMenuRadioItem value="none">No split</DropdownMenuRadioItem>
               <DropdownMenuRadioItem value="vertical">Vertical split</DropdownMenuRadioItem>
             </DropdownMenuRadioGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={onFlatTable}>Open the flat table</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
         <div className="ml-auto flex items-center gap-1">

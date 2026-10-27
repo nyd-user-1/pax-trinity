@@ -12,7 +12,7 @@ import { type About } from "./audience-pane"
 // The Rows view — the raw rows exactly as the source reported them, the
 // instrument's default read: newest wave first, the total before its
 // subgroups, bands in the order the latest total ranks them, and the three
-// filters as pills. Sixty rows to a read on the house mark. The export
+// filters as chips. Sixty rows to a read on the house mark. The export
 // carries no weight column yet, so none prints.
 
 const PER_READ = 60
@@ -129,15 +129,15 @@ export function RowsView({
         </div>
       )}
 
-      {/* A pill prints only where there is something to pick: one wave, one
+      {/* A chip prints only where there is something to pick: one wave, one
           band or no subgroups leaves nothing to filter. */}
       <div className="flex h-11 shrink-0 items-center gap-2 overflow-hidden border-b px-4">
         {(order.waves.length > 1 || order.segments.length > 0 || order.bands.length > 1) && (
           <span className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Filter</span>
         )}
-        {order.waves.length > 1 && <Pill label="Wave" value={wave} display={wave} onPick={setWave} items={order.waves.map((w) => ({ value: w, label: w }))} />}
+        {order.waves.length > 1 && <Chip label="Wave" value={wave} display={wave} onPick={setWave} items={order.waves.map((w) => ({ value: w, label: w }))} />}
         {order.segments.length > 0 && (
-          <Pill
+          <Chip
             label="Segment"
             value={segment}
             display={segment === "total" ? "total" : segment}
@@ -145,7 +145,7 @@ export function RowsView({
             items={[{ value: "total", label: "Total only" }, ...order.segments.map((s) => ({ value: s, label: s }))]}
           />
         )}
-        {order.bands.length > 1 && <Pill label="Band" value={band} display={band} onPick={setBand} items={order.bands.map((b) => ({ value: b, label: b }))} />}
+        {order.bands.length > 1 && <Chip label="Band" value={band} display={band} onPick={setBand} items={order.bands.map((b) => ({ value: b, label: b }))} />}
         {header ? <div className="ml-auto flex shrink-0 items-center">{trailing}</div> : note}
       </div>
 
@@ -197,8 +197,8 @@ export function RowsView({
   )
 }
 
-/** A filter pill: the dark chip of the wireframe, a radio menu underneath. */
-function Pill({ label, value, display, items, onPick }: { label: string; value: string; display: string; items: { value: string; label: string }[]; onPick: (v: string) => void }) {
+/** A filter chip: the dark chip of the wireframe, a radio menu underneath. */
+function Chip({ label, value, display, items, onPick }: { label: string; value: string; display: string; items: { value: string; label: string }[]; onPick: (v: string) => void }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>

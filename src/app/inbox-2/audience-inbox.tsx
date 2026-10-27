@@ -221,10 +221,6 @@ export function AudienceInbox() {
           return next
         })
       }
-      onFlatTable={() => {
-        setTableMetric(null)
-        setMode("table")
-      }}
       split={s}
       onSplit={setSplit}
       query={query}
