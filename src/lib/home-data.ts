@@ -826,12 +826,12 @@ export const PAX_BOXES: HomeCardData[] = [
       steps: ["Open Polls; four poll questions list there: closed, open, top-four and top-two primaries.", "Click one to read its rows in Data, its latest shares in Crosstab, and its trend where it has more than one wave.", "Open Results in the rail's Data group for the official results: the open-primary measures and the presidential vote."],
       gaps: ["A poll's crosstab carries its total only; no subgroup rows are on file.", "Poll rows print no unweighted base."],
     } },
-  { href: "", title: "Reports", accent: "", tag: "Platform", value: 0, unit: "",
-    body: "The wave readout, rebuilt from scratch: lifts against the placebo, weighted to the audience store, placed on the benchmark. Underway.",
+  { href: "/reports", title: "Reports", accent: "", tag: "Platform", value: 0, unit: "",
+    body: "The wave readout, rebuilt from scratch: lifts against the placebo, weighted to the audience store, placed on the benchmark.",
     guide: {
-      about: "The wave readout I build from a finished test: each arm's lift against the placebo, weighted to my audience store and placed on the lift benchmark.",
-      steps: [],
-      gaps: ["There is no Reports page.", "The prior reports were built by hand.", "Nothing generates a report from a finished test."],
+      about: "The wave readout I build from a finished test: each video's lift against the placebo, weighted to my audience store and placed on the lift benchmark. One report reads every wave of a study, with what it can and cannot establish.",
+      steps: ["Open Reports and choose a study, such as Massachusetts Message Testing.", "Read the executive summary: each video's lift in ballot support against its own wave's placebo.", "Scroll to a wave's videos; each card gives the video's lift in ballot choice and in comprehension, and Watch video plays it.", "Scroll to Subgroup results for each subgroup's share saying Yes, marked where the video differed from the placebo."],
+      gaps: ["Adding a computed result to the published reports is a code step: compute.mjs writes the result, and someone adds it to the results store by hand.", "No partner-facing PDF of a report can be downloaded."],
     } },
 ];
 
