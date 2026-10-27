@@ -19,7 +19,8 @@ import { PLACEBO, type TestRecord } from "@/lib/tests/types"
 // arm's video against the published clip catalog. Only a test in the field records anything.
 
 const TABLE = process.env.PAX_TRINITY_TEST_RESPONSES_TABLE ?? "pax-trinity-test-responses"
-const client = DynamoDBDocumentClient.from(new DynamoDBClient({ region: process.env.PAX2_REGION ?? "us-east-1" }), {
+// The tables can sit in another region than Cognito, which PAX2_REGION names (the new account allows us-east-2 only).
+const client = DynamoDBDocumentClient.from(new DynamoDBClient({ region: process.env.PAX_TRINITY_TABLES_REGION ?? process.env.PAX2_REGION ?? "us-east-1" }), {
   marshallOptions: { removeUndefinedValues: true },
 })
 

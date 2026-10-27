@@ -16,7 +16,8 @@ export type { Choice, EntryQuestion, PanelConfig, Status, TestRecord } from "@/l
 // still runs the survey). Once an admin saves it in /message-tests, the saved item wins.
 
 const TABLE = process.env.PAX_TRINITY_TESTS_TABLE ?? "pax-trinity-tests"
-const client = DynamoDBDocumentClient.from(new DynamoDBClient({ region: process.env.PAX2_REGION ?? "us-east-1" }), {
+// The tables can sit in another region than Cognito, which PAX2_REGION names (the new account allows us-east-2 only).
+const client = DynamoDBDocumentClient.from(new DynamoDBClient({ region: process.env.PAX_TRINITY_TABLES_REGION ?? process.env.PAX2_REGION ?? "us-east-1" }), {
   marshallOptions: { removeUndefinedValues: true },
 })
 
