@@ -291,6 +291,17 @@ them.
    unjoined — identical report figures, mismatched name and duration — and
    goes to Brendan.
 
+## Ruling 11, the compute path (lead, 2026-10-27)
+
+Both of moving-day's rules are adopted: (a) a computed "detectable" requires
+p < 0.10 AND at least 50 actual respondents on each side — small arms are
+inconclusive by rule, and every emitted file states the rule in its
+notSupported; (b) zero-respondent subgroup cells are omitted, counted in the
+limitations, and markedOfCells counts only the cells present. Open: the
+raking targets in scripts/results/configs/ are PLACEHOLDERS, labeled unsourced
+in config and output alike — real targets (the /audience norms are the
+intended source) await Brendan's direction.
+
 ## Rules (you may be context-cleared; this is everything)
 
 - Shared checkout, several windows on main: `git log -1` before every
