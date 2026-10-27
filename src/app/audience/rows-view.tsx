@@ -106,16 +106,16 @@ export function RowsView({
   // 2026-10-27: the chips crowded the question off the row). A group prints
   // only where there is something to pick: one wave, one band or no subgroups
   // leaves nothing to filter, and nothing at all leaves no kebab.
-  const groups = [
-    order.waves.length > 1 && { label: "Wave", value: wave, onPick: setWave, items: order.waves.map((w) => ({ value: w, label: w })) },
-    order.segments.length > 0 && {
+  const groups: { label: string; value: string; onPick: (v: string) => void; items: { value: string; label: string }[] }[] = []
+  if (order.waves.length > 1) groups.push({ label: "Wave", value: wave, onPick: setWave, items: order.waves.map((w) => ({ value: w, label: w })) })
+  if (order.segments.length > 0)
+    groups.push({
       label: "Segment",
       value: segment,
       onPick: setSegment,
       items: [{ value: "total", label: "Total only" }, ...order.segments.map((s) => ({ value: s, label: s }))],
-    },
-    order.bands.length > 1 && { label: "Band", value: band, onPick: setBand, items: order.bands.map((b) => ({ value: b, label: b })) },
-  ].filter((g): g is { label: string; value: string; onPick: (v: string) => void; items: { value: string; label: string }[] } => !!g)
+    })
+  if (order.bands.length > 1) groups.push({ label: "Band", value: band, onPick: setBand, items: order.bands.map((b) => ({ value: b, label: b })) })
   const kebab = groups.length > 0 && (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
