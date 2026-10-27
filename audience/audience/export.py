@@ -5,7 +5,8 @@ Writes public/audience-data/ at the repo root, committed with the app:
   index.json   {sources: [{source, label, rows, file}],
                 constructs: [{construct, label, definition, wording?, topics?}],
                 geographies: [{code, name, level, parent}],
-                families?: [{id, label, definition, anchor, note?,
+                families?: [{id, label, definition, anchor, note?, subject?, subtopic?,
+                             anchors?: [{list, item, subject, subtopic, url}],
                              members: [{question, relation, of?}]}]}
   <source>.json   one per source (lowercased): an array of rows
                   [construct, geo_code, period_start, period_end, response_option,
@@ -32,7 +33,10 @@ families is the construct layer (migration 009, audience/construct_layer.py), na
 constructs keeps meaning what it means: each construct groups the questions that measure one
 thing, members in the seed's order, a question being a constructs entry's id. anchor is the
 grouping's citation (null where none; note then says whose judgment it is); a mode member
-names as of the member it administers again. The key is absent while the layer is empty.
+names as of the member it administers again. The key is absent while the layer is empty. A
+construct standing on items of the field's trend lists (GSS Key Trends, the ANES Guide;
+migration 012) lists them as anchors, each with the list's own subject and subtopic; the
+first gives the construct its subject and subtopic, the grouping a construct table uses.
 
 Each question is also served alone, so a page can list a source from the index and fetch only
 the question it opens: q/<source lowercased>/<construct>.json holds that question's rows from
@@ -150,8 +154,20 @@ def construct_families(store: Store, exported: set[str]) -> list[dict]:
         if question in exported:
             members.setdefault(cid, []).append(
                 {"question": question, "relation": relation, **({"of": parent} if parent else {})})
+    # The canonical list items a construct stands on (migration 012), in order; the first
+    # gives the construct its subject and subtopic, the list's own filing.
+    anchors: dict[str, list[dict]] = {}
+    if store.table_exists("construct_anchor"):
+        for cid, lst, item, subject, subtopic, url in store.query(
+                'SELECT construct_id, "list", item, subject, subtopic, url FROM construct_anchor '
+                "ORDER BY construct_id, ordinal"):
+            anchors.setdefault(cid, []).append(
+                {"list": lst, "item": item, "subject": subject, "subtopic": subtopic, "url": url})
     return [{"id": cid, "label": label, "definition": definition, "anchor": anchor,
-             **({"note": note} if note else {}), "members": members[cid]}
+             **({"note": note} if note else {}),
+             **({"subject": anchors[cid][0]["subject"], "subtopic": anchors[cid][0]["subtopic"],
+                 "anchors": anchors[cid]} if cid in anchors else {}),
+             "members": members[cid]}
             for cid, label, definition, anchor, note in store.query(
                 "SELECT construct_id, label, definition, anchor, note FROM construct ORDER BY 1")
             if cid in members]

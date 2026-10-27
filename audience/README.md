@@ -54,7 +54,8 @@ DATABASE_URL=postgresql://...         # optional: use Postgres instead of store/
 .venv/bin/python -m audience.load pax_tests  # from seed/pax_waves.csv when present
 .venv/bin/python -m audience.load polls       # seed/open_primary_polls.csv
 .venv/bin/python -m audience.load apnorc      # AP-NORC May 2016 subgroups; after polls; downloads once
-.venv/bin/python -m audience.construct_layer  # the construct layer from its seed; after the loaders
+.venv/bin/python -m audience.canonical      # GSS Key Trends and the ANES Guide, the layer's anchors; fetches once
+.venv/bin/python -m audience.construct_layer  # the construct layer: the seed grown by both lists; after the loaders
 .venv/bin/python -m audience.audit            # exits 1 on missing provenance, orphan constructs or unnamed geo_codes
 .venv/bin/python -m audience.export           # the app's JSON, into ../public/audience-data/
 .venv/bin/python -m pytest
@@ -121,6 +122,8 @@ Set `AUDIENCE_TEST_DATABASE_URL` to also run the Postgres test; it works in a th
 ## Construct layer
 
 A question is one asked instrument (abany, abanyg, conlegiy), a `concordance` row. A construct groups the versions of one question across rewordings, administrations and sources: a recorded, citable claim that they measure one thing, nothing averaged. `python -m audience.construct_layer` replaces the `construct` and `construct_member` tables (migration 009) with `SEED` in `audience/construct_layer.py`, the whole library, in one transaction. Each construct carries an `anchor`, the citation that makes the grouping the field's (GSS replicating core, MR133), or a `note` saying whose judgment it is. A member is `core` (exactly one per construct), `version` (a rewording or experiment) or `mode` (the same text in another administration, naming its `parent`); members keep the seed's order. The 15 harmonized GSS constructs enter as one-member constructs of themselves. A construct joins the seed only once it has been ruled on.
+
+Past the ruled seed, the layer grows from the field's own trend lists (`audience/canonical.py`): the GSS Data Explorer's Key Trends, 181 items read through the routes its own front end calls, and the ANES Guide to Public Opinion and Electoral Behavior, 225 charts, each mapped to its variables through the Guide's previous edition's table of the same title as the Internet Archive holds it. Each item becomes a construct anchored to it, in `construct_anchor` (migration 012) with the list's own subject and subtopic. An item's variables map to the harmonized id where `gss.ITEMS` or `anes.ITEMS` folds them, else the variable lowercased. Items that share a question are one construct, and an item that shares a question with a seed construct joins it. A Guide chart the previous edition has no table for takes the one ANES question that spans exactly the chart's years and whose label is nearest its title (`SPAN_MATCH`), and a construct anchored only in Key Trends and one anchored only in the Guide whose titles share `CROSS_LIST` of their content words, each the other's only such partner, are one construct. A question asking exactly the same words as a member (the app's normalized wording) joins it as a mode member. What the rules cannot settle (charts without a matching table, items with no question in the store, concepts the two lists may share without sharing a question, CES questions that read like a construct) goes to `reports/construct_layer.json` for a ruling and is never forced.
 
 ## Export
 
