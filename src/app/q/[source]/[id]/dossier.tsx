@@ -9,6 +9,7 @@ import { Button } from "@govblock/ui/components/nova/button"
 
 import { dimLabel, mnemonicOf, normalizeWording, num, shortSource, WORDING, type SourceRow } from "../../../audience/audience-data"
 import { Card, CardLabel, Gap, pillClass, Tag } from "../../../_wire/wire-bits"
+import { clausesOf } from "./headline"
 import {
   bandOf,
   baseGeoOf,
@@ -40,8 +41,6 @@ import {
 // whole when fewer than two waves stand. The headline, trend and crosstab
 // copy their text from a hover button.
 
-/** Sources whose rows are a general-population survey: their shares read "of Americans". */
-const ATTITUDE = new Set(["GSS", "ANES", "CES"])
 /** The loader module that writes a source's rows, where exactly one does. */
 const LOADER: Record<string, string> = { GSS: "gss", ACS: "acs", CVAP: "cvap", CPS: "cps", MA_ENROLLMENT: "ma_enrollment", LIFT_ARCHIVE: "lift_archive", PAX_TEST: "pax_tests" }
 /** Ordinal orders for breakdowns the export files alphabetically. */
@@ -260,12 +259,6 @@ function TrendNotes({ total, base, latest }: { total: Point[]; base: Point | nul
 
 // ── The headline sentence ────────────────────────────────────────────────
 
-/** A band reads lowercase mid-sentence where its first word stands lowercase in the wording. */
-function inSentence(band: string, wording: string | null) {
-  const w = band.split(/\s+/)[0]
-  if (!/^[A-Z][a-z]+$/.test(w) || !wording) return band
-  return new RegExp(`\\b${w.toLowerCase()}\\b`).test(wording) ? band.charAt(0).toLowerCase() + band.slice(1) : band
-}
 
 function Headline({
   source,
@@ -288,14 +281,15 @@ function Headline({
   base: Point | null
   latest: Point
 }) {
-  const t = latest.type
-  const b = <strong className="font-semibold">{inSentence(band.label, wording)}</strong>
-  const v = <strong className="font-semibold">{fmtPct(latest.v, t)}</strong>
+  // The sentence's rules are shared with the /audience row's snippet (./headline).
+  const c = clausesOf({ source, band, wording, geo, place, latest, base })
+  const b = <strong className="font-semibold">{c.band}</strong>
+  const v = <strong className="font-semibold">{c.value}</strong>
   // "Confidence in Congress" reads "confidence in Congress"; an acronym ("ACA support") keeps its case.
   const subject = /^[A-Z][a-z]/.test(label) ? label.charAt(0).toLowerCase() + label.slice(1) : label
-  const lead = ATTITUDE.has(source) ? (
+  const lead = c.attitude ? (
     <>
-      On {subject}, {v} of {geo === "US" ? "Americans" : `people in ${place}`} answer {b}.
+      On {subject}, {v} of {c.who} answer {b}.
     </>
   ) : (
     <>
@@ -315,12 +309,11 @@ function Headline({
     else if (above < below) sits = `the ${ordinal(above + 1)}-highest of ${total.length} waves in the ${series}`
     else sits = `the ${ordinal(below + 1)}-lowest of ${total.length} waves in the ${series}`
   }
-  let move: React.ReactNode = null
-  if (base) {
-    const d = latest.v - base.v
-    const was = <strong className="font-semibold">{fmtPct(base.v, t)}</strong>
-    move = Math.abs(d) < 0.05 ? <>unchanged from {was} in {base.year}</> : <>{d > 0 ? "up" : "down"} from {was} in {base.year}</>
-  }
+  const move: React.ReactNode = c.move && (
+    <>
+      {c.move.word} from <strong className="font-semibold">{c.move.was}</strong> in {c.move.year}
+    </>
+  )
   return (
     <div>
       <p className="text-[22px] leading-snug">

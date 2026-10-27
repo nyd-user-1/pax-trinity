@@ -61,9 +61,9 @@ export function PaneTitleRow({ title, leading, children }: { title: React.ReactN
   return (
     <div className="flex h-[52px] shrink-0 items-center gap-2 border-b px-4">
       {leading && <div className="flex shrink-0 items-center gap-2">{leading}</div>}
-      {/* 115ch: the measure of "And what about women? Would you say that their
-          treatment and opportunities are better in the military, better…". */}
-      <span className="min-w-0 max-w-[115ch] truncate text-sm font-semibold">{title}</span>
+      {/* 68ch, the list row's clamp: the measure of "All things considered, how
+          well do you think relying on volunteers…". */}
+      <span className="max-w-[68ch] min-w-0 truncate text-sm font-semibold">{title}</span>
       <div className="ml-auto flex shrink-0 items-center gap-2">{children}</div>
     </div>
   )
