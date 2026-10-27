@@ -1,0 +1,30 @@
+/* The readout's chart colors, legible on the paper in both themes: a
+   detectable mark, a not-marked gray, the placebo's lavender, and the
+   campaign's own creative set apart. */
+.report-doc {
+  --r-detect: #4f8d6b;
+  --r-detect-edge: #1c3828;
+  --r-quiet: #b8b5c4;
+  --r-placebo: #d9cff0;
+  --r-campaign: #9a7fd4;
+  --r-track: rgba(22, 24, 29, 0.05);
+  --r-tint: #f4f1fa;
+  --r-small: #e9a3c4;
+}
+.dark .report-doc {
+  --r-detect: #5fa37e;
+  --r-detect-edge: #d3eedf;
+  --r-quiet: #6f6b7d;
+  --r-placebo: #54497c;
+  --r-campaign: #a98fe2;
+  --r-track: rgba(240, 233, 216, 0.06);
+  --r-tint: rgba(196, 178, 240, 0.08);
+  --r-small: #b0607f;
+}
+/* The source's small-sample flag: a hatched bar. */
+.report-hatch {
+  background-image: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.55) 0 2px, transparent 2px 5px);
+}
+.dark .report-hatch {
+  background-image: repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.45) 0 2px, transparent 2px 5px);
+}
