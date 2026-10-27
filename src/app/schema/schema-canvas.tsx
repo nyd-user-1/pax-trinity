@@ -298,7 +298,7 @@ export function SchemaCanvas() {
     return () => window.removeEventListener("keydown", key)
   }, [])
   return (
-    <div className="relative flex min-h-[70dvh] min-w-0 flex-1 overflow-hidden bg-pax2-mist">
+    <div className="relative flex min-h-[70dvh] min-w-0 flex-1 overflow-hidden">
       <LitCtx.Provider value={lit}>
         <ReactFlowProvider>
           {/* An absolute frame gives ReactFlow a definite size: its height:100%
