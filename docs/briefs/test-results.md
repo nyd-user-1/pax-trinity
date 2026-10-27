@@ -231,6 +231,29 @@ the formula; the assignment's constraints are hard requirements:
   example traced from raw CSV row to final score, and a sensitivity note
   (one input changed, the score's movement shown).
 
+## Rulings (lead, 2026-10-27, after wireframes' contract review)
+
+1. `SubgroupDimension` gains `shareDerivation?: Derivation` — the media-trust
+   distribution shares are approximations from rounded weighted counts in
+   both waves, and ≈ prints only from a derivation field.
+2. `Arm` gains `reviewUrl?: string` and `sourceTitle?: string` — the W2 cards
+   print both a "Watch tested MP4" and a "Review copy" link, plus the source
+   title.
+3. Story-id convention: study-level blocks live in the `stories` of the
+   study's LATEST wave (so a future wave 3 carries the new exec summary).
+   Fixed ids — study level: `study-subtitle`, `caution-separate-studies`,
+   `caution-published-vs-approximate`, `caution-campaign-ad`, `seen-in-both`,
+   `flow-1`..`flow-5`, `question-trust`, `question-vote`,
+   `question-understand`. Per wave: `overview-1`..`overview-4` (the numbered
+   findings), `card-iteration`, `reading-a-lift`, `between-videos`,
+   `frames-supplied`; W2 also `step-1`..`step-5` (page 19) and
+   `written-explanation` (the ballot explanation as printed).
+4. Headlines that count things ("Nine of the ten…", "Five of six…") are NOT
+   transcribed — the renderer computes them from verdicts.
+
+moving-day makes edits 1–2 to types.ts and follows 3; wireframes renders to
+them.
+
 ## Rules (you may be context-cleared; this is everything)
 
 - Shared checkout, several windows on main: `git log -1` before every
