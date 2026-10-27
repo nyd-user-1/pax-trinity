@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>PAX · Guided tour</title>
+<script>
+  // The one place the address lives: change it (to main's) and print again.
+  const BASE = "https://dev.d2vlduiqvq0u36.amplifyapp.com"
+</script>
+<style>
+  @font-face { font-family: "PAX Curtain"; src: url(data:font/woff2;base64,d09GMgABAAAAAAKsAA8AAAAABXAAAAJSAAGzdQAAAAAAAAAAAAAAAAAAAAAAAAAAGhYbIBwqBmA/U1RBVDYARBEICoEogSABNgIkAwwLCgAEIAWDUAcgG1cEEdWbiQC+SOAN0T/1hnpVMoxW1xO2TthLEPmnOR7+367v97lVT9UDOzKcIohmTQhlwgeRAu5ja05SuThTqwz8zXPQBjj+A2DimvpJkCCSZZFY/OfRhg/09kvayCIJBzIgm26TSeTjUQZTxS5AoBYgCSETAoVW2oix46fOVS2HMiBQ6KKbxJlXZ+uqvds1Y54HeVqY/qwgnU4LMcX/n7HcgBhNCjUAAgDmzx4z1ZNGWZh99/9H5CPjNAJS8/Q82qkUQrWERgKdpAMbNu4NbNq7amt0FpJMSNEFBEjI0Egm0EiuH6pVSxhlpoVl+gTlJ2+UrwsAIcrqIuSgGhXoiRGAHJAkUZXXrilKK0rLiuVL5y8ozStVlM68956T775bFDKN34hTr2PDksWlTcXiJaWNRf3Hnntw2edOVq2k/tlOPsWyqc9/MXnnoMmG9djhzL/uw+VvI1peri7vTH245g66Yj535e6ae+iC89xFsFIgbu47/Mdvr6g79LfqLPsSPlt47Quf//HjO+qTJqTnUSmBYPZWWsgA6tOR5SNP8esAWZuqrUCuSYYaOVY4LhN5DS7xpkITl6ikjkdUZqCXhzmPqtAiElmpUbQqBLWiH8DO6NDP6qIIfre07MSVXPjQqDVa8BIUtlR6PtxcS1HswzzwheV6kBO+b3uDapVLOz34V7BlVEPqYqoLX8UuMymYfiX6l/O3+Q+WgesjaT4oD3Tk1ivdWm34eSxPw+6xs2VOlc37UCiSY0AutV65agNfYVrKvptv1CV+WAYys1A+3/hzAAAA) format("woff2"); }
+  @page { size: Letter portrait; margin: 0.62in 0.7in 0.6in; }
+  :root { --ink: #16181d; --muted: rgba(22,24,29,.6); --faint: rgba(22,24,29,.42); --rule: #16181d; --soft: rgba(22,24,29,.1); --navy: #1e3a8a; --blue: #2563eb; --red: #dc2626; --mist: #f5f7fb; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #fff; color: var(--ink); }
+  body { font: 10.5pt/1.5 "Plus Jakarta Sans", -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  main { max-width: 7.1in; margin: 0 auto; }
+  .cover { border-bottom: 1.5px solid var(--rule); padding: 0 0 18pt; margin-bottom: 18pt; }
+  .mark { font-family: "PAX Curtain", ui-monospace, monospace; font-weight: 700; font-size: 34pt; line-height: 1; color: var(--navy); letter-spacing: .02em; }
+  .mark .a { color: var(--red); }
+  .cover h1 { margin: 16pt 0 0; font-size: 24pt; line-height: 1.15; font-weight: 600; letter-spacing: -.01em; }
+  .url { display: inline-block; margin-top: 12pt; padding: 7pt 12pt; border: 1px solid var(--soft); border-radius: 10pt; background: var(--mist); font: 600 15pt/1.3 ui-monospace, "SF Mono", Menlo, monospace; color: var(--navy); text-decoration: none; word-break: break-all; }
+  .chips { margin-top: 10pt; display: flex; gap: 6pt; flex-wrap: wrap; }
+  .chip { font-size: 8.5pt; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--soft); border-radius: 999px; padding: 2pt 8pt; }
+  section { break-inside: avoid; page-break-inside: avoid; padding: 12pt 0 13pt; border-bottom: 1px solid var(--soft); }
+  section:last-of-type { border-bottom: 0; }
+  .head { display: flex; align-items: baseline; gap: 10pt; }
+  .num { font: 700 9pt/1 ui-monospace, Menlo, monospace; color: #fff; background: var(--navy); border-radius: 5pt; padding: 3pt 6pt; }
+  h2 { margin: 0; font-size: 14.5pt; font-weight: 600; letter-spacing: -.005em; }
+  .path { margin-left: auto; font: 500 8.5pt/1 ui-monospace, Menlo, monospace; color: var(--blue); text-decoration: none; white-space: nowrap; }
+  ol { margin: 8pt 0 0; padding-left: 17pt; }
+  li { margin: 0 0 4pt; padding-left: 2pt; }
+  li::marker { color: var(--faint); font-weight: 600; }
+  b { font-weight: 600; }
+  .note { margin: 7pt 0 0 17pt; padding: 7pt 10pt; border-left: 3px solid var(--navy); background: var(--mist); font-size: 9.5pt; border-radius: 0 6pt 6pt 0; }
+  footer { margin-top: 14pt; padding-top: 8pt; border-top: 1.5px solid var(--rule); font-size: 8.5pt; color: var(--faint); display: flex; justify-content: space-between; }
+</style>
+</head>
+<body>
+<main>
+  <div class="cover">
+    <div class="mark" aria-label="PAX">P<span class="a">A</span>X</div>
+    <h1>A guided tour</h1>
+    <a class="url" data-path="/"></a>
+    <div class="chips"><span class="chip">No account needed</span><span class="chip">Best on a laptop</span><span class="chip">About 15 minutes</span></div>
+  </div>
+
+  <section>
+    <div class="head"><span class="num">1</span><h2>The front door</h2><a class="path" data-path="/"></a></div>
+    <ol>
+      <li>Open the address. The plate of boxes is the contents: one box for each part of the platform.</li>
+      <li>Click any box to open it, then scroll to <b>How to use it</b> and <b>Still to build</b>.</li>
+      <li>Step through the boxes with the arrows at the dialog's top right.</li>
+    </ol>
+  </section>
+
+  <section>
+    <div class="head"><span class="num">2</span><h2>Audience</h2><a class="path" data-path="/audience"></a></div>
+    <ol>
+      <li>Pick a topic under <b>Index</b> on the left, such as Politics &amp; government. Each row is one survey question, its latest headline after the dash.</li>
+      <li>Click a question. Its data opens beside the list.</li>
+      <li>Switch to <b>Trend</b> to see every wave it was asked.</li>
+      <li>Press the star before the question's title. It joins <b>Favorites</b> at the top of the left column.</li>
+      <li>Press the globe at the end of Data · Crosstab · Trend for the question's one-page dossier: the headline, the trend by wave, the crosstab and related questions.</li>
+    </ol>
+  </section>
+
+  <section>
+    <div class="head"><span class="num">3</span><h2>Clips</h2><a class="path" data-path="/clips"></a></div>
+    <ol>
+      <li>Open Clips. The first clip plays.</li>
+      <li>Open the three dots on the <b>Partners</b> block and choose a desk: Voter Freedom, Unite America, Yes on 3 or PAX.</li>
+      <li>Click a title in the list to watch that cut.</li>
+    </ol>
+  </section>
+
+  <section>
+    <div class="head"><span class="num">4</span><h2>Reports</h2><a class="path" data-path="/reports"></a></div>
+    <ol>
+      <li>Open Reports and choose <b>Massachusetts Message Testing</b>.</li>
+      <li>Read the executive summary: each video's lift in ballot support against its own wave's placebo.</li>
+      <li>Scroll to a wave's videos. Each card gives the video's lift in ballot choice and in comprehension; <b>Watch video</b> plays it.</li>
+      <li>Scroll to <b>Subgroup results</b>. Each bar is the share saying Yes in one subgroup, marked where the video differed from the placebo.</li>
+    </ol>
+    <p class="note"><b>Detectable</b> means the video met the 90% statistical threshold against the placebo. <b>Inconclusive</b> means no difference was detected, which is not proof of no effect.</p>
+  </section>
+
+  <section>
+    <div class="head"><span class="num">5</span><h2>Lift benchmarks</h2><a class="path" data-path="/lift?source=LIFT_ARCHIVE"></a></div>
+    <ol>
+      <li>Open Lift on its <b>Archive</b>: ad-level effects from campaigns' own randomized tests.</li>
+      <li>Pick a metric card, such as <b>Lift: candidate favorability</b>. The treatments rank by their lift; a bar fades inside its own margin.</li>
+      <li>Click a lift for its margin, respondents and study.</li>
+    </ol>
+  </section>
+
+
+  <footer><span class="foot-url" data-path="/"></span><span>October 2026</span></footer>
+</main>
+<script>
+  // Every address on the page comes from BASE.
+  for (const el of document.querySelectorAll("[data-path]")) {
+    const path = el.getAttribute("data-path")
+    const full = BASE + (path === "/" ? "" : path)
+    el.textContent = el.classList.contains("path") ? path : full.replace(/^https?:\/\//, "")
+    if (el.tagName === "A") el.setAttribute("href", full)
+  }
+</script>
+</body>
+</html>
