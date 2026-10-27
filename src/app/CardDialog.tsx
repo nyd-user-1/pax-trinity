@@ -49,6 +49,36 @@ function CopySkeleton() {
   );
 }
 
+/** A box's guide, the copy's last section: what it is, how to use it today, what is not built yet. */
+function Guide({ guide }: { guide: NonNullable<HomeCardData["guide"]> }) {
+  const head = "m-0 mt-6 mb-2 text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground";
+  return (
+    <div className="mt-6 border-t pt-5">
+      <p className="m-0 text-sm leading-relaxed">{guide.about}</p>
+      {guide.steps.length > 0 && (
+        <>
+          <h3 className={head}>How to use it</h3>
+          <ol className="m-0 flex list-decimal flex-col gap-1.5 pl-5 text-sm leading-relaxed">
+            {guide.steps.map((step) => (
+              <li key={step}>{step}</li>
+            ))}
+          </ol>
+        </>
+      )}
+      {guide.gaps.length > 0 && (
+        <>
+          <h3 className={head}>Still to build</h3>
+          <div className="flex flex-col gap-1.5 text-sm leading-relaxed text-muted-foreground">
+            {guide.gaps.map((gap) => (
+              <p key={gap} className="m-0">{gap}</p>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 /**
  * The card dialog: on the left a tool's working illustration or a product's
  * screenshot; on the right the statement and the copy (stacked on a narrow
@@ -180,6 +210,7 @@ export function CardDialog({ card, onClose, onStep, onInspect }: { card: HomeCar
                         )}
                       </>
                     )}
+                    {shown.guide && <Guide guide={shown.guide} />}
                     {/* The Inspector's card closes on its own button, down here under the copy. */}
                     {shown.title === "Inspector" && onInspect && (
                       <button type="button" onClick={onInspect} className="mt-7 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-foreground text-[15px] font-medium text-background hover:opacity-90">
