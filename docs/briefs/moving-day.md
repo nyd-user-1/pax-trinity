@@ -97,7 +97,7 @@ The copy streams through this Mac's memory with boto3: read with the old profile
 
 | Bucket (us-east-2) | Objects | Size | Verification against the old bucket |
 |---|---|---|---|
-| `pax-trinity-audience-613473203863` | 8,296 (`exports/` 8,076: `index.json`, 41 row files, 8,034 `q/` files; `raw/` 219; `store/norms.duckdb`) | 4.22 GiB | 8,296 = 8,296, no missing, no size mismatches, 8,268 MD5-comparable and all matching (the other 28 were multipart at the source, so I compared size). In `exports/` all 8,076 MD5-match. |
+| `pax-trinity-audience-613473203863` | 8,421 after the final re-sync (`exports/` 8,076: `index.json`, 41 row files, 8,034 `q/` files; `raw/` 343; `store/norms.duckdb`; `INVENTORY.md`) | 4.24 GiB | 8,421 = 8,421, no missing, no size mismatches, 8,393 MD5-comparable and all matching (the other 28 were multipart at the source, so I compared size). In `exports/` all 8,076 MD5-match. |
 | `pax-trinity-clips-613473203863` | 209 | 1,253 MiB | 209 = 209, no missing, no size mismatches, 161 MD5-comparable and all matching (the other 48 were multipart at the source, so I compared size) |
 
 - **Audience** matches the old bucket's posture exactly:
@@ -106,7 +106,9 @@ The copy streams through this Mac's memory with boto3: read with the old profile
   - BucketOwnerEnforced, SSE-S3.
   - Checked: `exports/index.json` returns 200, `raw/…` returns 403, the listing returns 403.
 - **Clips:** fully private (all four blocks on). Its only policy statement is `AllowCloudFrontOAC`, scoped to the new distribution's ARN. A direct S3 GET returns 403.
-- **The exports re-sync at the end of my run:** at 07:09Z `exports/` re-synced clean (0 to copy; 8,076 MD5-matched). `index.json` is `ab69696b77fdf6f762312920103bd3b7` (Window-Q's), 4,564,482 B, `application/json`, on the old bucket, the new bucket and the new URL's `/audience-data/index.json`. Window R's regenerated `index.json` hadn't landed by then. A watcher re-syncs the whole bucket 3 minutes after the old `index.json` changes and holds steady; its result is below.
+- **The final re-sync.** The concordance `index.json` that Window R started (Window-Q finished it under Brief U) landed in the old bucket at 07:17:24Z. My watcher saw it at 07:18:25Z, waited until it held steady (07:21:26Z), and re-synced the whole bucket. That copied 126 objects, 23 MiB, with no failures: `exports/index.json` plus Window-Q's 125 new raw files (`raw/gss/key_trends/key_trends.json`, `raw/anes/guide/guide.html` and `raw/anes/guide/top_tables/1–123.html`).
+  - `exports/index.json` is now **`2be2425c0d0d954a8250ec235e79227c`**, 4,832,545 B, `application/json`. The old bucket, the new bucket and the new URL's `/audience-data/index.json` all serve that ETag. It replaced `ab69696b…`, 4,564,482 B.
+  - The 41 row files and 8,034 `q/` files were unchanged, as Window-Q reported, and still MD5-match.
 
 Uploads after the move: the new `pax-audience-uploader` profile (below) writes this bucket. Until the audience windows switch over, they keep writing the old bucket, and anything they upload after my final re-sync isn't in the new one. The cutover is the lead's call. A worker's command becomes `AWS_PROFILE=pax-audience-uploader aws s3 sync … s3://pax-trinity-audience-613473203863/…`. To catch up again, re-run `copy_bucket.py` (below) with the `exports/` prefix. It copies only what differs.
 
