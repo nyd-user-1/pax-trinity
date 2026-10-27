@@ -9,7 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuRadioG
 import { ScrollArea } from "@govblock/ui/components/ny4/scroll-area"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/ny4/tooltip"
 
-import { mnemonicOf, normalizeWording, scaleOf, WEB_GRID, type QuestionSummary } from "../audience/audience-data"
+import { mnemonicOf, normalizeWording, scaleOf, WEB_GRID, type QuestionSummary } from "./audience-data"
 
 // The question list in Gmail's anatomy, as Brendan restyled it by hand
 // (2026-10-27, docs/wireframes/inbox-row-changes.png): no grip, box, star or

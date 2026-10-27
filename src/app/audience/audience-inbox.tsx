@@ -11,26 +11,31 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@govblock/
 import { Separator } from "@govblock/ui/components/ny4/separator"
 import { TooltipProvider } from "@govblock/ui/components/ny4/tooltip"
 
-import { AboutPanel, BackButton, type About } from "../audience/audience-pane"
-import { AudienceRows } from "../audience/audience-rows"
-import { buildInfo, fetchQuestionRows, groupSources, mnemonicOf, normalizeWording, shortSource, topicOf, UNTAGGED, TOPIC_GROUPS, WORDING, type AudienceIndex, type MetricInfo, type QuestionSummary, type SourceRow } from "../audience/audience-data"
+import { AboutPanel, BackButton, type About } from "./audience-pane"
+import { AudienceRows } from "./audience-rows"
+import { buildInfo, fetchQuestionRows, groupSources, mnemonicOf, normalizeWording, shortSource, topicOf, UNTAGGED, TOPIC_GROUPS, WORDING, type AudienceIndex, type MetricInfo, type QuestionSummary, type SourceRow } from "./audience-data"
 import { SourceRail } from "./source-rail"
 import { QuestionTable } from "./question-table"
 import { MAX_COLS, SegmentList, type ListTab, type Split } from "./segment-list"
 import { SegmentGrid } from "./segment-grid"
 
-// /inbox-2 — the audience database wearing the Agentic Inbox's frame whole,
-// the Gmail recreate repurposed (Brendan, 2026-10-26): the sources are the
-// folders, the segments are the threads, and the list opens full width the
-// way the inbox does with no split on. Opening a segment is the presto — the
-// results grid takes the pane — and a cell hands its row to the About panel.
-// /audience keeps the earlier shape for comparison while this one settles.
+// /audience — the audience database wearing the Agentic Inbox's frame whole,
+// the Gmail recreate repurposed (Brendan, 2026-10-26; it took the /audience
+// address from the earlier browse surface 2026-10-27): topics and source
+// folders in the rail, questions as the threads, and the list opens full
+// width the way the inbox does with no split on. Opening a question is the
+// presto — its table takes the pane — and a cell hands its row to the About
+// panel. ?source=<KEY> or ?topic=<name> opens on that folder or topic.
 
 export function AudienceInbox() {
   const [index, setIndex] = React.useState<AudienceIndex | null>(null)
-  // One thing is open in the rail at a time: a topic (the lead view) or a folder.
-  const [source, setSource] = React.useState<string | null>(null)
-  const [topic, setTopic] = React.useState<string | null>(null)
+  // One thing is open in the rail at a time: a topic (the lead view) or a
+  // folder, the address's ?source= or ?topic= first (this mounts browser-side).
+  const [source, setSource] = React.useState<string | null>(() => new URLSearchParams(window.location.search).get("source"))
+  const [topic, setTopic] = React.useState<string | null>(() => {
+    const at = new URLSearchParams(window.location.search)
+    return at.get("source") ? null : at.get("topic")
+  })
   // The questions read so far, each from its own file (Brief S), keyed source/id.
   const [cache, setCache] = React.useState<Record<string, SourceRow[]>>({})
   const pending = React.useRef(new Set<string>())
@@ -105,10 +110,14 @@ export function AudienceInbox() {
     return rows
   }, [index, topicsByQ])
 
-  // The rail's first topic opens first; the folders wait at the bottom.
+  // The rail's first topic opens first; the folders wait at the bottom. An
+  // address naming a folder or topic the bank doesn't carry falls back to it.
   React.useEffect(() => {
-    if (!source && !topic && topicRows.length) setTopic(topicRows[0].topic)
-  }, [topicRows, source, topic])
+    if (!index) return
+    if (source && !groups.some((g) => g.source === source)) setSource(null)
+    else if (topic && !topicRows.some((r) => r.topic === topic)) setTopic(null)
+    else if (!source && !topic && topicRows.length) setTopic(topicRows[0].topic)
+  }, [index, groups, topicRows, source, topic])
 
   // The list comes from the index alone (Brief S): a topic's questions across
   // every source, or an open folder's, each with its span, waves and bands.
@@ -395,7 +404,6 @@ export function AudienceInbox() {
                       metric={tableMetric}
                       place={place}
                       info={info.get(tableMetric) as MetricInfo}
-                      short={srcOf(tableMetric) ? shortSource(srcOf(tableMetric) as string) : ""}
                       source={srcOf(tableMetric)}
                       wording={wordingOf(tableMetric)}
                       about={about}

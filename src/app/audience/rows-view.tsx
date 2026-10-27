@@ -19,9 +19,7 @@ const PER_READ = 60
 
 export function RowsView({
   rows,
-  title,
   id,
-  short,
   source,
   header,
   trailing,
@@ -30,15 +28,12 @@ export function RowsView({
 }: {
   /** The open question's rows alone. */
   rows: SourceRow[]
-  title: string
   id: string
-  /** The source's short name. */
-  short: string
   /** The source's key, for the weight mapping. */
   source: string | null
-  /** A mounting view's own title-row content: it takes the row's left, the
-   *  filter chips and `trailing` its right. */
-  header?: React.ReactNode
+  /** The mount's own title-row content: it takes the row's left, the filter
+   *  chips and `trailing` its right. */
+  header: React.ReactNode
   trailing?: React.ReactNode
   /** A clicked row hands itself to the About panel, where the mount has one. */
   about?: About | null
@@ -105,14 +100,6 @@ export function RowsView({
 
   const listed = sorted.slice(0, depth)
   const more = React.useCallback(() => setDepth((d) => d + PER_READ), [])
-  const geos = React.useMemo(() => [...new Set(rows.map((r) => r[1]))].join(" · "), [rows])
-
-  const note = (
-    <span className="ml-auto shrink-0 text-xs text-muted-foreground">
-      Showing {sorted.length ? `1–${Math.min(depth, sorted.length).toLocaleString("en-US")}` : "0"} of {sorted.length.toLocaleString("en-US")}
-    </span>
-  )
-
   // A chip prints only where there is something to pick: one wave, one band
   // or no subgroups leaves nothing to filter.
   const chips = (
@@ -133,33 +120,15 @@ export function RowsView({
 
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
-      {header ? (
-        // A mount's own title row: its heading at the left, the filter chips
-        // and its trailing control at the right — no filter row of its own.
-        <div className="flex h-[52px] shrink-0 items-center gap-2 border-b px-4">
-          {header}
-          <div className="ml-auto flex shrink-0 items-center gap-2">
-            {chips}
-            {trailing}
-          </div>
+      {/* The mount's title row: its heading at the left, the filter chips and
+          its trailing control at the right. */}
+      <div className="flex h-[52px] shrink-0 items-center gap-2 border-b px-4">
+        {header}
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          {chips}
+          {trailing}
         </div>
-      ) : (
-        <>
-          <div className="flex h-[52px] shrink-0 items-center gap-2.5 border-b px-4">
-            <h2 className="truncate text-[15px] font-semibold">{title}</h2>
-            <span className="shrink-0 text-xs text-muted-foreground">
-              {short} · {id} · {geos} · {rows.length.toLocaleString("en-US")} rows
-            </span>
-          </div>
-          <div className="flex h-11 shrink-0 items-center gap-2 overflow-hidden border-b px-4">
-            {(order.waves.length > 1 || order.segments.length > 0 || order.bands.length > 1) && (
-              <span className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Filter</span>
-            )}
-            {chips}
-            {note}
-          </div>
-        </>
-      )}
+      </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         <table className="w-full border-separate border-spacing-0 text-sm">

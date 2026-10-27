@@ -5,7 +5,7 @@ import { Folder } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader } from "@govblock/ui/components/ny4/sidebar"
 
-import { SEGMENT_SEED, shortSource, UNTAGGED, type SourceGroup } from "../audience/audience-data"
+import { SEGMENT_SEED, shortSource, UNTAGGED, type SourceGroup } from "./audience-data"
 
 // The rail leads with topics (Brendan, 2026-10-27: "the first rail collapsed
 // into understandable question topics"): one row per topic across the whole

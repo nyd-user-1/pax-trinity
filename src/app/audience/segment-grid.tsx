@@ -7,8 +7,8 @@ import { cn } from "@/lib/utils"
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@govblock/ui/components/ny4/dropdown-menu"
 import { ScrollArea } from "@govblock/ui/components/ny4/scroll-area"
 
-import { dimLabel, latestRow, levelRank, num, type MetricInfo, type SourceRow } from "../audience/audience-data"
-import { type About } from "../audience/audience-pane"
+import { dimLabel, latestRow, levelRank, num, type MetricInfo, type SourceRow } from "./audience-data"
+import { type About } from "./audience-pane"
 
 // The reading pane the presto opens: the opened segment as the results grid
 // (the Swayable shape in /public/Reference Images). The Bands section leads —

@@ -16,9 +16,11 @@ const expiresSoon = (token: string) => {
   }
 }
 
-// Old addresses that now live on /metrics. Answered here, before any render, so the browser gets one
+// Old addresses that now live elsewhere. Answered here, before any render, so the browser gets one
 // redirect instead of a rendered shell that redirects itself (the page files keep the same mapping).
 function alias(path: string, q: URLSearchParams): string | null {
+  // The 2026-10-27 consolidation: /inbox-2 took the /audience address.
+  if (path === "/inbox-2") return `/audience${q.size ? `?${q}` : ""}`
   if (path === "/pipeline-2") return "/erd"
   if (path === "/patterns") return "/metrics?tab=patterns"
   if (path === "/outliers") return "/metrics?tab=outliers"

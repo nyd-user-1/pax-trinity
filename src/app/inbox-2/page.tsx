@@ -1,9 +1,6 @@
-import type { Metadata } from "next"
+import { redirect } from "next/navigation"
 
-import { InboxClient2 } from "./inbox-client"
-
-export const metadata: Metadata = { title: "Inbox 2", description: "A working duplicate of the Agentic Inbox." }
-
+// /inbox-2 became /audience (2026-10-27).
 export default function Inbox2Page() {
-  return <InboxClient2 />
+  redirect("/audience")
 }

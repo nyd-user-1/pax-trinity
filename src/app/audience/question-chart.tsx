@@ -6,7 +6,7 @@ import { LineChart, type LineSeriesOption } from "echarts/charts"
 import { GridComponent, LegendComponent, TooltipComponent, type GridComponentOption, type LegendComponentOption, type TooltipComponentOption } from "echarts/components"
 import { CanvasRenderer } from "echarts/renderers"
 
-import { num, year, type MetricInfo, type SourceRow } from "../audience/audience-data"
+import { num, year, type MetricInfo, type SourceRow } from "./audience-data"
 
 // A question's trend as the line chart a pollster puts in a report: one line
 // per answer option across the waves, toplines only. ECharts from its core

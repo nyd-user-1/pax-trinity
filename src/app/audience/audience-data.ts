@@ -289,19 +289,6 @@ export type MetricInfo = {
   median: { v: number; n: number } | null
 }
 
-export const metricIdsOf = (rows: SourceRow[]) => {
-  // A Set, one pass: the includes scan was quadratic, and at GSS scale
-  // (5,541 metrics over 461K rows) it alone cost billions of comparisons.
-  const seen = new Set<string>()
-  const ids: string[] = []
-  for (const r of rows)
-    if (!seen.has(r[0])) {
-      seen.add(r[0])
-      ids.push(r[0])
-    }
-  return ids
-}
-
 export function buildInfo(rows: SourceRow[], geoLevel: Map<string, string>): Map<string, MetricInfo> {
   // One pass groups the rows by metric; every per-metric read then works its
   // own slice alone. The old shape filtered the whole file once per metric,
@@ -343,14 +330,4 @@ export function buildInfo(rows: SourceRow[], geoLevel: Map<string, string>): Map
     m.set(id, { id, option, type, baseGeo, topline, rs, options, median })
   }
   return m
-}
-
-/** The list row's teaser: the topline the way the inbox snippets a thread. */
-export function snippetOf(c: MetricInfo | undefined, place: (code: string) => string) {
-  if (!c) return ""
-  if (c.median) return `median ${c.median.v >= 0 ? "+" : "−"}${num(Math.abs(c.median.v))} pp · ${c.median.n.toLocaleString("en-US")} entries`
-  const t = c.topline
-  if (!t) return ""
-  const head = t[8] === "count" ? num(t[7], 0) : `${num(t[7])}%`
-  return `${head} · ${place(c.baseGeo)} · ${year(t[3])}`
 }

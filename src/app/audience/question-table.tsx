@@ -14,9 +14,9 @@ const QuestionChart = dynamic(() => import("./question-chart").then((m) => m.Que
   loading: () => <p className="p-6 text-sm text-muted-foreground">Drawing…</p>,
 })
 
-import { dimLabel, latestRow, normalizeWording, num, value, year, type MetricInfo, type SourceRow } from "../audience/audience-data"
-import { RowsView } from "../audience/rows-view"
-import { type About } from "../audience/audience-pane"
+import { dimLabel, latestRow, normalizeWording, num, value, year, type MetricInfo, type SourceRow } from "./audience-data"
+import { RowsView } from "./rows-view"
+import { type About } from "./audience-pane"
 import { SearchField } from "./segment-list"
 
 // The clicked question, read the way a pollster reads one: a crosstab — the
@@ -39,7 +39,6 @@ export function QuestionTable({
   metric,
   place,
   info,
-  short,
   source,
   wording,
   about,
@@ -55,8 +54,6 @@ export function QuestionTable({
   metric: string
   place: (code: string) => string
   info: MetricInfo
-  /** The source's short name. */
-  short: string
   /** The source's key, for the Rows view's weight mapping. */
   source: string | null
   /** The verbatim wording where the bank carries one; the bar reads it over the label. */
@@ -131,7 +128,7 @@ export function QuestionTable({
         {toggle}
       </div>
       {view === "tidy" ? (
-        <RowsView rows={rows} title={title} id={metric} short={short} source={source} header={heading} trailing={refresh} about={about} onPick={onPick} />
+        <RowsView rows={rows} id={metric} source={source} header={heading} trailing={refresh} about={about} onPick={onPick} />
       ) : (
         <>
       <div className="flex h-[52px] shrink-0 items-center gap-2 border-b px-4">
