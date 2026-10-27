@@ -30,3 +30,24 @@ Three routes standing, each a path-limited commit, each smoke-checked by curl wi
 ---
 
 ## Worker report
+
+Three routes standing, each its own commit, each smoke-checked by curl against :3000 (200 with the marker) and looked at headless for console errors (none). Shared pieces in `src/app/_wire/` (new); no existing file touched.
+
+- `ecec054` **/q/[source]/[id]** — marker `data-dossier="gss/confidence_congress"`. Live: bars by wave with MoE whiskers (latest dark), OBSERVED chip, "2008–2024: 37.6 to 51.9 (+14.3 pp)", series high/low, the headline sentence, the 2024 crosstab on the headline band (Total, age, education, party, race, sex: est ±moe, vs total, n, ▲/▼ since 2008), Related constructs (every family member in every source that asks it, latest value and year), Provenance, source and geo chips (a state chip switches the page to that state: CES party ID reads MA).
+- `df629f8` **/constructs** — marker `data-constructs=""`. Live: all 17 families, US latest ±moe, MA (party ID 18.1 from CES), sparkline, Δ since 2008, Sources. Rows read their files only near the screen, six in flight.
+- `8871efa` **/electorate** — marker `data-electorate="ACS"`. Live: rail counts from the index (8,028 · GSS 5,541 · ANES 1,518 · CES 943 · Polls 4 · ACS 6 · CVAP 2 · CPS 12 · Enrollment 1 · Results 2); attitude rows link `/audience?source=<KEY>` (confirmed with `surfaces`); every slice source's MA share, count, geography, vintage, and town/county rows with vs MA.
+
+**[—] left standing:** none for good. Each [—] is a not-yet-read cell (a construct row before it scrolls near, a related construct before its file lands) and fills in when the read lands. A cell the rows can't fill shows "—" (no MA rows, no 2008 wave). Every [—] in the pictures was computable.
+
+**Flags**
+1. *Headline band is a hand seed.* The pictures name one for 14 attitude constructs and the 6 Census dimensions. I seeded those and check each against the question's options. Multi-option bands are summed within one wave and cell, with no margin (1–3 (should), Agree + strongly, BA or higher, Under $50K). Every other question, including the ~300 constructs R lands tonight, reads its largest option at the latest wave, which can flip between waves. A `headline` field on families in the export would retire the seed.
+2. *Some of the picture's numbers don't match the data.* 2024's 51.9 is the **fourth**-highest of 33 waves (2022 = 53.2), not "the highest level", and the page says fourth-highest. The series low is 1973 at 15.2. The picture's 14.3 is the 18–29 cell.
+3. *The headline sentence is generic:* "On confidence in Congress, 51.9% of Americans answer hardly any. That is up from 37.6% in 2008 and the fourth-highest of 33 waves in the 51-year series." The picture's "have hardly any confidence in the people running Congress" needs per-question phrasing the data doesn't carry.
+4. *Data for Window R:* `nationalism` and `national_pride_domain` carry two rows in every cell (two items under one id: 340 and 272 cells). The pages read the first, which matches the picture's 37.8.
+5. *Provenance is missing three things the picture shows.* The served data has no extraction date, loader version or codebook entry, so those are left out. The loader prints only where one module writes the source. ANES and CES have bulk tiers, and Polls/Results have two loaders, so for those it's left out too.
+6. *Used by:* the only real link in the app's data is the browser's draft survey (Add to survey). The card renders only when the draft holds the question. Batteries, segment cards and weighting targets don't exist yet.
+7. *Related constructs* values are each sibling's own headline band (hover shows the band). The siblings sit on different scales.
+8. */constructs grouping:* subject once R's anchors land. Until then the rail's topic collapse (America & the world, Economy & inequality, Politics & government, …). The picture's headings (Institutional trust, …) aren't in the data. Its non-family rows (Trust in government, officials don't care, parties care, egalitarianism, presidential approval, media trust) don't appear until they're families.
+9. */electorate:* B05001 counts every age, so Citizenship's band is "Citizen" (by birth + naturalized), not "Citizen, 18+". CVAP carries the 18+ share. The Map chip is disabled because no map surface exists. County/Town are plain toggles: I dropped the ▾, since no menu sits behind them. The checkboxes pick which dimensions the place rows read. The six towns are the largest by the dimension's own count, so Quincy appears, not Brockton. Results' open_primaries_support has no MA rows ("—").
+10. *Shell header* reads "Q" on the dossier, taken from the path. A `["/q/", "Question"]` TITLES entry is `surfaces`' call.
+11. *Load weight:* each route reads the 4.5 MB index.json in the browser, the same as /audience, cached per tab.
