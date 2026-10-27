@@ -57,14 +57,15 @@ export function CrossWaveLift({ waves, ballot = "ballot", comprehension = "compr
     .flatMap((rs) =>
       treatmentsOf(rs).map((arm, i) => ({ rs, arm, i, b: toplineOf(rs, arm.id, ballot), c: toplineOf(rs, arm.id, comprehension) }))
     )
-    .filter((r) => r.b?.liftPp != null)
-    .sort((x, y) => (y.b!.liftPp ?? 0) - (x.b!.liftPp ?? 0) || x.rs.wave - y.rs.wave || x.i - y.i)
-  const a = axis(rows.map((r) => r.b!.liftPp!))
+    // An arm with no lift (no respondents to read) keeps its row, last, with nothing drawn.
+    .sort((x, y) => (y.b?.liftPp ?? -Infinity) - (x.b?.liftPp ?? -Infinity) || x.rs.wave - y.rs.wave || x.i - y.i)
+  const lifted = rows.filter((r) => r.b?.liftPp != null)
+  const a = axis(lifted.map((r) => r.b!.liftPp!))
   // Rows sharing one rounded lift wear a band: equal displays, not shown to be equal.
   const tally = new Map<number, number>()
-  for (const r of rows) tally.set(Math.round(r.b!.liftPp!), (tally.get(Math.round(r.b!.liftPp!)) ?? 0) + 1)
+  for (const r of lifted) tally.set(Math.round(r.b!.liftPp!), (tally.get(Math.round(r.b!.liftPp!)) ?? 0) + 1)
   const shared = [...tally].filter(([, n]) => n > 1).map(([v]) => v)
-  const anyApprox = rows.some((r) => r.b?.derivation === "derived_from_rounded" || r.c?.derivation === "derived_from_rounded")
+  const anyApprox = lifted.some((r) => r.b?.derivation === "derived_from_rounded" || r.c?.derivation === "derived_from_rounded")
   const anyCampaign = rows.some((r) => isCampaign(r.arm))
   const last = waves[waves.length - 1]
   const cName = last?.outcomes.find((o) => o.id === comprehension)?.name ?? "Comprehension"
@@ -82,12 +83,12 @@ export function CrossWaveLift({ waves, ballot = "ballot", comprehension = "compr
           <span>{cName} lift</span>
         </div>
         {rows.map((r) => {
-          const lift = r.b!.liftPp!
-          const band = shared.includes(Math.round(lift))
+          const lift = r.b?.liftPp
+          const band = lift != null && shared.includes(Math.round(lift))
           return (
             <div key={`${r.rs.id}:${r.arm.id}`} className={cn(grid, "border-t border-[var(--paper-rule)]/10 py-2", band && "bg-[var(--r-tint)]")}>
               <WaveChip wave={r.rs.wave} latest={r.rs.wave === latest} />
-              <span className="truncate font-semibold">
+              <span className="line-clamp-2 font-semibold" title={r.arm.name}>
                 {r.arm.watchUrl ? (
                   <a href={r.arm.watchUrl} target="_blank" rel="noreferrer" className="underline decoration-[var(--paper-rule)]/30 underline-offset-4 hover:decoration-current">
                     {r.arm.name}
@@ -97,15 +98,19 @@ export function CrossWaveLift({ waves, ballot = "ballot", comprehension = "compr
                 )}
               </span>
               <span className="flex items-center gap-2">
-                <span className="min-w-0 flex-1">
-                  <LiftBar value={lift} a={a} tone={toneOf(r.arm, r.b)} />
-                </span>
+                <span className="min-w-0 flex-1">{lift != null && <LiftBar value={lift} a={a} tone={toneOf(r.arm, r.b)} />}</span>
                 <span className="w-14 shrink-0 text-[13px] font-semibold tabular-nums">
-                  {approx(r.b!.derivation)}
-                  {signed(lift)}
+                  {lift != null ? (
+                    <>
+                      {approx(r.b!.derivation)}
+                      {signed(lift)}
+                    </>
+                  ) : (
+                    <span className="font-normal text-[var(--paper-muted)]">—</span>
+                  )}
                 </span>
               </span>
-              <span className="text-[13px]">{r.b!.verdict && <VerdictMark verdict={r.b!.verdict} />}</span>
+              <span className="text-[13px]">{r.b?.verdict && <VerdictMark verdict={r.b.verdict} />}</span>
               <span className="text-[13px] tabular-nums">
                 {r.c?.liftPp != null ? (
                   <>
@@ -167,8 +172,9 @@ export function LevelChart({ rs, outcomeId }: { rs: ResultSet; outcomeId: string
   const p = placebo ? toplineOf(rs, placebo.id, outcomeId) : undefined
   if (p?.levelPct == null) return null
   const outcome = rs.outcomes.find((o) => o.id === outcomeId)
-  const rows = [placebo!, ...treatmentsOf(rs)].map((arm) => ({ arm, t: toplineOf(rs, arm.id, outcomeId) })).filter((r) => r.t?.levelPct != null)
-  const grid = "grid grid-cols-[minmax(120px,170px)_minmax(0,1fr)_190px] items-center gap-x-3"
+  // Every arm keeps its row; one with no level (no respondents to read) draws nothing.
+  const rows = [placebo!, ...treatmentsOf(rs)].map((arm) => ({ arm, t: toplineOf(rs, arm.id, outcomeId) }))
+  const grid = "grid grid-cols-[minmax(140px,230px)_minmax(0,1fr)_190px] items-center gap-x-3"
   return (
     <div className="overflow-x-auto">
       <div className="min-w-[620px]">
@@ -177,22 +183,32 @@ export function LevelChart({ rs, outcomeId }: { rs: ResultSet; outcomeId: string
           const isP = arm.role === "placebo"
           return (
             <div key={arm.id} className={cn(grid, "border-t border-[var(--paper-rule)]/10 py-2")}>
-              <span className={cn("truncate", isP ? "text-[var(--paper-muted)]" : "font-semibold")}>{isP ? `${arm.name.replace(/\s*\(.*\)$/, "")} (reference)` : arm.name}</span>
+              <span className={cn("line-clamp-3", isP ? "text-[var(--paper-muted)]" : "font-semibold")} title={arm.name}>
+                {isP ? `${arm.name.replace(/\s*\(.*\)$/, "")} (reference)` : arm.name}
+              </span>
               <span className="flex items-center gap-2">
-                <LevelTrack level={t!.levelPct!} placebo={p.levelPct!} tone={isP ? "placebo" : toneOf(arm, t) === "detect" ? "detect" : "quiet"} />
-                <span className="w-11 shrink-0 text-[13px] font-semibold tabular-nums">{pct(t!.levelPct!)}</span>
+                {t?.levelPct != null ? (
+                  <>
+                    <LevelTrack level={t.levelPct} placebo={p.levelPct!} tone={isP ? "placebo" : toneOf(arm, t) === "detect" ? "detect" : "quiet"} />
+                    <span className="w-11 shrink-0 text-[13px] font-semibold tabular-nums">{pct(t.levelPct)}</span>
+                  </>
+                ) : (
+                  <span className="text-[13px] text-[var(--paper-muted)]">{arm.nWeighted === 0 ? "No respondents" : "—"}</span>
+                )}
               </span>
               <span className="text-[13px] tabular-nums">
                 {isP ? (
                   <span className="text-[var(--paper-muted)]">Control arm</span>
-                ) : t!.liftPp != null ? (
+                ) : t?.liftPp != null ? (
                   <>
                     <span className="font-semibold">
-                      {approx(t!.derivation)}
-                      {signed(t!.liftPp)} pp
+                      {approx(t.derivation)}
+                      {signed(t.liftPp)} pp
                     </span>
-                    {t!.verdict && <span className={cn(t!.verdict === "detectable" ? "text-[var(--r-detect)]" : "text-[var(--paper-muted)]")}> · {t!.verdict}</span>}
+                    {t.verdict && <span className={cn(t.verdict === "detectable" ? "text-[var(--r-detect)]" : "text-[var(--paper-muted)]")}> · {t.verdict}</span>}
                   </>
+                ) : t?.verdict ? (
+                  <span className="text-[var(--paper-muted)]">— · {t.verdict}</span>
                 ) : null}
               </span>
             </div>
@@ -249,7 +265,7 @@ export function LevelTrack({
 export function DualLift({ rs, a }: { rs: ResultSet; a: Axis }) {
   const outs = rs.outcomes
   const placebo = placeboOf(rs)
-  const cols = `minmax(110px,160px) ${outs.map(() => "minmax(0,1fr) 150px").join(" ")}`
+  const cols = `minmax(140px,220px) ${outs.map(() => "minmax(0,1fr) 150px").join(" ")}`
   return (
     <div className="overflow-x-auto">
       <div className="min-w-[760px]">
@@ -265,7 +281,9 @@ export function DualLift({ rs, a }: { rs: ResultSet; a: Axis }) {
         </div>
         {treatmentsOf(rs).map((arm) => (
           <div key={arm.id} className="grid items-center gap-x-3 border-t border-[var(--paper-rule)]/10 py-2.5" style={{ gridTemplateColumns: cols }}>
-            <span className="truncate font-semibold">{arm.name}</span>
+            <span className="line-clamp-3 font-semibold" title={arm.name}>
+              {arm.name}
+            </span>
             {outs.map((o) => {
               const t = toplineOf(rs, arm.id, o.id)
               const pl = placebo ? toplineOf(rs, placebo.id, o.id) : undefined
@@ -273,11 +291,13 @@ export function DualLift({ rs, a }: { rs: ResultSet; a: Axis }) {
                 <React.Fragment key={o.id}>
                   {t?.liftPp != null ? <LiftBar value={t.liftPp} a={a} tone={toneOf(arm, t)} /> : <span />}
                   <span className="text-[13px] leading-tight tabular-nums">
-                    {t?.liftPp != null && (
+                    {t?.liftPp != null ? (
                       <span className="font-semibold">
                         {approx(t.derivation)}
                         {signed(t.liftPp)} pp
                       </span>
+                    ) : (
+                      <span className="text-[var(--paper-muted)]">—</span>
                     )}
                     {t?.verdict && <span className={cn(t.verdict === "detectable" ? "text-[var(--r-detect)]" : "text-[var(--paper-muted)]")}> · {t.verdict}</span>}
                     {t?.levelPct != null && pl?.levelPct != null && (
@@ -313,7 +333,7 @@ export function SubgroupPanels({ rs, d, outcomeId = "ballot" }: { rs: ResultSet;
   const n = d.categories.length
   return (
     <div className="overflow-x-auto">
-      <div className="grid min-w-[640px] gap-x-5" style={{ gridTemplateColumns: `minmax(100px,150px) repeat(${n}, minmax(0,1fr))` }}>
+      <div className="grid min-w-[640px] gap-x-5" style={{ gridTemplateColumns: `minmax(100px,170px) repeat(${n}, minmax(0,1fr))` }}>
         <span />
         {d.categories.map((cat) => {
           const cs = arms.map((a) => cellOf(rs, d.id, cat.id, a.id, outcomeId)).filter(Boolean)
@@ -329,7 +349,9 @@ export function SubgroupPanels({ rs, d, outcomeId = "ballot" }: { rs: ResultSet;
         })}
         {arms.map((arm) => (
           <React.Fragment key={arm.id}>
-            <span className={cn("truncate py-[3px] text-[12px]", arm.role === "placebo" ? "text-[var(--paper-muted)]" : "")}>{arm.role === "placebo" ? arm.name.replace(/\s*\(.*\)$/, "") : arm.name}</span>
+            <span className={cn("line-clamp-2 py-[3px] text-[12px] leading-tight", arm.role === "placebo" ? "text-[var(--paper-muted)]" : "")} title={arm.name}>
+              {arm.role === "placebo" ? arm.name.replace(/\s*\(.*\)$/, "") : arm.name}
+            </span>
             {d.categories.map((cat) => {
               const c = cellOf(rs, d.id, cat.id, arm.id, outcomeId)
               const pc = placebo ? cellOf(rs, d.id, cat.id, placebo.id, outcomeId) : undefined

@@ -37,6 +37,11 @@ export function axis(values: number[], floor = 0): { min: number; max: number; t
 
 const NUMBER_WORDS = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"]
 export const word = (n: number) => NUMBER_WORDS[n] ?? String(n)
+/** "Nine of ten", "None of four": a count of a whole, either case. */
+export const countOf = (k: number, n: number, capital = true) => {
+  const head = k === 0 ? "none" : word(k)
+  return `${capital ? head.charAt(0).toUpperCase() + head.slice(1) : head} of ${word(n)}`
+}
 export const Word = (n: number) => {
   const w = word(n)
   return w.charAt(0).toUpperCase() + w.slice(1)

@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 
 import { CrossWaveLift, DualLift, LevelChart } from "./charts"
 import { Block, Box, Footnote, Part, StoryBox, WaveChip } from "./report-bits"
-import { approx, axis, count, dateRange, listed, monthYear, signed, toplineOf, treatmentsOf, wavesLine, word, Word } from "./report-math"
+import { approx, axis, count, countOf, dateRange, listed, monthYear, signed, toplineOf, treatmentsOf, wavesLine, word, Word } from "./report-math"
 import { armsLine, DimensionBlock, FactBoxes, LevelsKey, Methodology, PairingCard, ShareBars, VideoCard } from "./sections"
 
 // /reports/[study] — the wave readout, one long document in the PDF's order:
@@ -33,6 +33,7 @@ const stories = (rs: ResultSet | undefined, ids: string[]): Story[] => ids.map((
 const detectable = (rs: ResultSet, outcome: string) => treatmentsOf(rs).filter((a) => toplineOf(rs, a.id, outcome)?.verdict === "detectable")
 const outcomeName = (rs: ResultSet, id: string) => rs.outcomes.find((o) => o.id === id)?.name ?? id
 const lower = (s: string) => s.charAt(0).toLowerCase() + s.slice(1)
+const sentence = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 
 export function ReportDoc({ name, waves }: { name: string; waves: ResultSet[] }) {
   const latest = waves[waves.length - 1]
@@ -74,7 +75,7 @@ export function ReportDoc({ name, waves }: { name: string; waves: ResultSet[] })
       </header>
 
       <div className="flex flex-col gap-20">
-        <Part id="summary" kicker="Executive summary" title={`${Word(ballotHits)} of ${word(treat.length)} treatment videos showed detectable ${lower(outcomeName(latest, BALLOT))} differences`}>
+        <Part id="summary" kicker="Executive summary" title={`${countOf(ballotHits, treat.length)} treatment videos showed detectable ${lower(outcomeName(latest, BALLOT))} differences`}>
           {/* (a) Ballot support across waves */}
           <Block title={`${outcomeName(latest, BALLOT)}, every wave against its own placebo`}>
             <CrossWaveLift waves={waves} />
@@ -83,7 +84,7 @@ export function ReportDoc({ name, waves }: { name: string; waves: ResultSet[] })
                 <StoryBox key={s.id} story={s} />
               ))}
             </div>
-            <Footnote>No confidence intervals are shown: the source supplies none.</Footnote>
+            <Footnote>No confidence intervals are shown: none are in the data.</Footnote>
           </Block>
 
           {/* (b) Comprehension */}
@@ -92,10 +93,11 @@ export function ReportDoc({ name, waves }: { name: string; waves: ResultSet[] })
           {/* (c) Test setup */}
           <SetupSummary waves={waves} />
 
-          {/* (d) Pairings */}
+          {/* (d) Pairings, where any wave carries them */}
+          {waves.some((rs) => rs.pairings.length > 0) && (
           <Block title="Video–audience pairings to test">
-            <div className={cn("grid gap-6", waves.length > 1 && "lg:grid-cols-2")}>
-              {waves.map((rs) => (
+            <div className={cn("grid gap-6", waves.filter((w) => w.pairings.length).length > 1 && "lg:grid-cols-2")}>
+              {waves.filter((w) => w.pairings.length > 0).map((rs) => (
                 <div key={rs.id}>
                   <div className="mb-3 flex items-center gap-3">
                     <WaveChip wave={rs.wave} latest={rs.wave === lw} />
@@ -117,6 +119,7 @@ export function ReportDoc({ name, waves }: { name: string; waves: ResultSet[] })
             </div>
             {story(latest, "seen-in-both") && <StoryBox story={story(latest, "seen-in-both")!} />}
           </Block>
+          )}
         </Part>
 
         {waves.map((rs) => (
@@ -135,23 +138,26 @@ function ComprehensionSummary({ waves }: { waves: ResultSet[] }) {
   const hits = withLevels ? detectable(withLevels, COMPREHENSION).length : 0
   const name = outcomeName(latest, COMPREHENSION)
   return (
-    <Block title={withLevels ? `Wave ${withLevels.wave}: ${word(hits)} of ${word(treatmentsOf(withLevels).length)} videos showed detectable ${lower(name)} differences` : name}>
+    <Block title={withLevels ? `Wave ${withLevels.wave}: ${countOf(hits, treatmentsOf(withLevels).length, false)} videos showed detectable ${lower(name)} differences` : name}>
       <ol className="mb-6 grid gap-4 md:grid-cols-3">
         {waves.map((rs, i) => {
           const hit = detectable(rs, COMPREHENSION)
-          const lifts = treatmentsOf(rs).map((arm) => toplineOf(rs, arm.id, COMPREHENSION)).filter((t) => t?.liftPp != null)
+          const arms = treatmentsOf(rs)
+          const lifts = arms.map((arm) => toplineOf(rs, arm.id, COMPREHENSION)).filter((t) => t?.liftPp != null)
           const lo = Math.min(...lifts.map((t) => t!.liftPp!))
           const hi = Math.max(...lifts.map((t) => t!.liftPp!))
           const mark = lifts.some((t) => t!.derivation === "derived_from_rounded") ? "≈ " : ""
+          const unread = arms.length - lifts.length
+          const range = !lifts.length ? null : lo === hi ? `Lifts of ${mark}${signed(lo)} pp` : `Lifts from ${mark}${signed(lo)} to ${mark}${signed(hi)} pp`
           return (
             <li key={rs.id} className="flex gap-3 border-t border-[var(--paper-rule)]/40 pt-3">
               <span className="text-[22px] leading-none font-semibold text-[var(--paper-strong)]">{i + 1}</span>
               <span className="text-[14px] leading-snug">
                 <span className="font-semibold">
-                  Wave {rs.wave}: {hit.length ? `${word(hit.length)} of ${word(lifts.length)} videos detectable` : `no video detectable of ${word(lifts.length)}`}.
+                  Wave {rs.wave}: {countOf(hit.length, arms.length, false)} videos detectable.
                 </span>
                 <span className="mt-1 block text-[13px] text-[var(--paper-muted)]">
-                  {hit.length ? listed(hit.map((a) => a.name)) : `Lifts from ${mark}${signed(lo)} to ${mark}${signed(hi)} pp, all inconclusive`}.
+                  {sentence([hit.length ? listed(hit.map((a) => a.name)) : range && `${range}, all inconclusive`, unread ? `${word(unread)} without a lift to read` : null].filter(Boolean).join("; "))}.
                 </span>
               </span>
             </li>
@@ -252,7 +258,7 @@ function WaveSection({ rs, a, latest }: { rs: ResultSet; a: ReturnType<typeof ax
   const b = detectable(rs, BALLOT).length
   const c = detectable(rs, COMPREHENSION).length
   const hasComp = rs.outcomes.some((o) => o.id === COMPREHENSION)
-  const headline = `${Word(b)} of ${word(treat.length)} videos showed detectable ${lower(outcomeName(rs, BALLOT))} differences${hasComp ? `; ${c ? `${word(c)} showed` : "none showed"} detectable ${lower(outcomeName(rs, COMPREHENSION))} differences` : ""}`
+  const headline = `${countOf(b, treat.length)} videos showed detectable ${lower(outcomeName(rs, BALLOT))} differences${hasComp ? `; ${c ? `${word(c)} showed` : "none showed"} detectable ${lower(outcomeName(rs, COMPREHENSION))} differences` : ""}`
   const steps = stories(rs, ["step-1", "step-2", "step-3", "step-4", "step-5"])
   const explanation = story(rs, "written-explanation")
   const strip = stories(rs, ["breakdowns-levels", "breakdowns-comparisons", "breakdowns-small-cells", "breakdowns-description"])

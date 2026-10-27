@@ -73,7 +73,7 @@ export function VideoCard({ rs, arm, index, a }: { rs: ResultSet; arm: Arm; inde
               <div key={o.id}>
                 <div className="flex items-baseline justify-between gap-2 text-[12px]">
                   <span>{o.name}</span>
-                  <span className="font-semibold tabular-nums">{t.levelPct != null ? pct(t.levelPct) : t.liftPp != null ? `${approx(t.derivation)}${signed(t.liftPp)}` : ""}</span>
+                  <span className="font-semibold tabular-nums">{t.levelPct != null ? pct(t.levelPct) : t.liftPp != null ? `${approx(t.derivation)}${signed(t.liftPp)}` : <span className="font-normal text-[var(--paper-muted)]">{arm.nWeighted === 0 ? "No respondents" : "—"}</span>}</span>
                 </div>
                 <div className="mt-1">
                   {t.levelPct != null ? (
