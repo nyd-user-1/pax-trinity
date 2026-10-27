@@ -81,13 +81,52 @@ const footer = (title) => `
 
 const browser = await chromium.launch({ channel: "chrome", headless: true })
 try {
-  const page = await browser.newPage({ viewport: { width: 1100, height: 1400 } })
+  // 2x pixels, so a clip frame's still is sharp on paper; the rest of the PDF is vector either way.
+  const page = await browser.newPage({ viewport: { width: 1100, height: 1400 }, deviceScaleFactor: 2 })
   const url = `${base}/reports/${encodeURIComponent(study)}`
   const res = await page.goto(url, { waitUntil: "networkidle", timeout: 180_000 })
   if (!res || !res.ok()) throw new Error(`${url} answered ${res ? res.status() : "nothing"}`)
   const doc = await page.$("[data-report]")
   if (!doc) throw new Error(`${url} has no report on it (is "${study}" a study slug?)`)
   const title = (await doc.getAttribute("data-report")) ?? study
+  // The clip frames come off the CDN: every video card's frame decoded and every image settled
+  // before Chrome lays out the paper, so a card with a clip join prints its frame.
+  const frames = await page.evaluate(async () => {
+    const vids = [...document.querySelectorAll("[data-report] video")]
+    const ready = (v) => v.readyState >= 2 && !v.seeking
+    await Promise.all(
+      vids.map(
+        (v) =>
+          new Promise((resolve) => {
+            if (ready(v)) return resolve(null)
+            const settle = () => {
+              if (!ready(v)) return
+              clearTimeout(timer)
+              resolve(null)
+            }
+            const timer = setTimeout(resolve, 30_000)
+            for (const e of ["loadeddata", "canplay", "seeked"]) v.addEventListener(e, settle)
+          })
+      )
+    )
+    await Promise.all([...document.images].filter((i) => !i.complete).map((i) => new Promise((r) => i.addEventListener("load", r) || i.addEventListener("error", r))))
+    return { videos: vids.length, decoded: vids.filter(ready).length }
+  })
+  if (frames.decoded < frames.videos) console.warn(`${frames.videos - frames.decoded} of ${frames.videos} clip frames did not load; those cards print without one`)
+  // Each decoded frame goes to paper as a JPEG still of the card's own frame: Chrome would
+  // otherwise embed the video's full-resolution frame, megabytes a card.
+  for (const v of await page.$$("[data-report] video")) {
+    if (!(await v.evaluate((el) => el.readyState >= 2))) continue
+    const still = `data:image/jpeg;base64,${(await v.screenshot({ type: "jpeg", quality: 82 })).toString("base64")}`
+    await v.evaluate((el, src) => {
+      const img = document.createElement("img")
+      img.src = src
+      img.alt = el.getAttribute("aria-label") ?? ""
+      img.className = el.className
+      el.replaceWith(img)
+    }, still)
+  }
+  await page.evaluate(() => Promise.all([...document.querySelectorAll("[data-report] img")].map((i) => i.decode().catch(() => null))))
   await page.emulateMedia({ media: "print" })
   await page.evaluate(() => document.fonts.ready)
   fs.mkdirSync(path.dirname(out), { recursive: true })
@@ -101,7 +140,7 @@ try {
     footerTemplate: footer(title),
     margin: { top: "0.7in", bottom: "0.65in", left: "0.6in", right: "0.6in" },
   })
-  console.log(`wrote ${path.relative(process.cwd(), out)} (${title}, scale ${scale})`)
+  console.log(`wrote ${path.relative(process.cwd(), out)} (${title}, scale ${scale}, ${frames.decoded} clip frames)`)
 } finally {
   await browser.close()
 }

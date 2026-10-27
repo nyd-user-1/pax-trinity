@@ -118,8 +118,4 @@
   .report-doc h4 {
     break-after: avoid;
   }
-  /* A clip's opening frame is a screen courtesy; the card stands without it on paper. */
-  .report-doc video {
-    display: none !important;
-  }
 }
