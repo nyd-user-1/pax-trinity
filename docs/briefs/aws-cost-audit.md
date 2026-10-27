@@ -88,12 +88,13 @@ Projected ~$59: S3 $17.43, govblock Aurora $14.66, Amplify $9.97 (never-touch), 
 
 ### Rulings for the lead
 
-- **R1. `pax2-analyze`: keep or throttle?** I held it rather than throttle it. It's pax-trinity's live upload-analysis path, and an S3 event throttled while it's off is retried for 6 hours and then dropped, so uploads made in that window never get analyzed. It cost $0.08 of Pegasus in October.
-- **R2. The govblock secrets.** The SSM copies exist. To finish, repoint the consumers and deploy:
+- **R1. `pax2-analyze`: keep or throttle?** I held it rather than throttle it. It's pax-trinity's live upload-analysis path, and an S3 event throttled while it's off is retried for 6 hours and then dropped, so uploads made in that window never get analyzed. It cost $0.08 of Pegasus in October. **Lead ruling: KEEP, held by design.** It's a live product function, and $0.08 a month buys nothing.
+- **R2. The govblock secrets.** **Lead ruling: DEFER.** All three secrets stay in Secrets Manager. The SSM copies stay as the migration-ready state, and the reader swap happens whenever govblock next gets an app window. The SSM copies exist. To finish, repoint the consumers and deploy:
   - pax-trinity: `src/lib/agents/connections/slack.ts`, `discord.ts`
   - govblock: `apps/web/lib/agents/connections/slack.ts`, `discord.ts`, `discord-community.ts`
 
   The change is SSM `GetParameter` with `WithDecryption`, plus `ssm:GetParameter` on `/govblock/*` and `kms:Decrypt` on `aws/ssm` for the compute roles. That needs an app window and an Amplify deploy, both outside this brief, which is why the deletes are held. It saves $1.20/month.
+- R3–R8 are Brendan's; the lead put them in front of him with this report.
 - **R3. govblock Aurora ($14.66/month plus its share of backups): keep, or migrate off AWS?** It's the biggest single line I could not touch.
 - **R4. Aurora final snapshots ($5.88/month): keep all 14, or drop `b44-final` (127 GB, $2.67) now that it's in Parquet?** Parquet is a dataset, not a database restore.
 - **R5. Parked Standard data to Glacier IR:** `solar-grid-lake`, `livingston-bill-pdfs` (its Standard part) and `tariffs-cross-docs` would save $2.39/month. The 2.08 TB already in Glacier IR would drop from $7.30 to about $2.06 in Deep Archive, with 12-hour restores and a 90-day minimum.
