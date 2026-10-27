@@ -10,7 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuRadioG
 import { ScrollArea } from "@govblock/ui/components/ny4/scroll-area"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/ny4/tooltip"
 
-import { mnemonicOf, normalizeWording, scaleOf, WEB_GRID, year, type MetricInfo } from "../audience/audience-data"
+import { mnemonicOf, normalizeWording, scaleOf, WEB_GRID, type QuestionSummary } from "../audience/audience-data"
 
 // The question list in Gmail's exact anatomy (Brendan, 2026-10-26: "a near
 // perfect mimic"): the same toolbar — select-all with its menu, refresh, the
@@ -59,18 +59,14 @@ function Marker({ on, onToggle }: { on: boolean; onToggle: () => void }) {
   )
 }
 
-/** The card's foot: the question's span and wave count, read off its topline rows. */
-function spanOf(c: MetricInfo | undefined) {
+/** The card's foot: the question's span and wave count, from the index's summary of it. */
+function spanOf(c: QuestionSummary | undefined) {
   if (!c) return null
-  const ys = new Set<string>()
-  for (const r of c.rs) ys.add(year(r[3]))
-  const s = [...ys].sort()
-  if (!s.length) return null
-  return { span: s[0] === s[s.length - 1] ? s[0] : `${s[0]}–${s[s.length - 1]}`, waves: ys.size }
+  return { span: c.first === c.last ? String(c.first) : `${c.first}–${c.last}`, waves: c.waves }
 }
 
 export function SegmentList({
-  info,
+  summaries,
   metricIds,
   label,
   wordingOf,
@@ -94,7 +90,8 @@ export function SegmentList({
   loading,
   error,
 }: {
-  info: Map<string, MetricInfo>
+  /** The index's read of each question: span, waves and bands, no rows needed. */
+  summaries: Map<string, QuestionSummary>
   metricIds: string[]
   label: (id: string) => string
   /** The question's verbatim wording where the bank carries one. */
@@ -225,11 +222,11 @@ export function SegmentList({
 
       <ScrollArea className="min-h-0 flex-1">
         {error && <p className="p-6 text-center text-sm text-pax2-red">The data did not load: {error}</p>}
-        {!error && loading && <p className="p-6 text-center text-sm text-muted-foreground">Reading the source…</p>}
+        {!error && loading && <p className="p-6 text-center text-sm text-muted-foreground">Reading the index…</p>}
         {!error && !loading && ordered.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">{tab === "pinned" ? "Nothing pinned." : q ? `Nothing matching “${query.trim()}”.` : "Nothing on file."}</p>}
         <ul className="divide-y">
           {listed.map((id) => {
-            const c = info.get(id)
+            const c = summaries.get(id)
             const active = selected === id
             const atCap = !checked.includes(id) && checked.length >= MAX_COLS
             const foot = spanOf(c)

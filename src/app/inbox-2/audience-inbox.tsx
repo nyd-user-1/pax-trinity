@@ -13,7 +13,7 @@ import { TooltipProvider } from "@govblock/ui/components/ny4/tooltip"
 
 import { AboutPanel, BackButton, type About } from "../audience/audience-pane"
 import { AudienceRows } from "../audience/audience-rows"
-import { buildInfo, groupSources, metricIdsOf, mnemonicOf, normalizeWording, shortSource, WORDING, year, type AudienceIndex, type MetricInfo, type SourceRow } from "../audience/audience-data"
+import { buildInfo, fetchQuestionRows, groupSources, mnemonicOf, normalizeWording, shortSource, WORDING, type AudienceIndex, type MetricInfo, type QuestionSummary, type SourceRow } from "../audience/audience-data"
 import { SourceRail } from "./source-rail"
 import { QuestionTable } from "./question-table"
 import { SegmentList, type ListTab, type Split } from "./segment-list"
@@ -29,8 +29,11 @@ import { SegmentGrid } from "./segment-grid"
 export function AudienceInbox() {
   const [index, setIndex] = React.useState<AudienceIndex | null>(null)
   const [source, setSource] = React.useState<string | null>(null)
-  const [files, setFiles] = React.useState<Record<string, SourceRow[]>>({})
+  // The questions read so far, each from its own file (Brief S), keyed source/id.
+  const [cache, setCache] = React.useState<Record<string, SourceRow[]>>({})
+  const pending = React.useRef(new Set<string>())
   const [error, setError] = React.useState<string | null>(null)
+  const [rowsError, setRowsError] = React.useState<string | null>(null)
   const [query, setQuery] = React.useState("")
   const [searching, setSearching] = React.useState(false)
   const [split, setSplit] = React.useState<Split>("none")
@@ -85,44 +88,44 @@ export function AudienceInbox() {
     if (!source && groups.length) setSource(groups[0].source)
   }, [groups, source])
 
+  // The list comes from the index alone (Brief S): a source's questions in the
+  // export's order, each with its span, waves and bands. No source file is read.
+  const summaries = React.useMemo(
+    () => new Map((index?.questions ?? []).filter((q) => q.source === source).map((q) => [q.question, q] as const)),
+    [index, source]
+  )
+  // Every source that asks a question: opening it reads all of them, so the
+  // About panel can set the same question beside its other sources.
+  const homes = React.useMemo(() => {
+    const m = new Map<string, string[]>()
+    for (const q of index?.questions ?? []) m.set(q.question, [...(m.get(q.question) ?? []), q.source])
+    return m
+  }, [index])
+  // The questions on screen: the open one, the focused one, the grid's columns.
+  const wanted = React.useMemo(
+    () => [...new Set([tableMetric, focus, ...checked].filter((x): x is string => !!x))].sort(),
+    [tableMetric, focus, checked]
+  )
+
   React.useEffect(() => {
-    // Once a source's parts are kept, the early return keeps this effect idle.
-    if (!index || !source || files[source]) return
-    const g = groupSources(index.sources).find((x) => x.source === source)
-    if (!g) return
-    let on = true
-    // The parts download in parallel but parse one at a time, the main thread
-    // handed back between each — a bulk source is twenty files and seventy
-    // megabytes, and parsing them in one gulp froze the tab.
-    ;(async () => {
-      try {
-        const responses = await Promise.all(
-          g.files.map(async (f) => {
-            const r = await fetch(`/audience-data/${f}`)
-            if (!r.ok) throw new Error(`${f} answered ${r.status}`)
-            return r
+    if (!source) return
+    for (const id of wanted)
+      for (const s of homes.get(id) ?? [source]) {
+        const key = `${s}/${id}`
+        if (cache[key] || pending.current.has(key)) continue
+        pending.current.add(key)
+        fetchQuestionRows(s, id)
+          .then((data) => setCache((prev) => ({ ...prev, [key]: data })))
+          .catch((e: Error) => {
+            if (s === source) setRowsError(e.message)
           })
-        )
-        const data: SourceRow[] = []
-        for (const r of responses) {
-          const part: SourceRow[] = await r.json()
-          for (const row of part) data.push(row)
-          if (!on) return
-          await new Promise((settle) => setTimeout(settle, 0))
-        }
-        if (data.length !== g.rows) console.warn(`audience: ${source} concatenated to ${data.length} rows; the index says ${g.rows}`)
-        if (on) setFiles((prev) => ({ ...prev, [source]: data }))
-      } catch (e) {
-        if (on) setError(e instanceof Error ? e.message : String(e))
+          .finally(() => pending.current.delete(key))
       }
-    })()
-    return () => {
-      on = false
-    }
-  }, [index, source, files])
+  }, [wanted, source, homes, cache])
 
   // A new source starts the read over.
   React.useEffect(() => {
+    setRowsError(null)
     setFocus(null)
     setChecked([])
     setAbout(null)
@@ -140,9 +143,20 @@ export function AudienceInbox() {
   const wordingOf = React.useCallback((id: string) => wordings.get(id) ?? WORDING[id] ?? null, [wordings])
   const place = React.useCallback((code: string) => geoName.get(code) ?? code, [geoName])
 
-  const rows = source ? files[source] : undefined
+  // The rows of the questions on screen that have arrived, in the source file's order.
+  const rows = React.useMemo(() => wanted.flatMap((id): SourceRow[] => (source ? (cache[`${source}/${id}`] ?? []) : [])), [source, wanted, cache])
+  const loaded = (id: string | null) => !!id && !!source && !!cache[`${source}/${id}`]
+  // Every question read so far, grouped by source, for the About panel's comparison.
+  const files = React.useMemo(() => {
+    const by: Record<string, SourceRow[]> = {}
+    for (const [key, data] of Object.entries(cache)) {
+      const s = key.slice(0, key.indexOf("/"))
+      by[s] = by[s] ? by[s].concat(data) : data
+    }
+    return by
+  }, [cache])
   const metricIds = React.useMemo(() => {
-    const all = rows ? metricIdsOf(rows) : []
+    const all = [...summaries.keys()]
     if (source !== "GSS") return all
     // The full GSS library (the review slice retired once Brief P's wordings
     // landed), A–Z by what the card shows — the wording where one exists — so
@@ -152,14 +166,8 @@ export function AudienceInbox() {
       .map((id) => [text(id), id] as const)
       .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([, id]) => id)
-  }, [rows, source, label, wordingOf])
-  // The rail's counts correct themselves as sources read.
-  const segCounts = React.useMemo(() => {
-    const m: Record<string, number> = {}
-    for (const [s, data] of Object.entries(files)) m[s] = metricIdsOf(data).length
-    return m
-  }, [files])
-  const info = React.useMemo(() => (rows ? buildInfo(rows, geoLevel) : new Map()), [rows, geoLevel])
+  }, [summaries, source, label, wordingOf])
+  const info = React.useMemo(() => buildInfo(rows, geoLevel), [rows, geoLevel])
 
   // A clicked question opens the flat table scoped to its rows (Brendan,
   // 2026-10-26); the checkbox still builds grid columns.
@@ -174,27 +182,26 @@ export function AudienceInbox() {
   // does not — with the segment's bands as the answer options.
   const addToSurvey = React.useCallback(
     (id: string) => {
-      const wording = (rows ?? []).find((r) => r[0] === id && r[10])?.[10] ?? null
-      const c = info.get(id) as MetricInfo | undefined
-      const draft = addToDraft([{ text: wording ?? label(id), options: c?.options ?? [] }])
+      const wording = rows.find((r) => r[0] === id && r[10])?.[10] ?? null
+      const draft = addToDraft([{ text: wording ?? label(id), options: summaries.get(id)?.options ?? [] }])
       setDrafted(draft.questions.length)
       window.setTimeout(() => setDrafted((current) => (current === draft.questions.length ? null : current)), 6000)
     },
-    [rows, info, label]
+    [rows, summaries, label]
   )
 
   const showList = split === "vertical" || !focus
   const showPane = split === "vertical" || !!focus
 
   const blocksPanel = blocksOpen && blocks.length > 0 && (
-    <BlocksPanel ids={blocks} info={info} label={label} wordingOf={wordingOf} onRemove={(id) => setBlocks((prev) => prev.filter((x) => x !== id))} onClose={() => setBlocksOpen(false)} />
+    <BlocksPanel ids={blocks} summaries={summaries} label={label} wordingOf={wordingOf} onRemove={(id) => setBlocks((prev) => prev.filter((x) => x !== id))} onClose={() => setBlocksOpen(false)} />
   )
 
   // The list keeps its place beside the crosstab (Brendan, 2026-10-26: "don't
   // close the middle panel"), stacked the way the split folds it.
   const listFor = (s: Split) => (
     <SegmentList
-      info={info}
+      summaries={summaries}
       metricIds={metricIds}
       label={label}
       wordingOf={wordingOf}
@@ -213,19 +220,16 @@ export function AudienceInbox() {
       onCheck={check}
       onPin={(id) => setPinned((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))}
       onCheckAll={(ids) => setChecked(ids.slice(0, 4))}
-      onRefresh={() =>
-        setFiles((prev) => {
-          if (!source) return prev
-          const next = { ...prev }
-          delete next[source]
-          return next
-        })
-      }
+      onRefresh={() => {
+        if (!source) return
+        setRowsError(null)
+        setCache((prev) => Object.fromEntries(Object.entries(prev).filter(([key]) => !key.startsWith(`${source}/`))))
+      }}
       split={s}
       onSplit={setSplit}
       query={query}
       onQuery={setQuery}
-      loading={!!source && !rows && !error}
+      loading={!index && !error}
       error={error}
     />
   )
@@ -235,7 +239,6 @@ export function AudienceInbox() {
     <SourceRail
       groups={groups}
       source={source}
-      segments={segCounts}
       onSource={(s) => {
         setSource(s)
         setMode("list")
@@ -317,7 +320,7 @@ export function AudienceInbox() {
               </div>
             </header>
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          {mode === "table" && tableMetric && rows && info.get(tableMetric) ? (
+          {mode === "table" && tableMetric ? (
             <div className="relative flex h-full min-h-0 min-w-0">
               <ResizablePanelGroup orientation="horizontal" className="min-h-0 min-w-0 flex-1">
                 <ResizablePanel defaultSize={380} minSize={300} maxSize={560} className="min-w-0">
@@ -325,19 +328,23 @@ export function AudienceInbox() {
                 </ResizablePanel>
                 <ResizableHandle withHandle />
                 <ResizablePanel className="min-w-0">
-                  <QuestionTable
-                    rows={rows.filter((r) => r[0] === tableMetric)}
-                    title={label(tableMetric)}
-                    def={defs.get(tableMetric)}
-                    metric={tableMetric}
-                    place={place}
-                    info={info.get(tableMetric) as MetricInfo}
-                    short={source ? shortSource(source) : ""}
-                    source={source}
-                    wording={wordingOf(tableMetric)}
-                    about={about}
-                    onPick={setAbout}
-                  />
+                  {loaded(tableMetric) && info.get(tableMetric) ? (
+                    <QuestionTable
+                      rows={rows.filter((r) => r[0] === tableMetric)}
+                      title={label(tableMetric)}
+                      def={defs.get(tableMetric)}
+                      metric={tableMetric}
+                      place={place}
+                      info={info.get(tableMetric) as MetricInfo}
+                      short={source ? shortSource(source) : ""}
+                      source={source}
+                      wording={wordingOf(tableMetric)}
+                      about={about}
+                      onPick={setAbout}
+                    />
+                  ) : (
+                    <Reading error={rowsError} />
+                  )}
                 </ResizablePanel>
               </ResizablePanelGroup>
               {about && <AboutPanel about={about} onClose={() => setAbout(null)} source={source} groups={groups} files={files} info={info} label={label} place={place} geoLevel={geoLevel} />}
@@ -364,7 +371,9 @@ export function AudienceInbox() {
                 {showList && showPane && <ResizableHandle withHandle />}
                 {showPane && (
                   <ResizablePanel className="min-w-0">
-                    {rows && (focus || checked.length) ? (
+                    {(focus || checked.length) && (focus ? !loaded(focus) : !checked.some(loaded)) ? (
+                      <Reading error={rowsError} />
+                    ) : focus || checked.length ? (
                       <SegmentGrid
                         key={source}
                         rows={rows}
@@ -409,17 +418,22 @@ export function AudienceInbox() {
   )
 }
 
+/** The pane while a question's own file is on its way. */
+function Reading({ error }: { error: string | null }) {
+  return error ? <p className="p-6 text-center text-sm text-pax2-red">The question did not load: {error}</p> : <p className="p-6 text-center text-sm text-muted-foreground">Reading the question…</p>
+}
+
 /** The right side's Blocks panel: the questions pressed into it, each with its data's shape. */
 function BlocksPanel({
   ids,
-  info,
+  summaries,
   label,
   wordingOf,
   onRemove,
   onClose,
 }: {
   ids: string[]
-  info: Map<string, MetricInfo>
+  summaries: Map<string, QuestionSummary>
   label: (id: string) => string
   wordingOf: (id: string) => string | null
   onRemove: (id: string) => void
@@ -433,11 +447,8 @@ function BlocksPanel({
       <h3 className="pr-7 text-sm font-semibold text-pax2-blue">Blocks</h3>
       <ul className="mt-4 space-y-3">
         {ids.map((id) => {
-          const c = info.get(id)
-          const ys = new Set<string>()
-          for (const r of c?.rs ?? []) ys.add(year(r[3]))
-          const s = [...ys].sort()
-          const span = s.length ? (s[0] === s[s.length - 1] ? s[0] : `${s[0]}–${s[s.length - 1]}`) : ""
+          const c = summaries.get(id)
+          const span = c ? (c.first === c.last ? String(c.first) : `${c.first}–${c.last}`) : ""
           return (
             <li key={id} className="rounded-lg border p-3">
               <div className="flex items-center justify-between gap-2">
@@ -450,7 +461,7 @@ function BlocksPanel({
               <p className="mt-1.5 text-xs text-muted-foreground tabular-nums">
                 {span}
                 {span && " · "}
-                {ys.size} {ys.size === 1 ? "wave" : "waves"} · {c?.options.length ?? 0} bands
+                {c?.waves ?? 0} {c?.waves === 1 ? "wave" : "waves"} · {c?.options.length ?? 0} bands
               </p>
             </li>
           )

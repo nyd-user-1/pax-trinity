@@ -4,11 +4,26 @@
 // rows. The fetch collects every index entry for a source and concatenates.
 
 export type SourceFile = { source: string; label: string; rows: number; file: string }
+/** One question in one source, as the index summarizes it (Brief S): its first
+ *  and last wave years and their count over all its rows, and its options in
+ *  row order — enough to list it without reading a row. */
+export type QuestionSummary = { source: string; question: string; first: number; last: number; waves: number; options: string[] }
 export type AudienceIndex = {
   sources: SourceFile[]
   /** wording arrived with Brief P (2026-10-26): the codebook's verbatim question text, absent where none is sourced. */
   constructs: { construct: string; label: string; definition: string; wording?: string }[]
   geographies: { code: string; name: string; level: string; parent: string | null }[]
+  /** One per question file, in the export's order: a source's entries are its list. */
+  questions?: QuestionSummary[]
+}
+
+/** One question's rows from one source: the export's q/<source>/<id>.json,
+ *  the same 13-element rows the source's own files carry for it. */
+export async function fetchQuestionRows(source: string, id: string): Promise<SourceRow[]> {
+  const path = `/audience-data/q/${source.toLowerCase()}/${id}.json`
+  const r = await fetch(path)
+  if (!r.ok) throw new Error(`${path} answered ${r.status}`)
+  return r.json()
 }
 // [metric, geo_code, period_start, period_end, response_option, subgroup_dim,
 //  subgroup_value, estimate, estimate_type, moe, item_text, n, provenance_url]
