@@ -19,15 +19,16 @@ const expiresSoon = (token: string) => {
 // Old addresses that now live elsewhere. Answered here, before any render, so the browser gets one
 // redirect instead of a rendered shell that redirects itself (the page files keep the same mapping).
 function alias(path: string, q: URLSearchParams): string | null {
-  // The 2026-10-27 consolidation: /inbox-2 took the /audience address, and
-  // consensus became one page whose tabs the old sub-routes open.
+  // The 2026-10-27 consolidation: /inbox-2 took the /audience address, the
+  // reference pages became /data-dictionary's tabs, and consensus became one
+  // page whose tabs the old sub-routes open.
   if (path === "/inbox-2") return `/audience${q.size ? `?${q}` : ""}`
+  if (path === "/glossary" || path === "/schema" || path === "/erd") return `/data-dictionary?tab=${path.slice(1)}`
   const consensusTab = ({ "/consensus/survey": "questions", "/questions": "questions", "/consensus/report": "results", "/consensus/admin": "admin" } as Record<string, string>)[path]
   if (consensusTab) {
     const c = q.get("c")
     return `/consensus?tab=${consensusTab}${c ? `&c=${encodeURIComponent(c)}` : ""}`
   }
-  if (path === "/pipeline-2") return "/erd"
   if (path === "/patterns") return "/metrics?tab=patterns"
   if (path === "/outliers") return "/metrics?tab=outliers"
   if (["/feature-lift", "/ml", "/velocity-tracker", "/live-tracking", "/flow"].includes(path) || path.startsWith("/flow/")) return "/metrics"
@@ -56,7 +57,7 @@ function alias(path: string, q: URLSearchParams): string | null {
 
 // Pages that send a signed-out reader to /signin. With no session and no refresh cookie the answer is
 // known before render, so the redirect happens here (each page still checks for itself).
-const GATED = ["/metrics", "/methodology", "/data", "/experiments", "/polling", "/dashboard", "/pipeline", "/erd", "/evals", "/app/home", "/signup/welcome", "/lab", "/project-management", "/my-channels", "/graph", "/campaigns", "/build", "/reinforcement-learning", "/message-tests"]
+const GATED = ["/metrics", "/methodology", "/data", "/experiments", "/polling", "/dashboard", "/pipeline", "/evals", "/app/home", "/signup/welcome", "/lab", "/project-management", "/my-channels", "/graph", "/campaigns", "/build", "/reinforcement-learning", "/message-tests"]
 const gated = (path: string) => GATED.some((g) => path === g || path.startsWith(`${g}/`))
 
 export async function proxy(req: NextRequest) {

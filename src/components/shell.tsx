@@ -29,7 +29,7 @@ const DiscussionPanel = dynamic(() => import("@/components/discussion-panel").th
 // until its page exists (Brendan, 2026-10-24).
 // /erd is unpublished (Brendan, 2026-10-26): the page stands for a rewrite-or-drop
 // decision, reachable by URL alone.
-const LIVE = new Set(["/", "/chat", "/consensus", "/clips", "/inbox", "/glossary", "/audience", "/changelog", "/signin", "/signup", "/message-tests"])
+const LIVE = new Set(["/", "/chat", "/consensus", "/clips", "/inbox", "/data-dictionary", "/audience", "/changelog", "/signin", "/signup", "/message-tests"])
 
 type NavLink = { href: string; label: string; icon: typeof House }
 type NavGroup = { label: string; icon: typeof House; children: NavLink[]; admin?: boolean }
@@ -59,7 +59,7 @@ const NAV_TREE: (NavLink | NavGroup)[] = [
   { href: "/consensus", label: "Consensus", icon: Vote },
   { href: "/clips", label: "Clips", icon: Film },
   { href: "/inbox", label: "Inbox", icon: Inbox },
-  { href: "/glossary", label: "Glossary", icon: BookA },
+  { href: "/data-dictionary", label: "Data dictionary", icon: BookA },
   { href: "/audience", label: "Audience", icon: Users },
   { href: "/changelog", label: "Changelog", icon: History },
   // Admins only: the admin surfaces that exist so far.
@@ -94,12 +94,11 @@ const TITLES: [string, string][] = [
   ["/graph", "Graph"],
   ["/tags", "Tags"],
   ["/library", "Library"],
-  ["/glossary", "Glossary"],
+  ["/data-dictionary", "Data dictionary"],
   ["/dashboard", "Dashboard"],
   ["/data", "Data"],
   ["/evals", "Evals"],
   ["/pipeline", "Pipeline"],
-  ["/erd", "ERD"],
   ["/build", "Build"],
   ["/project-management", "Project Management"],
   ["/reinforcement-learning", "Reinforcement learning"],
@@ -402,7 +401,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
   const paired = open && !takeover
   const closePanel = () => (panelOpen ? router.back() : discuss ? setDiscuss(false) : setAside(null))
   // /chat fills the content card edge to edge, as solar's chat fills its main area; /app/home is the same chat dressed as the home.
-  const full = path === "/" || path.startsWith("/glossary") || path.startsWith("/audience") || path.startsWith("/chat") || path.startsWith("/inbox") || path.startsWith("/graph") || path.startsWith("/erd") || path.startsWith("/app/home") || path.startsWith("/flow/")
+  const full = path === "/" || path.startsWith("/data-dictionary") || path.startsWith("/audience") || path.startsWith("/chat") || path.startsWith("/inbox") || path.startsWith("/graph") || path.startsWith("/app/home") || path.startsWith("/flow/")
   return (
     <PanelCtx.Provider value={panel}>
       <div className="flex min-h-dvh md:h-dvh md:overflow-hidden md:bg-slate-200/60 md:p-[18px]">
@@ -445,7 +444,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
             </div>
             <main className={cn("flex-1", full ? "flex min-h-0 flex-col md:overflow-hidden" : "md:overflow-y-auto")} onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 0)}>
               {/* Each page arrives with RevealFx's wipe; the front door has its curtain instead. */}
-              <RevealFx key={animKey.current} translateY={4} className={cn("@container w-full", full ? "flex min-h-0 flex-1 flex-col" : path === "/home" || path === "/scripts" || path === "/glossary" ? "px-5 pb-6 md:px-10 md:pb-9" : "px-5 py-6 md:px-10 md:py-9")}>
+              <RevealFx key={animKey.current} translateY={4} className={cn("@container w-full", full ? "flex min-h-0 flex-1 flex-col" : path === "/home" || path === "/scripts" ? "px-5 pb-6 md:px-10 md:pb-9" : "px-5 py-6 md:px-10 md:py-9")}>
                 {children}
               </RevealFx>
             </main>

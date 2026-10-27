@@ -117,7 +117,7 @@ export function MainBlock({ title, children, search, searchValue, onSearch, tool
         )}
         {open && !panel && (
           <CardFooter className="bg-transparent py-3 text-xs text-slate-800">
-            <Link href={more ?? "/glossary"} className="font-medium text-slate-800 underline underline-offset-2 hover:text-pax2-light-blue">{more ? "More" : "Glossary"}</Link>
+            <Link href={more ?? "/data-dictionary?tab=glossary"} className="font-medium text-slate-800 underline underline-offset-2 hover:text-pax2-light-blue">{more ? "More" : "Glossary"}</Link>
           </CardFooter>
         )}
       </Card>
