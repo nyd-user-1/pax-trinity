@@ -38,6 +38,7 @@ export function AudienceInbox() {
   const [focus, setFocus] = React.useState<string | null>(null)
   const [checked, setChecked] = React.useState<string[]>([])
   const [pinned, setPinned] = React.useState<string[]>([])
+  const [important, setImportant] = React.useState<string[]>([])
   const [about, setAbout] = React.useState<About | null>(null)
   const [mode, setMode] = React.useState<"list" | "table">("list")
   // The question whose rows the flat table is scoped to; null is the whole source.
@@ -193,6 +194,8 @@ export function AudienceInbox() {
       selected={tableMetric ?? focus}
       checked={checked}
       pinned={pinned}
+      important={important}
+      onImportant={(id) => setImportant((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))}
       tab={tab}
       onTab={setTab}
       onOpen={open}

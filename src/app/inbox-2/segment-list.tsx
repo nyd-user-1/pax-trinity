@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, EllipsisVerticalIcon, RefreshCwIcon, Search, StarIcon } from "lucide-react"
+import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, EllipsisVerticalIcon, GripVerticalIcon, RefreshCwIcon, Search, StarIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
@@ -37,6 +37,28 @@ function Tip({ label, children }: { label: string; children: React.ReactNode }) 
   )
 }
 
+/** The importance marker, the thread list's exact arrow: amber when lit. */
+function Marker({ on, onToggle }: { on: boolean; onToggle: () => void }) {
+  return (
+    <Tip label={on ? "Marked important" : "Mark as important"}>
+      <button
+        type="button"
+        aria-pressed={on}
+        aria-label={on ? "Marked important" : "Mark as important"}
+        onClick={(event) => {
+          event.stopPropagation()
+          onToggle()
+        }}
+        className="shrink-0"
+      >
+        <svg viewBox="0 0 20 20" aria-hidden className={cn("size-4 shrink-0", on ? "fill-amber-400 text-amber-400" : "fill-transparent text-muted-foreground/50")}>
+          <path d="M4 5h7l5 5-5 5H4l5-5z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+        </svg>
+      </button>
+    </Tip>
+  )
+}
+
 /** The card's foot: the question's span and wave count, read off its topline rows. */
 function spanOf(c: MetricInfo | undefined) {
   if (!c) return null
@@ -55,6 +77,8 @@ export function SegmentList({
   selected,
   checked,
   pinned,
+  important,
+  onImportant,
   tab,
   onTab,
   onOpen,
@@ -78,6 +102,9 @@ export function SegmentList({
   selected: string | null
   checked: string[]
   pinned: string[]
+  /** Questions marked important: the arrow fills and the row takes the unread tint. */
+  important: string[]
+  onImportant: (id: string) => void
   tab: ListTab
   onTab: (tab: ListTab) => void
   onOpen: (id: string) => void
@@ -190,6 +217,7 @@ export function SegmentList({
             const atCap = !checked.includes(id) && checked.length >= MAX_COLS
             const foot = spanOf(c)
             const scale = scaleOf(c?.options ?? [])
+            const imp = important.includes(id)
             const star = (
               <button
                 type="button"
@@ -208,16 +236,25 @@ export function SegmentList({
               <li
                 key={id}
                 data-active={active}
+                draggable
+                onDragStart={(event) => {
+                  event.dataTransfer.setData("application/x-question-id", id)
+                  event.dataTransfer.effectAllowed = "move"
+                }}
                 className={cn(
                   "group/row relative flex cursor-pointer gap-3 px-3 text-sm transition-[background-color,box-shadow] hover:z-10 hover:bg-accent/60 hover:shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]",
                   stacked ? "items-start py-2.5" : "h-10 items-center",
+                  imp && "bg-primary/5",
                   active && "z-10 bg-muted shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]"
                 )}
                 onClick={() => onOpen(id)}
               >
                 <span className={cn("flex shrink-0 items-center gap-2", stacked && "pt-0.5")} onClick={(event) => event.stopPropagation()}>
+                  {/* Gmail's grip: the space is always held, the dots show on hover, and the whole row drags. */}
+                  <GripVerticalIcon aria-hidden className="-ml-1 size-4 shrink-0 cursor-grab text-muted-foreground/50 opacity-0 transition-opacity group-hover/row:opacity-100" />
                   <Checkbox aria-label={`A column for ${label(id)}`} checked={checked.includes(id)} disabled={atCap} title={atCap ? "Four at most" : undefined} onCheckedChange={() => onCheck(id)} />
-                  {star}
+                  {!stacked && star}
+                  <Marker on={imp} onToggle={() => onImportant(id)} />
                 </span>
                 {stacked ? (
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -227,16 +264,16 @@ export function SegmentList({
                       </span>
                       {foot && <span className="ml-auto shrink-0 text-xs text-muted-foreground tabular-nums">{foot.span}</span>}
                     </span>
-                    <span className="truncate font-semibold" title={wordingOf(id) ?? label(id)}>
+                    <span className="font-semibold">
                       {normalizeWording(wordingOf(id) ?? label(id))}
                       {WEB_GRID.has(id) && <span className="font-normal text-muted-foreground"> (web grid)</span>}
                     </span>
-                    {foot && (
+                    <span className="flex items-center gap-2">
                       <span className="truncate text-xs text-muted-foreground">
-                        {scale ? `${scale} · ` : ""}
-                        {foot.waves} {foot.waves === 1 ? "wave" : "waves"}
+                        {foot ? `${scale ? `${scale} · ` : ""}${foot.waves} ${foot.waves === 1 ? "wave" : "waves"}` : ""}
                       </span>
-                    )}
+                      <span className="ml-auto">{star}</span>
+                    </span>
                   </span>
                 ) : (
                   <>
