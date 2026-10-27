@@ -130,7 +130,7 @@ def test_the_export_serves_families_after_everything_else(store, tmp_path):
     assert "families" not in bare                      # an empty layer adds no key
     cl.register(store)
     index = export.export(store, tmp_path / "out")
-    assert list(index) == ["sources", "constructs", "geographies", "families"]
+    assert list(index) == ["sources", "constructs", "geographies", "families", "questions"]
     assert {k: v for k, v in index.items() if k != "families"} == bare
     families = {f["id"]: f for f in index["families"]}
     assert len(families) == 17

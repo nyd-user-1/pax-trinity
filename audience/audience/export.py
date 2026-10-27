@@ -31,6 +31,13 @@ constructs keeps meaning what it means: each construct groups the questions that
 thing, members in the seed's order, a question being a constructs entry's id. anchor is the
 grouping's citation (null where none; note then says whose judgment it is); a mode member
 names as of the member it administers again. The key is absent while the layer is empty.
+
+Each question is also served alone, so a page can list a source from the index and fetch only
+the question it opens: q/<source lowercased>/<construct>.json holds that question's rows from
+<source>.json, in the same order and form. index.json's questions has one entry per file, in
+the same order, {source, question, first, last, waves, options}: the first and last wave years
+and their count (the distinct years of period_end over all its rows), and its options, each
+response option once in row order. The whole-source files stay beside them.
 """
 
 from __future__ import annotations
@@ -44,6 +51,7 @@ from .db import Store, connect
 
 OUT = config.ROOT.parent / "public" / "audience-data"
 MAX_BYTES = 4_000_000
+QUESTION_DIR = "q"
 ITEM_TEXT_SOURCES = ("POLL", "ELECTION_RESULT")
 LEVELS = ("US", "STATE", "COUNTY", "TOWN")
 ROW_FIELDS = ("construct", "geo_code", "period_start", "period_end", "response_option",
@@ -110,6 +118,16 @@ def _write_array(path: Path, lines: list[str]) -> None:
     path.write_text("[\n" + ",\n".join(lines) + "\n]\n", encoding="utf-8")
 
 
+def question_summary(source: str, construct: str, rows: list[list]) -> dict:
+    """The list's read of one question in one source, from its exported rows: its first and
+    last wave years and their count (the distinct years of period_end), and its options, each
+    response option once in row order (the coded order within a cell)."""
+    years = sorted({int(r[3][:4]) for r in rows})
+    options = list(dict.fromkeys(r[4] for r in rows if r[4] is not None))
+    return {"source": source, "question": construct, "first": years[0], "last": years[-1],
+            "waves": len(years), "options": options}
+
+
 def construct_families(store: Store, exported: set[str]) -> list[dict]:
     """The construct layer, members in their seed order. A member without exported rows is
     left out, so every member is a constructs entry; a construct left with none goes too."""
@@ -135,7 +153,9 @@ def export(store: Store, out: Path = OUT) -> dict:
     sources = [r[0] for r in store.query(
         "SELECT DISTINCT source FROM norms WHERE geography <> 'BLOCKGROUP' ORDER BY 1")]
     written: set[str] = {"index.json"}
+    written_q: set[str] = set()
     index_sources = []
+    questions = []
     for source in sources:
         rows = source_rows(store, source)
         lines = [json.dumps(r, ensure_ascii=False, separators=(",", ":")) for r in rows]
@@ -146,6 +166,19 @@ def export(store: Store, out: Path = OUT) -> dict:
             written.add(name)
             index_sources.append({"source": source, "label": labels.get(source, source),
                                   "rows": len(chunk), "file": name})
+        # The same rows again, one file per question: rows run by construct, so each
+        # question is one contiguous slice.
+        qdir = out / QUESTION_DIR / stem
+        qdir.mkdir(parents=True, exist_ok=True)
+        start = 0
+        for end in range(1, len(rows) + 1):
+            if end < len(rows) and rows[end][0] == rows[start][0]:
+                continue
+            construct = rows[start][0]
+            _write_array(qdir / f"{construct}.json", lines[start:end])
+            written_q.add(f"{stem}/{construct}.json")
+            questions.append(question_summary(source, construct, rows[start:end]))
+            start = end
     worded = store.column_exists("concordance", "gss_wording")
     tagged = store.column_exists("concordance", "gss_topics")
     constructs = [
@@ -169,11 +202,19 @@ def export(store: Store, out: Path = OUT) -> dict:
     families = construct_families(store, {c["construct"] for c in constructs})
     if families:
         index["families"] = families
+    if questions:
+        index["questions"] = questions
     (out / "index.json").write_text(json.dumps(index, ensure_ascii=False, indent=1) + "\n",
                                     encoding="utf-8")
     for stale in out.glob("*.json"):
         if stale.name not in written:
             stale.unlink()
+    for stale in (out / QUESTION_DIR).glob("*/*.json"):
+        if f"{stale.parent.name}/{stale.name}" not in written_q:
+            stale.unlink()
+    for folder in (out / QUESTION_DIR).glob("*/"):
+        if not any(folder.iterdir()):
+            folder.rmdir()
     return index
 
 
@@ -194,6 +235,8 @@ def main() -> int:
     families = index.get("families", [])
     print(f"families: {len(families)} constructs, "
           f"{sum(len(f['members']) for f in families)} member questions")
+    print(f"questions: {len(index.get('questions', [])):,} files under {OUT / QUESTION_DIR}; "
+          f"index.json {(OUT / 'index.json').stat().st_size / 1e6:.2f} MB")
     return 0
 
 

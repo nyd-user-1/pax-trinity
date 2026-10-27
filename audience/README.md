@@ -125,6 +125,8 @@ A question is one asked instrument (abany, abanyg, conlegiy), a `concordance` ro
 
 `index.json` also carries `families`, the construct layer: `{id, label, definition, anchor, note?, members: [{question, relation, of?}]}` per construct, members in seed order, a mode member's `of` naming the member it repeats. A member without exported rows is left out; the key is absent while the layer is empty.
 
+Each question is also served alone, so a page lists a source from the index and reads only the question it opens: `q/<source lowercased>/<construct>.json` holds that question's rows from `<source>.json`, same order, same 13 fields, and `index.json`'s `questions` has one entry per file, in the same order: `{source, question, first, last, waves, options}`, the first and last wave years and their count (the distinct years of `period_end` over all its rows) and each response option once in row order. A question that leaves the store leaves `q/`. The whole-source files stay beside them.
+
 ## Message-test analysis
 
 ```sh

@@ -22,7 +22,7 @@ def test_index_and_files_follow_the_contract(loaded, tmp_path):
     need(counts, "CVAP")
     polls.run(store)
     index, out = run_export(store, tmp_path)
-    assert set(index) == {"sources", "constructs", "geographies"}
+    assert set(index) == {"sources", "constructs", "geographies", "questions"}
     assert all(set(s) == {"source", "label", "rows", "file"} for s in index["sources"])
     assert all({"construct", "label", "definition"} <= set(c)
                <= {"construct", "label", "definition", "wording"} for c in index["constructs"])
@@ -62,6 +62,43 @@ def test_index_and_files_follow_the_contract(loaded, tmp_path):
     assert len(cvap) == n_cvap
     used = {r[0] for f in names for r in json.loads((out / f).read_text())}
     assert {c["construct"] for c in index["constructs"]} == used
+
+
+def test_each_question_is_served_alone_and_summarized(loaded, tmp_path):
+    store, counts = loaded
+    need(counts, "ACS")
+    polls.run(store)
+    index, out = run_export(store, tmp_path)
+    by_source: dict[str, list] = {}
+    for s in index["sources"]:
+        by_source.setdefault(s["source"], []).extend(json.loads((out / s["file"]).read_text()))
+    served = {(q["source"], q["question"]) for q in index["questions"]}
+    assert served == {(s, r[0]) for s, rows in by_source.items() for r in rows}
+    assert {p.relative_to(out / "q").as_posix() for p in (out / "q").glob("*/*.json")} == {
+        f"{s.lower()}/{q}.json" for s, q in served}
+    for q in index["questions"]:
+        assert set(q) == {"source", "question", "first", "last", "waves", "options"}
+        rows = json.loads((out / "q" / q["source"].lower() / f"{q['question']}.json").read_text())
+        assert rows == [r for r in by_source[q["source"]] if r[0] == q["question"]]
+        years = sorted({int(r[3][:4]) for r in rows})
+        assert (q["first"], q["last"], q["waves"]) == (years[0], years[-1], len(years))
+        assert q["options"] == list(dict.fromkeys(r[4] for r in rows if r[4] is not None))
+    sex = next(q for q in index["questions"] if q["source"] == "ACS" and q["question"] == "sex")
+    assert sex["options"] == ["Female", "Male"]
+
+
+def test_a_question_that_leaves_the_store_leaves_q(loaded, tmp_path):
+    store, counts = loaded
+    need(counts, "ACS")
+    stale = tmp_path / "audience-data" / "q" / "gone"
+    stale.mkdir(parents=True)
+    (stale / "old.json").write_text("[]")
+    (tmp_path / "audience-data" / "q" / "acs").mkdir()
+    (tmp_path / "audience-data" / "q" / "acs" / "retired.json").write_text("[]")
+    _, out = run_export(store, tmp_path)
+    assert not stale.exists()
+    assert not (out / "q" / "acs" / "retired.json").exists()
+    assert (out / "q" / "acs" / "sex.json").exists()
 
 
 def test_an_oversized_source_splits_and_stale_files_go(loaded, tmp_path, monkeypatch):
