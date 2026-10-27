@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from audience import audit, construct_layer as cl, export, geographies
+from audience import audit, construct_layer as cl, export
 from audience.construct_layer import Construct, Member, SeedRejected
 
 QUESTIONS = {m.question for c in cl.SEED for m in c.members}
@@ -98,7 +98,9 @@ def seeded(store, with_rows=QUESTIONS):
              item_text=None, response_option="Yes", subgroup_dim="all", subgroup_value="all",
              estimate=50.0, estimate_type="pct", provenance_url="https://gss.norc.org")
         for q in sorted(with_rows))
-    geographies.refresh(store, quiet=True)
+    # Named here, not by geographies.refresh, which reads the raw/ Census cache.
+    store.replace_rows("geographies", ("geo_code", "name", "level", "parent_code"),
+                       [("US", "United States", "US", None)])
 
 
 def test_register_replaces_the_layer_and_a_rerun_changes_nothing(store):
