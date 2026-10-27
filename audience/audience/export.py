@@ -3,7 +3,7 @@
 Writes public/audience-data/ at the repo root, committed with the app:
 
   index.json   {sources: [{source, label, rows, file}],
-                constructs: [{construct, label, definition, wording?}],
+                constructs: [{construct, label, definition, wording?, topics?}],
                 geographies: [{code, name, level, parent}],
                 families?: [{id, label, definition, anchor, note?,
                              members: [{question, relation, of?}]}]}
@@ -23,6 +23,8 @@ MAX_BYTES is split into <source>-2.json, <source>-3.json, ..., each listed in in
 its own entry. constructs lists those with exported rows; geographies lists US, STATE,
 COUNTY and TOWN. A constructs entry carries wording, the verbatim GSS question text, where
 concordance.gss_wording holds one (audience/loaders/gss_wording.py); the key is absent elsewhere.
+Likewise topics, the GSS Data Explorer's subjects in its order, from concordance.gss_topics
+(audience/loaders/gss_topics.py).
 
 families is the construct layer (migration 009, audience/construct_layer.py), named so that
 constructs keeps meaning what it means: each construct groups the questions that measure one
@@ -47,6 +49,11 @@ LEVELS = ("US", "STATE", "COUNTY", "TOWN")
 ROW_FIELDS = ("construct", "geo_code", "period_start", "period_end", "response_option",
               "subgroup_dim", "subgroup_value", "estimate", "estimate_type", "moe", "item_text",
               "n", "provenance_url")
+
+
+def _as_list(v) -> list:
+    """An array column as read: a JSON string on DuckDB, a list on Postgres."""
+    return [] if v is None else list(json.loads(v)) if isinstance(v, str) else list(v)
 
 
 def _round(value, estimate_type: str):
@@ -140,11 +147,14 @@ def export(store: Store, out: Path = OUT) -> dict:
             index_sources.append({"source": source, "label": labels.get(source, source),
                                   "rows": len(chunk), "file": name})
     worded = store.column_exists("concordance", "gss_wording")
+    tagged = store.column_exists("concordance", "gss_topics")
     constructs = [
         {"construct": c, "label": label, "definition": definition,
-         **({"wording": wording} if wording else {})}
-        for c, label, definition, wording in store.query(
-            f"SELECT construct, label, definition, {'gss_wording' if worded else 'NULL'} "
+         **({"wording": wording} if wording else {}),
+         **({"topics": _as_list(topics)} if _as_list(topics) else {})}
+        for c, label, definition, wording, topics in store.query(
+            f"SELECT construct, label, definition, {'gss_wording' if worded else 'NULL'}, "
+            f"{'gss_topics' if tagged else 'NULL'} "
             "FROM concordance WHERE construct IN "
             "(SELECT DISTINCT construct FROM norms WHERE geography <> 'BLOCKGROUP') ORDER BY 1")]
     placeholders = ", ".join("?" for _ in LEVELS)
@@ -177,8 +187,9 @@ def main() -> int:
         size = (OUT / s["file"]).stat().st_size
         print(f"  {s['file']:<24}{s['rows']:>8,} rows  {size / 1e6:6.2f} MB")
     worded = sum(1 for c in index["constructs"] if "wording" in c)
+    tagged = sum(1 for c in index["constructs"] if "topics" in c)
     print(f"index.json: {len(index['sources'])} files, {len(index['constructs'])} constructs "
-          f"({worded:,} worded), "
+          f"({worded:,} worded, {tagged:,} with topics), "
           f"{len(index['geographies'])} geographies -> {OUT}")
     families = index.get("families", [])
     print(f"families: {len(families)} constructs, "

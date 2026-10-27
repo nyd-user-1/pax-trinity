@@ -22,7 +22,8 @@ breakdowns for the latest year asked. Administrative and paradata variables are 
 (ADMIN_VARS, admin()). Each bulk row links to the variable's GSS Data Explorer page; the
 mnemonic-to-page map is the Explorer's public variable list, cached in raw/gss/. The same list
 carries each variable's question text, which gss_wording.py stores as concordance.gss_wording
-for every construct this loader writes.
+for every construct this loader writes, and its subjects, which gss_topics.py stores as
+concordance.gss_topics.
 """
 
 from __future__ import annotations
@@ -586,10 +587,11 @@ def run(store: Store, refresh: bool = False, raw_dir: Path | None = None,
         print(f"bulk tier: {len(scan.taken):,} variables, {len(bulk_keys):,} rows; "
               f"{sum(len(v) for v in scan.skipped.values()):,} variables skipped; "
               f"{pruned:,} stale rows pruned")
-    from . import gss_wording  # imported here: gss_wording imports this module
+    from . import gss_topics, gss_wording  # imported here: both import this module
 
-    # the question texts of the constructs just written; the report on a full run only
+    # the question texts and topics of the constructs just written; reports on a full run only
     gss_wording.run(store, raw_dir=raw_dir, report=bulk_tier)
+    gss_topics.run(store, raw_dir=raw_dir, report=bulk_tier)
     store.touch_source(SOURCE)
     years = sorted({r["period_start"].year for r in rows})
     print(f"{version}: {written} rows, {len(years)} survey years {years[0]}-{years[-1]}")

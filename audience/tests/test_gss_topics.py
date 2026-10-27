@@ -1,0 +1,104 @@
+"""GSS topics: the subjects each construct takes, the resumable fetch, the store-to-export path,
+and spot-checks of the fetched records against the Data Explorer."""
+
+import json
+
+import pytest
+
+from audience import export, geographies
+from audience.loaders import gss_topics as gt
+from conftest import make_row
+
+
+def test_a_construct_takes_its_variables_subjects_in_order():
+    by_var = {"abany": ["Abortion", "Split Ballots"], "prouddem": ["Patriotism", "ISSP"],
+              "proudpol": ["Patriotism", "Political"], "class_": ["Social Class"], "year": []}
+    found = gt.topics({"abany": ["abany"], "national_pride_domain": ["prouddem", "proudpol"],
+                       "class": ["class"], "year": ["year"], "gone": ["nosuch"]}, by_var)
+    assert found == {"abany": ["Abortion", "Split Ballots"],
+                     "national_pride_domain": ["Patriotism", "ISSP", "Political"],
+                     "class": ["Social Class"]}
+
+
+def test_the_fetch_resumes_where_it_stopped(tmp_path, monkeypatch):
+    pages = {1: [{"id": 2, "name": "b", "subject": ["X"]}, {"id": 1, "name": "a", "subject": []}],
+             2: [{"id": 2, "name": "b", "subject": ["X"]}, {"id": 3, "name": "c", "subject": ["Y"]}],
+             3: [{"id": 4, "name": "d", "subject": ["Z"]}]}
+    calls = []
+
+    def flaky(page):
+        calls.append(page)
+        if page == 3 and calls.count(3) == 1:
+            raise ConnectionError("dropped")
+        return pages.get(page, [])
+
+    monkeypatch.setattr(gt, "_get", flaky)
+    monkeypatch.setattr(gt, "_details", lambda vid: {"subject": ["GSS Next"], "module": ["GSS Next"]})
+    monkeypatch.setattr(gt, "FETCH_DELAY", 0)
+    monkeypatch.setattr(gt, "CHECKPOINT", 1)
+    assert gt.fetch(tmp_path) is None                       # stopped at page 3
+    assert (tmp_path / f"{gt.SUBJECTS}.partial").exists()
+    path = gt.fetch(tmp_path)                               # resumes at page 3, not page 1
+    assert calls == [1, 2, 3, 3, 4, 5, 6]
+    records = json.loads(path.read_text())
+    assert [r["id"] for r in records] == [1, 2, 3, 4]       # one per id, sorted
+    assert not (tmp_path / f"{gt.SUBJECTS}.partial").exists()
+    assert gt.fetch(tmp_path) == path and calls[-1] == 6    # cached: no refetch
+    # "a" has no subject in the list, so its own page is fetched, once
+    assert gt.subjects(tmp_path) == {"a": ["GSS Next"], "b": ["X"], "c": ["Y"], "d": ["Z"]}
+    assert json.loads((tmp_path / gt.DETAILS).read_text()) == {
+        "1": {"subject": ["GSS Next"], "module": ["GSS Next"]}}
+    monkeypatch.setattr(gt, "_details", lambda vid: pytest.fail("refetched a cached page"))
+    assert gt.subjects(tmp_path)["a"] == ["GSS Next"]
+    assert gt.modules(tmp_path) == {"GSS Next"}
+
+
+def test_a_repeated_tag_appears_once():
+    assert gt._tags(["Jews", "Religion", "Jews", "Religion"]) == ["Jews", "Religion"]
+
+
+def test_store_to_export(store, tmp_path):
+    store.upsert_concordance({"construct": "sex", "label": "Sex", "definition": "Sex"})
+    store.upsert_concordance({"construct": "abany", "label": "Abortion if woman wants for any "
+                              "reason", "definition": "Abortion if woman wants for any reason"})
+    store.upsert_norms([make_row(), make_row(construct="abany", source="GSS",
+                                              source_version="GSS fixture", geography="US",
+                                              geo_code="US", estimate_type="pct",
+                                              response_option="Yes", estimate=60.0)])
+    assert gt.write(store, {"abany": ["Abortion", "Split Ballots"]}, ["abany"]) == 1
+    geographies.refresh(store, quiet=True)
+    index = export.export(store, tmp_path / "audience-data")
+    by = {c["construct"]: c for c in index["constructs"]}
+    assert by["abany"]["topics"] == ["Abortion", "Split Ballots"]
+    assert "topics" not in by["sex"]                                   # no key, not []
+    gt.write(store, {}, ["abany"])                                     # a rerun clears it
+    index = export.export(store, tmp_path / "audience-data")
+    assert all("topics" not in c for c in index["constructs"])
+
+
+# -- the fetched Data Explorer records -------------------------------------------------------
+
+@pytest.fixture(scope="module")
+def by_var():
+    path = gt.config.RAW / "gss" / gt.SUBJECTS
+    if not path.exists():
+        pytest.skip("Data Explorer records not under raw/gss/ (python -m audience.load gss_topics)")
+    return gt.subjects()
+
+
+def test_spot_checks_against_the_data_explorer(by_var):
+    # The pages read their subjects from .../prod/variables/guest-details/<id>:
+    # https://gssdataexplorer.norc.org/variables/607/vshow  ABANY  ["Abortion", "Split Ballots"]
+    # https://gssdataexplorer.norc.org/variables/5321/vshow OTHREL1 ["Religion"]
+    # https://gssdataexplorer.norc.org/variables/7177/vshow ABHELP1 ["GSS Next"], its module
+    assert by_var["abany"] == ["Abortion", "Split Ballots"]
+    assert by_var["othrel1"] == ["Religion"]
+    assert by_var["abhelp1"] == ["GSS Next"]
+    assert by_var["conlegis"] == ["Confidence", "Federal Government", "Split Ballots"]
+
+
+def test_most_variables_have_a_subject(by_var):
+    # 6,955 records: 5,650 tagged in the list, 614 more by their own pages (613 of those by the
+    # module's name), 691 with none anywhere
+    tagged = sum(1 for tags in by_var.values() if tags)
+    assert len(by_var) == 6_955 and tagged == 6_264

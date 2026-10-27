@@ -128,6 +128,14 @@ class Store:
         )
         return rows[0][0] > 0
 
+    def array_value(self, values):
+        """A Python list as an array column takes it: JSON text on DuckDB, a list on Postgres."""
+        if values is None:
+            return None
+        if self.dialect == "duckdb":
+            return json.dumps(list(values), ensure_ascii=False)
+        return list(values)
+
     def column_exists(self, table: str, column: str) -> bool:
         rows = self.query(
             "SELECT count(*) FROM information_schema.columns "
