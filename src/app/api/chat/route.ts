@@ -13,7 +13,7 @@ import { videosContext } from "@/lib/chat-videos"
 // The /chat answer, after solar's /api/chat: a system prompt carrying the record (here, every take's
 // current score and its parts, and the scripts), then the reply streamed back as plain text.
 
-const client = new BedrockRuntimeClient({ region: process.env.PAX2_REGION ?? "us-east-1" })
+const client = new BedrockRuntimeClient({ region: process.env.PAX2_BEDROCK_REGION ?? process.env.PAX2_REGION ?? "us-east-1" })
 const MODEL = process.env.PAX2_CHAT_MODEL ?? process.env.PAX2_MODEL ?? "us.anthropic.claude-sonnet-4-6"
 
 const BASE_SYSTEM_PROMPT = `You are the analyst inside PAX2, a tool that scores advocacy videos for the Question 3 campaign (Massachusetts' top-two primary initiative).
