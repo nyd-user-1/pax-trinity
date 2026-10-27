@@ -143,7 +143,7 @@ export function SegmentGrid({
                       </td>
                     </tr>
                     {grid.bands.map((b) => (
-                      <tr key={b.opt}>
+                      <tr key={b.opt} className={rowDress(about != null && b.cells.includes(about.r))}>
                         <td className="w-[150px] border-b px-2.5 py-2 text-[13px]">{b.opt}</td>
                         {grid.cols.map((c, i) => (
                           <BandCell key={c.id} r={b.cells[i]} c={c} max={grid.bandMax[i]} segment={b.opt} about={about} onPick={onPick} />
@@ -159,14 +159,17 @@ export function SegmentGrid({
                     </td>
                   </tr>
                 )}
-                {grid.geos.map((g) => (
-                  <tr key={g}>
-                    <td className="w-[150px] border-b px-2.5 py-2 text-[13px]">{place(g)}</td>
-                    {grid.cols.map((c) => (
-                      <Cell key={c.id} r={latestRow(c.rs.filter((r) => !r[5] && r[1] === g))} c={c} segment={place(g)} about={about} onPick={onPick} />
-                    ))}
-                  </tr>
-                ))}
+                {grid.geos.map((g) => {
+                  const cells = grid.cols.map((c) => latestRow(c.rs.filter((r) => !r[5] && r[1] === g)))
+                  return (
+                    <tr key={g} className={rowDress(about != null && cells.includes(about.r))}>
+                      <td className="w-[150px] border-b px-2.5 py-2 text-[13px]">{place(g)}</td>
+                      {grid.cols.map((c, i) => (
+                        <Cell key={c.id} r={cells[i]} c={c} segment={place(g)} about={about} onPick={onPick} />
+                      ))}
+                    </tr>
+                  )
+                })}
                 {grid.breakdowns.map((b) => (
                   <React.Fragment key={b.dim}>
                     <tr>
@@ -174,14 +177,17 @@ export function SegmentGrid({
                         {dimLabel(b.dim)}
                       </td>
                     </tr>
-                    {b.values.map((v) => (
-                      <tr key={v}>
-                        <td className="w-[150px] border-b px-2.5 py-2 text-[13px]">{v}</td>
-                        {grid.cols.map((c) => (
-                          <Cell key={c.id} r={latestRow(c.rs.filter((r) => r[5] === b.dim && r[6] === v && r[1] === c.baseGeo))} c={c} segment={v} about={about} onPick={onPick} />
-                        ))}
-                      </tr>
-                    ))}
+                    {b.values.map((v) => {
+                      const cells = grid.cols.map((c) => latestRow(c.rs.filter((r) => r[5] === b.dim && r[6] === v && r[1] === c.baseGeo)))
+                      return (
+                        <tr key={v} className={rowDress(about != null && cells.includes(about.r))}>
+                          <td className="w-[150px] border-b px-2.5 py-2 text-[13px]">{v}</td>
+                          {grid.cols.map((c, i) => (
+                            <Cell key={c.id} r={cells[i]} c={c} segment={v} about={about} onPick={onPick} />
+                          ))}
+                        </tr>
+                      )
+                    })}
                   </React.Fragment>
                 ))}
               </tbody>
@@ -196,6 +202,10 @@ export function SegmentGrid({
 }
 
 const frameOf = (sel: boolean) => cn("flex w-full items-center gap-1.5 rounded-[3px] text-left tabular-nums", sel && "outline-2 outline-offset-2 outline-pax2-light-blue")
+
+/** A data row's dress (Brendan, 2026-10-27): the list rows' hover, and the
+ *  picked cell's whole row on the muted ground while the panel holds it. */
+const rowDress = (sel: boolean) => cn("transition-colors hover:bg-accent/60", sel && "bg-muted")
 
 /** A Bands cell: the band's value with a level bar against the column's largest. */
 function BandCell({ r, c, max, segment, about, onPick }: { r: SourceRow | null; c: MetricInfo; max: number; segment: string; about: About | null; onPick: (a: About) => void }) {

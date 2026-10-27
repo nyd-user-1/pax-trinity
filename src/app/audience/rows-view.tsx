@@ -1,11 +1,12 @@
 "use client"
 
 import * as React from "react"
-import { ChevronDownIcon, Loader2 } from "lucide-react"
+import { EllipsisVerticalIcon, Loader2 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { Button } from "@govblock/ui/components/nova/button"
 import { PaneTitleRow } from "@/components/bank/pane-bars"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@govblock/ui/components/ny4/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@govblock/ui/components/ny4/dropdown-menu"
 
 import { num, weightOf, year, type SourceRow } from "./audience-data"
 import { type About } from "./audience-pane"
@@ -101,31 +102,53 @@ export function RowsView({
 
   const listed = sorted.slice(0, depth)
   const more = React.useCallback(() => setDepth((d) => d + PER_READ), [])
-  // A chip prints only where there is something to pick: one wave, one band
-  // or no subgroups leaves nothing to filter.
-  const chips = (
-    <>
-      {order.waves.length > 1 && <Chip label="Wave" value={wave} display={wave} onPick={setWave} items={order.waves.map((w) => ({ value: w, label: w }))} />}
-      {order.segments.length > 0 && (
-        <Chip
-          label="Segment"
-          value={segment}
-          display={segment === "total" ? "total" : segment}
-          onPick={setSegment}
-          items={[{ value: "total", label: "Total only" }, ...order.segments.map((s) => ({ value: s, label: s }))]}
-        />
-      )}
-      {order.bands.length > 1 && <Chip label="Band" value={band} display={band} onPick={setBand} items={order.bands.map((b) => ({ value: b, label: b }))} />}
-    </>
+  // The filters live in one kebab after the trailing control (Brendan,
+  // 2026-10-27: the chips crowded the question off the row). A group prints
+  // only where there is something to pick: one wave, one band or no subgroups
+  // leaves nothing to filter, and nothing at all leaves no kebab.
+  const groups = [
+    order.waves.length > 1 && { label: "Wave", value: wave, onPick: setWave, items: order.waves.map((w) => ({ value: w, label: w })) },
+    order.segments.length > 0 && {
+      label: "Segment",
+      value: segment,
+      onPick: setSegment,
+      items: [{ value: "total", label: "Total only" }, ...order.segments.map((s) => ({ value: s, label: s }))],
+    },
+    order.bands.length > 1 && { label: "Band", value: band, onPick: setBand, items: order.bands.map((b) => ({ value: b, label: b })) },
+  ].filter((g): g is { label: string; value: string; onPick: (v: string) => void; items: { value: string; label: string }[] } => !!g)
+  const kebab = groups.length > 0 && (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon-sm" aria-label="Filters" title="Filters" className="-mr-1.5 shrink-0">
+          <EllipsisVerticalIcon className="size-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="max-h-96 w-max min-w-44 overflow-y-auto">
+        {groups.map((g, i) => (
+          <React.Fragment key={g.label}>
+            {i > 0 && <DropdownMenuSeparator />}
+            <DropdownMenuLabel>{g.label}</DropdownMenuLabel>
+            <DropdownMenuRadioGroup value={g.value} onValueChange={g.onPick}>
+              <DropdownMenuRadioItem value="all">All</DropdownMenuRadioItem>
+              {g.items.map((it) => (
+                <DropdownMenuRadioItem key={it.value} value={it.value}>
+                  {it.label}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </React.Fragment>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
-      {/* The mount's title row: its heading at the left, the filter chips and
-          its trailing control at the right. */}
+      {/* The mount's title row: the heading truncating at the left, the
+          trailing control then the filters kebab at the right. */}
       <PaneTitleRow title={header}>
-        {chips}
         {trailing}
+        {kebab}
       </PaneTitleRow>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
@@ -173,30 +196,6 @@ export function RowsView({
         </table>
       </div>
     </div>
-  )
-}
-
-/** A filter chip: the dark chip of the wireframe, a radio menu underneath. */
-function Chip({ label, value, display, items, onPick }: { label: string; value: string; display: string; items: { value: string; label: string }[]; onPick: (v: string) => void }) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button type="button" className="flex items-center gap-1 rounded-full bg-foreground px-3 py-1 text-xs font-medium text-background">
-          {label}: {value === "all" ? "all" : display}
-          <ChevronDownIcon className="size-3" />
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="max-h-80 w-max min-w-40 overflow-y-auto">
-        <DropdownMenuRadioGroup value={value} onValueChange={onPick}>
-          <DropdownMenuRadioItem value="all">All</DropdownMenuRadioItem>
-          {items.map((it) => (
-            <DropdownMenuRadioItem key={it.value} value={it.value}>
-              {it.label}
-            </DropdownMenuRadioItem>
-          ))}
-        </DropdownMenuRadioGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
   )
 }
 

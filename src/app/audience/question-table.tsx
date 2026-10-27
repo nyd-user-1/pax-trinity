@@ -2,16 +2,22 @@
 
 import * as React from "react"
 import dynamic from "next/dynamic"
-import Link from "next/link"
 
 import { cn } from "@/lib/utils"
-import { PaneSearchRow, PaneTitleRow, RefreshButton, ViewToggle } from "@/components/bank/pane-bars"
+import { PaneSearchRow, PaneTitleRow, ViewToggle } from "@/components/bank/pane-bars"
 
 // The Trend view loads only when clicked: the chart file carries the ECharts
 // modules, and this dynamic mount keeps that chunk off every route until then.
 const QuestionChart = dynamic(() => import("./question-chart").then((m) => m.QuestionChart), {
   ssr: false,
   loading: () => <p className="p-6 text-sm text-muted-foreground">Drawing…</p>,
+})
+// The dossier mounts in place of the table when Open is pressed (Brendan,
+// 2026-10-27) — a drill-down layer, not a navigation; Back returns the table.
+// Dynamic for the same reason as the chart.
+const Dossier = dynamic(() => import("../q/[source]/[id]/dossier").then((m) => m.Dossier), {
+  ssr: false,
+  loading: () => <p className="p-6 text-sm text-muted-foreground">Reading the question…</p>,
 })
 
 import { dimLabel, latestRow, normalizeWording, num, value, year, type MetricInfo, type SourceRow } from "./audience-data"
@@ -21,7 +27,8 @@ import { type About } from "./audience-pane"
 // The clicked question, read the way a pollster reads one: a crosstab — the
 // answer options down the side, the banner across the top (Total, then every
 // breakdown), the latest wave's shares in the cells with unweighted bases
-// underneath, and the trend as its own block. The toggle's first position
+// underneath. The wave-by-wave trend table rides the Trend view under the
+// chart (Brendan, 2026-10-27). The toggle's first position
 // mounts the shared Rows view (Brendan, 2026-10-26): wave, segment, band,
 // estimate, margin, base, geo and weight, newest first with the total before
 // its subgroups. A clicked crosstab cell hands its row to the About panel.
@@ -71,6 +78,9 @@ export function QuestionTable({
   onRefresh: () => void
 }) {
   const [view, setView] = React.useState<"crosstab" | "chart" | "tidy">("tidy")
+  // The drill-down: the dossier standing where the table stood.
+  const [drill, setDrill] = React.useState(false)
+  React.useEffect(() => setDrill(false), [metric])
 
   const tab = React.useMemo(() => {
     const base = info.baseGeo
@@ -103,34 +113,76 @@ export function QuestionTable({
   // The title row reads the question itself (Brendan, 2026-10-26) and the
   // chevrons changing the open question change it with them.
   const heading = normalizeWording(wording ?? title)
-  // The question's own page, the dossier, beside refresh at the title row's right.
-  const refresh = (
-    <>
-      {source && (
-        <Link href={`/q/${source.toLowerCase()}/${encodeURIComponent(metric)}`} className="shrink-0 text-xs font-medium text-pax2-light-blue hover:underline">
-          Open
-        </Link>
-      )}
-      <RefreshButton onRefresh={onRefresh} />
-    </>
+  // The title row's one control (Brendan, 2026-10-27: no refresh icon): Open
+  // drills into the dossier in place, and becomes Back while it stands.
+  const controls = source && (
+    <button type="button" onClick={() => setDrill((d) => !d)} className="shrink-0 text-xs font-medium text-pax2-light-blue hover:underline">
+      {drill ? "Back" : "Open"}
+    </button>
   )
 
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
       <PaneSearchRow query={query} onQuery={onQuery} placeholder="Search wording or label…">
-        <ViewToggle views={VIEWS} value={view} onChange={setView} />
+        <ViewToggle
+          views={VIEWS}
+          value={view}
+          onChange={(v) => {
+            setView(v)
+            setDrill(false)
+          }}
+        />
       </PaneSearchRow>
-      {view === "tidy" ? (
-        <RowsView rows={rows} id={metric} source={source} header={heading} trailing={refresh} about={about} onPick={onPick} />
+      {drill && source ? (
+        <>
+          <PaneTitleRow title={heading}>{controls}</PaneTitleRow>
+          <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
+            <Dossier source={source.toLowerCase()} id={metric} />
+          </div>
+        </>
+      ) : view === "tidy" ? (
+        <RowsView rows={rows} id={metric} source={source} header={heading} trailing={controls} about={about} onPick={onPick} />
       ) : (
         <>
-      <PaneTitleRow title={heading}>{refresh}</PaneTitleRow>
+      <PaneTitleRow title={heading}>{controls}</PaneTitleRow>
       {/* Native scroll, not the ScrollArea primitive: radix's viewport sizes
           itself to the banner's intrinsic width, which blew the pane out
           sideways and swallowed the vertical scroll with it. */}
       <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
         {view === "chart" ? (
-          <QuestionChart rows={rows} info={info} title={title} place={place} />
+          <>
+            <QuestionChart rows={rows} info={info} title={title} place={place} />
+            {/* The wave-by-wave table under the chart (Brendan, 2026-10-27), off the crosstab. */}
+            {tab.years.length > 1 && (
+              <div className="px-5 pb-5">
+                <h3 className="mb-3 text-sm font-semibold text-pax2-blue">Trend</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-max min-w-[420px] border-collapse text-[13px]">
+                    <thead>
+                      <tr>
+                        <th className="border-b px-2.5 py-2 text-left text-xs font-medium text-muted-foreground">Wave</th>
+                        {tab.options.map((opt) => (
+                          <th key={opt ?? "·"} className="border-b px-2.5 py-2 text-left text-xs font-medium whitespace-nowrap text-muted-foreground">
+                            {opt ?? title}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {tab.years.map((y) => (
+                        <tr key={y}>
+                          <td className="border-b px-2.5 py-2 text-muted-foreground tabular-nums">{y}</td>
+                          {tab.options.map((opt) => (
+                            <XCell key={opt ?? "·"} r={tab.trendCell(opt, y)} metric={metric} segment={`${y}`} about={about} onPick={onPick} />
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </>
         ) : (
           <div className="p-5">
             <h2 className="text-[17px] font-semibold text-pax2-blue">{title}</h2>
@@ -179,36 +231,6 @@ export function QuestionTable({
               </table>
             </div>
             {tab.capped && <p className="mt-2 text-xs text-muted-foreground">The first {MAX_BANNER_ROWS} options by the latest value.</p>}
-
-            {tab.years.length > 1 && (
-              <>
-                <h3 className="mt-8 mb-3 text-sm font-semibold text-pax2-blue">Trend</h3>
-                <div className="overflow-x-auto">
-                  <table className="w-max min-w-[420px] border-collapse text-[13px]">
-                    <thead>
-                      <tr>
-                        <th className="border-b px-2.5 py-2 text-left text-xs font-medium text-muted-foreground">Wave</th>
-                        {tab.options.map((opt) => (
-                          <th key={opt ?? "·"} className="border-b px-2.5 py-2 text-left text-xs font-medium whitespace-nowrap text-muted-foreground">
-                            {opt ?? title}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {tab.years.map((y) => (
-                        <tr key={y}>
-                          <td className="border-b px-2.5 py-2 text-muted-foreground tabular-nums">{y}</td>
-                          {tab.options.map((opt) => (
-                            <XCell key={opt ?? "·"} r={tab.trendCell(opt, y)} metric={metric} segment={`${y}`} about={about} onPick={onPick} />
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </>
-            )}
           </div>
         )}
       </div>
