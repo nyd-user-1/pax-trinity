@@ -106,6 +106,7 @@ export const MA_WAVE_2: ResultSet = {
       role: "treatment",
       durationSeconds: 32.6,
       nWeighted: 482,
+      clipId: "px-paul",
       watchUrl: MP4 + "435f181a420581798fd5d3f0fb00fc15.mp4",
       reviewUrl: REVIEW + "3571fae1-0ae1-425b-8c1d-8916032e199a",
       note: "Largest displayed comprehension estimate in Wave 2.",
