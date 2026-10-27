@@ -9,14 +9,16 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { ScrollArea } from "@govblock/ui/components/ny4/scroll-area"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/ny4/tooltip"
 
+import { Marks, type MarkState } from "./marks"
 import { SearchField } from "./pane-bars"
 
 // The middle list in Gmail's anatomy, as Brendan restyled it by hand
-// (2026-10-27, docs/wireframes/inbox-row-changes.png): no grip, box, star or
-// importance arrow leading the row — 16px either side and the words start.
-// Full width, one line: the title in bold truncating at whatever width the
-// row has, the detail after Gmail's dash, the chip and the tag, the span at
-// the right edge where the time sits. Folded beside an open item, the card:
+// (2026-10-27, docs/wireframes/inbox-row-changes.png and his later row edit):
+// 16px either side. Full width, one line: where the surface gives them, the
+// three marks (box, importance arrow, star) lead the row; the title in bold
+// clamped at 68ch, then after Gmail's dash the snippet (or the detail) taking
+// what width is left; the chip; the span at the right edge in the inbox
+// date's weight. Folded beside an open item, the card:
 // the title, then the one chip and the span under it at a 16px gap. The
 // row's kebab takes the span's place on hover, Gmail's own swap. Two 52px
 // bars on top — the search, then the split toggle, the chevrons and the
@@ -33,13 +35,15 @@ export type Card = {
   hint?: string
   /** The card's one chip — on /audience the topic. */
   chip?: string | null
-  /** The one-line row's second chip, before the span. */
-  tag?: string | null
   /** The right edge, where the time sits. */
   span?: string | null
   /** The one-line row's grey text after the dash. */
   detail?: string | null
+  /** Gmail's snippet: when present it stands after the dash in the detail's place. */
+  snippet?: string | null
   pinned?: boolean
+  /** The three marks leading the one-line row; absent, the row goes without. */
+  marks?: MarkState
   /** The row kebab's items; none leaves the span alone. */
   actions?: CardAction[]
 }
@@ -163,13 +167,14 @@ export function CardList({
                 {c.chip}
               </span>
             )
-            const end = <RowEnd span={c.span ?? null} actions={c.actions} />
+            const end = <RowEnd span={c.span ?? null} actions={c.actions} strong={!stacked} />
             const title = (
               <span className="font-semibold">
                 {c.pinned && <StarIcon aria-label="Pinned" className="mr-1.5 inline size-3.5 -translate-y-px fill-yellow-400 text-yellow-500" />}
                 {c.title}
               </span>
             )
+            const after = c.snippet ?? c.detail
             return (
               <li
                 key={id}
@@ -191,16 +196,20 @@ export function CardList({
                   </span>
                 ) : (
                   <>
-                    <span className="min-w-0 flex-1 truncate" title={c.hint}>
-                      {title}
-                      {c.detail && <span className="text-muted-foreground"> - {c.detail}</span>}
-                    </span>
-                    {chip}
-                    {c.tag && (
-                      <span className="max-w-40 shrink-0 truncate rounded-full border px-2 py-0.5 text-[10px] font-medium tracking-wider text-muted-foreground" title={c.tag}>
-                        {c.tag}
+                    {c.marks && (
+                      // The marks act in place: their clicks never open the row.
+                      <span className="flex shrink-0 items-center gap-2" onClick={(event) => event.stopPropagation()}>
+                        <Marks {...c.marks} />
                       </span>
                     )}
+                    <span className="flex min-w-0 flex-1 items-baseline">
+                      <span className="max-w-[68ch] min-w-0 truncate font-semibold" title={c.hint}>
+                        {!c.marks && c.pinned && <StarIcon aria-label="Pinned" className="mr-1.5 inline size-3.5 -translate-y-px fill-yellow-400 text-yellow-500" />}
+                        {c.title}
+                      </span>
+                      {after && <span className="min-w-0 flex-1 truncate text-muted-foreground">&nbsp;- {after}</span>}
+                    </span>
+                    {chip}
                     {end}
                   </>
                 )}
@@ -215,12 +224,14 @@ export function CardList({
 }
 
 /** The row's right edge: the span, and on hover the row's kebab in its place. */
-function RowEnd({ span, actions }: { span: string | null; actions?: CardAction[] }) {
+function RowEnd({ span, actions, strong = false }: { span: string | null; actions?: CardAction[]; strong?: boolean }) {
   const [open, setOpen] = React.useState(false)
-  if (!actions?.length) return <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{span}</span>
+  // The one-line row's span in the /inbox thread list's unread date weight.
+  const tone = strong ? "font-semibold" : "text-muted-foreground"
+  if (!actions?.length) return <span className={cn("shrink-0 text-xs tabular-nums", tone)}>{span}</span>
   return (
     <span className="relative flex min-w-7 shrink-0 items-center justify-end">
-      <span className={cn("text-xs text-muted-foreground tabular-nums group-hover/row:invisible group-has-focus-visible/row:invisible", open && "invisible")}>{span}</span>
+      <span className={cn("text-xs tabular-nums group-hover/row:invisible group-has-focus-visible/row:invisible", tone, open && "invisible")}>{span}</span>
       <DropdownMenu open={open} onOpenChange={setOpen}>
         <DropdownMenuTrigger asChild>
           <Button

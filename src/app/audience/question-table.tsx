@@ -2,11 +2,11 @@
 
 import * as React from "react"
 import dynamic from "next/dynamic"
-import { Globe, StarIcon } from "lucide-react"
+import { Globe } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { PaneSearchRow, PaneTitleRow, ViewToggle } from "@/components/bank/pane-bars"
-import { Checkbox } from "@govblock/ui/components/checkbox"
+import { Marks } from "@/components/bank/marks"
 
 // The Trend view loads only when clicked: the chart file carries the ECharts
 // modules, and this dynamic mount keeps that chunk off every route until then.
@@ -136,19 +136,7 @@ export function QuestionTable({
   const heading = normalizeWording(wording ?? title)
   // Before the title: the question's box (a compare-grid column), Gmail's
   // importance arrow and the star (pass 2, 2026-10-27).
-  const leading = (
-    <>
-      <Checkbox aria-label="Add as column" checked={isColumn} disabled={atCap} title={atCap ? "Four columns at most" : undefined} onCheckedChange={onColumn} />
-      <button type="button" aria-pressed={important} aria-label={important ? "Marked important" : "Mark as important"} title={important ? "Marked important" : "Mark as important"} onClick={onImportant} className="shrink-0">
-        <svg viewBox="0 0 20 20" aria-hidden className={cn("size-4 shrink-0", important ? "fill-amber-400 text-amber-400" : "fill-transparent text-muted-foreground/50")}>
-          <path d="M4 5h7l5 5-5 5H4l5-5z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-        </svg>
-      </button>
-      <button type="button" aria-pressed={pinned} aria-label={pinned ? "Unpin" : "Pin"} title={pinned ? "Unpin" : "Pin"} onClick={onPin} className="shrink-0 text-muted-foreground/60 hover:text-foreground">
-        <StarIcon className={cn("size-4", pinned && "fill-yellow-400 text-yellow-500")} />
-      </button>
-    </>
-  )
+  const leading = <Marks column={isColumn} atCap={atCap} onColumn={onColumn} important={important} onImportant={onImportant} pinned={pinned} onPin={onPin} />
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
       <PaneSearchRow query={query} onQuery={onQuery} placeholder="Search wording or label…" onBack={onBack}>

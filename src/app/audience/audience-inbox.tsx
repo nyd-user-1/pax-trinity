@@ -10,7 +10,7 @@ import { CardList, type Card, type Split } from "@/components/bank/card-list"
 import { DropdownMenuRadioGroup, DropdownMenuRadioItem } from "@govblock/ui/components/ny4/dropdown-menu"
 
 import { AboutPanel, type About } from "./audience-pane"
-import { buildInfo, fetchQuestionRows, groupSources, mnemonicOf, normalizeWording, scaleOf, shortSource, topicOf, UNTAGGED, TOPIC_GROUPS, WEB_GRID, WORDING, type AudienceIndex, type MetricInfo, type QuestionSummary, type SourceRow } from "./audience-data"
+import { buildInfo, fetchQuestionRows, groupSources, levelRank, mnemonicOf, normalizeWording, num, scaleOf, shortSource, topicOf, UNTAGGED, TOPIC_GROUPS, WEB_GRID, WORDING, type AudienceIndex, type MetricInfo, type QuestionSummary, type SourceRow } from "./audience-data"
 import { FAVORITES, IMPORTANT, SourceRail } from "./source-rail"
 import { QuestionTable } from "./question-table"
 import { SegmentGrid } from "./segment-grid"
@@ -263,8 +263,28 @@ export function AudienceInbox() {
     return [...shown.filter((id) => pinned.includes(id)), ...shown.filter((id) => !pinned.includes(id))]
   }, [metricIds, query, tab, pinned, label, wordingOf])
 
-  // A question as a card: its wording, the topic chip, the mnemonic, the span;
-  // the scale family and wave count after the dash on the one-line row.
+  // A question's snippet, while the full sentence waits on the index export:
+  // where its rows are already read, the latest wave's leading band and value
+  // at its baseline geography ("Hardly any · 51.9%"); a lift reads none.
+  // Rows are never fetched for this (Brief S): an unread question shows its detail.
+  const headlineOf = (id: string): string | null => {
+    const s = srcOf(id)
+    const rs = s ? cache[`${s}/${id}`] : undefined
+    const tot = (rs ?? []).filter((r) => r[0] === id && !r[5])
+    if (!tot.length) return null
+    let base = tot[0][1]
+    for (const r of tot) if (levelRank(geoLevel.get(r[1])) < levelRank(geoLevel.get(base))) base = r[1]
+    const atBase = tot.filter((r) => r[1] === base)
+    let latest = atBase[0][3]
+    for (const r of atBase) if (r[3] > latest) latest = r[3]
+    let top: SourceRow | null = null
+    for (const r of atBase) if (r[3] === latest && r[4] != null && (!top || r[7] > top[7])) top = r
+    if (!top || top[8] === "lift_pp") return null
+    return `${top[4]} · ${top[8] === "count" ? num(top[7], 0) : `${num(top[7])}%`}`
+  }
+
+  // A question as a card: its wording, the topic chip, the span; after the
+  // dash, the snippet where one can be read, else the scale family and wave count.
   const cardOf = (id: string): Card => {
     const c = summaries.get(id)
     const scale = scaleOf(c?.options ?? [])
@@ -279,10 +299,20 @@ export function AudienceInbox() {
       ),
       hint: wordingOf(id) ?? label(id),
       chip: topicChipOf(id),
-      tag: mnemonicOf(id),
+      snippet: headlineOf(id),
       span: c ? (c.first === c.last ? String(c.first) : `${c.first}–${c.last}`) : null,
       detail: c ? `${scale ? `${scale} · ` : ""}${c.waves} ${c.waves === 1 ? "wave" : "waves"}` : null,
       pinned: pinned.includes(id),
+      // The row's marks act on the same state as the open question's (the box stays put).
+      marks: {
+        column: isColumn,
+        atCap,
+        onColumn: () => pickColumn(id),
+        important: important.includes(id),
+        onImportant: () => toggle(setImportant, id),
+        pinned: pinned.includes(id),
+        onPin: () => toggle(setPinned, id),
+      },
       actions: [
         { label: isColumn ? "Remove column" : atCap ? "Four columns at most" : "Add as column", onSelect: () => toggleColumn(id), disabled: atCap },
         { label: pinned.includes(id) ? "Unpin" : "Pin", onSelect: () => toggle(setPinned, id) },
