@@ -109,3 +109,15 @@ ABHELP1 ([7177](https://gssdataexplorer.norc.org/variables/7177/vshow), `["GSS N
    - Window R's Brief S regeneration will replace this `index.json` with a superset that keeps `topics`.
    - I held `audience/store/.lock` for the topics write and the export. Regenerating the report once opened the shared store without it, to read the concordance only, with nothing written.
 
+
+### Follow-up: ruling 3 applied
+
+The lead ruled that a module isn't a topic, and `fa8e26a` applies it. A page subject that is only the name of the module that asked the question is now skipped, and that question ships without `topics`. The raw files keep every module for a module grouping later.
+
+- **Coverage: 4,526 of 5,541 GSS questions (81.7%)**: 4,525 from the list, plus CODEN from its page. The 399 skipped are named under `skipped_as_module_names` in `reports/gss_topics.json`.
+- **Vocabulary: 155 tags.** The top ten are unchanged except that Mental Health falls from 223 to 203 and drops below Work, which keeps 205.
+- **Served file:** `exports/index.json`, ETag/md5 `c35510ae6dbac0c0f25152096a437b37`, 4,518,792 bytes, regenerated from the current store. Against Window R's live superset (`8ffcb0f0…`) it drops the topics of those 399 entries and changes nothing else:
+  - `questions`, `families`, `sources` and `geographies` are identical.
+  - Every other constructs field is identical.
+  - All 41 row files and all 8,034 per-question files are byte-identical, and only `index.json` was uploaded.
+- **Checks:** verified in Node against the bucket URL; Amplify serves the same ETag. ABANY and OTHREL1 still match their pages, and ABHELP1, now untagged, is pinned in the tests.
