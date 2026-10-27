@@ -6,7 +6,7 @@ import { Blocks, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, EllipsisVer
 import { cn } from "@/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
 import { Checkbox } from "@govblock/ui/components/checkbox"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@govblock/ui/components/ny4/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@govblock/ui/components/ny4/dropdown-menu"
 import { ScrollArea } from "@govblock/ui/components/ny4/scroll-area"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/ny4/tooltip"
 
@@ -215,13 +215,8 @@ export function SegmentList({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-max min-w-48">
               <DropdownMenuRadioGroup value={tab} onValueChange={(value) => onTab(value as ListTab)}>
-                <DropdownMenuRadioItem value="all">All segments</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="all">All questions</DropdownMenuRadioItem>
                 <DropdownMenuRadioItem value="pinned">Pinned only</DropdownMenuRadioItem>
-              </DropdownMenuRadioGroup>
-              <DropdownMenuSeparator />
-              <DropdownMenuRadioGroup value={split} onValueChange={(value) => onSplit(value as Split)}>
-                <DropdownMenuRadioItem value="none">No split</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="vertical">Vertical split</DropdownMenuRadioItem>
               </DropdownMenuRadioGroup>
             </DropdownMenuContent>
           </DropdownMenu>
