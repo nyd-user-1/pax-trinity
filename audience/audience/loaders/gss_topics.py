@@ -29,9 +29,11 @@ with citation (NORC); the Explorer states no other terms for these routes.
 
 A construct's topics are its variable's subjects exactly as the Explorer gives them: the
 list's, or where the list has none, the page's. For many variables first asked since 2010 the
-page's subject is the name of the module that asked it (GSS Next, ISSP Digital Societies);
-those carry through verbatim, and reports/gss_topics.json names every construct tagged
-that way. A tag the source repeats appears once. A harmonized construct pooling several
+page's subject is only the name of the module that asked it (GSS Next, ISSP Digital
+Societies); a module isn't a topic (the lead's ruling, 2026-10-26), so those are skipped and
+the construct ships without topics, while the raw files keep every module for a module
+grouping later. reports/gss_topics.json names the constructs skipped that way. A tag the
+source repeats appears once. A harmonized construct pooling several
 variables takes all of theirs in the order they first appear; a construct whose variables
 carry no subject has no topics.
 """
@@ -158,7 +160,8 @@ def _tags(values) -> list[str]:
 
 def subjects(raw_dir: Path | None = None, refresh: bool = False) -> dict[str, list[str]]:
     """mnemonic (lowercased) -> its Explorer subjects, verbatim and in the Explorer's order:
-    the variable list's, or the variable's own page's where the list has none."""
+    the variable list's, or the variable's own page's where the list has none, unless the page's
+    subject is only the name of its module."""
     path = fetch(raw_dir, refresh=refresh)
     if path is None:
         return {}
@@ -168,14 +171,24 @@ def subjects(raw_dir: Path | None = None, refresh: bool = False) -> dict[str, li
     pages = json.loads(details_path.read_text()) if details_path else {}
     out: dict[str, list[str]] = {}
     for v in records:
-        tags = _tags(v.get("subject")) or _tags((pages.get(str(v["id"])) or {}).get("subject"))
+        tags = _tags(v.get("subject"))
+        if not tags:
+            page = pages.get(str(v["id"])) or {}
+            tags = [] if _module_named(page) else _tags(page.get("subject"))
         out.setdefault(v["name"].lower(), tags)
     return out
 
 
+def _module_named(page: dict) -> bool:
+    """The page's subject is nothing but the name of the module that asked it."""
+    tags = _tags(page.get("subject"))
+    return bool(tags) and set(tags) <= set(page.get("module") or [])
+
+
 def provenance(raw_dir: Path | None = None) -> dict[str, str]:
     """mnemonic (lowercased) -> where its subjects come from: "list", "page", or "page: the
-    module's name" where the page's subject is only the name of the module that asked it."""
+    module's name" where the page's subject is only the name of the module that asked it, and
+    so skipped."""
     d = gss._dirs(raw_dir)
     if not (d / SUBJECTS).exists():
         return {}
@@ -186,8 +199,7 @@ def provenance(raw_dir: Path | None = None) -> dict[str, str]:
         if _tags(v.get("subject")):
             where = "list"
         elif _tags(page.get("subject")):
-            named = set(_tags(page.get("subject"))) <= set(page.get("module") or [])
-            where = "page: the module's name" if named else "page"
+            where = "page: the module's name" if _module_named(page) else "page"
         else:
             continue
         out.setdefault(v["name"].lower(), where)
@@ -230,16 +242,17 @@ def write_report(constructs: dict[str, list[str]], found: dict[str, list[str]], 
     where = where or {}
     tally = Counter(t for tags in found.values() for t in tags)
     source = {c: sorted({where.get(v, where.get(f"{v}_", "")) for v in gvars} - {""})
-              for c, gvars in constructs.items() if c in found}
+              for c, gvars in constructs.items()}
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps({
         "constructs": len(constructs), "tagged": len(found),
-        "tagged_from": dict(Counter(", ".join(v) for v in source.values()).most_common()),
+        "tagged_from": dict(Counter(", ".join(v) for c, v in source.items()
+                                    if c in found).most_common()),
         "untagged": sorted(set(constructs) - set(found)),
         "vocabulary": len(tally),
         "tags": dict(tally.most_common()),
-        "tagged_by_module_name": sorted(c for c, v in source.items()
-                                        if v == ["page: the module's name"]),
+        "skipped_as_module_names": sorted(c for c, v in source.items() if c not in found
+                                          and v == ["page: the module's name"]),
         "pooled": {c: found.get(c, []) for c, v in constructs.items() if len(v) > 1},
     }, ensure_ascii=False, indent=1))
 
