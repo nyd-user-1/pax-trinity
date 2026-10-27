@@ -13,7 +13,7 @@ import { TooltipProvider } from "@govblock/ui/components/ny4/tooltip"
 
 import { AboutPanel, BackButton, type About } from "../audience/audience-pane"
 import { AudienceRows } from "../audience/audience-rows"
-import { buildInfo, groupSources, metricIdsOf, normalizeWording, shortSource, WORDING, type AudienceIndex, type MetricInfo, type SourceRow } from "../audience/audience-data"
+import { buildInfo, groupSources, metricIdsOf, mnemonicOf, normalizeWording, shortSource, WORDING, year, type AudienceIndex, type MetricInfo, type SourceRow } from "../audience/audience-data"
 import { SourceRail } from "./source-rail"
 import { QuestionTable } from "./question-table"
 import { SegmentList, type ListTab, type Split } from "./segment-list"
@@ -39,6 +39,9 @@ export function AudienceInbox() {
   const [checked, setChecked] = React.useState<string[]>([])
   const [pinned, setPinned] = React.useState<string[]>([])
   const [important, setImportant] = React.useState<string[]>([])
+  // The Blocks panel's contents: questions pressed into it from the list.
+  const [blocks, setBlocks] = React.useState<string[]>([])
+  const [blocksOpen, setBlocksOpen] = React.useState(false)
   const [about, setAbout] = React.useState<About | null>(null)
   const [mode, setMode] = React.useState<"list" | "table">("list")
   // The question whose rows the flat table is scoped to; null is the whole source.
@@ -183,6 +186,10 @@ export function AudienceInbox() {
   const showList = split === "vertical" || !focus
   const showPane = split === "vertical" || !!focus
 
+  const blocksPanel = blocksOpen && blocks.length > 0 && (
+    <BlocksPanel ids={blocks} info={info} label={label} wordingOf={wordingOf} onRemove={(id) => setBlocks((prev) => prev.filter((x) => x !== id))} onClose={() => setBlocksOpen(false)} />
+  )
+
   // The list keeps its place beside the crosstab (Brendan, 2026-10-26: "don't
   // close the middle panel"), stacked the way the split folds it.
   const listFor = (s: Split) => (
@@ -196,6 +203,10 @@ export function AudienceInbox() {
       pinned={pinned}
       important={important}
       onImportant={(id) => setImportant((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))}
+      onBlock={(id) => {
+        setBlocks((prev) => (prev.includes(id) ? prev : [...prev, id]))
+        setBlocksOpen(true)
+      }}
       tab={tab}
       onTab={setTab}
       onOpen={open}
@@ -334,6 +345,7 @@ export function AudienceInbox() {
                 </ResizablePanel>
               </ResizablePanelGroup>
               {about && <AboutPanel about={about} onClose={() => setAbout(null)} source={source} groups={groups} files={files} info={info} label={label} place={place} geoLevel={geoLevel} />}
+              {blocksPanel}
             </div>
           ) : mode === "table" ? (
             <AudienceRows
@@ -379,6 +391,7 @@ export function AudienceInbox() {
                 )}
               </ResizablePanelGroup>
               {about && <AboutPanel about={about} onClose={() => setAbout(null)} source={source} groups={groups} files={files} info={info} label={label} place={place} geoLevel={geoLevel} />}
+              {blocksPanel}
             </div>
           )}
             </div>
@@ -397,5 +410,56 @@ export function AudienceInbox() {
       )}
     </div>
     </TooltipProvider>
+  )
+}
+
+/** The right side's Blocks panel: the questions pressed into it, each with its data's shape. */
+function BlocksPanel({
+  ids,
+  info,
+  label,
+  wordingOf,
+  onRemove,
+  onClose,
+}: {
+  ids: string[]
+  info: Map<string, MetricInfo>
+  label: (id: string) => string
+  wordingOf: (id: string) => string | null
+  onRemove: (id: string) => void
+  onClose: () => void
+}) {
+  return (
+    <div className="relative w-[420px] shrink-0 overflow-y-auto border-l p-5">
+      <button type="button" onClick={onClose} aria-label="Close" className="absolute top-4 right-4 text-muted-foreground hover:text-foreground">
+        <X className="size-4" />
+      </button>
+      <h3 className="pr-7 text-sm font-semibold text-pax2-blue">Blocks</h3>
+      <ul className="mt-4 space-y-3">
+        {ids.map((id) => {
+          const c = info.get(id)
+          const ys = new Set<string>()
+          for (const r of c?.rs ?? []) ys.add(year(r[3]))
+          const s = [...ys].sort()
+          const span = s.length ? (s[0] === s[s.length - 1] ? s[0] : `${s[0]}–${s[s.length - 1]}`) : ""
+          return (
+            <li key={id} className="rounded-lg border p-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="truncate text-xs font-medium tracking-wide text-muted-foreground">{mnemonicOf(id)}</p>
+                <button type="button" aria-label={`Remove ${label(id)}`} onClick={() => onRemove(id)} className="shrink-0 text-muted-foreground/60 hover:text-foreground">
+                  <X className="size-3.5" />
+                </button>
+              </div>
+              <p className="mt-1 text-sm font-semibold">{normalizeWording(wordingOf(id) ?? label(id))}</p>
+              <p className="mt-1.5 text-xs text-muted-foreground tabular-nums">
+                {span}
+                {span && " · "}
+                {ys.size} {ys.size === 1 ? "wave" : "waves"} · {c?.options.length ?? 0} bands
+              </p>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
   )
 }

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, EllipsisVerticalIcon, GripVerticalIcon, RefreshCwIcon, Search, StarIcon } from "lucide-react"
+import { Blocks, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, EllipsisVerticalIcon, GripVerticalIcon, RefreshCwIcon, Search, StarIcon, X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
@@ -85,6 +85,7 @@ export function SegmentList({
   onCheck,
   onPin,
   onCheckAll,
+  onBlock,
   onRefresh,
   onFlatTable,
   split,
@@ -111,6 +112,8 @@ export function SegmentList({
   onCheck: (id: string) => void
   onPin: (id: string) => void
   onCheckAll: (ids: string[]) => void
+  /** Hands the question and its data to the right side's Blocks panel. */
+  onBlock: (id: string) => void
   onRefresh: () => void
   onFlatTable: () => void
   split: Split
@@ -153,6 +156,11 @@ export function SegmentList({
             placeholder="Search wording or label…"
             className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           />
+          {query && (
+            <button type="button" aria-label="Clear the search" onClick={() => onQuery("")} className="shrink-0 text-muted-foreground hover:text-foreground">
+              <X className="size-4" />
+            </button>
+          )}
         </div>
       </div>
       <div className="flex h-11 shrink-0 items-center gap-1 border-b px-3">
@@ -218,6 +226,21 @@ export function SegmentList({
             const foot = spanOf(c)
             const scale = scaleOf(c?.options ?? [])
             const imp = important.includes(id)
+            const blockBtn = (
+              <Tip label="Add to blocks">
+                <button
+                  type="button"
+                  aria-label="Add to blocks"
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    onBlock(id)
+                  }}
+                  className="shrink-0 rounded-sm text-muted-foreground/60 hover:text-foreground"
+                >
+                  <Blocks className="size-4" />
+                </button>
+              </Tip>
+            )
             const star = (
               <button
                 type="button"
@@ -254,6 +277,7 @@ export function SegmentList({
                   <GripVerticalIcon aria-hidden className="-ml-1 size-4 shrink-0 cursor-grab text-muted-foreground/50 opacity-0 transition-opacity group-hover/row:opacity-100" />
                   <Checkbox aria-label={`A column for ${label(id)}`} checked={checked.includes(id)} disabled={atCap} title={atCap ? "Four at most" : undefined} onCheckedChange={() => onCheck(id)} />
                   {!stacked && star}
+                  {!stacked && blockBtn}
                   <Marker on={imp} onToggle={() => onImportant(id)} />
                 </span>
                 {stacked ? (
@@ -272,7 +296,10 @@ export function SegmentList({
                       <span className="truncate text-xs text-muted-foreground">
                         {foot ? `${scale ? `${scale} · ` : ""}${foot.waves} ${foot.waves === 1 ? "wave" : "waves"}` : ""}
                       </span>
-                      <span className="ml-auto">{star}</span>
+                      <span className="ml-auto flex items-center gap-2" onClick={(event) => event.stopPropagation()}>
+                        {blockBtn}
+                        {star}
+                      </span>
                     </span>
                   </span>
                 ) : (

@@ -129,17 +129,23 @@ export function RowsView({
         </div>
       )}
 
+      {/* A pill prints only where there is something to pick: one wave, one
+          band or no subgroups leaves nothing to filter. */}
       <div className="flex h-11 shrink-0 items-center gap-2 overflow-hidden border-b px-4">
-        <span className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Filter</span>
-        <Pill label="Wave" value={wave} display={wave} onPick={setWave} items={order.waves.map((w) => ({ value: w, label: w }))} />
-        <Pill
-          label="Segment"
-          value={segment}
-          display={segment === "total" ? "total" : segment}
-          onPick={setSegment}
-          items={[{ value: "total", label: "Total only" }, ...order.segments.map((s) => ({ value: s, label: s }))]}
-        />
-        <Pill label="Band" value={band} display={band} onPick={setBand} items={order.bands.map((b) => ({ value: b, label: b }))} />
+        {(order.waves.length > 1 || order.segments.length > 0 || order.bands.length > 1) && (
+          <span className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Filter</span>
+        )}
+        {order.waves.length > 1 && <Pill label="Wave" value={wave} display={wave} onPick={setWave} items={order.waves.map((w) => ({ value: w, label: w }))} />}
+        {order.segments.length > 0 && (
+          <Pill
+            label="Segment"
+            value={segment}
+            display={segment === "total" ? "total" : segment}
+            onPick={setSegment}
+            items={[{ value: "total", label: "Total only" }, ...order.segments.map((s) => ({ value: s, label: s }))]}
+          />
+        )}
+        {order.bands.length > 1 && <Pill label="Band" value={band} display={band} onPick={setBand} items={order.bands.map((b) => ({ value: b, label: b }))} />}
         {header ? <div className="ml-auto flex shrink-0 items-center">{trailing}</div> : note}
       </div>
 

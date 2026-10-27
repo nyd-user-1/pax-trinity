@@ -128,16 +128,36 @@ export const mnemonicOf = (id: string) => MNEMONIC[id] ?? id.toUpperCase()
  *  a different administration — the card says so after the wording. */
 export const WEB_GRID = new Set(["abanyg", "abdefectg", "abhlthg", "abnomoreg", "abpoorg", "abrapeg", "absingleg"])
 
-/** The codebook ships battery items with their stem in parentheses —
- *  "(Do you agree or disagree that . . .) Overall, I expect…" — which reads
- *  as markup, not a question. For display the stem fuses into the sentence:
- *  parens dropped, a trailing ellipsis in the stem removed, the item joined
- *  on. The stored wording stays verbatim; this is the card's read of it. */
+/** The codebook ships questions wearing interviewer markup — "(Do you agree
+ *  or disagree that . . .) Overall…", "[Besides the regular, weekly worship
+ *  service,] What type…", "[Do you/Does someone in your household] belong…",
+ *  a trailing "(Would you say...)" or "First mention". For display the
+ *  question reads as one clean sentence: stems fuse in, an alternation takes
+ *  its household form, interviewer fragments drop. The stored wording stays
+ *  verbatim; this is the card's read of it. */
 export function normalizeWording(w: string): string {
-  const m = w.match(/^\s*\(([^)]+)\)\s*(.*)$/s)
-  if (!m || !m[2]) return w
-  const stem = m[1].replace(/\s*(\.{3}|…|\.\s?\.\s?\.)\s*$/, "").trim()
-  return `${stem} ${m[2].trim()}`.replace(/\s+/g, " ")
+  let t = w
+  // [A/B]: the interviewer picks per respondent; the card reads the last form.
+  t = t.replace(/\[([^\]]*\/[^\]]*)\]/g, (_, inner: string) => (inner.split("/").pop() ?? "").trim())
+  // A bracketed lead-in fuses into the sentence; after a mid-sentence comma the next word lowercases.
+  const b = t.match(/^\s*\[([^\]]+)\]\s*(.+)$/s)
+  if (b) {
+    const lead = b[1].trim()
+    t = /[.?!]$/.test(lead) ? `${lead} ${b[2]}` : `${lead} ${b[2].charAt(0).toLowerCase()}${b[2].slice(1)}`
+  }
+  // A leading parenthetical stem fuses, its trailing ellipsis dropped; an unclosed one sheds the bare paren.
+  const m = t.match(/^\s*\(([^)]+)\)\s*(.+)$/s)
+  if (m) {
+    const stem = m[1].replace(/\s*(\.{3}|…|\.\s?\.\s?\.)\s*$/, "").trim()
+    t = `${stem} ${m[2].trim()}`
+  } else if (t.trimStart().startsWith("(")) {
+    t = t.trimStart().slice(1)
+  }
+  // Trailing interviewer fragments: "(Would you say...)" and mention marks.
+  t = t.replace(/\s*\([^)]*(\.{3}|…)\s*\)\s*$/, "").replace(/\s+\d*\.?\s*(First|Second|Third) mention\.?$/i, "")
+  // An inline fill ellipsis — "abortion if. . . The woman wants it" — fuses, the next word lowercased.
+  t = t.replace(/\s*(?:\.\s?\.\s?\.|\.{3}|…)\s*([A-Za-z])/g, (_, ch: string) => ` ${ch.toLowerCase()}`)
+  return t.replace(/\s+/g, " ").trim()
 }
 
 /** The scale family a question's own bands reveal — the type badge beside the mnemonic. */
