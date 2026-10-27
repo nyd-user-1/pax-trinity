@@ -34,6 +34,8 @@ export interface Arm {
   nWeighted: number
   clipId?: string                  // the clips catalog id when the video is in the library
   watchUrl?: string
+  reviewUrl?: string               // the "Review copy" link, when printed beside the tested file
+  sourceTitle?: string             // the video's title in the source report, as printed
   note?: string                    // the video card's descriptive line, as printed
 }
 
@@ -65,6 +67,7 @@ export interface SubgroupDimension {
   whatItShows: string              // the "What the chart shows" text, as printed
   howToRead: string                // the "How to read it" text, as printed
   markedOfCells?: { marked: number; of: number }  // the printed "Marked vs placebo: X of Y cells" checksum
+  shareDerivation?: Derivation     // how the categories' sharePct were obtained (≈ prints from it)
   categories: SubgroupCategory[]
 }
 
