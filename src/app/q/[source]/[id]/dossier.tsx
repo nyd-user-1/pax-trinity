@@ -463,7 +463,7 @@ function UsedBy({ text, ready }: { text: string; ready: boolean }) {
       <CardLabel>Used by</CardLabel>
       <p className="text-sm">
         Item {item} in the{" "}
-        <Link href="/consensus/admin" className="text-pax2-light-blue underline">
+        <Link href="/consensus?tab=admin" className="text-pax2-light-blue underline">
           draft survey
         </Link>
       </p>
