@@ -96,7 +96,10 @@ export function AudienceInbox() {
       const t = topicOf(topicsByQ.get(q.question)) ?? UNTAGGED
       counts.set(t, (counts.get(t) ?? 0) + 1)
     }
-    const rows = TOPIC_GROUPS.map((g) => ({ topic: g.topic, count: counts.get(g.topic) ?? 0 })).filter((r) => r.count > 0)
+    // A–Z (Brendan, 2026-10-27); the untagged remainder holds the last row.
+    const rows = TOPIC_GROUPS.map((g) => ({ topic: g.topic, count: counts.get(g.topic) ?? 0 }))
+      .filter((r) => r.count > 0)
+      .sort((a, b) => a.topic.localeCompare(b.topic, "en", { sensitivity: "base" }))
     const un = counts.get(UNTAGGED)
     if (un) rows.push({ topic: UNTAGGED, count: un })
     return rows
