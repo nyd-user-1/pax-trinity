@@ -64,8 +64,8 @@ export interface SubgroupDimension {
   selfSelected?: boolean           // chosen by the respondent, not assigned (media trust)
   askedBeforeExposure?: boolean
   needsVerification?: string       // e.g. "Exact question stem not printed in the report"
-  whatItShows: string              // the "What the chart shows" text, as printed
-  howToRead: string                // the "How to read it" text, as printed
+  whatItShows?: string             // the "What the chart shows" text, as printed; absent = not printed that wave
+  howToRead?: string               // the "How to read it" text, as printed; absent = not printed that wave
   markedOfCells?: { marked: number; of: number }  // the printed "Marked vs placebo: X of Y cells" checksum
   shareDerivation?: Derivation     // how the categories' sharePct were obtained (≈ prints from it)
   categories: SubgroupCategory[]
