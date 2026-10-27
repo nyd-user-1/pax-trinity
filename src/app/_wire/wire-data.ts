@@ -109,10 +109,17 @@ export function baseGeoOf(rows: SourceRow[], level: (code: string) => string | u
   return best ?? "US"
 }
 
+/** The wireframes' band for a question, where every option it names is one the question carries. */
+export function seededBand(id: string, options: Iterable<string>, seed: Record<string, { label: string; options: string[] }> = HEADLINE): Band | null {
+  const have = new Set(options)
+  const s = seed[id]
+  return s && s.options.every((o) => have.has(o)) ? { ...s, seeded: true } : null
+}
+
 export function bandOf(id: string, rows: SourceRow[], geo: string, seed: Record<string, { label: string; options: string[] }> = HEADLINE): Band {
   const have = new Set(rows.map((r) => r[4]).filter((o): o is string => o != null))
-  const s = seed[id]
-  if (s && s.options.every((o) => have.has(o))) return { ...s, seeded: true }
+  const s = seededBand(id, have, seed)
+  if (s) return s
   // The largest option at the geography's latest total.
   const type = typeOf(rows)
   const top = rows.filter((r) => r[1] === geo && !r[5] && r[8] === type && r[4] != null)
