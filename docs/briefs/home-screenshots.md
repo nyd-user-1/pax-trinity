@@ -56,3 +56,10 @@ Only `public/products/*.png` changed.
 2. **Message Tests shows `/lift`'s tests, not the box's own link** (`/test/open-primaries-1`). That flow posts a start record to the live responses table the moment Start is pressed, and its first screen is a bare card. The admin page `/message-tests/open-primaries-1` prints a localhost entry link and shows 3 completes.
 3. **Two big files.** Clips and Partners are 2.5 and 2.8 MB, from the video thumbnails. The repo already ships PNGs of this size, and a dialog loads its image only when opened. No PNG optimizer is on this machine; AVIF, as the older products use, would need the card's `shots` set instead of the fallback.
 4. **What the shots show as the app is.** Clips prints "Sign in to like or comment" and "Log in": the client session isn't set on dev, though the server treats local as admin. Polls' Geo column prints state codes (25, 08, 46). Lift Benchmarks' treatments are the archive's hashed ad ids.
+
+### Lead's rulings
+
+1. **Scripts stands.** The Script block is the built thing; the shot shows what exists. When Scripts gets its own page, the shot gets re-taken, not the box re-labeled.
+2. **Message Tests via /lift approved** — right call refusing the flow that writes a live response record for a screenshot.
+3. **The two big files are downscaled, not re-formatted.** ProductShot renders a plain img, so the PNG ships whole on open; clips and partners resampled from 2880 to 1600 wide (2.5/2.8 MB → 1.2 each), still past the frame's 1280 device pixels. AVIF via `shots` stays available if Brendan wants them smaller.
+4. **The app-as-is details noted** (dev sign-in chip on Clips, state-code Geo cells, hashed ad ids) — surface polish for the queue, not the shots' problem.
