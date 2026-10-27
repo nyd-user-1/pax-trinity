@@ -145,9 +145,9 @@ export type Point = {
 /** A band's series in one cell (a geography, the total or one subgroup):
  *  one point per year, the latest period within it, a multi-option band
  *  summed where every option stands in that period. */
-export function seriesOf(rows: SourceRow[], band: Band, geo: string, dim: string | null = null, val: string | null = null): Point[] {
+export function seriesOf(rows: SourceRow[], band: Band, geo: string, dim: string | null = null, val: string | null = null, as?: string): Point[] {
   if (!band.options.length) return []
-  const type = typeOf(rows)
+  const type = as ?? typeOf(rows)
   const want = new Set(band.options)
   const byEnd = new Map<string, SourceRow[]>()
   for (const r of rows) {
