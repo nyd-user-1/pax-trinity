@@ -13,7 +13,7 @@ import { TooltipProvider } from "@govblock/ui/components/ny4/tooltip"
 
 import { AboutPanel, BackButton, type About } from "../audience/audience-pane"
 import { AudienceRows } from "../audience/audience-rows"
-import { buildInfo, fetchQuestionRows, groupSources, mnemonicOf, normalizeWording, shortSource, WORDING, type AudienceIndex, type MetricInfo, type QuestionSummary, type SourceRow } from "../audience/audience-data"
+import { buildInfo, fetchQuestionRows, groupSources, mnemonicOf, normalizeWording, shortSource, topicOf, UNTAGGED, TOPIC_GROUPS, WORDING, type AudienceIndex, type MetricInfo, type QuestionSummary, type SourceRow } from "../audience/audience-data"
 import { SourceRail } from "./source-rail"
 import { QuestionTable } from "./question-table"
 import { SegmentList, type ListTab, type Split } from "./segment-list"
@@ -28,7 +28,9 @@ import { SegmentGrid } from "./segment-grid"
 
 export function AudienceInbox() {
   const [index, setIndex] = React.useState<AudienceIndex | null>(null)
+  // One thing is open in the rail at a time: a topic (the lead view) or a folder.
   const [source, setSource] = React.useState<string | null>(null)
+  const [topic, setTopic] = React.useState<string | null>(null)
   // The questions read so far, each from its own file (Brief S), keyed source/id.
   const [cache, setCache] = React.useState<Record<string, SourceRow[]>>({})
   const pending = React.useRef(new Set<string>())
@@ -82,18 +84,38 @@ export function AudienceInbox() {
     }
   }, [])
 
-  // The rail's first folder opens first. (Until 2026-10-26 the smallest
-  // source did, a load-cost habit the performance scoping retired.)
-  React.useEffect(() => {
-    if (!source && groups.length) setSource(groups[0].source)
-  }, [groups, source])
+  // Each question's publisher tags, by id, for the topic collapse.
+  const topicsByQ = React.useMemo(() => new Map((index?.constructs ?? []).filter((c) => c.topics).map((c) => [c.construct, c.topics as string[]])), [index])
+  // The rail's topics: the collapse counted across the whole bank, the
+  // untagged remainder last — honest until ANES and CES tags land (Brief T).
+  const topicRows = React.useMemo(() => {
+    const out = new Set(["LIFT_ARCHIVE", "PAX_TEST"])
+    const counts = new Map<string, number>()
+    for (const q of index?.questions ?? []) {
+      if (out.has(q.source)) continue
+      const t = topicOf(topicsByQ.get(q.question)) ?? UNTAGGED
+      counts.set(t, (counts.get(t) ?? 0) + 1)
+    }
+    const rows = TOPIC_GROUPS.map((g) => ({ topic: g.topic, count: counts.get(g.topic) ?? 0 })).filter((r) => r.count > 0)
+    const un = counts.get(UNTAGGED)
+    if (un) rows.push({ topic: UNTAGGED, count: un })
+    return rows
+  }, [index, topicsByQ])
 
-  // The list comes from the index alone (Brief S): a source's questions in the
-  // export's order, each with its span, waves and bands. No source file is read.
-  const summaries = React.useMemo(
-    () => new Map((index?.questions ?? []).filter((q) => q.source === source).map((q) => [q.question, q] as const)),
-    [index, source]
-  )
+  // The rail's first topic opens first; the folders wait at the bottom.
+  React.useEffect(() => {
+    if (!source && !topic && topicRows.length) setTopic(topicRows[0].topic)
+  }, [topicRows, source, topic])
+
+  // The list comes from the index alone (Brief S): a topic's questions across
+  // every source, or an open folder's, each with its span, waves and bands.
+  const summaries = React.useMemo(() => {
+    const out = new Set(["LIFT_ARCHIVE", "PAX_TEST"])
+    const qs = (index?.questions ?? []).filter((q) =>
+      topic ? !out.has(q.source) && (topicOf(topicsByQ.get(q.question)) ?? UNTAGGED) === topic : q.source === source
+    )
+    return new Map(qs.map((q) => [q.question, q] as const))
+  }, [index, source, topic, topicsByQ])
   // Every source that asks a question: opening it reads all of them, so the
   // About panel can set the same question beside its other sources.
   const homes = React.useMemo(() => {
@@ -108,22 +130,24 @@ export function AudienceInbox() {
   )
 
   React.useEffect(() => {
-    if (!source) return
-    for (const id of wanted)
-      for (const s of homes.get(id) ?? [source]) {
+    if (!source && !topic) return
+    for (const id of wanted) {
+      const home = summaries.get(id)?.source ?? source
+      for (const s of homes.get(id) ?? (home ? [home] : [])) {
         const key = `${s}/${id}`
         if (cache[key] || pending.current.has(key)) continue
         pending.current.add(key)
         fetchQuestionRows(s, id)
           .then((data) => setCache((prev) => ({ ...prev, [key]: data })))
           .catch((e: Error) => {
-            if (s === source) setRowsError(e.message)
+            if (s === home) setRowsError(e.message)
           })
           .finally(() => pending.current.delete(key))
       }
-  }, [wanted, source, homes, cache])
+    }
+  }, [wanted, source, topic, homes, summaries, cache])
 
-  // A new source starts the read over.
+  // A new topic or folder starts the read over.
   React.useEffect(() => {
     setRowsError(null)
     setFocus(null)
@@ -131,7 +155,7 @@ export function AudienceInbox() {
     setAbout(null)
     setTab("all")
     setTableMetric(null)
-  }, [source])
+  }, [source, topic])
 
   const labels = React.useMemo(() => new Map((index?.constructs ?? []).map((c) => [c.construct, c.label])), [index])
   // The export's verbatim wording first (Brief P), the hand seeds second, nothing third.
@@ -141,11 +165,25 @@ export function AudienceInbox() {
   const geoLevel = React.useMemo(() => new Map((index?.geographies ?? []).map((g) => [g.code, g.level])), [index])
   const label = React.useCallback((id: string) => labels.get(id) ?? id, [labels])
   const wordingOf = React.useCallback((id: string) => wordings.get(id) ?? WORDING[id] ?? null, [wordings])
+  /** The row chip's topic: the question's tags through the collapse. */
+  const topicChipOf = React.useCallback((id: string) => topicOf(topicsByQ.get(id)), [topicsByQ])
   const place = React.useCallback((code: string) => geoName.get(code) ?? code, [geoName])
 
+  // A question's home source: its own (a topic spans sources), the open folder's otherwise.
+  const srcOf = React.useCallback((id: string) => summaries.get(id)?.source ?? source, [summaries, source])
   // The rows of the questions on screen that have arrived, in the source file's order.
-  const rows = React.useMemo(() => wanted.flatMap((id): SourceRow[] => (source ? (cache[`${source}/${id}`] ?? []) : [])), [source, wanted, cache])
-  const loaded = (id: string | null) => !!id && !!source && !!cache[`${source}/${id}`]
+  const rows = React.useMemo(
+    () =>
+      wanted.flatMap((id): SourceRow[] => {
+        const s = srcOf(id)
+        return s ? (cache[`${s}/${id}`] ?? []) : []
+      }),
+    [srcOf, wanted, cache]
+  )
+  const loaded = (id: string | null) => {
+    const s = id ? srcOf(id) : null
+    return !!id && !!s && !!cache[`${s}/${id}`]
+  }
   // Every question read so far, grouped by source, for the About panel's comparison.
   const files = React.useMemo(() => {
     const by: Record<string, SourceRow[]> = {}
@@ -157,8 +195,8 @@ export function AudienceInbox() {
   }, [cache])
   const metricIds = React.useMemo(() => {
     const all = [...summaries.keys()]
-    if (source !== "GSS") return all
-    // The full GSS library (the review slice retired once Brief P's wordings
+    if (source !== "GSS" && !topic) return all
+    // The full library (the review slice retired once Brief P's wordings
     // landed), A–Z by what the card shows — the wording where one exists — so
     // the reading order matches the visible text, not the hidden label.
     const text = (id: string) => normalizeWording(wordingOf(id) ?? label(id))
@@ -166,7 +204,7 @@ export function AudienceInbox() {
       .map((id) => [text(id), id] as const)
       .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([, id]) => id)
-  }, [summaries, source, label, wordingOf])
+  }, [summaries, source, topic, label, wordingOf])
   const info = React.useMemo(() => buildInfo(rows, geoLevel), [rows, geoLevel])
 
   // A clicked question opens the flat table scoped to its rows (Brendan,
@@ -205,6 +243,7 @@ export function AudienceInbox() {
       metricIds={metricIds}
       label={label}
       wordingOf={wordingOf}
+      topicOf={topicChipOf}
       selected={tableMetric ?? focus}
       checked={checked}
       pinned={pinned}
@@ -237,10 +276,18 @@ export function AudienceInbox() {
 
   const railNode = (
     <SourceRail
+      topics={topicRows}
+      topic={topic}
       groups={groups}
       source={source}
+      onTopic={(t) => {
+        setTopic(t)
+        setSource(null)
+        setMode("list")
+      }}
       onSource={(s) => {
         setSource(s)
+        setTopic(null)
         setMode("list")
       }}
     />
@@ -250,7 +297,9 @@ export function AudienceInbox() {
     <div className="flex h-full flex-col items-center px-8 py-16 text-center">
       <p className="text-lg">No segment selected</p>
       <p className="mt-3 text-sm text-muted-foreground">
-        {source ? `${metricIds.length.toLocaleString("en-US")} segments in ${shortSource(source)}; the box on a row is its column, the star pins it.` : "Pick a source from the rail."}
+        {source || topic
+          ? `${metricIds.length.toLocaleString("en-US")} questions in ${source ? shortSource(source) : topic}; the box on a row is its column, the star pins it.`
+          : "Pick a topic from the rail."}
       </p>
     </div>
   )
@@ -336,8 +385,8 @@ export function AudienceInbox() {
                       metric={tableMetric}
                       place={place}
                       info={info.get(tableMetric) as MetricInfo}
-                      short={source ? shortSource(source) : ""}
-                      source={source}
+                      short={srcOf(tableMetric) ? shortSource(srcOf(tableMetric) as string) : ""}
+                      source={srcOf(tableMetric)}
                       wording={wordingOf(tableMetric)}
                       about={about}
                       onPick={setAbout}
@@ -347,7 +396,7 @@ export function AudienceInbox() {
                   )}
                 </ResizablePanel>
               </ResizablePanelGroup>
-              {about && <AboutPanel about={about} onClose={() => setAbout(null)} source={source} groups={groups} files={files} info={info} label={label} place={place} geoLevel={geoLevel} />}
+              {about && <AboutPanel about={about} onClose={() => setAbout(null)} source={tableMetric ? srcOf(tableMetric) : source} groups={groups} files={files} info={info} label={label} place={place} geoLevel={geoLevel} />}
               {blocksPanel}
             </div>
           ) : mode === "table" ? (
@@ -375,7 +424,7 @@ export function AudienceInbox() {
                       <Reading error={rowsError} />
                     ) : focus || checked.length ? (
                       <SegmentGrid
-                        key={source}
+                        key={source ?? topic ?? ""}
                         rows={rows}
                         info={info}
                         checked={checked}
@@ -395,7 +444,7 @@ export function AudienceInbox() {
                   </ResizablePanel>
                 )}
               </ResizablePanelGroup>
-              {about && <AboutPanel about={about} onClose={() => setAbout(null)} source={source} groups={groups} files={files} info={info} label={label} place={place} geoLevel={geoLevel} />}
+              {about && <AboutPanel about={about} onClose={() => setAbout(null)} source={focus ? srcOf(focus) : source} groups={groups} files={files} info={info} label={label} place={place} geoLevel={geoLevel} />}
               {blocksPanel}
             </div>
           )}

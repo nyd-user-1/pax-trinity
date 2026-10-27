@@ -70,6 +70,7 @@ export function SegmentList({
   metricIds,
   label,
   wordingOf,
+  topicOf,
   selected,
   checked,
   pinned,
@@ -96,6 +97,8 @@ export function SegmentList({
   label: (id: string) => string
   /** The question's verbatim wording where the bank carries one. */
   wordingOf: (id: string) => string | null
+  /** The question's collapsed topic — the rail's vocabulary, worn as the row's tag. */
+  topicOf: (id: string) => string | null
   selected: string | null
   checked: string[]
   pinned: string[]
@@ -232,6 +235,13 @@ export function SegmentList({
             const foot = spanOf(c)
             const scale = scaleOf(c?.options ?? [])
             const imp = important.includes(id)
+            const topicName = topicOf(id)
+            // The topic chip, Gmail's label: the rail's word on the row, before the mnemonic.
+            const topicChip = topicName && (
+              <span className="max-w-44 shrink-0 truncate rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground" title={topicName}>
+                {topicName}
+              </span>
+            )
             const blockBtn = (
               <Tip label="Add to blocks">
                 <button
@@ -289,6 +299,7 @@ export function SegmentList({
                 {stacked ? (
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <span className="flex items-center gap-2">
+                      {topicChip}
                       <span className="max-w-40 shrink-0 truncate rounded-full border px-2 py-0.5 text-[10px] font-medium tracking-wider text-muted-foreground" title={mnemonicOf(id)}>
                         {mnemonicOf(id)}
                       </span>
@@ -323,6 +334,7 @@ export function SegmentList({
                         </span>
                       )}
                     </span>
+                    {topicChip}
                     {/* The mnemonic as a chip just before the year (Brendan, 2026-10-26). */}
                     <span className="max-w-40 shrink-0 truncate rounded-full border px-2 py-0.5 text-[10px] font-medium tracking-wider text-muted-foreground" title={mnemonicOf(id)}>
                       {mnemonicOf(id)}
