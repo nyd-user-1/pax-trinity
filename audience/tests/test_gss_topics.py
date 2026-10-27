@@ -50,7 +50,14 @@ def test_the_fetch_resumes_where_it_stopped(tmp_path, monkeypatch):
         "1": {"subject": ["GSS Next"], "module": ["GSS Next"]}}
     monkeypatch.setattr(gt, "_details", lambda vid: pytest.fail("refetched a cached page"))
     assert gt.subjects(tmp_path)["a"] == ["GSS Next"]
-    assert gt.modules(tmp_path) == {"GSS Next"}
+    assert gt.provenance(tmp_path) == {"a": "page: the module's name", "b": "list", "c": "list",
+                                       "d": "list"}
+    cons = {"one": ["a"], "two": ["b"], "none": ["e"]}
+    gt.write_report(cons, gt.topics(cons, gt.subjects(tmp_path)), tmp_path / "report.json",
+                    gt.provenance(tmp_path))
+    report = json.loads((tmp_path / "report.json").read_text())
+    assert report["tagged_from"] == {"page: the module's name": 1, "list": 1}
+    assert report["tagged_by_module_name"] == ["one"] and report["untagged"] == ["none"]
 
 
 def test_a_repeated_tag_appears_once():

@@ -30,8 +30,8 @@ with citation (NORC); the Explorer states no other terms for these routes.
 A construct's topics are its variable's subjects exactly as the Explorer gives them: the
 list's, or where the list has none, the page's. For many variables first asked since 2010 the
 page's subject is the name of the module that asked it (GSS Next, ISSP Digital Societies);
-those carry through verbatim, and reports/gss_topics.json names every tag that is also a
-module name. A tag the source repeats appears once. A harmonized construct pooling several
+those carry through verbatim, and reports/gss_topics.json names every construct tagged
+that way. A tag the source repeats appears once. A harmonized construct pooling several
 variables takes all of theirs in the order they first appear; a construct whose variables
 carry no subject has no topics.
 """
@@ -173,16 +173,25 @@ def subjects(raw_dir: Path | None = None, refresh: bool = False) -> dict[str, li
     return out
 
 
-def modules(raw_dir: Path | None = None) -> set[str]:
-    """Every module name the Explorer's records carry, list and pages alike."""
+def provenance(raw_dir: Path | None = None) -> dict[str, str]:
+    """mnemonic (lowercased) -> where its subjects come from: "list", "page", or "page: the
+    module's name" where the page's subject is only the name of the module that asked it."""
     d = gss._dirs(raw_dir)
-    names: set[str] = set()
-    for f in (d / SUBJECTS, d / DETAILS):
-        if f.exists():
-            data = json.loads(f.read_text())
-            for v in (data.values() if isinstance(data, dict) else data):
-                names.update(m for m in (v.get("module") or []) if m)
-    return names
+    if not (d / SUBJECTS).exists():
+        return {}
+    pages = json.loads((d / DETAILS).read_text()) if (d / DETAILS).exists() else {}
+    out: dict[str, str] = {}
+    for v in json.loads((d / SUBJECTS).read_text()):
+        page = pages.get(str(v["id"])) or {}
+        if _tags(v.get("subject")):
+            where = "list"
+        elif _tags(page.get("subject")):
+            named = set(_tags(page.get("subject"))) <= set(page.get("module") or [])
+            where = "page: the module's name" if named else "page"
+        else:
+            continue
+        out.setdefault(v["name"].lower(), where)
+    return out
 
 
 def topics(constructs: dict[str, list[str]], by_var: dict[str, list[str]]) -> dict[str, list[str]]:
@@ -215,19 +224,22 @@ def write(store: Store, found: dict[str, list[str]], constructs) -> int:
 
 
 def write_report(constructs: dict[str, list[str]], found: dict[str, list[str]], path: Path,
-                 module_names: set[str] = frozenset()) -> None:
+                 where: dict[str, str] | None = None) -> None:
     from collections import Counter
 
+    where = where or {}
     tally = Counter(t for tags in found.values() for t in tags)
+    source = {c: sorted({where.get(v, where.get(f"{v}_", "")) for v in gvars} - {""})
+              for c, gvars in constructs.items() if c in found}
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps({
         "constructs": len(constructs), "tagged": len(found),
+        "tagged_from": dict(Counter(", ".join(v) for v in source.values()).most_common()),
         "untagged": sorted(set(constructs) - set(found)),
         "vocabulary": len(tally),
         "tags": dict(tally.most_common()),
-        "tags_that_are_module_names": {t: n for t, n in tally.most_common() if t in module_names},
-        "only_module_named_tags": sorted(c for c, tags in found.items()
-                                         if all(t in module_names for t in tags)),
+        "tagged_by_module_name": sorted(c for c, v in source.items()
+                                        if v == ["page: the module's name"]),
         "pooled": {c: found.get(c, []) for c, v in constructs.items() if len(v) > 1},
     }, ensure_ascii=False, indent=1))
 
@@ -243,7 +255,7 @@ def run(store: Store, refresh: bool = False, raw_dir: Path | None = None,
     found = topics(constructs, by_var)
     written = write(store, found, constructs)
     if report:
-        write_report(constructs, found, REPORT, modules(raw_dir))
+        write_report(constructs, found, REPORT, provenance(raw_dir))
     where = " (reports/gss_topics.json)" if report else ""
     print(f"GSS topics: {written:,} of {len(constructs):,} constructs tagged; "
           f"{len(constructs) - written:,} without{where}")
