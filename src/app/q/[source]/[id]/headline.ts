@@ -16,6 +16,13 @@ export function inSentence(band: string, wording: string | null) {
   return new RegExp(`\\b${w.toLowerCase()}\\b`).test(wording) ? band.charAt(0).toLowerCase() + band.slice(1) : band
 }
 
+/** A sentence's first word capitalized. */
+export const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1)
+
+/** Whether the headline may open "On {subject},": not when the subject is itself a question
+ *  ("On how well has volunteer military worked?, 62.8%…"); the sentence then starts at the value. */
+export const leadsWithSubject = (subject: string) => !/\?\s*$/.test(subject)
+
 export type Clauses = {
   attitude: boolean
   /** The latest value as it prints ("62.8%"). */
@@ -46,6 +53,6 @@ export function snippetOf(source: string, id: string, rows: SourceRow[], wording
   const latest = total[total.length - 1]
   if (!latest) return null
   const c = clausesOf({ source, band, wording, geo, place: geo === "US" ? "the United States" : placeOf(geo), latest, base: baseWave(total) })
-  const open = c.attitude ? `${c.value} of ${c.who} answer ${c.band}.` : `${c.band.charAt(0).toUpperCase()}${c.band.slice(1)} stands at ${c.value} in ${c.place}.`
+  const open = c.attitude ? `${c.value} of ${c.who} answer ${c.band}.` : `${cap(c.band)} stands at ${c.value} in ${c.place}.`
   return c.move ? `${open} That is ${c.move.word} from ${c.move.was} in ${c.move.year}.` : open
 }

@@ -9,7 +9,7 @@ import { Button } from "@govblock/ui/components/nova/button"
 
 import { dimLabel, mnemonicOf, normalizeWording, num, shortSource, WORDING, type SourceRow } from "../../../audience/audience-data"
 import { Card, CardLabel, Gap, pillClass, Tag } from "../../../_wire/wire-bits"
-import { clausesOf } from "./headline"
+import { cap, clausesOf, leadsWithSubject } from "./headline"
 import {
   bandOf,
   baseGeoOf,
@@ -287,13 +287,25 @@ function Headline({
   const v = <strong className="font-semibold">{c.value}</strong>
   // "Confidence in Congress" reads "confidence in Congress"; an acronym ("ACA support") keeps its case.
   const subject = /^[A-Z][a-z]/.test(label) ? label.charAt(0).toLowerCase() + label.slice(1) : label
+  // A subject that is itself a question cannot lead "On …,": the sentence starts at the value.
+  const on = leadsWithSubject(label)
   const lead = c.attitude ? (
+    on ? (
+      <>
+        On {subject}, {v} of {c.who} answer {b}.
+      </>
+    ) : (
+      <>
+        {v} of {c.who} answer {b}.
+      </>
+    )
+  ) : on ? (
     <>
-      On {subject}, {v} of {c.who} answer {b}.
+      On {subject}, {b} stands at {v} in {place}.
     </>
   ) : (
     <>
-      On {subject}, {b} stands at {v} in {place}.
+      <strong className="font-semibold">{cap(c.band)}</strong> stands at {v} in {place}.
     </>
   )
   // Where the latest wave sits among all of them; ties count as one rank.
