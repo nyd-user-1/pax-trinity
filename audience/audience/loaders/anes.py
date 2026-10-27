@@ -453,6 +453,7 @@ def run(store: Store, refresh: bool = False, raw_dir: Path | None = None,
         store.touch_source(SOURCE)
         years = sorted({r["period_start"].year for r in rows})
         print(f"{version}: {written} rows, {len(years)} study years {years[0]}-{years[-1]}")
+        _topics(store, raw_dir, report=False)
         return written
     import pyreadstat
 
@@ -470,4 +471,13 @@ def run(store: Store, refresh: bool = False, raw_dir: Path | None = None,
                                      min_n=min_n)
     bulk_shared.write_response_order(store, SOURCE, {**cdf["orders"], **study.get("orders", {})})
     write_report(dict(cdf, harmonized_rows=harmonized), study)
+    _topics(store, raw_dir, report=True)
     return written + study_written
+
+
+def _topics(store: Store, raw_dir: Path | None, report: bool) -> None:
+    """The subjects of the constructs just written (anes_topics.py); imported here because
+    anes_topics imports this module."""
+    from . import anes_topics
+
+    anes_topics.run(store, raw_dir=raw_dir, report=report)

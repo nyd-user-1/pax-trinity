@@ -23,8 +23,10 @@ MAX_BYTES is split into <source>-2.json, <source>-3.json, ..., each listed in in
 its own entry. constructs lists those with exported rows; geographies lists US, STATE,
 COUNTY and TOWN. A constructs entry carries wording, the verbatim GSS question text, where
 concordance.gss_wording holds one (audience/loaders/gss_wording.py); the key is absent elsewhere.
-Likewise topics, the GSS Data Explorer's subjects in its order, from concordance.gss_topics
-(audience/loaders/gss_topics.py).
+Likewise topics, the publisher's own subject tags in its order: the GSS Data Explorer's
+(concordance.gss_topics, audience/loaders/gss_topics.py), ANES's CDF variable list
+(anes_topics) and the cumulative CES guide (ces_topics); a construct several sources serve takes
+theirs in that order, each tag once.
 
 families is the construct layer (migration 009, audience/construct_layer.py), named so that
 constructs keeps meaning what it means: each construct groups the questions that measure one
@@ -59,9 +61,17 @@ ROW_FIELDS = ("construct", "geo_code", "period_start", "period_end", "response_o
               "n", "provenance_url")
 
 
+TOPIC_COLUMNS = ("gss_topics", "anes_topics", "ces_topics")
+
+
 def _as_list(v) -> list:
     """An array column as read: a JSON string on DuckDB, a list on Postgres."""
     return [] if v is None else list(json.loads(v)) if isinstance(v, str) else list(v)
+
+
+def _topics(columns) -> list[str]:
+    """A construct's tags from every source's column, in TOPIC_COLUMNS order, each once."""
+    return list(dict.fromkeys(t for col in columns for t in _as_list(col)))
 
 
 def _round(value, estimate_type: str):
@@ -180,14 +190,14 @@ def export(store: Store, out: Path = OUT) -> dict:
             questions.append(question_summary(source, construct, rows[start:end]))
             start = end
     worded = store.column_exists("concordance", "gss_wording")
-    tagged = store.column_exists("concordance", "gss_topics")
+    tag_cols = [c for c in TOPIC_COLUMNS if store.column_exists("concordance", c)] or ["NULL"]
     constructs = [
         {"construct": c, "label": label, "definition": definition,
          **({"wording": wording} if wording else {}),
-         **({"topics": _as_list(topics)} if _as_list(topics) else {})}
-        for c, label, definition, wording, topics in store.query(
+         **({"topics": _topics(tags)} if _topics(tags) else {})}
+        for c, label, definition, wording, *tags in store.query(
             f"SELECT construct, label, definition, {'gss_wording' if worded else 'NULL'}, "
-            f"{'gss_topics' if tagged else 'NULL'} "
+            f"{', '.join(tag_cols)} "
             "FROM concordance WHERE construct IN "
             "(SELECT DISTINCT construct FROM norms WHERE geography <> 'BLOCKGROUP') ORDER BY 1")]
     placeholders = ", ".join("?" for _ in LEVELS)

@@ -221,14 +221,17 @@ def topics(constructs: dict[str, list[str]], by_var: dict[str, list[str]]) -> di
     return found
 
 
-def write(store: Store, found: dict[str, list[str]], constructs) -> int:
-    """Replace the GSS topics: those found set, every other GSS construct's cleared."""
+def write(store: Store, found: dict[str, list[str]], constructs,
+          column: str = "gss_topics") -> int:
+    """Replace one source's topics column: those found set, every other construct of the
+    source cleared. anes_topics.py and ces_topics.py write theirs through here too."""
+    assert column in ("gss_topics", "anes_topics", "ces_topics")
     pairs = [(c, found.get(c)) for c in constructs]
     with store.transaction():
         for i in range(0, len(pairs), 500):
             part = pairs[i:i + 500]
             store.execute(
-                "UPDATE concordance SET gss_topics = v.t FROM (VALUES "
+                f"UPDATE concordance SET {column} = v.t FROM (VALUES "
                 + ", ".join("(?, ?)" for _ in part)
                 + ") AS v(c, t) WHERE concordance.construct = v.c",
                 [x for c, t in part for x in (c, store.array_value(t))])

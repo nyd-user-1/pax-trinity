@@ -369,5 +369,8 @@ def run(store: Store, refresh: bool = False, raw_dir: Path | None = None,
 
         total += ces_bulk.run(store, files, raw_dir=raw_dir, download=download, min_n=min_n,
                               allow_synthetic=allow_synthetic)
+    from . import ces_topics  # imported here: ces_topics imports this module
+
+    ces_topics.run(store, raw_dir=raw_dir, report=bulk)   # the sections of what was just written
     store.touch_source(SOURCE)
     return total
