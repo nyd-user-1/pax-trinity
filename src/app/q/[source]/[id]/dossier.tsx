@@ -2,13 +2,12 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { Check, Copy } from "lucide-react"
+import { Check, ChevronLeft, ChevronRight, Copy } from "lucide-react"
 
-import { readDraft } from "@/lib/consensus/draft"
 import { cn } from "@/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
 
-import { dimLabel, mnemonicOf, num, shortSource, WORDING, type SourceRow } from "../../../audience/audience-data"
+import { dimLabel, mnemonicOf, normalizeWording, num, shortSource, WORDING, type SourceRow } from "../../../audience/audience-data"
 import { Card, CardLabel, Gap, pillClass, Tag } from "../../../_wire/wire-bits"
 import {
   bandOf,
@@ -31,12 +30,15 @@ import {
 } from "../../../_wire/wire-data"
 
 // /q/[source]/[id] — one question's dossier, as Brendan drew it
-// (docs/wireframes/question-dossier.png), in one column since his revision
-// (pass 2, 2026-10-27, pass2-124): the trend by wave, the headline sentence,
-// the latest wave's crosstab, then the related constructs, uses and
-// provenance under them. Every clause is composed from the question's own
-// rows; one that cannot be computed is left out, the trend whole when fewer
-// than two waves stand. The three blocks copy their text from a hover button.
+// (docs/wireframes/question-dossier.png), one column since his revisions of
+// 2026-10-27: the question itself as the page's title (on its own page; in
+// /audience's pane, `embedded`, the pane's title row carries it), the
+// headline sentence under it, the trend by wave, the latest wave's crosstab,
+// the related questions as a rail of cards, the provenance, and the source
+// and geography chips at the foot. Every clause is composed from the
+// question's own rows; one that cannot be computed is left out, the trend
+// whole when fewer than two waves stand. The headline, trend and crosstab
+// copy their text from a hover button.
 
 /** Sources whose rows are a general-population survey: their shares read "of Americans". */
 const ATTITUDE = new Set(["GSS", "ANES", "CES"])
@@ -45,7 +47,7 @@ const LOADER: Record<string, string> = { GSS: "gss", ACS: "acs", CVAP: "cvap", C
 /** Ordinal orders for breakdowns the export files alphabetically. */
 const VALUE_ORDER: Record<string, string[]> = { educ: ["HS or less", "Some college", "BA", "Grad"] }
 
-export function Dossier({ source, id }: { source: string; id: string }) {
+export function Dossier({ source, id, embedded = false }: { source: string; id: string; embedded?: boolean }) {
   const SRC = source.toUpperCase()
   const { index, error } = useWireIndex()
   const [rows, setRows] = React.useState<SourceRow[] | null>(null)
@@ -91,72 +93,70 @@ export function Dossier({ source, id }: { source: string; id: string }) {
 
   return (
     <div className="mx-auto flex w-full max-w-[920px] flex-col gap-5 p-6" data-dossier={`${SRC.toLowerCase()}/${id}`}>
-      <div className="flex min-w-0 flex-col gap-5">
-        {/* The trend stands only where it can draw: two waves or more (a skeleton while the rows come). */}
-        {!rows ? (
-          <Card>
-            <CardLabel>Trend</CardLabel>
-            <div className="h-[190px] animate-pulse rounded-md bg-muted/50" />
-          </Card>
-        ) : (
-          total.length > 1 &&
-          latest && (
-            <Copyable>
-              <Card>
-                <CardLabel>Trend</CardLabel>
-                <TrendBars points={total} />
-                <TrendNotes total={total} base={base} latest={latest} />
-              </Card>
-            </Copyable>
-          )
-        )}
+      {/* The question is the page's title; in the pane the title row already carries it. */}
+      {!embedded && <h2 className="text-[28px] leading-tight font-semibold">{normalizeWording(wording ?? label)}</h2>}
 
-        {latest && band ? (
+      {latest && band ? (
+        <Copyable flush>
+          <div className="pr-10">
+            <Headline source={SRC} label={label} wording={wording} band={band} geo={geo} place={place} total={total} base={base} latest={latest} />
+          </div>
+        </Copyable>
+      ) : (
+        <div className="h-16 animate-pulse rounded-md bg-muted/50" />
+      )}
+
+      {/* The trend stands only where it can draw: two waves or more (a skeleton while the rows come). */}
+      {!rows ? (
+        <Card>
+          <CardLabel>Trend</CardLabel>
+          <div className="h-[190px] animate-pulse rounded-md bg-muted/50" />
+        </Card>
+      ) : (
+        total.length > 1 &&
+        latest && (
           <Copyable>
             <Card>
-              <Headline source={SRC} label={label} wording={wording} band={band} geo={geo} place={place} total={total} base={base} latest={latest} />
+              <CardLabel>Trend</CardLabel>
+              <TrendBars points={total} />
+              <TrendNotes total={total} base={base} latest={latest} />
             </Card>
           </Copyable>
-        ) : (
-          <Card>
-            <div className="h-16 animate-pulse rounded-md bg-muted/50" />
-          </Card>
-        )}
+        )
+      )}
 
-        {rows && band && latest ? (
-          <Copyable>
-            <Card>
-              <CardLabel>
-                Crosstab · {latest.year}
-                {band.label ? ` · ${band.label}` : ""}
-              </CardLabel>
-              <Crosstab rows={rows} band={band} geo={geo} latest={latest} base={base} />
-            </Card>
-          </Copyable>
-        ) : (
+      {rows && band && latest ? (
+        <Copyable>
           <Card>
             <CardLabel>Crosstab</CardLabel>
-            <div className="h-40 animate-pulse rounded-md bg-muted/50" />
+            <Crosstab rows={rows} band={band} geo={geo} latest={latest} base={base} />
           </Card>
-        )}
-      </div>
-
-      <aside className="flex min-w-0 flex-col gap-5">
-        {error && <p className="text-sm text-muted-foreground">{error}</p>}
-        {index && <Related index={index} source={SRC} id={id} ownRows={rows} />}
-        <UsedBy text={wording ?? label} ready={!!index} />
+        </Copyable>
+      ) : (
         <Card>
-          <CardLabel>Provenance</CardLabel>
-          <Provenance source={SRC} id={id} label={index?.sources.find((s) => s.source === SRC)?.label ?? null} rows={rows} />
+          <CardLabel>Crosstab</CardLabel>
+          <div className="h-40 animate-pulse rounded-md bg-muted/50" />
         </Card>
-        {index && rows && <Chips index={index} source={SRC} id={id} rows={rows} geo={geo} geoLevel={geoLevel} geoName={geoName} onGeo={setPick} />}
-      </aside>
+      )}
+
+      {error && <p className="text-sm text-muted-foreground">{error}</p>}
+      {index && <Related index={index} source={SRC} id={id} ownRows={rows} />}
+      <Card>
+        <CardLabel>Provenance</CardLabel>
+        <Provenance source={SRC} id={id} label={index?.sources.find((s) => s.source === SRC)?.label ?? null} rows={rows} />
+      </Card>
+      {/* The chips at the foot, a blog's tags: under a rule, from the left. */}
+      {index && rows && (
+        <div className="border-t pt-4">
+          <Chips index={index} source={SRC} id={id} rows={rows} geo={geo} geoLevel={geoLevel} geoName={geoName} onGeo={setPick} />
+        </div>
+      )}
     </div>
   )
 }
 
 /** A block with the standard copy control: top right, on hover, its text to the clipboard. */
-function Copyable({ children }: { children: React.ReactNode }) {
+function Copyable({ children, flush = false }: { children: React.ReactNode; flush?: boolean }) {
   const ref = React.useRef<HTMLDivElement>(null)
   const [copied, setCopied] = React.useState(false)
   React.useEffect(() => {
@@ -176,7 +176,7 @@ function Copyable({ children }: { children: React.ReactNode }) {
           const text = ref.current?.innerText ?? ""
           void navigator.clipboard.writeText(text).then(() => setCopied(true))
         }}
-        className={cn("absolute top-3 right-3 opacity-0 group-hover/copy:opacity-100 focus-visible:opacity-100", copied && "opacity-100")}
+        className={cn("absolute opacity-0 group-hover/copy:opacity-100 focus-visible:opacity-100", flush ? "top-0 right-0" : "top-3 right-3", copied && "opacity-100")}
       >
         {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
       </Button>
@@ -439,7 +439,6 @@ function Related({ index, source, id, ownRows }: { index: IndexT; source: string
     }
     return out
   }, [family, index, source])
-  const many = new Set(items.map((i) => i.source)).size > 1
   const [vals, setVals] = React.useState<Record<string, { v: number; type: string; band: string } | null>>({})
 
   React.useEffect(() => {
@@ -462,66 +461,75 @@ function Related({ index, source, id, ownRows }: { index: IndexT; source: string
     }
   }, [items, source, id, ownRows, geoLevel])
 
+  const rail = React.useRef<HTMLDivElement>(null)
   if (!family || items.length < 2) return null
+  // The rail of related questions (Brendan, 2026-10-27; solar's generators
+  // carousel, its anatomy without its dress): one card each, the open one
+  // ringed and unlinked, the chevrons scrolling a card's width at a time. A
+  // card's foot names the band its value counts, so the number reads.
+  const scroll = (by: number) => rail.current?.scrollBy({ left: by, behavior: "smooth" })
   return (
-    <Card>
-      <CardLabel>Related</CardLabel>
-      <ul className="divide-y text-sm">
-        {items.map((it) => {
-          const key = `${it.source}/${it.q}`
-          const self = it.source === source && it.q === id
-          const val = vals[key]
-          const name = (
-            <>
-              {/* The source leads, the mnemonic rides muted after it (Brendan, 2026-10-27). */}
-              <span className={cn(self ? "font-semibold" : "font-medium")}>{many ? shortSource(it.source) : mnemonicOf(it.q)}</span>
-              {many && <span className="text-muted-foreground"> · {mnemonicOf(it.q)}</span>}
-              <span className="ml-1.5 text-muted-foreground">{it.label}</span>
-            </>
-          )
-          return (
-            <li key={key} className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-baseline gap-3 px-3 py-2.5">
-              {self ? (
-                <span className="truncate">{name}</span>
-              ) : (
-                <Link href={dossierHref(it.source, it.q)} className="truncate hover:underline">
-                  {name}
-                </Link>
-              )}
-              <span className="text-right tabular-nums" title={val ? val.band : undefined}>
-                {val ? fmt(val.v, val.type) : val === null ? "—" : <Gap />}
-              </span>
-              <span className="w-10 text-right tabular-nums">{it.last ?? ""}</span>
-            </li>
-          )
-        })}
-      </ul>
-    </Card>
+    <section>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h2 className="text-[11px] font-medium tracking-[0.08em] text-muted-foreground uppercase">
+          Related <span className="ml-1 font-normal tracking-normal tabular-nums">{items.length}</span>
+        </h2>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon-sm" aria-label="Scroll left" className="rounded-full" onClick={() => scroll(-240)}>
+            <ChevronLeft className="size-4" />
+          </Button>
+          <Button variant="outline" size="icon-sm" aria-label="Scroll right" className="rounded-full" onClick={() => scroll(240)}>
+            <ChevronRight className="size-4" />
+          </Button>
+        </div>
+      </div>
+      <div ref={rail} className="no-scrollbar overflow-x-auto">
+        <div className="flex gap-3 pb-1">
+          {items.map((it) => {
+            const key = `${it.source}/${it.q}`
+            const self = it.source === source && it.q === id
+            const val = vals[key]
+            const body = (
+              <div className="px-4 py-3">
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="rounded-full border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">{shortSource(it.source)}</span>
+                  <span className="min-w-0 truncate font-mono text-xs font-bold text-muted-foreground">{mnemonicOf(it.q)}</span>
+                </div>
+                <p className="text-sm leading-snug font-semibold">{it.label}</p>
+                <div className="mt-2 flex items-baseline gap-2 text-xs">
+                  {val ? (
+                    <>
+                      <span className="min-w-0 flex-1 truncate text-muted-foreground" title={val.band}>
+                        {val.band}
+                      </span>
+                      <span className="font-bold tabular-nums">{fmt(val.v, val.type)}</span>
+                    </>
+                  ) : val === null ? (
+                    <span className="text-muted-foreground">—</span>
+                  ) : (
+                    <Gap />
+                  )}
+                  {it.last != null && <span className="ml-auto shrink-0 text-[10px] text-muted-foreground tabular-nums">{it.last}</span>}
+                </div>
+              </div>
+            )
+            const dress = "w-52 shrink-0 rounded-xl border bg-white transition-shadow"
+            return self ? (
+              <div key={key} aria-current="true" className={cn(dress, "ring-1 ring-pax2-light-blue")}>
+                {body}
+              </div>
+            ) : (
+              <Link key={key} href={dossierHref(it.source, it.q)} className={cn(dress, "hover:shadow-md")}>
+                {body}
+              </Link>
+            )
+          })}
+        </div>
+      </div>
+    </section>
   )
 }
 
-/** Where the app itself uses this question: the survey draft held in this
- *  browser, matched on the text Add to survey writes. Nothing links, no card. */
-function UsedBy({ text, ready }: { text: string; ready: boolean }) {
-  const [item, setItem] = React.useState<number | null>(null)
-  React.useEffect(() => {
-    if (!ready) return
-    const k = readDraft()?.questions.findIndex((q) => q.text === text) ?? -1
-    setItem(k >= 0 ? k + 1 : null)
-  }, [text, ready])
-  if (item == null) return null
-  return (
-    <Card>
-      <CardLabel>Used by</CardLabel>
-      <p className="text-sm">
-        Item {item} in the{" "}
-        <Link href="/consensus?tab=admin" className="text-pax2-light-blue underline">
-          draft survey
-        </Link>
-      </p>
-    </Card>
-  )
-}
 
 function Provenance({ source, id, label, rows }: { source: string; id: string; label: string | null; rows: SourceRow[] | null }) {
   const urls = React.useMemo(() => [...new Set((rows ?? []).map((r) => r[12]).filter((u): u is string => !!u))], [rows])
@@ -590,7 +598,7 @@ function Chips({
     return out.sort((a, b) => (a === "US" ? -1 : b === "US" ? 1 : a.localeCompare(b)))
   }, [rows, geoLevel])
   return (
-    <div className="flex flex-wrap justify-end gap-2">
+    <div className="flex flex-wrap justify-start gap-2">
       {sources.map(([s, q]) =>
         s === source ? (
           <span key={s} className={pillClass(true)}>
