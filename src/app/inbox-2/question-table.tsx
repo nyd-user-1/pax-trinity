@@ -116,9 +116,9 @@ export function QuestionTable({
         {heading}
         <div className="ml-auto flex shrink-0 items-center">{toggle}</div>
       </div>
-      /* Native scroll, not the ScrollArea primitive: radix's viewport sizes
-         itself to the banner's intrinsic width, which blew the pane out
-         sideways and swallowed the vertical scroll with it. */
+      {/* Native scroll, not the ScrollArea primitive: radix's viewport sizes
+          itself to the banner's intrinsic width, which blew the pane out
+          sideways and swallowed the vertical scroll with it. */}
       <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
         {view === "chart" ? (
           <QuestionChart rows={rows} info={info} title={title} place={place} />
