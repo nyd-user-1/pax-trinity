@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import dynamic from "next/dynamic"
-import { StarIcon } from "lucide-react"
+import { Globe, StarIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { PaneSearchRow, PaneTitleRow, ViewToggle } from "@/components/bank/pane-bars"
@@ -14,9 +14,9 @@ const QuestionChart = dynamic(() => import("./question-chart").then((m) => m.Que
   ssr: false,
   loading: () => <p className="p-6 text-sm text-muted-foreground">Drawing…</p>,
 })
-// The dossier mounts in place of the table when Open is pressed (Brendan,
-// 2026-10-27) — a drill-down layer, not a navigation; Back returns the table.
-// Dynamic for the same reason as the chart.
+// The dossier is the toggle's fourth view, the globe (Brendan, 2026-10-27),
+// mounted embedded: the pane's title row carries the question. Dynamic for
+// the same reason as the chart.
 const Dossier = dynamic(() => import("../q/[source]/[id]/dossier").then((m) => m.Dossier), {
   ssr: false,
   loading: () => <p className="p-6 text-sm text-muted-foreground">Reading the question…</p>,
@@ -45,7 +45,9 @@ const VIEWS = [
   { value: "tidy", label: "Data" },
   { value: "crosstab", label: "Crosstab" },
   { value: "chart", label: "Trend" },
+  { value: "global", label: "Global view", icon: Globe },
 ] as const
+type View = (typeof VIEWS)[number]["value"]
 
 export function QuestionTable({
   rows,
@@ -99,10 +101,7 @@ export function QuestionTable({
   /** The picked value's About panel, as the layer over the view. */
   aboutLayer?: React.ReactNode
 }) {
-  const [view, setView] = React.useState<"crosstab" | "chart" | "tidy">("tidy")
-  // The drill-down: the dossier standing where the table stood.
-  const [drill, setDrill] = React.useState(false)
-  React.useEffect(() => setDrill(false), [metric])
+  const [view, setView] = React.useState<View>("tidy")
 
   const tab = React.useMemo(() => {
     const base = info.baseGeo
@@ -150,49 +149,29 @@ export function QuestionTable({
       </button>
     </>
   )
-  // The title row's one control (Brendan, 2026-10-27: no refresh icon): Open
-  // drills into the dossier in place, and becomes Back while it stands.
-  const controls = source && (
-    <button type="button" onClick={() => setDrill((d) => !d)} className="shrink-0 text-xs font-medium text-pax2-light-blue hover:underline">
-      {drill ? "Back" : "Open"}
-    </button>
-  )
-
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
       <PaneSearchRow query={query} onQuery={onQuery} placeholder="Search wording or label…" onBack={onBack}>
-        <ViewToggle
-          views={VIEWS}
-          value={view}
-          onChange={(v) => {
-            setView(v)
-            setDrill(false)
-          }}
-        />
+        {/* The globe needs the question's source to find its dossier. */}
+        <ViewToggle views={source ? VIEWS : VIEWS.filter((v) => v.value !== "global")} value={view} onChange={setView} />
       </PaneSearchRow>
       {aboutLayer ? (
         <>
-          <PaneTitleRow title={heading} leading={leading}>
-            {controls}
-          </PaneTitleRow>
+          <PaneTitleRow title={heading} leading={leading} />
           {aboutLayer}
         </>
-      ) : drill && source ? (
+      ) : view === "global" && source ? (
         <>
-          <PaneTitleRow title={heading} leading={leading}>
-            {controls}
-          </PaneTitleRow>
+          <PaneTitleRow title={heading} leading={leading} />
           <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
-            <Dossier source={source.toLowerCase()} id={metric} />
+            <Dossier source={source.toLowerCase()} id={metric} embedded />
           </div>
         </>
       ) : view === "tidy" ? (
-        <RowsView rows={rows} id={metric} source={source} header={heading} leading={leading} trailing={controls} about={about} onPick={onPick} />
+        <RowsView rows={rows} id={metric} source={source} header={heading} leading={leading} about={about} onPick={onPick} />
       ) : (
         <>
-      <PaneTitleRow title={heading} leading={leading}>
-        {controls}
-      </PaneTitleRow>
+      <PaneTitleRow title={heading} leading={leading} />
       {/* Native scroll, not the ScrollArea primitive: radix's viewport sizes
           itself to the banner's intrinsic width, which blew the pane out
           sideways and swallowed the vertical scroll with it. */}

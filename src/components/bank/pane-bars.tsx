@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ArrowLeft, RefreshCwIcon, Search, X } from "lucide-react"
+import { ArrowLeft, RefreshCwIcon, Search, X, type LucideIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
@@ -77,21 +77,26 @@ export function RefreshButton({ onRefresh }: { onRefresh: () => void }) {
   )
 }
 
-/** The segmented toggle: Data, Crosstab, Trend on /audience. */
-export function ViewToggle<V extends string>({ views, value, onChange }: { views: readonly { value: V; label: string }[]; value: V; onChange: (v: V) => void }) {
+/** The segmented toggle: Data, Crosstab, Trend and the globe on /audience. A view with an icon shows the icon alone, its label as the name. */
+export function ViewToggle<V extends string>({ views, value, onChange }: { views: readonly { value: V; label: string; icon?: LucideIcon }[]; value: V; onChange: (v: V) => void }) {
   return (
     <div className="flex shrink-0 rounded-lg border p-0.5 text-xs">
-      {views.map((v) => (
-        <button
-          key={v.value}
-          type="button"
-          aria-pressed={value === v.value}
-          onClick={() => onChange(v.value)}
-          className={cn("rounded-md px-2.5 py-1 transition-colors", value === v.value ? "bg-pax2-mist font-semibold text-pax2-blue" : "text-muted-foreground hover:text-foreground")}
-        >
-          {v.label}
-        </button>
-      ))}
+      {views.map((v) => {
+        const Icon = v.icon
+        return (
+          <button
+            key={v.value}
+            type="button"
+            aria-pressed={value === v.value}
+            aria-label={Icon ? v.label : undefined}
+            title={Icon ? v.label : undefined}
+            onClick={() => onChange(v.value)}
+            className={cn("rounded-md py-1 transition-colors", Icon ? "px-2" : "px-2.5", value === v.value ? "bg-pax2-mist font-semibold text-pax2-blue" : "text-muted-foreground hover:text-foreground")}
+          >
+            {Icon ? <Icon className="size-4" /> : v.label}
+          </button>
+        )
+      })}
     </div>
   )
 }
