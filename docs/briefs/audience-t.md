@@ -26,3 +26,100 @@ Raw files synced; loader steps committed (explicit paths); the regenerated `inde
 ---
 
 ## Worker report
+
+### Hashes
+
+- **Code:** `c5f314b`. It adds `audience/audience/loaders/anes_topics.py` and `ces_topics.py` (`python -m audience.load anes_topics` / `ces_topics`, also run at the end of `load anes` / `load ces`), and migration `011_anes_ces_topics.sql` (`concordance.anes_topics`, `ces_topics`). The export's `topics` now merges GSS, ANES and CES tags in that order, each tag once. `gss_topics.write` takes the column. Tests are in `tests/test_anes_ces_topics.py`. I staged by explicit path and checked the index first; Window R's 012 and `canonical.py` stayed out.
+- **`exports/index.json`:** ETag/md5 `ab69696b77fdf6f762312920103bd3b7`, 4,564,482 bytes, `application/json`, public read through the bucket policy. It replaced `c35510ae…`, the file live right before upload. Amplify's `/audience-data/index.json` serves the new ETag.
+  - Against the replaced file: 711 questions gain `topics`, and `party_id_7` and `ideology_7` add ANES and CES tags after GSS's.
+  - `sources`, `geographies`, `families`, `questions` and every other constructs field are identical, and so are all 41 row files and all 8,034 per-question files.
+  - I exported from a checkout of `c5f314b`, with 56 tests passing there, including a full ANES load through the new hook. The audit is clean.
+- **Store:** I applied 011 alone under the lock. Window R's 012 is theirs to apply.
+
+### Routes
+
+**ANES** — the Time Series CDF's variable list by subject. The CDF page links it as "Varlist": `https://electionstudies.org/anes_timeseries_cdf_codebook_Varlist`, which redirects to `wp-content/uploads/2019/09/anes_timeseries_cdf_codebook_Varlist.pdf`. The site refuses plain clients, so I fetched it once with `curl_cffi`.
+- It files all 1,029 VCF variables under a Roman-numeral section and, for most, a lettered subsection, set in Calibri-Bold. All 648 of our CDF questions are in it.
+- The 2026 variable codebook itself (HTML and PDF) carries no subject headings.
+
+**CES** — the Guide to the Cumulative Common Content (Kuriwaki 2026, CC0), already in the bucket at `raw/ces/docs/`. Its bookmark outline files each of the cumulative's 75 variables under one section of "Variables". The step reads the outline (pdfminer, no scraping) and matches by variable name, which the CES keeps across years.
+
+**Terms:** ANES data and documentation are free to use with citation. The CES guide is CC0 on Harvard Dataverse.
+
+### Coverage, vocabulary, top tags
+
+Node `fetch` of the served file (bucket URL): 200. Counts are by each source's own tags.
+
+| Source | Questions with topics | Share | Own tags |
+|---|---|---|---|
+| ANES | 657 of 1,518 | 43.3% | 26 |
+| CES | 57 of 943 | 6.0% | 10 |
+| GSS | 4,526 of 5,541 | 81.7% | 155 (unchanged) |
+
+Counted by question membership, the served file shows 29 ANES tags and 13 CES. The extra tags come from the shared `party_id_7`, `ideology_7` and `trust_gov`; `trust_gov`, served by both ANES and CES, carries ANES's `SYSTEM SUPPORT`.
+
+ANES top ten:
+
+| Rank | Tag | Count |
+|---|---|---|
+| 1 | CANDIDATE AND INCUMBENT EVALUATIONS | 143 |
+| 2 | ISSUES | 100 |
+| 3 | ENGAGEMENT AND INFORMATION | 93 |
+| 4 | PERSONAL AND DEMOGRAPHIC | 65 |
+| 5 | PARTISANSHIP AND ATTITUDES TOWARDS PARTIES | 56 |
+| 6 | SYSTEM SUPPORT | 45 |
+| 7 | PERCEIVED POSITIONS OF CANDIDATES/INCUMBENTS | 44 |
+| 8 | IDEOLOGY AND VALUES | 40 |
+| 9 | SOCIAL GROUPS | 40 |
+| 10 | VALUES AND PREDISPOSITIONS | 31 |
+
+CES, all ten of its own tags:
+
+| Rank | Tag | Count |
+|---|---|---|
+| 1 | Presidential Vote | 12 |
+| 2 | Demographics | 8 |
+| 3 | House, Senate and Governor Vote | 8 |
+| 4 | Economics and Income | 6 |
+| 5 | Partisan Identity | 6 |
+| 6 | Approval | 5 |
+| 7 | Family Status | 4 |
+| 8 | Turnout | 4 |
+| 9 | Validated Turnout and Registration | 3 |
+| 10 | News Interest | 1 |
+
+Untagged, with reasons in `reports/anes_topics.json` and `ces_topics.json`:
+
+- **ANES, 857:** the 2024 Time Series Study's own variables. The study's variable list, user guide and codebook group them only by interview phase (`PRE-ELECTION SURVEY VARIABLES`, `WEIGHTING VARIABLES`…). Its questionnaire item ids carry module codes (`CAMPINT_`, `GEND_`) the documentation never names.
+- **ANES, 4** (VCF0019, VCF0111-0113): filed only under `X. IDs, Weights, and samples`.
+- **CES, 886:** the yearly Common Content, which files nothing by subject anywhere:
+  - The yearly guides tabulate it flat, and their "five parts" are fielding phases.
+  - The questionnaires' modules are flow blocks (`commoncore`, `implicit_module_1`, `alreadyvoted`).
+  - The 2020 and 2022 questionnaires name only programming pages.
+  - The Dataverse files aren't ingested as tabular, so they carry no variable groups.
+
+### Spot-checks, served file against the publisher's document
+
+| Question | Document | Served `topics` |
+|---|---|---|
+| `party_id_7` (ANES VCF0301) | Varlist `I.   PARTISANSHIP AND ATTITUDES TOWARDS PARTIES` › `VCF0301    Party Identification of Respondent- 7-point Scale` | `["Political","PARTISANSHIP AND ATTITUDES TOWARDS PARTIES","Partisan Identity"]` (GSS, ANES, CES) |
+| `vcf0876` | Varlist `III.   ISSUES` › `III.E.   ISSUES NONRACIAL CIVIL RIGHTS, RULES AND REGULATIONS` › `VCF0876    Law to Protect Homosexuals Against Discrimination` | `["ISSUES","ISSUES NONRACIAL CIVIL RIGHTS, RULES AND REGULATIONS"]` |
+| `newsint` | guide outline `News Interest` › `newsint: News Interest` | `["News Interest"]` |
+| `voted_pres_24` | guide outline `Presidential Vote` › `voted_pres_24: 2024 President vote choice (after voting)` | `["Presidential Vote"]` |
+
+### Bucket keys added or changed (for the account copy)
+
+- `raw/anes/topics/anes_timeseries_cdf_codebook_varlist.pdf` (added; md5 `b7c30cbb62e68a4bcc189a5f469c5bfa`, the list the step reads)
+- `raw/anes/topics/anes_timeseries_2024_varlist_20260519.pdf` (added; md5 `ef4421f2fcfa420dd063f01ea4048018`, the 2024 list that groups by phase only)
+- `exports/index.json` (changed)
+
+If the copy began before Brief Q's keys landed, it also needs `raw/gss/data_explorer_subjects.json` and `raw/gss/data_explorer_details.json`.
+
+### Rulings for the lead
+
+1. **CES is thin, honestly.** Only the cumulative tier and the same-named yearly variables have a publisher filing, 57 of 943. The one CES-side filing I didn't reach is the CES team's Crunch dataset, linked from the CES homepage. It organizes variables into folders but needs an account; that's your call.
+2. **ANES subsections repeat their section's word.** For example `ISSUES` › `ISSUES SOCIAL WELFARE`, verbatim as printed. Sections VI and XII print no heading of their own, so their subsections stand alone: `CIVIC PARTICIPATION`, `ENGAGEMENT AND INFORMATION`, `CAMPAIGN ACTIVITY`, `REGISTRATION, TURNOUT, AND VOTE CHOICE`, `Contextual - Election`, `Contextual - Vote Validation`. I didn't invent a parent for them.
+3. **Order means something for ANES**: section, then subsection, so the first tag is the primary. CES has one tag per question. GSS stays alphabetical, per Q.
+4. **Casing differs by publisher**: ANES headings are capitals, CES and GSS title case. They're delivered verbatim; display collapse is yours.
+5. **Shared constructs merge across sources in GSS, ANES, CES order**, so `party_id_7` reads `Political`, `PARTISANSHIP AND ATTITUDES TOWARDS PARTIES`, `Partisan Identity`. If you'd rather each source's surface show only its own tags, the per-source columns are in the store, and an export split would be a contract change.
+6. **What I counted as apparatus and left out:** ANES section X and section XI with its subsections (screener, interviewer observation, interviewer demographics), and CES Administration and Weights. I kept `Contextual - Election` and `Contextual - Vote Validation` (the election context and the validated vote) and CES `Geography` as subjects.
