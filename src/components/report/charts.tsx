@@ -72,7 +72,7 @@ export function CrossWaveLift({ waves, ballot = "ballot", comprehension = "compr
   const bName = last?.outcomes.find((o) => o.id === ballot)?.name ?? "Ballot support"
   const grid = "grid grid-cols-[40px_minmax(120px,190px)_minmax(0,1fr)_120px_190px] items-center gap-x-3"
   return (
-    <div className="overflow-x-auto">
+    <div className="report-avoid overflow-x-auto">
       <div className="min-w-[760px]">
         <ChartHead left={`${bName} lift vs own-wave placebo, percentage points`} right={`Shared ${a.min} to +${a.max} scale · not ranks`} />
         <div className={cn(grid, "py-1 text-[11px] text-[var(--paper-muted)]")}>
@@ -176,7 +176,7 @@ export function LevelChart({ rs, outcomeId }: { rs: ResultSet; outcomeId: string
   const rows = [placebo!, ...treatmentsOf(rs)].map((arm) => ({ arm, t: toplineOf(rs, arm.id, outcomeId) }))
   const grid = "grid grid-cols-[minmax(140px,230px)_minmax(0,1fr)_190px] items-center gap-x-3"
   return (
-    <div className="overflow-x-auto">
+    <div className="report-avoid overflow-x-auto">
       <div className="min-w-[620px]">
         <ChartHead left={`Wave ${rs.wave} · ${outcome?.name ?? outcomeId}, % level`} right={`0–100% scale · dashed line = placebo level (${pct(p.levelPct)})`} />
         {rows.map(({ arm, t }) => {
@@ -267,7 +267,7 @@ export function DualLift({ rs, a }: { rs: ResultSet; a: Axis }) {
   const placebo = placeboOf(rs)
   const cols = `minmax(140px,220px) ${outs.map(() => "minmax(0,1fr) 150px").join(" ")}`
   return (
-    <div className="overflow-x-auto">
+    <div className="report-avoid overflow-x-auto">
       <div className="min-w-[760px]">
         <ChartHead left="Lift versus own-wave placebo, percentage points" right={`Same ${signed(a.min)} to +${a.max} scale on ${outs.length === 2 ? "both outcomes" : "every outcome"} · placebo = 0`} />
         <div className="grid items-center gap-x-3 py-1 text-[11px] text-[var(--paper-muted)]" style={{ gridTemplateColumns: cols }}>
@@ -280,7 +280,7 @@ export function DualLift({ rs, a }: { rs: ResultSet; a: Axis }) {
           ))}
         </div>
         {treatmentsOf(rs).map((arm) => (
-          <div key={arm.id} className="grid items-center gap-x-3 border-t border-[var(--paper-rule)]/10 py-2.5" style={{ gridTemplateColumns: cols }}>
+          <div key={arm.id} className="grid items-center gap-x-3 border-t border-[var(--paper-rule)]/10 py-2.5 print:py-1.5" style={{ gridTemplateColumns: cols }}>
             <span className="line-clamp-3 font-semibold" title={arm.name}>
               {arm.name}
             </span>
@@ -332,7 +332,7 @@ export function SubgroupPanels({ rs, d, outcomeId = "ballot" }: { rs: ResultSet;
   const arms = [placebo, ...treatmentsOf(rs)].filter((x): x is Arm => !!x)
   const n = d.categories.length
   return (
-    <div className="overflow-x-auto">
+    <div className="report-avoid overflow-x-auto">
       <div className="grid min-w-[640px] gap-x-5" style={{ gridTemplateColumns: `minmax(100px,170px) repeat(${n}, minmax(0,1fr))` }}>
         <span />
         {d.categories.map((cat) => {

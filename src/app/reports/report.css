@@ -28,3 +28,98 @@
 .dark .report-hatch {
   background-image: repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.45) 0 2px, transparent 2px 5px);
 }
+
+/* ── The page, dressed for paper ──────────────────────────────────────────
+   The readout prints itself: the app around it steps aside, each part opens
+   a fresh Letter page, and nothing a reader reads as one piece (a card, a
+   chart, a dimension's panels, a box) breaks across two. Only this page's
+   own stylesheet carries these rules, so the rest of the app prints as it
+   always has. */
+@page {
+  size: letter;
+}
+@media print {
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+  /* Every ancestor of the readout lets it run long; every other branch of the app goes. */
+  *:has([data-report]) {
+    display: block !important;
+    position: static !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    width: auto !important;
+    max-width: none !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    transform: none !important;
+    /* The shell's reveal leaves a blur, a transform and a mask on its content wrapper; on paper
+       each one makes Chrome rasterize the whole page (a grey cast and megabytes per page). */
+    filter: none !important;
+    backdrop-filter: none !important;
+    -webkit-mask-image: none !important;
+    mask-image: none !important;
+    opacity: 1 !important;
+    container-type: normal !important;
+    background: #fff !important;
+  }
+  *:has([data-report]) > :not(:has([data-report])):not([data-report]) {
+    display: none !important;
+  }
+  .report-doc {
+    max-width: none !important;
+    padding: 0 !important;
+    --r-tint: #f4f1fa;
+    --r-track: rgba(22, 24, 29, 0.06);
+  }
+  .report-doc,
+  .report-doc * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .report-doc .overflow-x-auto {
+    overflow: visible !important;
+  }
+  /* The cover stands alone; each part opens a page, and after its first block every block does. */
+  .report-cover {
+    break-after: page;
+    min-height: 8.6in;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .report-part {
+    break-before: page;
+    border-top: 0 !important;
+    padding-top: 0 !important;
+  }
+  .report-block + .report-block {
+    break-before: page;
+  }
+  .report-group + .report-group {
+    break-before: page;
+  }
+  .report-avoid,
+  .report-dimension,
+  .report-doc article {
+    break-inside: avoid;
+  }
+  .report-keep,
+  .report-doc h2,
+  .report-doc h3,
+  .report-doc h4 {
+    break-after: avoid;
+  }
+  /* A clip's opening frame is a screen courtesy; the card stands without it on paper. */
+  .report-doc video {
+    display: none !important;
+  }
+}

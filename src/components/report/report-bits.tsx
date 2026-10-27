@@ -62,7 +62,7 @@ export function ProducerChip({ arm }: { arm: Arm }) {
 /** A tinted box holding printed language: a caution, a definition, a caveat. */
 export function Box({ title, children, className, tone = "tint" }: { title?: React.ReactNode; children: React.ReactNode; className?: string; tone?: "tint" | "line" }) {
   return (
-    <div className={cn("rounded-xl p-4 text-[13px] leading-relaxed", tone === "tint" ? "bg-[var(--r-tint)]" : "border border-[var(--paper-rule)]/25", className)}>
+    <div className={cn("report-avoid rounded-xl p-4 text-[13px] leading-relaxed", tone === "tint" ? "bg-[var(--r-tint)]" : "border border-[var(--paper-rule)]/25", className)}>
       {title && <p className="mb-1 text-[11px] font-semibold tracking-[0.12em] text-[var(--paper-muted)] uppercase">{title}</p>}
       <div className="whitespace-pre-line text-[var(--paper-text)]">{children}</div>
     </div>
@@ -80,18 +80,18 @@ export function StoryBox({ story, tone }: { story: Story; tone?: "tint" | "line"
 
 export function Part({ id, kicker, title, children }: { id: string; kicker: string; title: string; children: React.ReactNode }) {
   return (
-    <section id={id} className="scroll-mt-6 border-t border-[var(--paper-rule)] pt-8">
+    <section id={id} className="report-part scroll-mt-6 border-t border-[var(--paper-rule)] pt-8">
       <p className="text-[11px] font-semibold tracking-[0.16em] text-[var(--paper-strong)] uppercase">{kicker}</p>
       <h2 className="mt-1 text-[34px] leading-tight font-semibold tracking-tight text-[var(--paper-text)]">{title}</h2>
-      <div className="mt-8 flex flex-col gap-14">{children}</div>
+      <div className="mt-8 flex flex-col gap-14 print:mt-5">{children}</div>
     </section>
   )
 }
 
 export function Block({ title, aside, children }: { title: React.ReactNode; aside?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div>
-      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+    <div className="report-block">
+      <div className="report-keep mb-4 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
         <h3 className="text-[22px] leading-snug font-semibold tracking-tight text-[var(--paper-text)]">{title}</h3>
         {aside && <span className="text-[12px] text-[var(--paper-muted)]">{aside}</span>}
       </div>

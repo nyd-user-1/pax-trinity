@@ -22,7 +22,7 @@ export function FactBoxes({ rs }: { rs: ResultSet }) {
     ["Threshold", rs.threshold.label],
   ]
   return (
-    <dl className="grid grid-cols-2 overflow-hidden rounded-xl border border-[var(--paper-rule)]/20 sm:grid-cols-3 lg:grid-cols-5">
+    <dl className="report-avoid grid grid-cols-2 overflow-hidden rounded-xl border border-[var(--paper-rule)]/20 sm:grid-cols-3 lg:grid-cols-5 print:grid-cols-5">
       {facts.map(([k, v]) => (
         <div key={k} className="border-r border-b border-[var(--paper-rule)]/10 px-4 py-3">
           <dt className="text-[10px] font-semibold tracking-[0.14em] text-[var(--paper-muted)] uppercase">{k}</dt>
@@ -42,7 +42,7 @@ export function VideoCard({ rs, arm, index, a }: { rs: ResultSet; arm: Arm; inde
   const placebo = placeboOf(rs)
   const clip = arm.clipId ? PUBLISHED.find((c) => c.id === arm.clipId) : undefined
   return (
-    <article className="flex flex-col overflow-hidden rounded-2xl border border-[var(--paper-rule)]/20 bg-[var(--paper)]">
+    <article className="report-avoid flex flex-col overflow-hidden rounded-2xl border border-[var(--paper-rule)]/20 bg-[var(--paper)]">
       {clip?.src && (
         // The clip's opening frame: metadata only, nothing plays until the reader opens it.
         <video src={`${clip.src}#t=0.5`} preload="metadata" muted playsInline className="aspect-video w-full bg-black object-cover" aria-label={clip.title} />
@@ -121,7 +121,7 @@ export function PairingCard({ rs, p }: { rs: ResultSet; p: Pairing }) {
   const arms = p.armIds.map((id) => rs.arms.find((a) => a.id === id)).filter((a): a is Arm => !!a)
   const all = arms.length > 1 && arms.length === treat.length
   return (
-    <article className="rounded-xl border border-[var(--paper-rule)]/20 bg-[var(--paper)] p-4">
+    <article className="report-avoid rounded-xl border border-[var(--paper-rule)]/20 bg-[var(--paper)] p-4 print:p-3">
       <div className="flex items-baseline gap-3">
         <span className="text-[22px] leading-none font-semibold text-[var(--paper-strong)] tabular-nums">{p.rank}</span>
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-bold tracking-[0.1em] uppercase">
@@ -194,7 +194,7 @@ export function ShareBars({ waves, latest }: { waves: { rs: ResultSet; d: Subgro
 
 export function DimensionBlock({ rs, d, stories }: { rs: ResultSet; d: SubgroupDimension; stories: Story[] }) {
   return (
-    <div className="border-t border-[var(--paper-rule)]/25 pt-4">
+    <div className="report-dimension border-t border-[var(--paper-rule)]/25 pt-4">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
         <h4 className="text-[19px] font-semibold tracking-tight">{d.name}</h4>
         <span className="text-[12px] text-[var(--paper-muted)]">{marksLine(rs, d)}</span>
@@ -288,8 +288,17 @@ export function Methodology({ rs }: { rs: ResultSet }) {
     ["Supported by this study", n.supported],
     ["What it cannot establish", n.notSupported],
   ]
+  // A line I compute prints only where the transcribed notes do not already say it.
+  const printed = [...n.methodology, ...n.limitations].join(" ")
+  const sumLine =
+    Math.round(sum) === Math.round(rs.sample.weighted)
+      ? `Arm counts sum to the reported weighted total, ${count(sum)}.`
+      : printed.includes(count(sum))
+        ? null
+        : `Rounded arm counts sum to ${count(sum)}; the reported weighted total is ${count(rs.sample.weighted)}. Both are shown as published.`
+  const weightLine = rs.weightingFactors.length && !/weighted on|raked to/i.test(printed) ? `Weighted on ${rs.weightingFactors.join(", ")}.` : null
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 print:gap-4">
       <div className="grid gap-4 md:grid-cols-2">
         {lists.map(([title, xs]) =>
           xs.length ? (
@@ -309,33 +318,24 @@ export function Methodology({ rs }: { rs: ResultSet }) {
           {n.noEffectMeaning && <Box title="What “no measurable effect” means">{n.noEffectMeaning}</Box>}
         </div>
       )}
-      <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
-        <div className="flex flex-col gap-6">
-          {n.methodology.length > 0 && <NoteList title="Methodology notes" items={n.methodology} />}
-          {n.limitations.length > 0 && <NoteList title="Limitations" items={n.limitations} />}
-          {rs.weightingFactors.length > 0 && <p className="text-[13px] text-[var(--paper-muted)]">Weighted on {rs.weightingFactors.join(", ")}.</p>}
-        </div>
-        <div>
-          <h4 className="mb-2 text-[14px] font-semibold">Weighted counts by arm</h4>
-          <table className="w-full text-[13px] tabular-nums">
-            <tbody>
-              {rs.arms.map((a) => (
-                <tr key={a.id} className="border-b border-[var(--paper-rule)]/10">
-                  <td className="py-1.5">{a.name}</td>
-                  <td className="py-1.5 text-right font-semibold">{count(a.nWeighted)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className="mt-2 text-[12px] text-[var(--paper-muted)]">
-            {Math.round(sum) === Math.round(rs.sample.weighted)
-              ? `Arm counts sum to the reported weighted total, ${count(sum)}.`
-              : `Rounded arm counts sum to ${count(sum)}; the reported weighted total is ${count(rs.sample.weighted)}. Both are shown as published.`}
-          </p>
-        </div>
+      <div className="report-avoid max-w-md">
+        <h4 className="mb-2 text-[14px] font-semibold">Weighted counts by arm</h4>
+        <table className="w-full text-[13px] tabular-nums">
+          <tbody>
+            {rs.arms.map((a) => (
+              <tr key={a.id} className="border-b border-[var(--paper-rule)]/10">
+                <td className="py-1.5 print:py-1">{a.name}</td>
+                <td className="py-1.5 text-right font-semibold print:py-1">{count(a.nWeighted)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {(sumLine || weightLine) && <p className="mt-2 text-[12px] text-[var(--paper-muted)]">{[sumLine, weightLine].filter(Boolean).join(" ")}</p>}
       </div>
+      {n.methodology.length > 0 && <NoteList title="Methodology notes" items={n.methodology} />}
+      {n.limitations.length > 0 && <NoteList title="Limitations" items={n.limitations} />}
       {n.debriefQuestions.length > 0 && (
-        <div className="border-t border-[var(--paper-rule)]/40 pt-4">
+        <div className="report-avoid border-t border-[var(--paper-rule)]/40 pt-4">
           <h4 className="mb-2 text-[17px] font-semibold">Questions for the research debrief</h4>
           <ol className="list-decimal space-y-1 pl-5 text-[13px]">
             {n.debriefQuestions.map((q) => (
@@ -349,13 +349,16 @@ export function Methodology({ rs }: { rs: ResultSet }) {
   )
 }
 
+/** A long printed list, set in two columns so the notes read as a page, not a strip. */
 function NoteList({ title, items }: { title: string; items: string[] }) {
   return (
     <div>
       <h4 className="mb-2 text-[14px] font-semibold">{title}</h4>
-      <ul className="list-disc space-y-1 pl-5 text-[13px] leading-relaxed">
+      <ul className="list-disc gap-x-8 pl-5 text-[13px] leading-relaxed md:columns-2 print:columns-2 print:text-[12px] print:leading-snug">
         {items.map((x) => (
-          <li key={x}>{x}</li>
+          <li key={x} className="mb-1.5 break-inside-avoid">
+            {x}
+          </li>
         ))}
       </ul>
     </div>

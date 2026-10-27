@@ -34,6 +34,8 @@ const detectable = (rs: ResultSet, outcome: string) => treatmentsOf(rs).filter((
 const outcomeName = (rs: ResultSet, id: string) => rs.outcomes.find((o) => o.id === id)?.name ?? id
 const lower = (s: string) => s.charAt(0).toLowerCase() + s.slice(1)
 const sentence = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+/** A label mid-sentence: "the source's 90% criterion"; an acronym or a figure keeps its case. */
+const inline = (s: string) => (/^[A-Z][a-z]/.test(s) ? lower(s) : s)
 
 export function ReportDoc({ name, waves }: { name: string; waves: ResultSet[] }) {
   const latest = waves[waves.length - 1]
@@ -49,7 +51,7 @@ export function ReportDoc({ name, waves }: { name: string; waves: ResultSet[] })
   return (
     <article className="report-doc mx-auto w-full max-w-[1120px] px-6 py-10 text-[var(--paper-text)] sm:px-10" data-report={name}>
       {/* Cover */}
-      <header className="pb-10">
+      <header className="report-cover pb-10">
         <p className="text-[12px] font-semibold tracking-[0.18em] text-[var(--paper-strong)] uppercase">{monthYear(latest.fielded.end)}</p>
         <h1 className="mt-3 max-w-3xl text-[56px] leading-[1.02] font-semibold tracking-tight">{name}</h1>
         <p className="mt-4 text-[20px]">
@@ -58,7 +60,7 @@ export function ReportDoc({ name, waves }: { name: string; waves: ResultSet[] })
           <span className="text-[var(--paper-muted)]">{tagline}</span>
         </p>
         {subtitle && <p className="mt-5 max-w-3xl text-[16px] leading-relaxed text-[var(--paper-muted)]">{subtitle.body}</p>}
-        <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 print:grid-cols-3">
           {waves.map((rs) => (
             <div key={rs.id} className="border-t border-[var(--paper-rule)] pt-3 text-[14px] leading-relaxed">
               <p className="mb-1 text-[11px] font-semibold tracking-[0.14em] text-[var(--paper-strong)] uppercase">Wave {rs.wave}</p>
@@ -96,7 +98,7 @@ export function ReportDoc({ name, waves }: { name: string; waves: ResultSet[] })
           {/* (d) Pairings, where any wave carries them */}
           {waves.some((rs) => rs.pairings.length > 0) && (
           <Block title="Video–audience pairings to test">
-            <div className={cn("grid gap-6", waves.filter((w) => w.pairings.length).length > 1 && "lg:grid-cols-2")}>
+            <div className={cn("grid gap-6", waves.filter((w) => w.pairings.length).length > 1 && "lg:grid-cols-2 print:grid-cols-2")}>
               {waves.filter((w) => w.pairings.length > 0).map((rs) => (
                 <div key={rs.id}>
                   <div className="mb-3 flex items-center gap-3">
@@ -106,7 +108,7 @@ export function ReportDoc({ name, waves }: { name: string; waves: ResultSet[] })
                       {word(treatmentsOf(rs).length)} videos · {rs.dimensions.reduce((n, d) => n + d.categories.length, 0)} subgroups
                     </span>
                   </div>
-                  <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-3 print:gap-2">
                     {[...rs.pairings]
                       .sort((x, y) => x.rank - y.rank)
                       .slice(0, 6)
@@ -117,7 +119,11 @@ export function ReportDoc({ name, waves }: { name: string; waves: ResultSet[] })
                 </div>
               ))}
             </div>
-            {story(latest, "seen-in-both") && <StoryBox story={story(latest, "seen-in-both")!} />}
+            {story(latest, "seen-in-both") && (
+              <div className="mt-4 print:mt-3">
+                <StoryBox story={story(latest, "seen-in-both")!} />
+              </div>
+            )}
           </Block>
           )}
         </Part>
@@ -209,7 +215,7 @@ function SetupSummary({ waves }: { waves: ResultSet[] }) {
   return (
     <Block title={`${Word(qs.length || latest.outcomes.length + latest.dimensions.filter((d) => d.selfSelected && d.askedBeforeExposure).length)} questions, ${word(latest.outcomes.length)} outcomes`}>
       {flow.length > 0 && (
-        <ol className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <ol className="report-avoid grid gap-3 sm:grid-cols-3 lg:grid-cols-5 print:grid-cols-5">
           {flow.map((s, i) => {
             // A step's number prints once: the story's own where its title is one, else its place.
             const numbered = /^\d+$/.test(s.title.trim())
@@ -271,11 +277,11 @@ function WaveSection({ rs, a, latest }: { rs: ResultSet; a: ReturnType<typeof ax
     <Part id={`wave-${rs.wave}`} kicker={latest ? `Wave ${rs.wave} · detailed findings` : `Wave ${rs.wave} · the historical record`} title={rs.title}>
       <Block title={headline}>
         <FactBoxes rs={rs} />
-        <div className="mt-6">
+        <div className="mt-6 print:mt-4">
           <DualLift rs={rs} a={a} />
         </div>
         {stories(rs, ["overview-1", "overview-2", "overview-3", "overview-4"]).length > 0 && (
-          <ol className="mt-6 grid gap-5 md:grid-cols-2">
+          <ol className="mt-6 grid gap-5 md:grid-cols-2 print:mt-4 print:gap-3">
             {stories(rs, ["overview-1", "overview-2", "overview-3", "overview-4"]).map((s, i) => (
               <li key={s.id} className="border-t-2 border-[var(--paper-strong)]/40 pt-3">
                 <p className="text-[15px] font-semibold">
@@ -286,7 +292,7 @@ function WaveSection({ rs, a, latest }: { rs: ResultSet; a: ReturnType<typeof ax
             ))}
           </ol>
         )}
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <div className="mt-6 grid gap-4 md:grid-cols-2 print:mt-3">
           {rs.outcomes.map((o) => (
             <Box key={o.id} title={o.name}>
               {o.definition}
@@ -294,13 +300,13 @@ function WaveSection({ rs, a, latest }: { rs: ResultSet; a: ReturnType<typeof ax
           ))}
         </div>
         <Footnote>
-          The {rs.threshold.label} is a statistical decision rule. It does not mean there is a {Math.round(rs.threshold.level <= 1 ? rs.threshold.level * 100 : rs.threshold.level)}% chance any particular person changed their mind.
+          The {inline(rs.threshold.label)} is a statistical decision rule. It does not mean there is a {Math.round(rs.threshold.level <= 1 ? rs.threshold.level * 100 : rs.threshold.level)}% chance any particular person changed their mind.
         </Footnote>
       </Block>
 
       <Block title={`The ${word(treat.length)} videos and their results`}>
         {/* Rows that close: three across for six, two across for four. */}
-        <div className={cn("grid gap-5 sm:grid-cols-2", treat.length % 3 === 0 && "lg:grid-cols-3")}>
+        <div className={cn("grid gap-5 sm:grid-cols-2", treat.length % 3 === 0 && "lg:grid-cols-3 print:grid-cols-3")}>
           {treat.map((arm, i) => (
             <VideoCard key={arm.id} rs={rs} arm={arm} index={i} a={a} />
           ))}
@@ -380,7 +386,7 @@ function WaveSection({ rs, a, latest }: { rs: ResultSet; a: ReturnType<typeof ax
               ))}
           </div>
           <Footnote>
-            Significant = video vs placebo inside one subgroup at the {rs.threshold.label}, not videos vs each other. {rs.dimensions.reduce((n, d) => n + d.categories.length, 0)} subgroups × {word(treat.length)} videos with no documented multiplicity adjustment, so some marks are likely chance.
+            Significant = video vs placebo inside one subgroup at the {inline(rs.threshold.label)}, not videos vs each other. {rs.dimensions.reduce((n, d) => n + d.categories.length, 0)} subgroups × {word(treat.length)} videos with no documented multiplicity adjustment, so some marks are likely chance.
           </Footnote>
         </Block>
       )}
@@ -390,7 +396,7 @@ function WaveSection({ rs, a, latest }: { rs: ResultSet; a: ReturnType<typeof ax
           <div className="flex flex-col gap-6">
             <LevelsKey rs={rs} />
             {strip.length > 0 && (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 print:grid-cols-4">
                 {strip.map((s) => (
                   <p key={s.id} className="text-[12px] leading-relaxed">
                     <span className="font-semibold">{s.title}</span> {s.body}
@@ -401,7 +407,7 @@ function WaveSection({ rs, a, latest }: { rs: ResultSet; a: ReturnType<typeof ax
             {groups.map((g) => {
               const ds = rs.dimensions.filter((d) => d.group === g)
               return (
-                <section key={g} className="flex flex-col gap-6">
+                <section key={g} className="report-group flex flex-col gap-6">
                   {ds.length > 1 && <h4 className="text-[24px] font-semibold tracking-tight">{listed(ds.map((d, i) => (i === 0 ? d.name.replace(/\s*\(.*\)$/, "") : lower(d.name.replace(/\s*\(.*\)$/, "")))))}</h4>}
                   {ds.map((d) => (
                     <DimensionBlock key={d.id} rs={rs} d={d} stories={d.selfSelected ? trustCards : []} />
