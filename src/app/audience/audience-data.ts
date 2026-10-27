@@ -88,24 +88,38 @@ export const SEGMENT_SEED: Record<string, number> = {
   POLL: 4,
 }
 
-// The rail's topics (Brendan, 2026-10-27): the publisher's 155 tags collapsed
-// into topics a reader recognizes. Every tag maps to exactly one topic; tags
-// that name the fielding apparatus rather than a subject map to none and stay
-// off the UI. A question's topic is its first mappable tag — the publisher
-// lists the primary subject first.
+// The rail's topics (Brendan, 2026-10-27): the publishers' tags — GSS's 155,
+// ANES's 26, CES's 10 (Briefs Q and T) — collapsed into topics a reader
+// recognizes. Every tag maps to exactly one topic; tags that name the
+// fielding apparatus rather than a subject map to none and stay off the UI.
+// A question's topic is its first mappable tag. ANES files section before
+// subsection, so an ISSUES subsection never stands first and stays unmapped —
+// the ISSUES row of Politics & government carries it.
 export const TOPIC_GROUPS: { topic: string; tags: string[] }[] = [
   {
     topic: "Politics & government",
-    tags: ["Political", "Federal Government", "Democracy", "Taxes", "Spending", "Welfare", "Social Security", "Salience Of Issues", "Wage/Price Controls", "Communism"],
+    tags: [
+      "Political", "Federal Government", "Democracy", "Taxes", "Spending", "Welfare", "Social Security", "Salience Of Issues", "Wage/Price Controls", "Communism",
+      "ISSUES", "LEVEL OF FEDERAL SPENDING ON ISSUES", "PERCEIVED POSITIONS OF FEDERAL GOVERNMENT ON ISSUES", "PARTISANSHIP AND ATTITUDES TOWARDS PARTIES", "IDEOLOGY AND VALUES",
+      "Partisan Identity", "Approval",
+    ],
   },
-  { topic: "Trust & values", tags: ["Confidence", "People", "Anomia", "Alienation", "Authority", "Values", "World View"] },
+  {
+    topic: "Elections & voting",
+    tags: [
+      "CANDIDATE AND INCUMBENT EVALUATIONS", "CANDIDATE/INCUMBENT PERFORMANCE EVALUATIONS", "PERCEIVED POSITIONS OF CANDIDATES/INCUMBENTS", "PERCEIVED POSITIONS OF PARTIES",
+      "ENGAGEMENT AND INFORMATION", "CAMPAIGN ACTIVITY", "REGISTRATION, TURNOUT, AND VOTE CHOICE", "Contextual - Election", "Contextual - Vote Validation",
+      "Presidential Vote", "House, Senate and Governor Vote", "Turnout", "Validated Turnout and Registration",
+    ],
+  },
+  { topic: "Trust & values", tags: ["Confidence", "People", "Anomia", "Alienation", "Authority", "Values", "World View", "SYSTEM SUPPORT", "VALUES AND PREDISPOSITIONS", "SOCIAL GROUPS"] },
   {
     topic: "Rights & liberties",
     tags: ["Civil Liberties", "Freedom", "Privacy", "Wiretapping", "Demonstrations", "Protest", "Abortion", "Guns", "Affirmative Action", "Equal Rights Amendment", "Euthanasia", "Terminal Illness", "Suicide", "Marijuana"],
   },
   {
     topic: "Economy & inequality",
-    tags: ["Economy", "Income", "Inequality, Income", "Social Class", "Poverty", "Social Mobility", "Opportunity", "Success", "Business", "Corporations", "Financial Institutions And Banks", "Purchases/Transactions", "Agriculture"],
+    tags: ["Economy", "Income", "Inequality, Income", "Social Class", "Poverty", "Social Mobility", "Opportunity", "Success", "Business", "Corporations", "Financial Institutions And Banks", "Purchases/Transactions", "Agriculture", "Economics and Income"],
   },
   { topic: "Work & jobs", tags: ["Job", "Work", "Employment", "Occupation", "Unemployment", "Labor Force Status", "Labor Unions", "Hours Worked", "Incentives", "Industry"] },
   {
@@ -116,7 +130,7 @@ export const TOPIC_GROUPS: { topic: string; tags: string[] }[] = [
   { topic: "Religion & spirituality", tags: ["Religion", "Prayer In School", "Parapsychological Experiences", "Astrological Sign"] },
   {
     topic: "Family & household",
-    tags: ["Family", "Children", "Parents", "Siblings", "Relatives", "Marriage", "Divorce", "Marital Status", "Cohabitation", "Romantic Relationships", "Household", "Adult Transitions", "Aged"],
+    tags: ["Family", "Children", "Parents", "Siblings", "Relatives", "Marriage", "Divorce", "Marital Status", "Cohabitation", "Romantic Relationships", "Household", "Adult Transitions", "Aged", "Family Status"],
   },
   {
     topic: "Health & wellbeing",
@@ -127,9 +141,10 @@ export const TOPIC_GROUPS: { topic: string; tags: string[] }[] = [
   { topic: "Science & technology", tags: ["Science", "Technology", "Computers And Internet"] },
   { topic: "Environment", tags: ["Environment"] },
   { topic: "Education & knowledge", tags: ["Education", "Knowledge", "Vocabulary Test", "Reasoning Abilities"] },
-  { topic: "Community & connections", tags: ["Social Networks", "Friends", "Voluntary Associations", "Sociability", "Altruism", "Contribute Money To"] },
-  { topic: "Media & leisure", tags: ["Media", "Television Viewing", "Newspaper Readership", "Movies", "Music", "Art/The Arts (And Literature)", "Sports", "Leisure", "Hunting", "Time"] },
-  { topic: "Home & place", tags: ["Residence", "Housing", "Dwelling (R's)", "Region", "Geographic Mobility", "Transportation"] },
+  { topic: "Community & connections", tags: ["Social Networks", "Friends", "Voluntary Associations", "Sociability", "Altruism", "Contribute Money To", "CIVIC PARTICIPATION"] },
+  { topic: "Media & leisure", tags: ["Media", "Television Viewing", "Newspaper Readership", "Movies", "Music", "Art/The Arts (And Literature)", "Sports", "Leisure", "Hunting", "Time", "MEDIA", "News Interest"] },
+  { topic: "Demographics", tags: ["PERSONAL AND DEMOGRAPHIC", "Demographics"] },
+  { topic: "Home & place", tags: ["Residence", "Housing", "Dwelling (R's)", "Region", "Geographic Mobility", "Transportation", "Geography"] },
 ]
 /** Fielding bookkeeping, not subjects — never shown. */
 export const FIELDING_TAGS = new Set(["Split Ballots", "Interview", "Surveys", "Size Of Place Of Interview"])

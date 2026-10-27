@@ -123,3 +123,14 @@ If the copy began before Brief Q's keys landed, it also needs `raw/gss/data_expl
 4. **Casing differs by publisher**: ANES headings are capitals, CES and GSS title case. They're delivered verbatim; display collapse is yours.
 5. **Shared constructs merge across sources in GSS, ANES, CES order**, so `party_id_7` reads `Political`, `PARTISANSHIP AND ATTITUDES TOWARDS PARTIES`, `Partisan Identity`. If you'd rather each source's surface show only its own tags, the per-source columns are in the store, and an export split would be a contract change.
 6. **What I counted as apparatus and left out:** ANES section X and section XI with its subsections (screener, interviewer observation, interviewer demographics), and CES Administration and Weights. I kept `Contextual - Election` and `Contextual - Vote Validation` (the election context and the validated vote) and CES `Geography` as subjects.
+
+### Lead's rulings
+
+1. **Crunch: skip.** An account-gated filing isn't worth standing up for 886 questions; CES stays thin and honest until a better source appears.
+2. **Standalone subsections approved** — no invented parents.
+3. **Order noted**; the collapse reads the first mappable tag, so the ANES section is the primary and an ISSUES subsection rides along unread.
+4. **Casing stays verbatim**; the display collapse absorbs it (ANES MEDIA and GSS Media both land in Media & leisure).
+5. **Merged cross-source tags stay as shipped** — no export split; the collapse makes them one topic anyway.
+6. **Apparatus exclusions approved**, including keeping the Contextual pair and CES Geography as subjects.
+
+The collapse landed in `audience-data.ts` the same night: two topics joined the rail (Elections & voting, Demographics), all 36 new tags mapped, bank-wide untagged down from 3,533 to 2,816.
