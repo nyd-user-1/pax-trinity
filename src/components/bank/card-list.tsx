@@ -159,7 +159,7 @@ export function CardList({
             const c = card(id)
             const active = selected === id
             const chip = c.chip && (
-              <span className="max-w-44 shrink-0 truncate rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground" title={c.chip}>
+              <span className="max-w-44 shrink-0 truncate rounded-full border bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground" title={c.chip}>
                 {c.chip}
               </span>
             )

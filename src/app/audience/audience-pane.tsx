@@ -6,12 +6,14 @@ import { X } from "lucide-react"
 import { latestRow, levelRank, num, period, shortSource, value, year, type MetricInfo, type SourceGroup, type SourceRow } from "./audience-data"
 
 // The About panel — everything a clicked value carries, the same question set
-// beside its other sources.
+// beside its other sources. Beside the compare grid it stands as the fourth
+// column at 420; over an open question it is a layer in the pane (pass 2,
+// 2026-10-27), its X returning the view it covered.
 
 export type About = { r: SourceRow; metric: string; segment: string }
 
-/** The fourth column: everything the clicked value carries, at 420. */
 export function AboutPanel({
+  layer = false,
   about,
   onClose,
   source,
@@ -22,6 +24,8 @@ export function AboutPanel({
   place,
   geoLevel,
 }: {
+  /** In the pane, full width with the reading capped, rather than the 420 column. */
+  layer?: boolean
   about: About
   onClose: () => void
   source: string | null
@@ -50,8 +54,8 @@ export function AboutPanel({
   }, [about, files, source, geoLevel, place])
 
   const c = info.get(about.metric)
-  return (
-    <div className="relative w-[420px] shrink-0 overflow-y-auto border-l p-5">
+  const body = (
+    <>
       <button type="button" onClick={onClose} aria-label="Close" className="absolute top-4 right-4 text-muted-foreground hover:text-foreground">
         <X className="size-4" />
       </button>
@@ -106,6 +110,13 @@ export function AboutPanel({
           <p className="text-xs text-muted-foreground/70">Other sources join here as they are read from the rail.</p>
         )}
       </div>
+    </>
+  )
+  return layer ? (
+    <div className="min-h-0 w-full flex-1 overflow-y-auto">
+      <div className="relative max-w-2xl p-5">{body}</div>
     </div>
+  ) : (
+    <div className="relative w-[420px] shrink-0 overflow-y-auto border-l p-5">{body}</div>
   )
 }

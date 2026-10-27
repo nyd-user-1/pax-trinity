@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { RefreshCwIcon, Search, X } from "lucide-react"
+import { ArrowLeft, RefreshCwIcon, Search, X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
@@ -30,19 +30,40 @@ export function SearchField({ query, onQuery, placeholder }: { query: string; on
   )
 }
 
-export function PaneSearchRow({ query, onQuery, placeholder, children }: { query: string; onQuery: (q: string) => void; placeholder: string; children?: React.ReactNode }) {
+export function PaneSearchRow({
+  query,
+  onQuery,
+  placeholder,
+  onBack,
+  children,
+}: {
+  query: string
+  onQuery: (q: string) => void
+  placeholder: string
+  /** The reading pane off, the item has the screen: Back returns to the list (Gmail's). */
+  onBack?: () => void
+  children?: React.ReactNode
+}) {
   return (
     <div className="flex h-[52px] shrink-0 items-center gap-2 border-b px-4">
+      {onBack && (
+        <Button variant="ghost" size="icon-sm" aria-label="Back to the list" title="Back to the list" className="-ml-1.5 shrink-0" onClick={onBack}>
+          <ArrowLeft className="size-4" />
+        </Button>
+      )}
       <SearchField query={query} onQuery={onQuery} placeholder={placeholder} />
       {children}
     </div>
   )
 }
 
-export function PaneTitleRow({ title, children }: { title: React.ReactNode; children?: React.ReactNode }) {
+export function PaneTitleRow({ title, leading, children }: { title: React.ReactNode; leading?: React.ReactNode; children?: React.ReactNode }) {
   return (
     <div className="flex h-[52px] shrink-0 items-center gap-2 border-b px-4">
-      <span className="min-w-0 truncate text-sm font-semibold">{title}</span>
+      {leading && <div className="flex shrink-0 items-center gap-2">{leading}</div>}
+      {/* 115ch: the measure of "And what about women? Would you say that their
+          treatment and opportunities are better in the military, better…". */}
+      <span className="min-w-0 max-w-[115ch] truncate text-sm font-semibold">{title}</span>
       <div className="ml-auto flex shrink-0 items-center gap-2">{children}</div>
     </div>
   )

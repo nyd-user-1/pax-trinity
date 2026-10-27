@@ -47,6 +47,8 @@ export function AudienceInbox() {
   // The compare grid's columns, four at most, added from a row's kebab.
   const [columns, setColumns] = React.useState<string[]>([])
   const [pinned, setPinned] = React.useState<string[]>([])
+  // Gmail's importance arrow, in front of the open question's title (pass 2).
+  const [important, setImportant] = React.useState<string[]>([])
   // The Blocks panel's contents: questions pressed into it from the list.
   const [blocks, setBlocks] = React.useState<string[]>([])
   const [blocksOpen, setBlocksOpen] = React.useState(false)
@@ -213,10 +215,18 @@ export function AudienceInbox() {
   // A clicked question opens the flat table scoped to its rows (Brendan,
   // 2026-10-26). A row's "Add as column" builds the compare grid, and brings
   // it up: the list folded beside it, the grid in the pane.
+  // Opening one folds the list beside it, as it always has ("don't close the
+  // middle panel"); the split toggle then turns the list off and on.
   const open = (id: string) => {
     setTableMetric(id)
     setMode("table")
+    setSplit("vertical")
+    // A picked value belongs to the question it was picked on.
+    setAbout(null)
   }
+  const toggle = (set: React.Dispatch<React.SetStateAction<string[]>>, id: string) => set((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  // The open question's own box: a column in or out, the question staying open.
+  const pickColumn = (id: string) => setColumns((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : prev.length >= MAX_COLS ? prev : [...prev, id]))
   const toggleColumn = (id: string) => {
     if (columns.includes(id)) {
       setColumns((prev) => prev.filter((x) => x !== id))
@@ -228,12 +238,6 @@ export function AudienceInbox() {
     setMode("list")
     setSplit("vertical")
   }
-  // The pane's refresh reads the open question's files again, every source's.
-  const refresh = (id: string) => {
-    setRowsError(null)
-    setCache((prev) => Object.fromEntries(Object.entries(prev).filter(([key]) => !key.endsWith(`/${id}`))))
-  }
-
   // A segment joins the survey draft as a question — its wording verbatim
   // where the source carries one (polls and results do), its label where it
   // does not — with the segment's bands as the answer options.
@@ -278,7 +282,7 @@ export function AudienceInbox() {
       pinned: pinned.includes(id),
       actions: [
         { label: isColumn ? "Remove column" : atCap ? "Four columns at most" : "Add as column", onSelect: () => toggleColumn(id), disabled: atCap },
-        { label: pinned.includes(id) ? "Unpin" : "Pin", onSelect: () => setPinned((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])) },
+        { label: pinned.includes(id) ? "Unpin" : "Pin", onSelect: () => toggle(setPinned, id) },
         {
           label: "Add to blocks",
           onSelect: () => {
@@ -348,8 +352,8 @@ export function AudienceInbox() {
     </div>
   )
 
-  const aboutPanel = (from: string | null) =>
-    about && <AboutPanel about={about} onClose={() => setAbout(null)} source={from} groups={groups} files={files} info={info} label={label} place={place} geoLevel={geoLevel} />
+  const aboutPanel = (from: string | null, layer = false) =>
+    about && <AboutPanel layer={layer} about={about} onClose={() => setAbout(null)} source={from} groups={groups} files={files} info={info} label={label} place={place} geoLevel={geoLevel} />
 
   const drafting = drafted != null && (
     <div role="status" className="absolute bottom-4 left-4 z-20 flex items-center gap-4 rounded-md bg-foreground px-4 py-2.5 text-sm text-background shadow-lg">
@@ -365,8 +369,10 @@ export function AudienceInbox() {
   return (
     <BankFrame rail={railNode} crumb="Audience" search={{ query, onQuery: setQuery, placeholder: "Search questions" }} overlay={drafting}>
       {mode === "table" && tableMetric ? (
+        // The reading pane off (split none), the question has the screen and
+        // the search row leads with Back; on, the list stands folded beside it.
         <BankSplit
-          list={listFor("vertical")}
+          list={split === "vertical" ? listFor("vertical") : undefined}
           pane={
             loaded(tableMetric) && info.get(tableMetric) ? (
               <QuestionTable
@@ -382,18 +388,28 @@ export function AudienceInbox() {
                 onPick={setAbout}
                 query={query}
                 onQuery={setQuery}
-                onRefresh={() => refresh(tableMetric)}
+                isColumn={columns.includes(tableMetric)}
+                atCap={!columns.includes(tableMetric) && columns.length >= MAX_COLS}
+                onColumn={() => pickColumn(tableMetric)}
+                pinned={pinned.includes(tableMetric)}
+                onPin={() => toggle(setPinned, tableMetric)}
+                important={important.includes(tableMetric)}
+                onImportant={() => toggle(setImportant, tableMetric)}
+                onBack={
+                  split === "vertical"
+                    ? undefined
+                    : () => {
+                        setTableMetric(null)
+                        setMode("list")
+                      }
+                }
+                aboutLayer={aboutPanel(srcOf(tableMetric), true)}
               />
             ) : (
               <Reading error={rowsError} />
             )
           }
-          aside={
-            <>
-              {aboutPanel(srcOf(tableMetric))}
-              {blocksPanel}
-            </>
-          }
+          aside={blocksPanel}
         />
       ) : (
         <BankSplit

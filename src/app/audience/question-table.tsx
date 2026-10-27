@@ -2,9 +2,11 @@
 
 import * as React from "react"
 import dynamic from "next/dynamic"
+import { StarIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { PaneSearchRow, PaneTitleRow, ViewToggle } from "@/components/bank/pane-bars"
+import { Checkbox } from "@govblock/ui/components/checkbox"
 
 // The Trend view loads only when clicked: the chart file carries the ECharts
 // modules, and this dynamic mount keeps that chunk off every route until then.
@@ -33,8 +35,10 @@ import { type About } from "./audience-pane"
 // estimate, margin, base, geo and weight, newest first with the total before
 // its subgroups. A clicked crosstab cell hands its row to the About panel.
 // Two 52px bars, flush with the list's two (Brendan's dev-tool pass,
-// 2026-10-27): the search beside the toggle, then the question with refresh
-// at its right.
+// 2026-10-27): the search beside the toggle, then the question — its column
+// box, importance arrow and star before it (pass 2), Open at its right. With
+// the reading pane off the search row leads with Back; a picked value's About
+// panel takes the content area as a layer, the dossier's way.
 
 const MAX_BANNER_ROWS = 24
 const VIEWS = [
@@ -56,7 +60,15 @@ export function QuestionTable({
   onPick,
   query,
   onQuery,
-  onRefresh,
+  isColumn,
+  atCap,
+  onColumn,
+  pinned,
+  onPin,
+  important,
+  onImportant,
+  onBack,
+  aboutLayer,
 }: {
   /** The question's rows alone. */
   rows: SourceRow[]
@@ -74,8 +86,18 @@ export function QuestionTable({
   /** The list's search, which the pane's search row carries too. */
   query: string
   onQuery: (q: string) => void
-  /** Reads the open question's files again. */
-  onRefresh: () => void
+  /** The open question as a compare-grid column, the box before its title. */
+  isColumn: boolean
+  atCap: boolean
+  onColumn: () => void
+  pinned: boolean
+  onPin: () => void
+  important: boolean
+  onImportant: () => void
+  /** Present when the list is hidden: the search row's Back. */
+  onBack?: () => void
+  /** The picked value's About panel, as the layer over the view. */
+  aboutLayer?: React.ReactNode
 }) {
   const [view, setView] = React.useState<"crosstab" | "chart" | "tidy">("tidy")
   // The drill-down: the dossier standing where the table stood.
@@ -113,6 +135,21 @@ export function QuestionTable({
   // The title row reads the question itself (Brendan, 2026-10-26) and the
   // chevrons changing the open question change it with them.
   const heading = normalizeWording(wording ?? title)
+  // Before the title: the question's box (a compare-grid column), Gmail's
+  // importance arrow and the star (pass 2, 2026-10-27).
+  const leading = (
+    <>
+      <Checkbox aria-label="Add as column" checked={isColumn} disabled={atCap} title={atCap ? "Four columns at most" : undefined} onCheckedChange={onColumn} />
+      <button type="button" aria-pressed={important} aria-label={important ? "Marked important" : "Mark as important"} title={important ? "Marked important" : "Mark as important"} onClick={onImportant} className="shrink-0">
+        <svg viewBox="0 0 20 20" aria-hidden className={cn("size-4 shrink-0", important ? "fill-amber-400 text-amber-400" : "fill-transparent text-muted-foreground/50")}>
+          <path d="M4 5h7l5 5-5 5H4l5-5z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+        </svg>
+      </button>
+      <button type="button" aria-pressed={pinned} aria-label={pinned ? "Unpin" : "Pin"} title={pinned ? "Unpin" : "Pin"} onClick={onPin} className="shrink-0 text-muted-foreground/60 hover:text-foreground">
+        <StarIcon className={cn("size-4", pinned && "fill-yellow-400 text-yellow-500")} />
+      </button>
+    </>
+  )
   // The title row's one control (Brendan, 2026-10-27: no refresh icon): Open
   // drills into the dossier in place, and becomes Back while it stands.
   const controls = source && (
@@ -123,7 +160,7 @@ export function QuestionTable({
 
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
-      <PaneSearchRow query={query} onQuery={onQuery} placeholder="Search wording or label…">
+      <PaneSearchRow query={query} onQuery={onQuery} placeholder="Search wording or label…" onBack={onBack}>
         <ViewToggle
           views={VIEWS}
           value={view}
@@ -133,18 +170,29 @@ export function QuestionTable({
           }}
         />
       </PaneSearchRow>
-      {drill && source ? (
+      {aboutLayer ? (
         <>
-          <PaneTitleRow title={heading}>{controls}</PaneTitleRow>
+          <PaneTitleRow title={heading} leading={leading}>
+            {controls}
+          </PaneTitleRow>
+          {aboutLayer}
+        </>
+      ) : drill && source ? (
+        <>
+          <PaneTitleRow title={heading} leading={leading}>
+            {controls}
+          </PaneTitleRow>
           <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
             <Dossier source={source.toLowerCase()} id={metric} />
           </div>
         </>
       ) : view === "tidy" ? (
-        <RowsView rows={rows} id={metric} source={source} header={heading} trailing={controls} about={about} onPick={onPick} />
+        <RowsView rows={rows} id={metric} source={source} header={heading} leading={leading} trailing={controls} about={about} onPick={onPick} />
       ) : (
         <>
-      <PaneTitleRow title={heading}>{controls}</PaneTitleRow>
+      <PaneTitleRow title={heading} leading={leading}>
+        {controls}
+      </PaneTitleRow>
       {/* Native scroll, not the ScrollArea primitive: radix's viewport sizes
           itself to the banner's intrinsic width, which blew the pane out
           sideways and swallowed the vertical scroll with it. */}

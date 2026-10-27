@@ -6,7 +6,7 @@ import { EllipsisVerticalIcon, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
 import { PaneTitleRow } from "@/components/bank/pane-bars"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@govblock/ui/components/ny4/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@govblock/ui/components/ny4/dropdown-menu"
 
 import { num, weightOf, year, type SourceRow } from "./audience-data"
 import { type About } from "./audience-pane"
@@ -24,6 +24,7 @@ export function RowsView({
   id,
   source,
   header,
+  leading,
   trailing,
   about,
   onPick,
@@ -36,6 +37,8 @@ export function RowsView({
   /** The mount's own title-row content: it takes the row's left, the filter
    *  chips and `trailing` its right. */
   header: React.ReactNode
+  /** The open question's own controls, before the heading. */
+  leading?: React.ReactNode
   trailing?: React.ReactNode
   /** A clicked row hands itself to the About panel, where the mount has one. */
   about?: About | null
@@ -146,7 +149,7 @@ export function RowsView({
     <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
       {/* The mount's title row: the heading truncating at the left, the
           trailing control then the filters kebab at the right. */}
-      <PaneTitleRow title={header}>
+      <PaneTitleRow title={header} leading={leading}>
         {trailing}
         {kebab}
       </PaneTitleRow>
@@ -160,33 +163,42 @@ export function RowsView({
                   {h}
                 </th>
               ))}
+              <th aria-label="Row actions" className="sticky top-0 z-10 w-10 border-b bg-background" />
             </tr>
           </thead>
           <tbody>
-            {listed.map((r, i) => (
-              <tr
-                key={i}
-                onClick={onPick ? () => onPick({ r, metric: id, segment: r[5] ? `${r[5]}: ${r[6]}` : "All" }) : undefined}
-                className={cn(
-                  !r[5] && "bg-muted/40",
-                  onPick && "cursor-pointer transition-[background-color,box-shadow] hover:bg-accent/60 hover:shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]",
-                  onPick && about?.r === r && "bg-muted shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]"
-                )}
-              >
-                <td className="border-b px-4 py-2 text-muted-foreground tabular-nums">{year(r[3])}</td>
-                <td className="border-b px-4 py-2">{r[5] ? `${r[5]}: ${r[6]}` : "All"}</td>
-                <td className="border-b px-4 py-2">{r[4]}</td>
-                {/* The cell knows its estimate's type: a count prints whole, a lift signed in points, a share one-decimal. */}
-                <td className="border-b px-4 py-2 text-right font-semibold tabular-nums">{r[8] === "count" ? num(r[7], 0) : r[8] === "lift_pp" ? `${r[7] >= 0 ? "+" : "−"}${num(Math.abs(r[7]))}` : num(r[7])}</td>
-                <td className="border-b px-4 py-2 text-right text-muted-foreground tabular-nums">{r[9] != null ? `±${num(r[9], r[8] === "count" ? 0 : 1)}` : "—"}</td>
-                <td className="border-b px-4 py-2 text-right text-muted-foreground tabular-nums">{r[11] != null ? num(r[11], 0) : "—"}</td>
-                <td className="border-b px-4 py-2 text-muted-foreground">{r[1]}</td>
-                <td className="border-b px-4 py-2 text-muted-foreground">{weightOf(source, year(r[3])) ?? "—"}</td>
-              </tr>
-            ))}
+            {listed.map((r, i) => {
+              const c = rowCells(r, source)
+              const pick = onPick ? () => onPick({ r, metric: id, segment: r[5] ? `${r[5]}: ${r[6]}` : "All" }) : undefined
+              return (
+                <tr
+                  key={i}
+                  onClick={pick}
+                  className={cn(
+                    "group/row",
+                    !r[5] && "bg-muted/40",
+                    onPick && "cursor-pointer transition-[background-color,box-shadow] hover:bg-accent/60 hover:shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]",
+                    onPick && about?.r === r && "bg-muted shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]"
+                  )}
+                >
+                  <td className="border-b px-4 py-2 text-muted-foreground tabular-nums">{c.wave}</td>
+                  <td className="border-b px-4 py-2">{c.segment}</td>
+                  <td className="border-b px-4 py-2">{c.band}</td>
+                  {/* The cell knows its estimate's type: a count prints whole, a lift signed in points, a share one-decimal. */}
+                  <td className="border-b px-4 py-2 text-right font-semibold tabular-nums">{c.est}</td>
+                  <td className="border-b px-4 py-2 text-right text-muted-foreground tabular-nums">{c.moe}</td>
+                  <td className="border-b px-4 py-2 text-right text-muted-foreground tabular-nums">{c.n}</td>
+                  <td className="border-b px-4 py-2 text-muted-foreground">{c.geo}</td>
+                  <td className="border-b px-4 py-2 text-muted-foreground">{c.weight}</td>
+                  <td className="w-10 border-b px-1 py-1 text-right">
+                    <RowKebab onOpen={pick} copy={[c.wave, c.segment, c.band, c.est, c.moe, c.n, c.geo, c.weight].join("\t")} />
+                  </td>
+                </tr>
+              )
+            })}
             {!sorted.length && (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                <td colSpan={9} className="px-4 py-8 text-center text-sm text-muted-foreground">
                   Nothing matches the filters.
                 </td>
               </tr>
@@ -196,6 +208,45 @@ export function RowsView({
         </table>
       </div>
     </div>
+  )
+}
+
+/** A row's cells as they print, for the table and for Copy row alike. */
+function rowCells(r: SourceRow, source: string | null) {
+  return {
+    wave: year(r[3]),
+    segment: r[5] ? `${r[5]}: ${r[6]}` : "All",
+    band: r[4] ?? "",
+    est: r[8] === "count" ? num(r[7], 0) : r[8] === "lift_pp" ? `${r[7] >= 0 ? "+" : "−"}${num(Math.abs(r[7]))}` : num(r[7]),
+    moe: r[9] != null ? `±${num(r[9], r[8] === "count" ? 0 : 1)}` : "—",
+    n: r[11] != null ? num(r[11], 0) : "—",
+    geo: r[1],
+    weight: weightOf(source, year(r[3])) ?? "—",
+  }
+}
+
+/** The row's kebab, shown on hover (held while open): the row into the panel, or onto the clipboard. */
+function RowKebab({ onOpen, copy }: { onOpen?: () => void; copy: string }) {
+  const [open, setOpen] = React.useState(false)
+  return (
+    <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Row actions"
+          onClick={(event) => event.stopPropagation()}
+          className={cn("opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100", open && "opacity-100")}
+        >
+          <EllipsisVerticalIcon className="size-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      {/* The menu portals out, but React bubbles its clicks to the row: stop them here. */}
+      <DropdownMenuContent align="end" className="w-max min-w-40" onClick={(event) => event.stopPropagation()}>
+        {onOpen && <DropdownMenuItem onClick={onOpen}>Open in the panel</DropdownMenuItem>}
+        <DropdownMenuItem onClick={() => void navigator.clipboard.writeText(copy)}>Copy row</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
 
@@ -211,7 +262,7 @@ function MoreRow({ onMore }: { onMore: () => void }) {
   }, [onMore])
   return (
     <tr>
-      <td colSpan={8} className="py-3 text-center text-muted-foreground">
+      <td colSpan={9} className="py-3 text-center text-muted-foreground">
         <div ref={mark}>
           <Loader2 aria-label="Loading more" className="inline size-4 animate-spin" />
         </div>
