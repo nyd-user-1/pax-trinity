@@ -13,7 +13,7 @@ import { TooltipProvider } from "@govblock/ui/components/ny4/tooltip"
 
 import { AboutPanel, BackButton, type About } from "../audience/audience-pane"
 import { AudienceRows } from "../audience/audience-rows"
-import { buildInfo, groupSources, metricIdsOf, shortSource, WORDING, type AudienceIndex, type MetricInfo, type SourceRow } from "../audience/audience-data"
+import { buildInfo, groupSources, metricIdsOf, normalizeWording, shortSource, WORDING, type AudienceIndex, type MetricInfo, type SourceRow } from "../audience/audience-data"
 import { SourceRail } from "./source-rail"
 import { QuestionTable } from "./question-table"
 import { SegmentList, type ListTab, type Split } from "./segment-list"
@@ -143,7 +143,7 @@ export function AudienceInbox() {
     // The full GSS library (the review slice retired once Brief P's wordings
     // landed), A–Z by what the card shows — the wording where one exists — so
     // the reading order matches the visible text, not the hidden label.
-    const text = (id: string) => wordingOf(id) ?? label(id)
+    const text = (id: string) => normalizeWording(wordingOf(id) ?? label(id))
     return all
       .map((id) => [text(id), id] as const)
       .sort((a, b) => a[0].localeCompare(b[0]))

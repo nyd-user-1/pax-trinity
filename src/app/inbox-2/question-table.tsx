@@ -12,7 +12,7 @@ const QuestionChart = dynamic(() => import("./question-chart").then((m) => m.Que
   loading: () => <p className="p-6 text-sm text-muted-foreground">Drawing…</p>,
 })
 
-import { dimLabel, latestRow, num, value, year, type MetricInfo, type SourceRow } from "../audience/audience-data"
+import { dimLabel, latestRow, normalizeWording, num, value, year, type MetricInfo, type SourceRow } from "../audience/audience-data"
 import { RowsView } from "../audience/rows-view"
 import { type About } from "../audience/audience-pane"
 
@@ -89,7 +89,7 @@ export function QuestionTable({
   // The bar reads the question itself (Brendan, 2026-10-26) and the chevrons
   // changing the open question change it with them; the toggle rides the
   // filter row's right in the Data view and the bar's right elsewhere.
-  const heading = <span className="min-w-0 truncate text-sm font-semibold">{wording ?? title}</span>
+  const heading = <span className="min-w-0 truncate text-sm font-semibold">{normalizeWording(wording ?? title)}</span>
   const toggle = (
     <div className="flex shrink-0 rounded-lg border p-0.5 text-xs">
       {(["tidy", "crosstab", "chart"] as const).map((v) => (

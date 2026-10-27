@@ -10,7 +10,7 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@govblock/
 import { Separator } from "@govblock/ui/components/ny4/separator"
 import { SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader } from "@govblock/ui/components/ny4/sidebar"
 
-import { groupSources, mnemonicOf, shortSource, WEB_GRID, WORDING, year, type AudienceIndex, type SourceRow } from "./audience-data"
+import { groupSources, mnemonicOf, normalizeWording, shortSource, WEB_GRID, WORDING, year, type AudienceIndex, type SourceRow } from "./audience-data"
 import { RowsView } from "./rows-view"
 
 // /audience — the normative database: the reference instrument a pollster
@@ -169,7 +169,7 @@ export function BankSurface() {
                 className={cn("w-full px-4 py-3 text-left transition-colors hover:bg-accent/60", open === x.id && "bg-muted")}
               >
                 <p className="text-sm font-semibold">
-                  {x.wording ?? x.label}
+                  {normalizeWording(x.wording ?? x.label)}
                   {WEB_GRID.has(x.id) && <span className="font-normal text-muted-foreground"> (web grid)</span>}
                 </p>
                 {!x.wording && x.def && x.def !== x.label && <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">“{x.def}”</p>}

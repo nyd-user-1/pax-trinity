@@ -128,6 +128,29 @@ export const mnemonicOf = (id: string) => MNEMONIC[id] ?? id.toUpperCase()
  *  a different administration — the card says so after the wording. */
 export const WEB_GRID = new Set(["abanyg", "abdefectg", "abhlthg", "abnomoreg", "abpoorg", "abrapeg", "absingleg"])
 
+/** The codebook ships battery items with their stem in parentheses —
+ *  "(Do you agree or disagree that . . .) Overall, I expect…" — which reads
+ *  as markup, not a question. For display the stem fuses into the sentence:
+ *  parens dropped, a trailing ellipsis in the stem removed, the item joined
+ *  on. The stored wording stays verbatim; this is the card's read of it. */
+export function normalizeWording(w: string): string {
+  const m = w.match(/^\s*\(([^)]+)\)\s*(.*)$/s)
+  if (!m || !m[2]) return w
+  const stem = m[1].replace(/\s*(\.{3}|…|\.\s?\.\s?\.)\s*$/, "").trim()
+  return `${stem} ${m[2].trim()}`.replace(/\s+/g, " ")
+}
+
+/** The scale family a question's own bands reveal — the type badge beside the mnemonic. */
+export function scaleOf(options: string[]): string | null {
+  if (!options.length) return null
+  const low = options.map((o) => o.toLowerCase().trim())
+  if (options.length === 2 && low.includes("yes") && low.includes("no")) return "Yes / No"
+  if (low.some((o) => o.includes("agree"))) return "Agree scale"
+  const nums = options.map((o) => o.match(/^(\d+)/)?.[1])
+  if (options.length >= 5 && nums.every(Boolean)) return `${nums[0]}–${nums[nums.length - 1]} scale`
+  return null
+}
+
 /** The weight the loader's tally used, mirrored from audience/loaders/gss.py
  *  (2024 codebook R3a): WTSSNRPS from 2004 on, WTSSPS before. Only GSS is
  *  mapped; another source prints nothing until the export carries its weight. */

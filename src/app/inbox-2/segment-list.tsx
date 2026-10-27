@@ -10,16 +10,17 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuRadioG
 import { ScrollArea } from "@govblock/ui/components/ny4/scroll-area"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/ny4/tooltip"
 
-import { mnemonicOf, WEB_GRID, year, type MetricInfo } from "../audience/audience-data"
+import { mnemonicOf, normalizeWording, scaleOf, WEB_GRID, year, type MetricInfo } from "../audience/audience-data"
 
-// The question list in the thread list's frame: the same toolbar —
-// select-all with its menu, refresh, the more menu (tabs, the split, the
-// flat table); the pager at the right — then one card per question, reading as the question
-// would on a survey (Brendan, 2026-10-26): the wording where the bank carries
-// one, the source label where it does not, the span and wave count under it
-// with the source's mnemonic as the badge at the card's bottom right. Opening
-// a card is the presto: the data takes the pane. The box is the column picker
-// (four at most), the star pins.
+// The question list in Gmail's exact anatomy (Brendan, 2026-10-26: "a near
+// perfect mimic"): the same toolbar — select-all with its menu, refresh, the
+// more menu (tabs, the split, the flat table); the pager at the right — then
+// one line per question: box, star, the mnemonic badge where the sender
+// sits, the wording in bold truncating at whatever width the row has with
+// the scale family and wave count after Gmail's dash, and the span at the
+// right edge where the time sits. Battery stems normalize into the sentence.
+// Opening a row is the presto: the data takes the pane. The box is the
+// column picker (four at most), the star pins.
 
 export type Split = "none" | "vertical"
 export type ListTab = "all" | "pinned"
@@ -185,6 +186,7 @@ export function SegmentList({
             const active = selected === id
             const atCap = !checked.includes(id) && checked.length >= MAX_COLS
             const foot = spanOf(c)
+            const scale = scaleOf(c?.options ?? [])
             const star = (
               <button
                 type="button"
@@ -204,25 +206,32 @@ export function SegmentList({
                 key={id}
                 data-active={active}
                 className={cn(
-                  "group/row relative flex cursor-pointer items-start gap-3 px-3 py-2.5 text-sm transition-[background-color,box-shadow] hover:z-10 hover:bg-accent/60 hover:shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]",
+                  "group/row relative flex h-10 cursor-pointer items-center gap-3 px-3 text-sm transition-[background-color,box-shadow] hover:z-10 hover:bg-accent/60 hover:shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]",
                   active && "z-10 bg-muted shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]"
                 )}
                 onClick={() => onOpen(id)}
               >
-                <span className="flex shrink-0 items-center gap-2 pt-0.5" onClick={(event) => event.stopPropagation()}>
+                <span className="flex shrink-0 items-center gap-2" onClick={(event) => event.stopPropagation()}>
                   <Checkbox aria-label={`A column for ${label(id)}`} checked={checked.includes(id)} disabled={atCap} title={atCap ? "Four at most" : undefined} onCheckedChange={() => onCheck(id)} />
                   {star}
                 </span>
-                <span className="flex min-w-0 flex-1 flex-col gap-1">
+                <span className="w-28 shrink-0">
+                  <span className="rounded-full border px-2 py-0.5 text-[10px] font-medium tracking-wider text-muted-foreground">{mnemonicOf(id)}</span>
+                </span>
+                <span className="min-w-0 flex-1 truncate" title={wordingOf(id) ?? label(id)}>
                   <span className="font-semibold">
-                    {wordingOf(id) ?? label(id)}
+                    {normalizeWording(wordingOf(id) ?? label(id))}
                     {WEB_GRID.has(id) && <span className="font-normal text-muted-foreground"> (web grid)</span>}
                   </span>
-                  <span className="flex items-end justify-between gap-2">
-                    <span className="text-xs text-muted-foreground tabular-nums">{foot ? `${foot.span} · ${foot.waves} ${foot.waves === 1 ? "wave" : "waves"}` : ""}</span>
-                    <span className="shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium tracking-wider text-muted-foreground">{mnemonicOf(id)}</span>
-                  </span>
+                  {foot && (
+                    <span className="text-muted-foreground">
+                      {" "}
+                      - {scale ? `${scale} · ` : ""}
+                      {foot.waves} {foot.waves === 1 ? "wave" : "waves"}
+                    </span>
+                  )}
                 </span>
+                {foot && <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{foot.span}</span>}
               </li>
             )
           })}
