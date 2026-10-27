@@ -764,7 +764,7 @@ export const PAX_BOXES: HomeCardData[] = [
     body: "Gather opinion at scale; groups emerge from the votes, not the loudest voice." },
   { href: "", title: "Scripts", accent: "", tag: "Platform", value: 0, unit: "",
     body: "From brief to draft: the scripts the cuts are shot from, written and revised in place. Underway." },
-  { href: "/lift", title: "Lift Benchmarks", accent: "", tag: "Data", value: 1_583, unit: "effects",
+  { href: "/lift?source=LIFT_ARCHIVE", title: "Lift Benchmarks", accent: "", tag: "Data", value: 1_583, unit: "effects",
     body: "Ad-level effects from prior randomized tests. A new lift lands on this curve, not in a vacuum." },
   { href: "/test/open-primaries-1", title: "Message Tests", accent: "", tag: "Platform", value: 5, unit: "arms",
     body: "Randomized placebo tests of video: each respondent watches one arm, answers the ballot, and the lift is measured against the placebo alone." },

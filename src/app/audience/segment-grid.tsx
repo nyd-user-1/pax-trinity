@@ -10,15 +10,14 @@ import { ScrollArea } from "@govblock/ui/components/ny4/scroll-area"
 import { dimLabel, latestRow, levelRank, num, type MetricInfo, type SourceRow } from "./audience-data"
 import { type About } from "./audience-pane"
 
-// The reading pane the presto opens: the opened segment as the results grid
-// (the Swayable shape in /public/Reference Images). The Bands section leads —
-// every band of the opened segment as a row, a level bar against the largest
-// so the distribution is the picture — then Geography reads each place
-// against the segment's baseline, and each breakdown reads its bands against
-// the topline as delta pennants. One column per question added from a row's
-// kebab; a cell
-// inside its own margin fades rather than vanishes. Clicking a cell hands
-// the row to the About panel, which arrives as the fourth column.
+// The compare grid (the Swayable shape in /public/Reference Images): one
+// column per question added from a row's kebab. The Bands section leads —
+// every band of the first column as a row, a level bar against the largest so
+// the distribution is the picture — then Geography reads each place against
+// the question's baseline, and each breakdown reads its bands against the
+// topline as delta pennants. A cell inside its own margin fades rather than
+// vanishes. Clicking a cell hands the row to the About panel, which arrives
+// as the fourth column.
 
 const MAX_BAND_ROWS = 16
 
@@ -26,37 +25,26 @@ export function SegmentGrid({
   rows,
   info,
   columns,
-  focus,
   label,
-  defs,
   place,
   geoLevel,
   about,
   onPick,
-  back,
-  onAddToSurvey,
 }: {
   rows: SourceRow[]
   info: Map<string, MetricInfo>
   columns: string[]
-  focus: string | null
   label: (id: string) => string
-  defs: Map<string, string>
   place: (code: string) => string
   geoLevel: Map<string, string>
   about: About | null
   onPick: (a: About) => void
-  /** The no-split back arrow; absent beside the list. */
-  back?: React.ReactNode
-  /** Hands the opened segment's wording to the survey draft. */
-  onAddToSurvey?: () => void
 }) {
   const [geoSel, setGeoSel] = React.useState<string[] | null>(null)
   const [dimsOff, setDimsOff] = React.useState<string[]>([])
 
   const grid = React.useMemo(() => {
-    const ids = columns.length ? columns : focus ? [focus] : []
-    const cols = ids.map((id) => info.get(id)).filter((c): c is MetricInfo => !!c)
+    const cols = columns.map((id) => info.get(id)).filter((c): c is MetricInfo => !!c)
     if (!cols.length) return null
     const geoRows = new Map<string, number>()
     for (const c of cols) for (const r of c.rs) if (!r[5]) geoRows.set(r[1], (geoRows.get(r[1]) ?? 0) + 1)
@@ -75,7 +63,7 @@ export function SegmentGrid({
     // The Bands section: the lead segment's bands, each column's latest row
     // for that band at its own baseline geography. An archive of hundreds of
     // tested messages is not a distribution; it stays with its median.
-    const lead = (focus && cols.find((c) => c.id === focus)) || cols[0]
+    const lead = cols[0]
     const bandRow = (c: MetricInfo, opt: string) => latestRow(rows.filter((r) => r[0] === c.id && (r[4] ?? null) === opt && !r[5] && r[1] === c.baseGeo))
     const bands =
       lead.options.length >= 2 && lead.options.length <= MAX_BAND_ROWS
@@ -85,18 +73,10 @@ export function SegmentGrid({
     const bandMax = bands ? cols.map((_, i) => Math.max(...bands.map((b) => Math.abs(b.cells[i]?.[7] ?? 0)), 0)) : []
 
     return { cols, geosAll, geos, dimsAll, breakdowns, bands, bandMax }
-  }, [columns, focus, info, geoSel, dimsOff, geoLevel, rows])
-
-  const focused = focus ? info.get(focus) : undefined
+  }, [columns, info, geoSel, dimsOff, geoLevel, rows])
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      {back && (
-        <div className="flex h-[52px] shrink-0 items-center gap-2 border-b px-4">
-          {back}
-          <span className="truncate text-sm font-medium">{focused ? label(focused.id) : "Audience"}</span>
-        </div>
-      )}
       <ScrollArea className="min-h-0 flex-1">
         <div className="p-5">
           <div className="mb-4 flex items-center gap-2">
@@ -139,20 +119,8 @@ export function SegmentGrid({
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
-            {onAddToSurvey && (
-              <button type="button" onClick={onAddToSurvey} className="rounded-[10px] border px-2.5 py-1.5 text-xs hover:bg-muted/50">
-                Add to survey
-              </button>
-            )}
             <span className="ml-auto text-xs text-muted-foreground tabular-nums">{rows.length.toLocaleString("en-US")} rows</span>
           </div>
-
-          {focused && (
-            <>
-              <h2 className="text-[17px] font-semibold text-pax2-blue">{label(focused.id)}</h2>
-              <p className="mb-4 text-xs text-muted-foreground">{defs.get(focused.id)}</p>
-            </>
-          )}
 
           {grid ? (
             <table className="w-full border-collapse">

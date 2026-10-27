@@ -2,21 +2,17 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { PanelLeftIcon, Search, X } from "lucide-react"
+import { X } from "lucide-react"
 
 import { addToDraft } from "@/lib/consensus/draft"
-import { PathBar } from "@/components/create/path-bar"
-import { Button } from "@govblock/ui/components/nova/button"
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@govblock/ui/components/ny4/resizable"
-import { Separator } from "@govblock/ui/components/ny4/separator"
-import { TooltipProvider } from "@govblock/ui/components/ny4/tooltip"
+import { BankFrame, BankSplit } from "@/components/bank/bank-frame"
+import { CardList, type Card, type Split } from "@/components/bank/card-list"
+import { DropdownMenuRadioGroup, DropdownMenuRadioItem } from "@govblock/ui/components/ny4/dropdown-menu"
 
-import { AboutPanel, BackButton, type About } from "./audience-pane"
-import { AudienceRows } from "./audience-rows"
-import { buildInfo, fetchQuestionRows, groupSources, mnemonicOf, normalizeWording, shortSource, topicOf, UNTAGGED, TOPIC_GROUPS, WORDING, type AudienceIndex, type MetricInfo, type QuestionSummary, type SourceRow } from "./audience-data"
+import { AboutPanel, type About } from "./audience-pane"
+import { buildInfo, fetchQuestionRows, groupSources, mnemonicOf, normalizeWording, scaleOf, shortSource, topicOf, UNTAGGED, TOPIC_GROUPS, WEB_GRID, WORDING, type AudienceIndex, type MetricInfo, type QuestionSummary, type SourceRow } from "./audience-data"
 import { SourceRail } from "./source-rail"
 import { QuestionTable } from "./question-table"
-import { MAX_COLS, SegmentList, type ListTab, type Split } from "./segment-list"
 import { SegmentGrid } from "./segment-grid"
 
 // /audience — the audience database wearing the Agentic Inbox's frame whole,
@@ -26,6 +22,10 @@ import { SegmentGrid } from "./segment-grid"
 // width the way the inbox does with no split on. Opening a question is the
 // presto — its table takes the pane — and a cell hands its row to the About
 // panel. ?source=<KEY> or ?topic=<name> opens on that folder or topic.
+
+type ListTab = "all" | "pinned"
+/** The compare grid's columns, at most. */
+const MAX_COLS = 4
 
 export function AudienceInbox() {
   const [index, setIndex] = React.useState<AudienceIndex | null>(null)
@@ -42,10 +42,8 @@ export function AudienceInbox() {
   const [error, setError] = React.useState<string | null>(null)
   const [rowsError, setRowsError] = React.useState<string | null>(null)
   const [query, setQuery] = React.useState("")
-  const [searching, setSearching] = React.useState(false)
   const [split, setSplit] = React.useState<Split>("none")
   const [tab, setTab] = React.useState<ListTab>("all")
-  const [focus, setFocus] = React.useState<string | null>(null)
   // The compare grid's columns, four at most, added from a row's kebab.
   const [columns, setColumns] = React.useState<string[]>([])
   const [pinned, setPinned] = React.useState<string[]>([])
@@ -54,11 +52,8 @@ export function AudienceInbox() {
   const [blocksOpen, setBlocksOpen] = React.useState(false)
   const [about, setAbout] = React.useState<About | null>(null)
   const [mode, setMode] = React.useState<"list" | "table">("list")
-  // The question whose rows the flat table is scoped to; null is the whole source.
+  // The open question, its table in the pane; null leaves the list alone.
   const [tableMetric, setTableMetric] = React.useState<string | null>(null)
-  // The rail rides in the resizable row, not the shell's fixed sidebar, so it
-  // drags on the same handle the panes share; the header trigger still folds it.
-  const [railOpen, setRailOpen] = React.useState(true)
   // The survey-draft bar, Gmail's "Message sent": the draft's size for a few
   // seconds after an add, with View opening the consensus admin that holds it.
   const [drafted, setDrafted] = React.useState<number | null>(null)
@@ -135,11 +130,8 @@ export function AudienceInbox() {
     for (const q of index?.questions ?? []) m.set(q.question, [...(m.get(q.question) ?? []), q.source])
     return m
   }, [index])
-  // The questions on screen: the open one, the focused one, the grid's columns.
-  const wanted = React.useMemo(
-    () => [...new Set([tableMetric, focus, ...columns].filter((x): x is string => !!x))].sort(),
-    [tableMetric, focus, columns]
-  )
+  // The questions on screen: the open one and the grid's columns.
+  const wanted = React.useMemo(() => [...new Set([tableMetric, ...columns].filter((x): x is string => !!x))].sort(), [tableMetric, columns])
 
   React.useEffect(() => {
     if (!source && !topic) return
@@ -162,7 +154,6 @@ export function AudienceInbox() {
   // A new topic or folder starts the read over.
   React.useEffect(() => {
     setRowsError(null)
-    setFocus(null)
     setColumns([])
     setAbout(null)
     setTab("all")
@@ -256,44 +247,78 @@ export function AudienceInbox() {
     [rows, summaries, label, wordingOf]
   )
 
-  const showList = split === "vertical" || !focus
-  const showPane = split === "vertical" || !!focus
+  // The list's reading order: the search and the pinned-only tab, pins first.
+  const ordered = React.useMemo(() => {
+    const q = query.trim().toLowerCase()
+    const shown = metricIds
+      .filter((id) => !q || label(id).toLowerCase().includes(q) || id.toLowerCase().includes(q) || (wordingOf(id) ?? "").toLowerCase().includes(q))
+      .filter((id) => tab === "all" || pinned.includes(id))
+    return [...shown.filter((id) => pinned.includes(id)), ...shown.filter((id) => !pinned.includes(id))]
+  }, [metricIds, query, tab, pinned, label, wordingOf])
+
+  // A question as a card: its wording, the topic chip, the mnemonic, the span;
+  // the scale family and wave count after the dash on the one-line row.
+  const cardOf = (id: string): Card => {
+    const c = summaries.get(id)
+    const scale = scaleOf(c?.options ?? [])
+    const isColumn = columns.includes(id)
+    const atCap = !isColumn && columns.length >= MAX_COLS
+    return {
+      title: (
+        <>
+          {normalizeWording(wordingOf(id) ?? label(id))}
+          {WEB_GRID.has(id) && <span className="font-normal text-muted-foreground"> (web grid)</span>}
+        </>
+      ),
+      hint: wordingOf(id) ?? label(id),
+      chip: topicChipOf(id),
+      tag: mnemonicOf(id),
+      span: c ? (c.first === c.last ? String(c.first) : `${c.first}–${c.last}`) : null,
+      detail: c ? `${scale ? `${scale} · ` : ""}${c.waves} ${c.waves === 1 ? "wave" : "waves"}` : null,
+      pinned: pinned.includes(id),
+      actions: [
+        { label: isColumn ? "Remove column" : atCap ? "Four columns at most" : "Add as column", onSelect: () => toggleColumn(id), disabled: atCap },
+        { label: pinned.includes(id) ? "Unpin" : "Pin", onSelect: () => setPinned((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])) },
+        {
+          label: "Add to blocks",
+          onSelect: () => {
+            setBlocks((prev) => (prev.includes(id) ? prev : [...prev, id]))
+            setBlocksOpen(true)
+          },
+        },
+        { label: "Add to survey", onSelect: () => addToSurvey(id) },
+      ],
+    }
+  }
 
   const blocksPanel = blocksOpen && blocks.length > 0 && (
     <BlocksPanel ids={blocks} summaries={summaries} label={label} wordingOf={wordingOf} onRemove={(id) => setBlocks((prev) => prev.filter((x) => x !== id))} onClose={() => setBlocksOpen(false)} />
   )
 
-  // The list keeps its place beside the crosstab (Brendan, 2026-10-26: "don't
-  // close the middle panel"), stacked the way the split folds it.
+  // The list keeps its place beside the open question (Brendan, 2026-10-26:
+  // "don't close the middle panel"), stacked the way the split folds it.
   const listFor = (s: Split) => (
-    <SegmentList
-      summaries={summaries}
-      metricIds={metricIds}
-      label={label}
-      wordingOf={wordingOf}
-      topicOf={topicChipOf}
-      selected={tableMetric ?? focus}
-      columns={columns}
-      pinned={pinned}
-      onBlock={(id) => {
-        setBlocks((prev) => (prev.includes(id) ? prev : [...prev, id]))
-        setBlocksOpen(true)
-      }}
-      onSurvey={addToSurvey}
-      tab={tab}
-      onTab={setTab}
+    <CardList
+      ids={ordered}
+      card={cardOf}
+      selected={tableMetric}
       onOpen={open}
-      onColumn={toggleColumn}
-      onPin={(id) => setPinned((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))}
       split={s}
       onSplit={setSplit}
       query={query}
       onQuery={setQuery}
+      placeholder="Search wording or label…"
+      menu={
+        <DropdownMenuRadioGroup value={tab} onValueChange={(value) => setTab(value as ListTab)}>
+          <DropdownMenuRadioItem value="all">All questions</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="pinned">Pinned only</DropdownMenuRadioItem>
+        </DropdownMenuRadioGroup>
+      }
       loading={!index && !error}
       error={error}
+      empty={tab === "pinned" ? "Nothing pinned." : query.trim() ? `Nothing matching “${query.trim()}”.` : "Nothing on file."}
     />
   )
-  const list = listFor(split)
 
   const railNode = (
     <SourceRail
@@ -316,175 +341,83 @@ export function AudienceInbox() {
 
   const empty = (
     <div className="flex h-full flex-col items-center px-8 py-16 text-center">
-      <p className="text-lg">No segment selected</p>
+      <p className="text-lg">No question open</p>
       <p className="mt-3 text-sm text-muted-foreground">
         {source || topic ? `${metricIds.length.toLocaleString("en-US")} questions in ${source ? shortSource(source) : topic}.` : "Pick a topic from the rail."}
       </p>
     </div>
   )
 
-  // The inbox's exact frame — BlockShell's geometry, laid by hand so the rail
-  // can ride a resizable handle: the rail full height on the left where the
-  // shell's sidebar stands, the header starting at its right edge, the panes
-  // below the header. BlockShell itself cannot resize its sidebar.
-  return (
-    <TooltipProvider delayDuration={0}>
-    <div className="relative flex h-full min-h-0 w-full overflow-hidden bg-sidebar [--sidebar:var(--pax2-mist)] [--header-height:calc(var(--spacing)*12)]">
-      <ResizablePanelGroup orientation="horizontal" className="min-h-0 min-w-0 flex-1">
-        {/* react-resizable-panels v4 reads bare numbers as pixels. */}
-        {railOpen && (
-          <ResizablePanel defaultSize={224} minSize={192} maxSize={420} className="flex min-w-0 flex-col bg-sidebar **:data-[slot=sidebar-content]:no-scrollbar">
-            {railNode}
-          </ResizablePanel>
-        )}
-        {railOpen && <ResizableHandle withHandle />}
-        <ResizablePanel className="min-w-0">
-          <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background">
-            <header className="relative z-10 flex h-(--header-height) shrink-0 items-center gap-2 border-b">
-              <div className="flex w-full min-w-0 items-center gap-1 px-4 lg:gap-2 lg:px-6">
-                <Button variant="ghost" size="icon-sm" aria-label="Toggle sidebar" className="-ml-1 size-7" onClick={() => setRailOpen((v) => !v)}>
-                  <PanelLeftIcon className="size-4" />
-                </Button>
-                <Separator orientation="vertical" className="mx-2 data-[orientation=vertical]:h-4" />
-                <div className="flex min-w-0 flex-1 items-center gap-2 text-base font-medium">
-        <div className="flex min-w-0 flex-1 items-center gap-1">
-          <PathBar crumbs={[{ label: "Audience" }]} folder onGo={() => {}} />
-          {/* The header search, trinity's pattern: an icon until picked, then the bar's remaining width; the x folds it back and clears the filter. */}
-          {searching ? (
-            <div className="ml-2 flex min-w-0 flex-1 items-center gap-2 rounded-full bg-muted px-3 py-1.5">
-              <Search className="size-4 shrink-0 text-muted-foreground" />
-              <input
-                autoFocus
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Escape") {
-                    setQuery("")
-                    setSearching(false)
-                  }
-                }}
-                placeholder="Search segments"
-                className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-              />
-              <button
-                type="button"
-                aria-label="Close the search"
-                className="shrink-0 text-muted-foreground hover:text-foreground"
-                onClick={() => {
-                  setQuery("")
-                  setSearching(false)
-                }}
-              >
-                <X className="size-4" />
-              </button>
-            </div>
-          ) : (
-            <Button variant="ghost" size="sm" aria-label="Search segments" className="ml-1" onClick={() => setSearching(true)}>
-              <Search className="size-4" />
-            </Button>
-          )}
-        </div>
-                </div>
-              </div>
-            </header>
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          {mode === "table" && tableMetric ? (
-            <div className="relative flex h-full min-h-0 min-w-0">
-              <ResizablePanelGroup orientation="horizontal" className="min-h-0 min-w-0 flex-1">
-                <ResizablePanel defaultSize={380} minSize={300} maxSize={560} className="min-w-0">
-                  {listFor("vertical")}
-                </ResizablePanel>
-                <ResizableHandle withHandle />
-                <ResizablePanel className="min-w-0">
-                  {loaded(tableMetric) && info.get(tableMetric) ? (
-                    <QuestionTable
-                      rows={rows.filter((r) => r[0] === tableMetric)}
-                      title={label(tableMetric)}
-                      def={defs.get(tableMetric)}
-                      metric={tableMetric}
-                      place={place}
-                      info={info.get(tableMetric) as MetricInfo}
-                      source={srcOf(tableMetric)}
-                      wording={wordingOf(tableMetric)}
-                      about={about}
-                      onPick={setAbout}
-                      query={query}
-                      onQuery={setQuery}
-                      onRefresh={() => refresh(tableMetric)}
-                    />
-                  ) : (
-                    <Reading error={rowsError} />
-                  )}
-                </ResizablePanel>
-              </ResizablePanelGroup>
-              {about && <AboutPanel about={about} onClose={() => setAbout(null)} source={tableMetric ? srcOf(tableMetric) : source} groups={groups} files={files} info={info} label={label} place={place} geoLevel={geoLevel} />}
-              {blocksPanel}
-            </div>
-          ) : mode === "table" ? (
-            <AudienceRows
-              rows={rows}
-              short={source ? shortSource(source) : ""}
-              label={label}
-              place={place}
-              query={query}
-              onBack={() => setMode("list")}
-              error={error}
-            />
-          ) : (
-            <div className="relative flex h-full min-h-0 min-w-0">
-              <ResizablePanelGroup orientation="horizontal" className="min-h-0 min-w-0 flex-1">
-                {showList && (
-                  <ResizablePanel defaultSize={split === "vertical" ? 420 : 100000} minSize={320} maxSize={split === "vertical" ? 640 : undefined} className="min-w-0">
-                    {list}
-                  </ResizablePanel>
-                )}
-                {showList && showPane && <ResizableHandle withHandle />}
-                {showPane && (
-                  <ResizablePanel className="min-w-0">
-                    {(focus || columns.length) && (focus ? !loaded(focus) : !columns.some(loaded)) ? (
-                      <Reading error={rowsError} />
-                    ) : focus || columns.length ? (
-                      <SegmentGrid
-                        key={source ?? topic ?? ""}
-                        rows={rows}
-                        info={info}
-                        columns={columns}
-                        focus={focus}
-                        label={label}
-                        defs={defs}
-                        place={place}
-                        geoLevel={geoLevel}
-                        about={about}
-                        onPick={setAbout}
-                        back={split === "none" ? <BackButton onBack={() => setFocus(null)} /> : undefined}
-                        onAddToSurvey={focus ? () => addToSurvey(focus) : undefined}
-                      />
-                    ) : (
-                      empty
-                    )}
-                  </ResizablePanel>
-                )}
-              </ResizablePanelGroup>
-              {about && <AboutPanel about={about} onClose={() => setAbout(null)} source={focus ? srcOf(focus) : source} groups={groups} files={files} info={info} label={label} place={place} geoLevel={geoLevel} />}
-              {blocksPanel}
-            </div>
-          )}
-            </div>
-          </div>
-        </ResizablePanel>
-      </ResizablePanelGroup>
-      {drafted != null && (
-        <div role="status" className="absolute bottom-4 left-4 z-20 flex items-center gap-4 rounded-md bg-foreground px-4 py-2.5 text-sm text-background shadow-lg">
-          <span>
-            In the survey draft: {drafted} {drafted === 1 ? "question" : "questions"}
-          </span>
-          <Link href="/consensus/admin?c=audience-draft" className="font-medium text-background/80 hover:text-background">
-            View
-          </Link>
-        </div>
-      )}
+  const aboutPanel = (from: string | null) =>
+    about && <AboutPanel about={about} onClose={() => setAbout(null)} source={from} groups={groups} files={files} info={info} label={label} place={place} geoLevel={geoLevel} />
+
+  const drafting = drafted != null && (
+    <div role="status" className="absolute bottom-4 left-4 z-20 flex items-center gap-4 rounded-md bg-foreground px-4 py-2.5 text-sm text-background shadow-lg">
+      <span>
+        In the survey draft: {drafted} {drafted === 1 ? "question" : "questions"}
+      </span>
+      <Link href="/consensus/admin?c=audience-draft" className="font-medium text-background/80 hover:text-background">
+        View
+      </Link>
     </div>
-    </TooltipProvider>
+  )
+
+  return (
+    <BankFrame rail={railNode} crumb="Audience" search={{ query, onQuery: setQuery, placeholder: "Search questions" }} overlay={drafting}>
+      {mode === "table" && tableMetric ? (
+        <BankSplit
+          list={listFor("vertical")}
+          pane={
+            loaded(tableMetric) && info.get(tableMetric) ? (
+              <QuestionTable
+                rows={rows.filter((r) => r[0] === tableMetric)}
+                title={label(tableMetric)}
+                def={defs.get(tableMetric)}
+                metric={tableMetric}
+                place={place}
+                info={info.get(tableMetric) as MetricInfo}
+                source={srcOf(tableMetric)}
+                wording={wordingOf(tableMetric)}
+                about={about}
+                onPick={setAbout}
+                query={query}
+                onQuery={setQuery}
+                onRefresh={() => refresh(tableMetric)}
+              />
+            ) : (
+              <Reading error={rowsError} />
+            )
+          }
+          aside={
+            <>
+              {aboutPanel(srcOf(tableMetric))}
+              {blocksPanel}
+            </>
+          }
+        />
+      ) : (
+        <BankSplit
+          list={listFor(split)}
+          pane={
+            split === "vertical" &&
+            (columns.length && !columns.some(loaded) ? (
+              <Reading error={rowsError} />
+            ) : columns.length ? (
+              <SegmentGrid key={source ?? topic ?? ""} rows={rows} info={info} columns={columns} label={label} place={place} geoLevel={geoLevel} about={about} onPick={setAbout} />
+            ) : (
+              empty
+            ))
+          }
+          fold={{ size: 420, min: 320, max: 640 }}
+          aside={
+            <>
+              {aboutPanel(source)}
+              {blocksPanel}
+            </>
+          }
+        />
+      )}
+    </BankFrame>
   )
 }
 

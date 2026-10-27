@@ -1,14 +1,12 @@
 "use client"
 
 import * as React from "react"
-import { ArrowLeft, X } from "lucide-react"
-
-import { Button } from "@govblock/ui/components/nova/button"
+import { X } from "lucide-react"
 
 import { latestRow, levelRank, num, period, shortSource, value, year, type MetricInfo, type SourceGroup, type SourceRow } from "./audience-data"
 
 // The About panel — everything a clicked value carries, the same question set
-// beside its other sources — and the no-split back arrow.
+// beside its other sources.
 
 export type About = { r: SourceRow; metric: string; segment: string }
 
@@ -109,13 +107,5 @@ export function AboutPanel({
         )}
       </div>
     </div>
-  )
-}
-
-export function BackButton({ onBack }: { onBack: () => void }) {
-  return (
-    <Button variant="ghost" size="sm" aria-label="Back to the list" onClick={onBack}>
-      <ArrowLeft className="size-4" />
-    </Button>
   )
 }

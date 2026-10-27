@@ -2,10 +2,9 @@
 
 import * as React from "react"
 import dynamic from "next/dynamic"
-import { RefreshCwIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
-import { Button } from "@govblock/ui/components/nova/button"
+import { PaneSearchRow, PaneTitleRow, RefreshButton, ViewToggle } from "@/components/bank/pane-bars"
 
 // The Trend view loads only when clicked: the chart file carries the ECharts
 // modules, and this dynamic mount keeps that chunk off every route until then.
@@ -17,7 +16,6 @@ const QuestionChart = dynamic(() => import("./question-chart").then((m) => m.Que
 import { dimLabel, latestRow, normalizeWording, num, value, year, type MetricInfo, type SourceRow } from "./audience-data"
 import { RowsView } from "./rows-view"
 import { type About } from "./audience-pane"
-import { SearchField } from "./segment-list"
 
 // The clicked question, read the way a pollster reads one: a crosstab — the
 // answer options down the side, the banner across the top (Total, then every
@@ -31,6 +29,11 @@ import { SearchField } from "./segment-list"
 // at its right.
 
 const MAX_BANNER_ROWS = 24
+const VIEWS = [
+  { value: "tidy", label: "Data" },
+  { value: "crosstab", label: "Crosstab" },
+  { value: "chart", label: "Trend" },
+] as const
 
 export function QuestionTable({
   rows,
@@ -98,43 +101,19 @@ export function QuestionTable({
 
   // The title row reads the question itself (Brendan, 2026-10-26) and the
   // chevrons changing the open question change it with them.
-  const heading = <span className="min-w-0 truncate text-sm font-semibold">{normalizeWording(wording ?? title)}</span>
-  const toggle = (
-    <div className="flex shrink-0 rounded-lg border p-0.5 text-xs">
-      {(["tidy", "crosstab", "chart"] as const).map((v) => (
-        <button
-          key={v}
-          type="button"
-          aria-pressed={view === v}
-          onClick={() => setView(v)}
-          className={cn("rounded-md px-2.5 py-1 transition-colors", view === v ? "bg-pax2-mist font-semibold text-pax2-blue" : "text-muted-foreground hover:text-foreground")}
-        >
-          {v === "crosstab" ? "Crosstab" : v === "chart" ? "Trend" : "Data"}
-        </button>
-      ))}
-    </div>
-  )
-
-  const refresh = (
-    <Button variant="ghost" size="icon-sm" aria-label="Refresh" title="Refresh" className="-mr-1.5 shrink-0" onClick={onRefresh}>
-      <RefreshCwIcon className="size-4" />
-    </Button>
-  )
+  const heading = normalizeWording(wording ?? title)
+  const refresh = <RefreshButton onRefresh={onRefresh} />
 
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
-      <div className="flex h-[52px] shrink-0 items-center gap-2 border-b px-4">
-        <SearchField query={query} onQuery={onQuery} />
-        {toggle}
-      </div>
+      <PaneSearchRow query={query} onQuery={onQuery} placeholder="Search wording or label…">
+        <ViewToggle views={VIEWS} value={view} onChange={setView} />
+      </PaneSearchRow>
       {view === "tidy" ? (
         <RowsView rows={rows} id={metric} source={source} header={heading} trailing={refresh} about={about} onPick={onPick} />
       ) : (
         <>
-      <div className="flex h-[52px] shrink-0 items-center gap-2 border-b px-4">
-        {heading}
-        <div className="ml-auto flex shrink-0 items-center">{refresh}</div>
-      </div>
+      <PaneTitleRow title={heading}>{refresh}</PaneTitleRow>
       {/* Native scroll, not the ScrollArea primitive: radix's viewport sizes
           itself to the banner's intrinsic width, which blew the pane out
           sideways and swallowed the vertical scroll with it. */}

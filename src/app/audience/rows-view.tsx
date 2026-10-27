@@ -4,6 +4,7 @@ import * as React from "react"
 import { ChevronDownIcon, Loader2 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { PaneTitleRow } from "@/components/bank/pane-bars"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@govblock/ui/components/ny4/dropdown-menu"
 
 import { num, weightOf, year, type SourceRow } from "./audience-data"
@@ -122,13 +123,10 @@ export function RowsView({
     <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
       {/* The mount's title row: its heading at the left, the filter chips and
           its trailing control at the right. */}
-      <div className="flex h-[52px] shrink-0 items-center gap-2 border-b px-4">
-        {header}
-        <div className="ml-auto flex shrink-0 items-center gap-2">
-          {chips}
-          {trailing}
-        </div>
-      </div>
+      <PaneTitleRow title={header}>
+        {chips}
+        {trailing}
+      </PaneTitleRow>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         <table className="w-full border-separate border-spacing-0 text-sm">
