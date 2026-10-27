@@ -119,8 +119,9 @@ export function LiftSurface() {
     }
     const sortBy = metric && metrics.includes(metric) ? metric : metrics[0]
     const q = query.trim().toLowerCase()
+    // Only the treatments the open card's metric measured: the card's count and the pane's agree.
     const treatments = [...byTreatment.keys()]
-      .filter((option) => !q || option.toLowerCase().includes(q))
+      .filter((option) => byTreatment.get(option)?.has(sortBy) && (!q || option.toLowerCase().includes(q)))
       .sort((a, b) => (byTreatment.get(b)!.get(sortBy)?.[7] ?? -Infinity) - (byTreatment.get(a)!.get(sortBy)?.[7] ?? -Infinity))
     const respondents = treatments.reduce((total, option) => total + (byTreatment.get(option)!.get(sortBy)?.[11] ?? 0), 0)
     // The widest pennant is the grid's own largest effect; everything scales to it.
