@@ -1,0 +1,242 @@
+{
+  "population": "ma-general-adults",
+  "populationName": "Massachusetts general adults (18+)",
+  "derivedAt": "2026-10-27",
+  "store": "s3://pax-trinity-audience-613473203863/exports (index 41 files)",
+  "env": "production",
+  "threshold": 0.9,
+  "minCell": 50,
+  "trim": 5,
+  "targetsSource": "Massachusetts general adults (18+), derived from the audience store by scripts/results/targets.mjs",
+  "factors": {
+    "age": {
+      "18-29": 0.208039,
+      "30-44": 0.249723,
+      "45-64": 0.320706,
+      "65+": 0.221532
+    },
+    "gender": {
+      "Female": 0.516983,
+      "Male": 0.483017
+    },
+    "race": {
+      "Asian or Pacific Islander": 0.075149,
+      "Black": 0.069324,
+      "Hispanic or Latino": 0.115488,
+      "Other or multiracial": 0.020238,
+      "White": 0.719801
+    },
+    "education": {
+      "hs-or-less": 0.312097,
+      "some-college": 0.215113,
+      "bachelors-plus": 0.47279
+    },
+    "party": {
+      "democrat": 0.372627,
+      "republican": 0.145854,
+      "independent-other": 0.481518
+    },
+    "vote2024": {
+      "democrat": 0.374395,
+      "republican": 0.220305,
+      "did-not-vote": 0.381513,
+      "other": 0.023787
+    }
+  },
+  "provenance": {
+    "age": {
+      "source": "American Community Survey 5-year estimates (U.S. Census Bureau)",
+      "files": [
+        "acs.json",
+        "acs-2.json"
+      ],
+      "rows": "age_bucket @25, count",
+      "period": "2020-01-01…2024-12-31",
+      "url": "https://api.census.gov/data/2024/acs/acs5?get=NAME,group(B01001)&for=state:25",
+      "universe": "adults 18+",
+      "derivation": "audience-store",
+      "notes": [
+        "5,679,875 adults across 4 bands."
+      ],
+      "storeCategories": {
+        "18-29": 20.8,
+        "30-44": 24.97,
+        "45-64": 32.07,
+        "65+": 22.15
+      }
+    },
+    "gender": {
+      "source": "American Community Survey 5-year estimates (U.S. Census Bureau)",
+      "files": [
+        "acs.json",
+        "acs-2.json"
+      ],
+      "rows": "sex @25, count",
+      "period": "2020-01-01…2024-12-31",
+      "url": "https://api.census.gov/data/2024/acs/acs5?get=NAME,group(B01001)&for=state:25",
+      "universe": "adults 18+",
+      "derivation": "audience-store",
+      "notes": [
+        "5,679,875 people, the same total as the 18+ age bands, so the rows are adults."
+      ],
+      "storeCategories": {
+        "Female": 51.7,
+        "Male": 48.3
+      }
+    },
+    "race": {
+      "source": "Citizen Voting Age Population by Race and Ethnicity, special tabulation from the ACS 5-year estimates (U.S. Census Bureau)",
+      "files": [
+        "cvap.json"
+      ],
+      "rows": "cvap × race_eth @25: count and pct (citizen share of the race's adults)",
+      "period": "2020-01-01…2024-12-31",
+      "url": "https://www2.census.gov/programs-surveys/decennial/rdo/datasets/2024/2024-cvap/CVAP_2020-2024_ACS_csv_files.zip",
+      "universe": "adults 18+",
+      "derivation": "audience-store",
+      "derivedFromRounded": true,
+      "notes": [
+        "All adults per race = citizen-adult count ÷ citizen share (ACS race_eth covers all ages, so it is not used).",
+        "The derived adults total 5,681,742, against 5,679,875 ACS adults (0.033%).",
+        "The citizen shares are printed to 0.1, so each margin carries a rounding band of a few hundredths of a point."
+      ],
+      "storeCategories": {
+        "Asian or Pacific Islander": 7.51,
+        "Black": 6.93,
+        "Hispanic or Latino": 11.55,
+        "Other or multiracial": 2.02,
+        "White": 71.98
+      }
+    },
+    "education": {
+      "source": "American Community Survey 5-year estimates (U.S. Census Bureau)",
+      "files": [
+        "acs.json",
+        "acs-2.json"
+      ],
+      "rows": "education_4 @25, count",
+      "period": "2020-01-01…2024-12-31",
+      "url": "https://api.census.gov/data/2024/acs/acs5?get=NAME,group(B15003)&for=state:25",
+      "universe": "population 25+",
+      "derivation": "audience-store",
+      "proxy": "proxy: population 25+",
+      "notes": [
+        "B15003 covers ages 25 and over; the store has no 18–24 education for the state, so the 25+ distribution stands in for adults 18+ and likely overstates bachelor's-or-higher for them."
+      ],
+      "storeCategories": {
+        "BA": 25.5,
+        "Grad": 21.78,
+        "HS or less": 31.21,
+        "Some college": 21.51
+      },
+      "mapping": {
+        "hs-or-less": [
+          "HS or less"
+        ],
+        "some-college": [
+          "Some college"
+        ],
+        "bachelors-plus": [
+          "BA",
+          "Grad"
+        ]
+      }
+    },
+    "party": {
+      "source": "Cooperative Election Study common content 2020, 2022, 2024 (Harvard University)",
+      "files": [
+        "ces.json",
+        "ces-2.json",
+        "ces-3.json",
+        "ces-4.json"
+      ],
+      "rows": "pid3 @25, 2024, pct (commonweight)",
+      "period": "2024-01-01…2024-12-31",
+      "url": "https://doi.org/10.7910/DVN/II2DB6",
+      "universe": "adults 18+ (CES state respondents, commonweight)",
+      "derivation": "audience-store",
+      "survey": {
+        "n": 1119,
+        "moePct": 4
+      },
+      "notes": [
+        "Party identification, a survey estimate: n 1119, margin of error up to ±4 points.",
+        "The printed shares sum to 100.1 and are renormalized to 100.",
+        "Identification, not enrollment: the state's party enrollment measures registration, a different construct on a different universe.",
+        "2024 is used to match the 2024 vote target (--party-year picks another); the store also holds 2023 (n 383, ±5) and 2025 (n 272, ±6.3)."
+      ],
+      "storeCategories": {
+        "Democrat": 37.26,
+        "Republican": 14.59,
+        "Independent": 36.96,
+        "Other": 3,
+        "Not Sure": 8.19
+      },
+      "mapping": {
+        "democrat": [
+          "Democrat"
+        ],
+        "republican": [
+          "Republican"
+        ],
+        "independent-other": [
+          "Independent",
+          "Other",
+          "Not Sure"
+        ]
+      }
+    },
+    "vote2024": {
+      "source": "Official ballot-measure results (state election offices); American Community Survey 5-year estimates (U.S. Census Bureau)",
+      "files": [
+        "election_result.json",
+        "acs.json",
+        "acs-2.json"
+      ],
+      "rows": "presidential_vote @25, 2024, count; ACS age_bucket @25 (adults 18+)",
+      "period": "2024-11-05…2024-11-05",
+      "url": "https://electionstats.state.ma.us/elections/view/165300/",
+      "universe": "adults 18+",
+      "derivation": "audience-store",
+      "notes": [
+        "3,512,930 ballots cast ÷ 5,679,875 adults 18+; \"Did not vote\" is the adults who cast no ballot (38.15%), non-citizen adults included.",
+        "Blank presidential lines (a ballot cast, no presidential choice) count with \"other\" under the pax-entry map.",
+        "Respondents over-report voting, so raking to the true non-vote share up-weights the non-voters a panel yields."
+      ],
+      "storeCategories": {
+        "All Others": 0.35,
+        "Ayyadurai/Ellis (Unenrolled)": 0.32,
+        "Blanks": 0.69,
+        "De La Cruz/Garcia (Unenrolled)": 0.23,
+        "Harris/Walz (Democratic)": 37.44,
+        "Oliver/Ter Maat (Libertarian)": 0.31,
+        "Sonski/Onak (Unenrolled)": 0,
+        "Stein/Caballero-Roca (Unenrolled)": 0.47,
+        "Trump/Vance (Republican)": 22.03,
+        "West/Abdullah (Unenrolled)": 0,
+        "Did not vote": 38.15
+      },
+      "mapping": {
+        "democrat": [
+          "Harris/Walz (Democratic)"
+        ],
+        "republican": [
+          "Trump/Vance (Republican)"
+        ],
+        "did-not-vote": [
+          "Did not vote"
+        ],
+        "other": [
+          "All Others",
+          "Ayyadurai/Ellis (Unenrolled)",
+          "Blanks",
+          "De La Cruz/Garcia (Unenrolled)",
+          "Oliver/Ter Maat (Libertarian)",
+          "Sonski/Onak (Unenrolled)",
+          "Stein/Caballero-Roca (Unenrolled)",
+          "West/Abdullah (Unenrolled)"
+        ]
+      }
+    }
+  }
+}

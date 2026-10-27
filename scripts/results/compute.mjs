@@ -42,6 +42,10 @@
 //     "threshold": 0.9, "minCell": 50, "trim": 5,
 //     "targetsSource": "…",                       where the targets come from, printed in the notes
 //     "factors": { "<entry key>": { "<choice value>": share, … }, … },
+//     "provenance": { "<entry key>": { source, rows, period, universe, derivation, notes, … } },
+//                                                  per factor, written by targets.mjs; printed into the
+//                                                  methodology notes. A declared factor the test never
+//                                                  asks is named in the notes and not raked.
 //     "dimensions": [ { "key": "<entry key>", "name": "…", "group": "…", "selfSelected": true } ],
 //     "armNames": { "<arm id>": "…" }
 //   }
@@ -154,7 +158,12 @@ console.log(`counting ${resp.length} complete respondents (env ${env}); ${JSON.s
 const factors = config.factors ?? {}
 const rakeNotes = []
 const w = resp.map(() => 1)
-const plan = Object.entries(factors).map(([key, targets]) => {
+// A declared factor the test never asks has no answers to adjust: it drops from raking, by name.
+const asked = new Set(test.entry.map((q) => q.key))
+const notAsked = Object.keys(factors).filter((k) => !asked.has(k))
+if (notAsked.length)
+  rakeNotes.push(`Declared but not asked by this test, so not raked: ${notAsked.join(", ")}. The config's targets for ${notAsked.length === 1 ? "it stand" : "them stand"} unused.`)
+const plan = Object.entries(factors).filter(([key]) => asked.has(key)).map(([key, targets]) => {
   const present = Object.keys(targets).filter((c) => resp.some((r) => r.answers?.[key] === c))
   const missing = Object.keys(targets).filter((c) => !present.includes(c))
   const total = present.reduce((s, c) => s + targets[c], 0)
@@ -162,7 +171,17 @@ const plan = Object.entries(factors).map(([key, targets]) => {
   const known = new Set(Object.keys(targets))
   const unanswered = resp.filter((r) => !known.has(r.answers?.[key])).length
   if (unanswered) rakeNotes.push(`${key}: ${unanswered} respondent(s) without a targeted answer keep their weight on this factor.`)
+  if (!present.length) rakeNotes.push(`${key}: no counted respondent gave a targeted answer, so the factor is not raked.`)
   return { key, targets: Object.fromEntries(present.map((c) => [c, total > 0 ? targets[c] / total : 0])) }
+}).filter((f) => Object.keys(f.targets).length > 0)
+
+// Each raked factor's provenance, as the targets config records it (scripts/results/targets.mjs).
+const provenanceNotes = plan.flatMap((f) => {
+  const p = config.provenance?.[f.key]
+  if (!p) return [`Weighting target, ${f.key}: no provenance in the config.`]
+  const parts = [`${p.source}`, p.rows, p.period ? `period ${p.period.replace("…", " to ")}` : null, p.universe ? `universe ${p.universe}` : null, p.proxy ?? null, `derivation ${p.derivation}${p.derivedFromRounded ? " (from rounded figures)" : ""}`]
+  const targets = Object.entries(f.targets).map(([c, v]) => `${c} ${(v * 100).toFixed(1)}%`).join(", ")
+  return [`Weighting target, ${f.key} (as raked): ${targets}. ${parts.filter(Boolean).join("; ")}.${p.notes?.length ? " " + p.notes.join(" ") : ""}`]
 })
 let iterations = 0
 let gap = 0
@@ -384,6 +403,7 @@ const resultSet = {
       plan.length
         ? `Raked to ${plan.map((f) => f.key).join(", ")} in ${iterations} iteration${iterations === 1 ? "" : "s"} (largest remaining gap ${gap.toExponential(1)}); weights normalized to mean 1, range ${weights}${config.trim ? `, capped at ${config.trim} (${trimmed} capped)` : ""}. Targets: ${(config.targetsSource ?? "not stated in the config").replace(/\.$/, "")}.`
         : "Unweighted: the config declares no raking factors.",
+      ...provenanceNotes,
       ...rakeNotes,
       `Levels are weighted percentages. Lifts are arm level minus placebo level, in points. Each comparison is a two-sided two-proportion z-test with Kish effective sample sizes; detectable means p < ${r1(1 - threshold)} and at least ${minCell} actual respondents in both groups.`,
       `Small-sample flags mark fewer than ${minCell} actual respondents in a cell; weighted counts are shown.`,
