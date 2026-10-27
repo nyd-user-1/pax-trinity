@@ -215,8 +215,9 @@ export function SegmentList({
                   <Checkbox aria-label={`A column for ${label(id)}`} checked={checked.includes(id)} disabled={atCap} title={atCap ? "Four at most" : undefined} onCheckedChange={() => onCheck(id)} />
                   {star}
                 </span>
-                <span className="w-28 shrink-0">
-                  <span className="rounded-full border px-2 py-0.5 text-[10px] font-medium tracking-wider text-muted-foreground">{mnemonicOf(id)}</span>
+                {/* The mnemonic where Gmail's sender sits: plain text, fixed width, truncating — a pill overflowed ANES's long ids. */}
+                <span className="w-44 shrink-0 truncate font-medium" title={mnemonicOf(id)}>
+                  {mnemonicOf(id)}
                 </span>
                 <span className="min-w-0 flex-1 truncate" title={wordingOf(id) ?? label(id)}>
                   <span className="font-semibold">
