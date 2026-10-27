@@ -65,6 +65,7 @@ export function CardList({
   card,
   selected,
   onOpen,
+  onVisible,
   split,
   onSplit,
   query,
@@ -80,6 +81,8 @@ export function CardList({
   card: (id: string) => Card
   selected: string | null
   onOpen: (id: string) => void
+  /** Told the ids the list renders (its window), as the window changes — memoize it. */
+  onVisible?: (ids: string[]) => void
   split: Split
   /** The split toggle; absent where the list always folds beside an open item. */
   onSplit?: (split: Split) => void
@@ -96,6 +99,7 @@ export function CardList({
   const [depth, setDepth] = React.useState(PER_READ)
   React.useEffect(() => setDepth(PER_READ), [ids])
   const listed = ids.slice(0, depth)
+  React.useEffect(() => onVisible?.(ids.slice(0, depth)), [ids, depth, onVisible])
   const more = React.useCallback(() => setDepth((d) => d + PER_READ), [])
   // Opening an item (a click, a chevron) brings its row into view in the
   // folded list: the window deepens to reach it, then the active row scrolls in.

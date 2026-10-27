@@ -40,6 +40,14 @@ export function AudienceInbox() {
   // The questions read so far, each from its own file (Brief S), keyed source/id.
   const [cache, setCache] = React.useState<Record<string, SourceRow[]>>({})
   const pending = React.useRef(new Set<string>())
+  // The snippet read-ahead (every listed row's headline): a queue of the rows
+  // the list shows, six in flight at most, a file never read twice.
+  const cacheRef = React.useRef(cache)
+  cacheRef.current = cache
+  const queue = React.useRef<{ s: string; id: string; key: string }[]>([])
+  const queued = React.useRef(new Set<string>())
+  const failed = React.useRef(new Set<string>())
+  const inflight = React.useRef(0)
   const [error, setError] = React.useState<string | null>(null)
   const [rowsError, setRowsError] = React.useState<string | null>(null)
   const [query, setQuery] = React.useState("")
@@ -193,15 +201,18 @@ export function AudienceInbox() {
     const s = id ? srcOf(id) : null
     return !!id && !!s && !!cache[`${s}/${id}`]
   }
-  // Every question read so far, grouped by source, for the About panel's comparison.
+  // Every question read so far, grouped by source, for the About panel's
+  // comparison — built only while the panel is open, so the read-ahead's
+  // landings don't re-join the whole cache each time.
   const files = React.useMemo(() => {
     const by: Record<string, SourceRow[]> = {}
+    if (!about) return by
     for (const [key, data] of Object.entries(cache)) {
       const s = key.slice(0, key.indexOf("/"))
       by[s] = by[s] ? by[s].concat(data) : data
     }
     return by
-  }, [cache])
+  }, [cache, about])
   const metricIds = React.useMemo(() => {
     const all = [...summaries.keys()]
     if (source !== "GSS" && !topic) return all
@@ -270,11 +281,60 @@ export function AudienceInbox() {
   // question's rows are already read. Rows are never fetched for it (Brief S):
   // an unread question shows its detail until the index export carries the
   // sentence's ingredients.
+  // Each file's snippet is composed once (a file never changes once read).
+  const snippets = React.useRef(new WeakMap<SourceRow[], string | null>())
   const headlineOf = (id: string): string | null => {
     const s = srcOf(id)
     const rs = s ? cache[`${s}/${id}`] : undefined
-    return s && rs ? snippetOf(s, id, rs, wordingOf(id), (c) => (c === "US" ? "US" : geoLevel.get(c)), place) : null
+    if (!s || !rs) return null
+    const had = snippets.current.get(rs)
+    if (had !== undefined) return had
+    const made = snippetOf(s, id, rs, wordingOf(id), (c) => (c === "US" ? "US" : geoLevel.get(c)), place)
+    snippets.current.set(rs, made)
+    return made
   }
+
+  // The read-ahead: the rows the list renders (its window of sixty, deepening
+  // as it scrolls) have their files read at their own source, six at a time,
+  // so every row can say its sentence; nothing beyond the window is read.
+  const pump = React.useCallback(() => {
+    while (inflight.current < 6 && queue.current.length) {
+      const job = queue.current.shift()
+      if (!job) break
+      queued.current.delete(job.key)
+      if (cacheRef.current[job.key] || pending.current.has(job.key) || failed.current.has(job.key)) continue
+      pending.current.add(job.key)
+      inflight.current += 1
+      fetchQuestionRows(job.s, job.id)
+        .then((data) => setCache((prev) => ({ ...prev, [job.key]: data })))
+        .catch(() => failed.current.add(job.key))
+        .finally(() => {
+          pending.current.delete(job.key)
+          inflight.current -= 1
+          pump()
+        })
+    }
+  }, [])
+  const srcOfRef = React.useRef(srcOf)
+  srcOfRef.current = srcOf
+  // Each call carries the whole window and replaces the queue, so a topic left
+  // behind stops reading (its files already in flight land and are kept).
+  const readAhead = React.useCallback(
+    (ids: string[]) => {
+      queue.current = []
+      queued.current.clear()
+      for (const id of ids) {
+        const s = srcOfRef.current(id)
+        if (!s) continue
+        const key = `${s}/${id}`
+        if (cacheRef.current[key] || pending.current.has(key) || queued.current.has(key) || failed.current.has(key)) continue
+        queued.current.add(key)
+        queue.current.push({ s, id, key })
+      }
+      pump()
+    },
+    [pump]
+  )
 
   // A question as a card: its wording, the topic chip, the span; after the
   // dash, the snippet where one can be read, else the scale family and wave count.
@@ -333,6 +393,7 @@ export function AudienceInbox() {
       card={cardOf}
       selected={tableMetric}
       onOpen={open}
+      onVisible={readAhead}
       split={s}
       onSplit={setSplit}
       query={query}
