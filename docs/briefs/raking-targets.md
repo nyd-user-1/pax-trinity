@@ -60,6 +60,35 @@ paper over.
 - Usage documented at the top of the script; one worked run shown in your
   report.
 
+## Phase 1 rulings (lead, 2026-10-27)
+
+The inventory is accepted in full — all six factors supplied or derived from
+the store, no outside numbers. The four calls:
+
+1. **Party: CES 2024 pid3** (Democrat 37.26 / Republican 14.59 /
+   Independent-Other 48.15, MOE ±4.0 in provenance). The test asks
+   identification and enrollment measures registration — a different
+   construct on a different universe. Enrollment is reserved for a test
+   that asks enrollment.
+2. **Blank presidential lines fold into "other"** (they cast a ballot;
+   "did not vote" stays the behaviorally distinct stay-home group). At
+   0.69% it moves nothing; the fold is noted in provenance.
+3. **Education: the 25+ proxy, labeled** ("proxy: population 25+"). The
+   industry weights education on B15003 25+; dropping the factor would
+   leave the classic panel skew (college grads over-answer) uncorrected,
+   which is worse than the labeled proxy.
+4. **Vote-2024 universe: all adults** (non-vote 38.15). The declared
+   population is MA general adults and the other factors stand on the
+   all-adults universe; switching one factor to citizen adults would make
+   the config incoherent. The over-report caution stays in the notes.
+
+Also adopted: the CVAP-derived all-adult race margins
+(derived_from_rounded, ±0.04 pt); all six factors emitted with
+open-primaries-1's placeholders left flagged (its record names no
+population); compute.mjs naming any declared factor the test never asked
+in the output notes, replacing today's silent drop; per-factor category
+mapping with the store's categories as default.
+
 ## Rules (you may be context-cleared; this is everything)
 
 - You own `scripts/results/**` and, if compute.mjs needs the provenance
