@@ -2,9 +2,11 @@
 
 import * as React from "react"
 import Link from "next/link"
+import { Check, Copy } from "lucide-react"
 
 import { readDraft } from "@/lib/consensus/draft"
 import { cn } from "@/lib/utils"
+import { Button } from "@govblock/ui/components/nova/button"
 
 import { dimLabel, mnemonicOf, num, shortSource, WORDING, type SourceRow } from "../../../audience/audience-data"
 import { Card, CardLabel, Gap, pillClass, Tag } from "../../../_wire/wire-bits"
@@ -29,10 +31,12 @@ import {
 } from "../../../_wire/wire-data"
 
 // /q/[source]/[id] — one question's dossier, as Brendan drew it
-// (docs/wireframes/question-dossier.png): the trend by wave, the headline
-// sentence, the latest wave's crosstab, and a rail of related constructs,
-// uses and provenance. Every clause is composed from the question's own
-// rows; one that cannot be computed is left out.
+// (docs/wireframes/question-dossier.png), in one column since his revision
+// (pass 2, 2026-10-27, pass2-124): the trend by wave, the headline sentence,
+// the latest wave's crosstab, then the related constructs, uses and
+// provenance under them. Every clause is composed from the question's own
+// rows; one that cannot be computed is left out, the trend whole when fewer
+// than two waves stand. The three blocks copy their text from a hover button.
 
 /** Sources whose rows are a general-population survey: their shares read "of Americans". */
 const ATTITUDE = new Set(["GSS", "ANES", "CES"])
@@ -86,37 +90,55 @@ export function Dossier({ source, id }: { source: string; id: string }) {
     )
 
   return (
-    <div className="mx-auto grid w-full max-w-[1400px] gap-5 p-6 lg:grid-cols-[minmax(0,1fr)_380px]" data-dossier={`${SRC.toLowerCase()}/${id}`}>
+    <div className="mx-auto flex w-full max-w-[920px] flex-col gap-5 p-6" data-dossier={`${SRC.toLowerCase()}/${id}`}>
       <div className="flex min-w-0 flex-col gap-5">
-        <Card>
-          <CardLabel>Trend</CardLabel>
-          {!rows ? (
+        {/* The trend stands only where it can draw: two waves or more (a skeleton while the rows come). */}
+        {!rows ? (
+          <Card>
+            <CardLabel>Trend</CardLabel>
             <div className="h-[190px] animate-pulse rounded-md bg-muted/50" />
-          ) : total.length > 1 ? (
-            <TrendBars points={total} />
-          ) : total.length ? (
-            <p className="py-6 text-sm text-muted-foreground">One wave on file: {total[0].span}.</p>
-          ) : (
-            <p className="py-10 text-center text-sm text-muted-foreground">No wave carries {band?.label || "this band"} in {place}.</p>
-          )}
-          {latest && <TrendNotes total={total} base={base} latest={latest} />}
-        </Card>
+          </Card>
+        ) : (
+          total.length > 1 &&
+          latest && (
+            <Copyable>
+              <Card>
+                <CardLabel>Trend</CardLabel>
+                <TrendBars points={total} />
+                <TrendNotes total={total} base={base} latest={latest} />
+              </Card>
+            </Copyable>
+          )
+        )}
 
-        <Card>
-          {latest && band ? (
-            <Headline source={SRC} label={label} wording={wording} band={band} geo={geo} place={place} total={total} base={base} latest={latest} />
-          ) : (
+        {latest && band ? (
+          <Copyable>
+            <Card>
+              <Headline source={SRC} label={label} wording={wording} band={band} geo={geo} place={place} total={total} base={base} latest={latest} />
+            </Card>
+          </Copyable>
+        ) : (
+          <Card>
             <div className="h-16 animate-pulse rounded-md bg-muted/50" />
-          )}
-        </Card>
+          </Card>
+        )}
 
-        <Card>
-          <CardLabel>
-            Crosstab{latest ? ` · ${latest.year}` : ""}
-            {band?.label ? ` · ${band.label}` : ""}
-          </CardLabel>
-          {rows && band && latest ? <Crosstab rows={rows} band={band} geo={geo} latest={latest} base={base} /> : <div className="h-40 animate-pulse rounded-md bg-muted/50" />}
-        </Card>
+        {rows && band && latest ? (
+          <Copyable>
+            <Card>
+              <CardLabel>
+                Crosstab · {latest.year}
+                {band.label ? ` · ${band.label}` : ""}
+              </CardLabel>
+              <Crosstab rows={rows} band={band} geo={geo} latest={latest} base={base} />
+            </Card>
+          </Copyable>
+        ) : (
+          <Card>
+            <CardLabel>Crosstab</CardLabel>
+            <div className="h-40 animate-pulse rounded-md bg-muted/50" />
+          </Card>
+        )}
       </div>
 
       <aside className="flex min-w-0 flex-col gap-5">
@@ -129,6 +151,35 @@ export function Dossier({ source, id }: { source: string; id: string }) {
         </Card>
         {index && rows && <Chips index={index} source={SRC} id={id} rows={rows} geo={geo} geoLevel={geoLevel} geoName={geoName} onGeo={setPick} />}
       </aside>
+    </div>
+  )
+}
+
+/** A block with the standard copy control: top right, on hover, its text to the clipboard. */
+function Copyable({ children }: { children: React.ReactNode }) {
+  const ref = React.useRef<HTMLDivElement>(null)
+  const [copied, setCopied] = React.useState(false)
+  React.useEffect(() => {
+    if (!copied) return
+    const t = window.setTimeout(() => setCopied(false), 1500)
+    return () => window.clearTimeout(t)
+  }, [copied])
+  return (
+    <div className="group/copy relative">
+      <div ref={ref}>{children}</div>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        aria-label="Copy"
+        title="Copy"
+        onClick={() => {
+          const text = ref.current?.innerText ?? ""
+          void navigator.clipboard.writeText(text).then(() => setCopied(true))
+        }}
+        className={cn("absolute top-3 right-3 opacity-0 group-hover/copy:opacity-100 focus-visible:opacity-100", copied && "opacity-100")}
+      >
+        {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+      </Button>
     </div>
   )
 }
