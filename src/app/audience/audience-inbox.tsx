@@ -11,7 +11,7 @@ import { DropdownMenuRadioGroup, DropdownMenuRadioItem } from "@govblock/ui/comp
 
 import { AboutPanel, type About } from "./audience-pane"
 import { buildInfo, fetchQuestionRows, groupSources, mnemonicOf, normalizeWording, scaleOf, shortSource, topicOf, UNTAGGED, TOPIC_GROUPS, WEB_GRID, WORDING, type AudienceIndex, type MetricInfo, type QuestionSummary, type SourceRow } from "./audience-data"
-import { SourceRail } from "./source-rail"
+import { FAVORITES, IMPORTANT, SourceRail } from "./source-rail"
 import { QuestionTable } from "./question-table"
 import { SegmentGrid } from "./segment-grid"
 
@@ -112,19 +112,22 @@ export function AudienceInbox() {
   React.useEffect(() => {
     if (!index) return
     if (source && !groups.some((g) => g.source === source)) setSource(null)
-    else if (topic && !topicRows.some((r) => r.topic === topic)) setTopic(null)
+    else if (topic && topic !== FAVORITES && topic !== IMPORTANT && !topicRows.some((r) => r.topic === topic)) setTopic(null)
     else if (!source && !topic && topicRows.length) setTopic(topicRows[0].topic)
   }, [index, groups, topicRows, source, topic])
 
   // The list comes from the index alone (Brief S): a topic's questions across
   // every source, or an open folder's, each with its span, waves and bands.
+  // The two selections read across the bank the way a topic does.
   const summaries = React.useMemo(() => {
     const out = new Set(["LIFT_ARCHIVE", "PAX_TEST"])
-    const qs = (index?.questions ?? []).filter((q) =>
-      topic ? !out.has(q.source) && (topicOf(topicsByQ.get(q.question)) ?? UNTAGGED) === topic : q.source === source
-    )
+    const inTopic = (id: string) =>
+      topic === FAVORITES ? pinned.includes(id) : topic === IMPORTANT ? important.includes(id) : (topicOf(topicsByQ.get(id)) ?? UNTAGGED) === topic
+    const qs = (index?.questions ?? []).filter((q) => (topic ? !out.has(q.source) && inTopic(q.question) : q.source === source))
     return new Map(qs.map((q) => [q.question, q] as const))
-  }, [index, source, topic, topicsByQ])
+  }, [index, source, topic, topicsByQ, pinned, important])
+  // What the open selection, topic or folder is called on screen.
+  const openName = topic === FAVORITES ? "Favorites" : topic === IMPORTANT ? "Important" : (topic ?? (source ? shortSource(source) : ""))
   // Every source that asks a question: opening it reads all of them, so the
   // About panel can set the same question beside its other sources.
   const homes = React.useMemo(() => {
@@ -320,7 +323,15 @@ export function AudienceInbox() {
       }
       loading={!index && !error}
       error={error}
-      empty={tab === "pinned" ? "Nothing pinned." : query.trim() ? `Nothing matching “${query.trim()}”.` : "Nothing on file."}
+      empty={
+        query.trim()
+          ? `Nothing matching “${query.trim()}”.`
+          : tab === "pinned" || topic === FAVORITES
+            ? "Nothing pinned."
+            : topic === IMPORTANT
+              ? "Nothing marked important."
+              : "Nothing on file."
+      }
     />
   )
 
@@ -330,6 +341,10 @@ export function AudienceInbox() {
       topic={topic}
       groups={groups}
       source={source}
+      favorites={pinned.length}
+      important={important.length}
+      query={query}
+      onQuery={setQuery}
       onTopic={(t) => {
         setTopic(t)
         setSource(null)
@@ -347,7 +362,7 @@ export function AudienceInbox() {
     <div className="flex h-full flex-col items-center px-8 py-16 text-center">
       <p className="text-lg">No question open</p>
       <p className="mt-3 text-sm text-muted-foreground">
-        {source || topic ? `${metricIds.length.toLocaleString("en-US")} questions in ${source ? shortSource(source) : topic}.` : "Pick a topic from the rail."}
+        {source || topic ? `${metricIds.length.toLocaleString("en-US")} questions in ${openName}.` : "Pick a topic from the rail."}
       </p>
     </div>
   )

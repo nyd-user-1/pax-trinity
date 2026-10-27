@@ -41,9 +41,10 @@ export function BankFrame({
     <TooltipProvider delayDuration={0}>
       <div className="relative flex h-full min-h-0 w-full overflow-hidden bg-sidebar [--sidebar:var(--pax2-mist)] [--header-height:calc(var(--spacing)*12)]">
         <ResizablePanelGroup orientation="horizontal" className="min-h-0 min-w-0 flex-1">
-          {/* react-resizable-panels v4 reads bare numbers as pixels. */}
+          {/* react-resizable-panels v4 reads bare numbers as pixels. 240 and the
+              mist ground: the shell menu's own width (w-60) and colour. */}
           {railOpen && (
-            <ResizablePanel defaultSize={224} minSize={192} maxSize={420} className="flex min-w-0 flex-col bg-sidebar **:data-[slot=sidebar-content]:no-scrollbar">
+            <ResizablePanel defaultSize={240} minSize={192} maxSize={420} className="flex min-w-0 flex-col bg-pax2-mist **:data-[slot=sidebar-content]:no-scrollbar">
               {rail}
             </ResizablePanel>
           )}
