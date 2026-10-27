@@ -22,7 +22,7 @@ async function load(): Promise<FeedVideo[]> {
   if (fs.existsSync(LOCAL)) raw = fs.readFileSync(LOCAL, "utf8")
   else {
     const { S3Client, GetObjectCommand } = await import("@aws-sdk/client-s3")
-    const r = await new S3Client({ region: process.env.PAX2_REGION ?? "us-east-1" }).send(
+    const r = await new S3Client({ region: process.env.PAX2_BUCKET_REGION ?? process.env.PAX2_REGION ?? "us-east-1" }).send(
       new GetObjectCommand({ Bucket: process.env.PAX2_BUCKET ?? "pax-2-638175140432", Key: "app/feed-index.json" }),
     )
     raw = (await r.Body!.transformToString()) as string
