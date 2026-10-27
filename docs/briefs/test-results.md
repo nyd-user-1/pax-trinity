@@ -266,6 +266,31 @@ them.
    are the narrative counts ("five of six marked…") and pairing 1's
    "significant in 29 of 36", which the transcription must reproduce.
 
+## Rulings after the Wave 2 landing (lead, 2026-10-27)
+
+7. One derivation per topline row stands. The renderer prints ≈ beside the
+   LIFT only, when the row is derived_from_rounded; a levelPct never carries
+   ≈ (levels are always the published display).
+8. Ruling 4 covers renderer-generated headlines only. A transcribed story's
+   printed title stays verbatim, counts included — the historical record is
+   quoted, not recomputed.
+9. The exec summary's homeless blocks: the page-5 short pairings and page-3
+   comprehension cards are NOT transcribed — the renderer derives the
+   pairing cards from each wave's pairings (first six, own wording from the
+   data) and computes the countable comprehension statements from verdicts;
+   the cards point stands on the card-iteration story. The page-4 intro
+   sentence stays untranscribed (it is a lead-in; the house drops those).
+   The media-trust stories media-trust-wording / media-trust-stated /
+   media-trust-experimental are ADOPTED.
+10. Accepted as transcribed: arm `name` from the exec summary with W1 pages'
+   short names unreproduced; sourceTitle on W2 arms only; the
+   needsVerification flag on 2022 turnout in both waves (true in both, printed
+   in one); W1 notSupported empty (its limits live in methodology and
+   captions, kept where printed); W2 debriefQuestions empty; flow story
+   titles as the printed step numbers. The Pahlow/px-paul near-miss stays
+   unjoined — identical report figures, mismatched name and duration — and
+   goes to Brendan.
+
 ## Rules (you may be context-cleared; this is everything)
 
 - Shared checkout, several windows on main: `git log -1` before every
