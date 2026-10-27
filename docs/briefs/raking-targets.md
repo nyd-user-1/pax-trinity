@@ -89,6 +89,15 @@ population); compute.mjs naming any declared factor the test never asked
 in the output notes, replacing today's silent drop; per-factor category
 mapping with the store's categories as default.
 
+## Brendan's recipe ruling (2026-10-27)
+
+Where the source vendor's weighting method is known, it becomes our recipe
+and we show our homework. Grow Progress weighted on age, gender, race,
+education, party and 2024 presidential vote — exactly the six factors this
+brief built, raked, with provenance printed into every output. Maturing that
+recipe is the platform's workflow; departures from a known vendor method get
+documented as departures.
+
 ## Rules (you may be context-cleared; this is everything)
 
 - You own `scripts/results/**` and, if compute.mjs needs the provenance
