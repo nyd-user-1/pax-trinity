@@ -1,30 +1,29 @@
 "use client"
 
 import * as React from "react"
-import { Blocks, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, EllipsisVerticalIcon, GripVerticalIcon, PanelRightIcon, RefreshCwIcon, RowsIcon, Search, StarIcon, X } from "lucide-react"
+import { ChevronLeftIcon, ChevronRightIcon, EllipsisVerticalIcon, PanelRightIcon, RowsIcon, Search, StarIcon, X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
-import { Checkbox } from "@govblock/ui/components/checkbox"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@govblock/ui/components/ny4/dropdown-menu"
 import { ScrollArea } from "@govblock/ui/components/ny4/scroll-area"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/ny4/tooltip"
 
 import { mnemonicOf, normalizeWording, scaleOf, WEB_GRID, type QuestionSummary } from "../audience/audience-data"
 
-// The question list in Gmail's exact anatomy (Brendan, 2026-10-26: "a near
-// perfect mimic"): the same toolbar — select-all with its menu, refresh, the
-// more menu (tabs, the split, the flat table); the pager at the right — then
-// one line per question: box, star, the mnemonic badge where the sender
-// sits, the wording in bold truncating at whatever width the row has with
-// the scale family and wave count after Gmail's dash, and the span at the
-// right edge where the time sits. Battery stems normalize into the sentence.
-// Opening a row is the presto: the data takes the pane. The box is the
-// column picker (four at most), the star pins.
+// The question list in Gmail's anatomy, as Brendan restyled it by hand
+// (2026-10-27, docs/wireframes/inbox-row-changes.png): no grip, box, star or
+// importance arrow leading the row — 16px either side and the words start.
+// Full width, one line: the wording in bold truncating at whatever width the
+// row has, the scale family and wave count after Gmail's dash, the topic and
+// mnemonic chips, the span at the right edge where the time sits. Folded
+// beside an open question, the card: the wording, then the topic chip and
+// the span under it. The row's kebab takes the span's place on hover, Gmail's
+// own swap: a grid column (four at most), the pin, Blocks, the survey draft.
 
 export type Split = "none" | "vertical"
 export type ListTab = "all" | "pinned"
-const MAX_COLS = 4
+export const MAX_COLS = 4
 /** Sixty rows to a read, sixty more on reaching the end — a bulk folder holds thousands. */
 const PER_READ = 60
 
@@ -34,28 +33,6 @@ function Tip({ label, children }: { label: string; children: React.ReactNode }) 
       <TooltipTrigger asChild>{children}</TooltipTrigger>
       <TooltipContent>{label}</TooltipContent>
     </Tooltip>
-  )
-}
-
-/** The importance marker, the thread list's exact arrow: amber when lit. */
-function Marker({ on, onToggle }: { on: boolean; onToggle: () => void }) {
-  return (
-    <Tip label={on ? "Marked important" : "Mark as important"}>
-      <button
-        type="button"
-        aria-pressed={on}
-        aria-label={on ? "Marked important" : "Mark as important"}
-        onClick={(event) => {
-          event.stopPropagation()
-          onToggle()
-        }}
-        className="shrink-0"
-      >
-        <svg viewBox="0 0 20 20" aria-hidden className={cn("size-4 shrink-0", on ? "fill-amber-400 text-amber-400" : "fill-transparent text-muted-foreground/50")}>
-          <path d="M4 5h7l5 5-5 5H4l5-5z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-        </svg>
-      </button>
-    </Tip>
   )
 }
 
@@ -72,18 +49,15 @@ export function SegmentList({
   wordingOf,
   topicOf,
   selected,
-  checked,
+  columns,
   pinned,
-  important,
-  onImportant,
   tab,
   onTab,
   onOpen,
-  onCheck,
+  onColumn,
   onPin,
-  onCheckAll,
   onBlock,
-  onRefresh,
+  onSurvey,
   split,
   onSplit,
   query = "",
@@ -100,20 +74,19 @@ export function SegmentList({
   /** The question's collapsed topic — the rail's vocabulary, worn as the row's tag. */
   topicOf: (id: string) => string | null
   selected: string | null
-  checked: string[]
+  /** The questions standing as the compare grid's columns. */
+  columns: string[]
   pinned: string[]
-  /** Questions marked important: the arrow fills and the row takes the unread tint. */
-  important: string[]
-  onImportant: (id: string) => void
   tab: ListTab
   onTab: (tab: ListTab) => void
   onOpen: (id: string) => void
-  onCheck: (id: string) => void
+  /** Adds the question to the compare grid's columns, or takes it out. */
+  onColumn: (id: string) => void
   onPin: (id: string) => void
-  onCheckAll: (ids: string[]) => void
   /** Hands the question and its data to the right side's Blocks panel. */
   onBlock: (id: string) => void
-  onRefresh: () => void
+  /** Hands the question to the survey draft. */
+  onSurvey: (id: string) => void
   split: Split
   onSplit: (split: Split) => void
   /** The search's filter; empty shows everything. */
@@ -144,7 +117,6 @@ export function SegmentList({
     const t = window.setTimeout(() => rootRef.current?.querySelector('[data-active="true"]')?.scrollIntoView({ block: "nearest" }), 50)
     return () => window.clearTimeout(t)
   }, [selected])
-  const allChecked = ordered.length > 0 && ordered.slice(0, MAX_COLS).every((id) => checked.includes(id))
   // Gmail's own behavior: the one-line anatomy at full width, the stacked
   // anatomy when the list is folded beside an open question.
   const stacked = split === "vertical"
@@ -156,45 +128,12 @@ export function SegmentList({
 
   return (
     <div ref={rootRef} className="flex h-full min-h-0 flex-col">
-      {/* The search row stands 52px like the toggle bar beside it; the toolbar
-          under it stands 44px like the filter row beside it — the borders line up. */}
+      {/* Both bars stand 52px, like the pane's search row and title row
+          beside them — the borders run flush across the split. */}
       <div className="flex h-[52px] shrink-0 items-center border-b px-3">
-        <div className="flex w-full items-center gap-2 rounded-lg border px-3 py-1.5">
-          <Search className="size-4 shrink-0 text-muted-foreground" />
-          <input
-            value={query}
-            onChange={(event) => onQuery(event.target.value)}
-            placeholder="Search wording or label…"
-            className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-          />
-          {query && (
-            <button type="button" aria-label="Clear the search" onClick={() => onQuery("")} className="shrink-0 text-muted-foreground hover:text-foreground">
-              <X className="size-4" />
-            </button>
-          )}
-        </div>
+        <SearchField query={query} onQuery={onQuery} />
       </div>
-      <div className="flex h-11 shrink-0 items-center gap-1 border-b px-3">
-        <div className="flex items-center">
-          <Checkbox aria-label="Select columns" checked={allChecked} indeterminate={!allChecked && checked.length > 0} onCheckedChange={(value) => onCheckAll(value === true ? ordered.slice(0, MAX_COLS) : [])} />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon-sm" aria-label="Select" className="-ml-0.5 size-6">
-                <ChevronDownIcon className="size-3.5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-max min-w-40">
-              <DropdownMenuItem onClick={() => onCheckAll(ordered.slice(0, MAX_COLS))}>First four</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onCheckAll([])}>None</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onCheckAll(ordered.filter((id) => pinned.includes(id)).slice(0, MAX_COLS))}>Pinned</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-        <Tip label="Refresh">
-          <Button variant="ghost" size="icon-sm" aria-label="Refresh" onClick={onRefresh}>
-            <RefreshCwIcon className="size-4" />
-          </Button>
-        </Tip>
+      <div className="flex h-[52px] shrink-0 items-center gap-1 border-b px-3">
         <Tip label={stacked ? "Turn off the vertical split" : "Vertical split"}>
           <Button variant="ghost" size="icon-sm" aria-label="Toggle vertical split" aria-pressed={stacked} onClick={() => onSplit(stacked ? "none" : "vertical")}>
             {stacked ? <PanelRightIcon className="size-4" /> : <RowsIcon className="size-4" />}
@@ -231,101 +170,57 @@ export function SegmentList({
           {listed.map((id) => {
             const c = summaries.get(id)
             const active = selected === id
-            const atCap = !checked.includes(id) && checked.length >= MAX_COLS
             const foot = spanOf(c)
             const scale = scaleOf(c?.options ?? [])
-            const imp = important.includes(id)
             const topicName = topicOf(id)
-            // The topic chip, Gmail's label: the rail's word on the row, before the mnemonic.
+            // The topic chip, Gmail's label: the rail's word on the row.
             const topicChip = topicName && (
               <span className="max-w-44 shrink-0 truncate rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground" title={topicName}>
                 {topicName}
               </span>
             )
-            const blockBtn = (
-              <Tip label="Add to blocks">
-                <button
-                  type="button"
-                  aria-label="Add to blocks"
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    onBlock(id)
-                  }}
-                  className="shrink-0 rounded-sm text-muted-foreground/60 hover:text-foreground"
-                >
-                  <Blocks className="size-4" />
-                </button>
-              </Tip>
+            const end = (
+              <RowEnd
+                span={foot?.span ?? null}
+                column={columns.includes(id)}
+                atCap={!columns.includes(id) && columns.length >= MAX_COLS}
+                pinned={pinned.includes(id)}
+                onColumn={() => onColumn(id)}
+                onPin={() => onPin(id)}
+                onBlock={() => onBlock(id)}
+                onSurvey={() => onSurvey(id)}
+              />
             )
-            const star = (
-              <button
-                type="button"
-                aria-label={pinned.includes(id) ? "Unpin" : "Pin"}
-                aria-pressed={pinned.includes(id)}
-                onClick={(event) => {
-                  event.stopPropagation()
-                  onPin(id)
-                }}
-                className="shrink-0 rounded-sm text-muted-foreground/60 hover:text-foreground"
-              >
-                <StarIcon className={cn("size-4", pinned.includes(id) && "fill-yellow-400 text-yellow-500")} />
-              </button>
+            const wording = (
+              <span className="font-semibold">
+                {pinned.includes(id) && <StarIcon aria-label="Pinned" className="mr-1.5 inline size-3.5 -translate-y-px fill-yellow-400 text-yellow-500" />}
+                {normalizeWording(wordingOf(id) ?? label(id))}
+                {WEB_GRID.has(id) && <span className="font-normal text-muted-foreground"> (web grid)</span>}
+              </span>
             )
             return (
               <li
                 key={id}
                 data-active={active}
-                draggable
-                onDragStart={(event) => {
-                  event.dataTransfer.setData("application/x-question-id", id)
-                  event.dataTransfer.effectAllowed = "move"
-                }}
                 className={cn(
-                  "group/row relative flex cursor-pointer gap-3 px-3 text-sm transition-[background-color,box-shadow] hover:z-10 hover:bg-accent/60 hover:shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]",
-                  stacked ? "items-start py-2.5" : "h-10 items-center",
-                  imp && "bg-primary/5",
+                  "group/row relative flex cursor-pointer gap-3 px-4 text-sm transition-[background-color,box-shadow] hover:z-10 hover:bg-accent/60 hover:shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]",
+                  stacked ? "py-2.5" : "h-10 items-center",
                   active && "z-10 bg-muted shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]"
                 )}
                 onClick={() => onOpen(id)}
               >
-                <span className={cn("flex shrink-0 items-center gap-2", stacked && "pt-0.5")} onClick={(event) => event.stopPropagation()}>
-                  {/* Gmail's grip: the space is always held, the dots show on hover, and the whole row drags. */}
-                  <GripVerticalIcon aria-hidden className="-ml-1 size-4 shrink-0 cursor-grab text-muted-foreground/50 opacity-0 transition-opacity group-hover/row:opacity-100" />
-                  <Checkbox aria-label={`A column for ${label(id)}`} checked={checked.includes(id)} disabled={atCap} title={atCap ? "Four at most" : undefined} onCheckedChange={() => onCheck(id)} />
-                  {!stacked && star}
-                  {!stacked && blockBtn}
-                  <Marker on={imp} onToggle={() => onImportant(id)} />
-                </span>
                 {stacked ? (
-                  <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="flex min-w-0 flex-1 flex-col gap-4">
+                    {wording}
                     <span className="flex items-center gap-2">
                       {topicChip}
-                      <span className="max-w-40 shrink-0 truncate rounded-full border px-2 py-0.5 text-[10px] font-medium tracking-wider text-muted-foreground" title={mnemonicOf(id)}>
-                        {mnemonicOf(id)}
-                      </span>
-                      {foot && <span className={cn("ml-auto shrink-0 text-xs tabular-nums", imp ? "font-semibold" : "text-muted-foreground")}>{foot.span}</span>}
-                    </span>
-                    <span className="font-semibold">
-                      {normalizeWording(wordingOf(id) ?? label(id))}
-                      {WEB_GRID.has(id) && <span className="font-normal text-muted-foreground"> (web grid)</span>}
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <span className="truncate text-xs text-muted-foreground">
-                        {foot ? `${scale ? `${scale} · ` : ""}${foot.waves} ${foot.waves === 1 ? "wave" : "waves"}` : ""}
-                      </span>
-                      <span className="ml-auto flex items-center gap-2" onClick={(event) => event.stopPropagation()}>
-                        {blockBtn}
-                        {star}
-                      </span>
+                      <span className="ml-auto flex shrink-0">{end}</span>
                     </span>
                   </span>
                 ) : (
                   <>
                     <span className="min-w-0 flex-1 truncate" title={wordingOf(id) ?? label(id)}>
-                      <span className="font-semibold">
-                        {normalizeWording(wordingOf(id) ?? label(id))}
-                        {WEB_GRID.has(id) && <span className="font-normal text-muted-foreground"> (web grid)</span>}
-                      </span>
+                      {wording}
                       {foot && (
                         <span className="text-muted-foreground">
                           {" "}
@@ -339,7 +234,7 @@ export function SegmentList({
                     <span className="max-w-40 shrink-0 truncate rounded-full border px-2 py-0.5 text-[10px] font-medium tracking-wider text-muted-foreground" title={mnemonicOf(id)}>
                       {mnemonicOf(id)}
                     </span>
-                    {foot && <span className={cn("shrink-0 text-xs tabular-nums", imp ? "font-semibold" : "text-muted-foreground")}>{foot.span}</span>}
+                    {end}
                   </>
                 )}
               </li>
@@ -349,6 +244,76 @@ export function SegmentList({
         {depth < ordered.length && <MoreMark onMore={more} />}
       </ScrollArea>
     </div>
+  )
+}
+
+/** The bordered search box the list's search row and the pane's both carry. */
+export function SearchField({ query, onQuery }: { query: string; onQuery: (q: string) => void }) {
+  return (
+    <div className="flex w-full min-w-0 items-center gap-2 rounded-lg border px-3 py-1.5">
+      <Search className="size-4 shrink-0 text-muted-foreground" />
+      <input
+        value={query}
+        onChange={(event) => onQuery(event.target.value)}
+        placeholder="Search wording or label…"
+        className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+      />
+      {query && (
+        <button type="button" aria-label="Clear the search" onClick={() => onQuery("")} className="shrink-0 text-muted-foreground hover:text-foreground">
+          <X className="size-4" />
+        </button>
+      )}
+    </div>
+  )
+}
+
+/** The row's right edge: the span, and on hover the row's kebab in its place. */
+function RowEnd({
+  span,
+  column,
+  atCap,
+  pinned,
+  onColumn,
+  onPin,
+  onBlock,
+  onSurvey,
+}: {
+  span: string | null
+  column: boolean
+  atCap: boolean
+  pinned: boolean
+  onColumn: () => void
+  onPin: () => void
+  onBlock: () => void
+  onSurvey: () => void
+}) {
+  const [open, setOpen] = React.useState(false)
+  return (
+    <span className="relative flex min-w-7 shrink-0 items-center justify-end">
+      <span className={cn("text-xs text-muted-foreground tabular-nums group-hover/row:invisible group-has-focus-visible/row:invisible", open && "invisible")}>{span}</span>
+      <DropdownMenu open={open} onOpenChange={setOpen}>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Question actions"
+            onClick={(event) => event.stopPropagation()}
+            className={cn("absolute top-1/2 right-0 -translate-y-1/2 opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100", open && "opacity-100")}
+          >
+            <EllipsisVerticalIcon className="size-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        {/* The menu portals out, but React bubbles its clicks to the row: stop them here. */}
+        <DropdownMenuContent align="end" className="w-max min-w-44" onClick={(event) => event.stopPropagation()}>
+          <DropdownMenuItem disabled={atCap} onClick={onColumn}>
+            {column ? "Remove column" : atCap ? "Four columns at most" : "Add as column"}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={onPin}>{pinned ? "Unpin" : "Pin"}</DropdownMenuItem>
+          <DropdownMenuItem onClick={onBlock}>Add to blocks</DropdownMenuItem>
+          <DropdownMenuItem onClick={onSurvey}>Add to survey</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </span>
   )
 }
 

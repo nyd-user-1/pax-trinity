@@ -15,7 +15,8 @@ import { type About } from "../audience/audience-pane"
 // every band of the opened segment as a row, a level bar against the largest
 // so the distribution is the picture — then Geography reads each place
 // against the segment's baseline, and each breakdown reads its bands against
-// the topline as delta pennants. One column per checked segment; a cell
+// the topline as delta pennants. One column per question added from a row's
+// kebab; a cell
 // inside its own margin fades rather than vanishes. Clicking a cell hands
 // the row to the About panel, which arrives as the fourth column.
 
@@ -24,7 +25,7 @@ const MAX_BAND_ROWS = 16
 export function SegmentGrid({
   rows,
   info,
-  checked,
+  columns,
   focus,
   label,
   defs,
@@ -37,7 +38,7 @@ export function SegmentGrid({
 }: {
   rows: SourceRow[]
   info: Map<string, MetricInfo>
-  checked: string[]
+  columns: string[]
   focus: string | null
   label: (id: string) => string
   defs: Map<string, string>
@@ -54,7 +55,7 @@ export function SegmentGrid({
   const [dimsOff, setDimsOff] = React.useState<string[]>([])
 
   const grid = React.useMemo(() => {
-    const ids = checked.length ? checked : focus ? [focus] : []
+    const ids = columns.length ? columns : focus ? [focus] : []
     const cols = ids.map((id) => info.get(id)).filter((c): c is MetricInfo => !!c)
     if (!cols.length) return null
     const geoRows = new Map<string, number>()
@@ -84,7 +85,7 @@ export function SegmentGrid({
     const bandMax = bands ? cols.map((_, i) => Math.max(...bands.map((b) => Math.abs(b.cells[i]?.[7] ?? 0)), 0)) : []
 
     return { cols, geosAll, geos, dimsAll, breakdowns, bands, bandMax }
-  }, [checked, focus, info, geoSel, dimsOff, geoLevel, rows])
+  }, [columns, focus, info, geoSel, dimsOff, geoLevel, rows])
 
   const focused = focus ? info.get(focus) : undefined
 
@@ -218,7 +219,7 @@ export function SegmentGrid({
               </tbody>
             </table>
           ) : (
-            <p className="py-8 text-sm text-muted-foreground">No segment is checked.</p>
+            <p className="py-8 text-sm text-muted-foreground">No column yet.</p>
           )}
         </div>
       </ScrollArea>

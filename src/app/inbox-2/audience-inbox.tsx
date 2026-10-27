@@ -16,7 +16,7 @@ import { AudienceRows } from "../audience/audience-rows"
 import { buildInfo, fetchQuestionRows, groupSources, mnemonicOf, normalizeWording, shortSource, topicOf, UNTAGGED, TOPIC_GROUPS, WORDING, type AudienceIndex, type MetricInfo, type QuestionSummary, type SourceRow } from "../audience/audience-data"
 import { SourceRail } from "./source-rail"
 import { QuestionTable } from "./question-table"
-import { SegmentList, type ListTab, type Split } from "./segment-list"
+import { MAX_COLS, SegmentList, type ListTab, type Split } from "./segment-list"
 import { SegmentGrid } from "./segment-grid"
 
 // /inbox-2 — the audience database wearing the Agentic Inbox's frame whole,
@@ -41,9 +41,9 @@ export function AudienceInbox() {
   const [split, setSplit] = React.useState<Split>("none")
   const [tab, setTab] = React.useState<ListTab>("all")
   const [focus, setFocus] = React.useState<string | null>(null)
-  const [checked, setChecked] = React.useState<string[]>([])
+  // The compare grid's columns, four at most, added from a row's kebab.
+  const [columns, setColumns] = React.useState<string[]>([])
   const [pinned, setPinned] = React.useState<string[]>([])
-  const [important, setImportant] = React.useState<string[]>([])
   // The Blocks panel's contents: questions pressed into it from the list.
   const [blocks, setBlocks] = React.useState<string[]>([])
   const [blocksOpen, setBlocksOpen] = React.useState(false)
@@ -128,8 +128,8 @@ export function AudienceInbox() {
   }, [index])
   // The questions on screen: the open one, the focused one, the grid's columns.
   const wanted = React.useMemo(
-    () => [...new Set([tableMetric, focus, ...checked].filter((x): x is string => !!x))].sort(),
-    [tableMetric, focus, checked]
+    () => [...new Set([tableMetric, focus, ...columns].filter((x): x is string => !!x))].sort(),
+    [tableMetric, focus, columns]
   )
 
   React.useEffect(() => {
@@ -154,7 +154,7 @@ export function AudienceInbox() {
   React.useEffect(() => {
     setRowsError(null)
     setFocus(null)
-    setChecked([])
+    setColumns([])
     setAbout(null)
     setTab("all")
     setTableMetric(null)
@@ -211,24 +211,40 @@ export function AudienceInbox() {
   const info = React.useMemo(() => buildInfo(rows, geoLevel), [rows, geoLevel])
 
   // A clicked question opens the flat table scoped to its rows (Brendan,
-  // 2026-10-26); the checkbox still builds grid columns.
+  // 2026-10-26). A row's "Add as column" builds the compare grid, and brings
+  // it up: the list folded beside it, the grid in the pane.
   const open = (id: string) => {
     setTableMetric(id)
     setMode("table")
   }
-  const check = (id: string) => setChecked((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : prev.length >= 4 ? prev : [...prev, id]))
+  const toggleColumn = (id: string) => {
+    if (columns.includes(id)) {
+      setColumns((prev) => prev.filter((x) => x !== id))
+      return
+    }
+    if (columns.length >= MAX_COLS) return
+    setColumns((prev) => [...prev, id])
+    setTableMetric(null)
+    setMode("list")
+    setSplit("vertical")
+  }
+  // The pane's refresh reads the open question's files again, every source's.
+  const refresh = (id: string) => {
+    setRowsError(null)
+    setCache((prev) => Object.fromEntries(Object.entries(prev).filter(([key]) => !key.endsWith(`/${id}`))))
+  }
 
   // A segment joins the survey draft as a question — its wording verbatim
   // where the source carries one (polls and results do), its label where it
   // does not — with the segment's bands as the answer options.
   const addToSurvey = React.useCallback(
     (id: string) => {
-      const wording = rows.find((r) => r[0] === id && r[10])?.[10] ?? null
+      const wording = rows.find((r) => r[0] === id && r[10])?.[10] ?? wordingOf(id)
       const draft = addToDraft([{ text: wording ?? label(id), options: summaries.get(id)?.options ?? [] }])
       setDrafted(draft.questions.length)
       window.setTimeout(() => setDrafted((current) => (current === draft.questions.length ? null : current)), 6000)
     },
-    [rows, summaries, label]
+    [rows, summaries, label, wordingOf]
   )
 
   const showList = split === "vertical" || !focus
@@ -248,25 +264,18 @@ export function AudienceInbox() {
       wordingOf={wordingOf}
       topicOf={topicChipOf}
       selected={tableMetric ?? focus}
-      checked={checked}
+      columns={columns}
       pinned={pinned}
-      important={important}
-      onImportant={(id) => setImportant((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))}
       onBlock={(id) => {
         setBlocks((prev) => (prev.includes(id) ? prev : [...prev, id]))
         setBlocksOpen(true)
       }}
+      onSurvey={addToSurvey}
       tab={tab}
       onTab={setTab}
       onOpen={open}
-      onCheck={check}
+      onColumn={toggleColumn}
       onPin={(id) => setPinned((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))}
-      onCheckAll={(ids) => setChecked(ids.slice(0, 4))}
-      onRefresh={() => {
-        if (!source) return
-        setRowsError(null)
-        setCache((prev) => Object.fromEntries(Object.entries(prev).filter(([key]) => !key.startsWith(`${source}/`))))
-      }}
       split={s}
       onSplit={setSplit}
       query={query}
@@ -300,9 +309,7 @@ export function AudienceInbox() {
     <div className="flex h-full flex-col items-center px-8 py-16 text-center">
       <p className="text-lg">No segment selected</p>
       <p className="mt-3 text-sm text-muted-foreground">
-        {source || topic
-          ? `${metricIds.length.toLocaleString("en-US")} questions in ${source ? shortSource(source) : topic}; the box on a row is its column, the star pins it.`
-          : "Pick a topic from the rail."}
+        {source || topic ? `${metricIds.length.toLocaleString("en-US")} questions in ${source ? shortSource(source) : topic}.` : "Pick a topic from the rail."}
       </p>
     </div>
   )
@@ -393,6 +400,9 @@ export function AudienceInbox() {
                       wording={wordingOf(tableMetric)}
                       about={about}
                       onPick={setAbout}
+                      query={query}
+                      onQuery={setQuery}
+                      onRefresh={() => refresh(tableMetric)}
                     />
                   ) : (
                     <Reading error={rowsError} />
@@ -423,14 +433,14 @@ export function AudienceInbox() {
                 {showList && showPane && <ResizableHandle withHandle />}
                 {showPane && (
                   <ResizablePanel className="min-w-0">
-                    {(focus || checked.length) && (focus ? !loaded(focus) : !checked.some(loaded)) ? (
+                    {(focus || columns.length) && (focus ? !loaded(focus) : !columns.some(loaded)) ? (
                       <Reading error={rowsError} />
-                    ) : focus || checked.length ? (
+                    ) : focus || columns.length ? (
                       <SegmentGrid
                         key={source ?? topic ?? ""}
                         rows={rows}
                         info={info}
-                        checked={checked}
+                        columns={columns}
                         focus={focus}
                         label={label}
                         defs={defs}

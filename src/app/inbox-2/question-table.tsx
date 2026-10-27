@@ -2,8 +2,10 @@
 
 import * as React from "react"
 import dynamic from "next/dynamic"
+import { RefreshCwIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { Button } from "@govblock/ui/components/nova/button"
 
 // The Trend view loads only when clicked: the chart file carries the ECharts
 // modules, and this dynamic mount keeps that chunk off every route until then.
@@ -15,15 +17,18 @@ const QuestionChart = dynamic(() => import("./question-chart").then((m) => m.Que
 import { dimLabel, latestRow, normalizeWording, num, value, year, type MetricInfo, type SourceRow } from "../audience/audience-data"
 import { RowsView } from "../audience/rows-view"
 import { type About } from "../audience/audience-pane"
+import { SearchField } from "./segment-list"
 
 // The clicked question, read the way a pollster reads one: a crosstab — the
 // answer options down the side, the banner across the top (Total, then every
 // breakdown), the latest wave's shares in the cells with unweighted bases
-// underneath, and the trend as its own block. The toggle's third position
+// underneath, and the trend as its own block. The toggle's first position
 // mounts the shared Rows view (Brendan, 2026-10-26): wave, segment, band,
 // estimate, margin, base, geo and weight, newest first with the total before
-// its subgroups and the three filter pills. A clicked crosstab cell hands its
-// row to the About panel.
+// its subgroups. A clicked crosstab cell hands its row to the About panel.
+// Two 52px bars, flush with the list's two (Brendan's dev-tool pass,
+// 2026-10-27): the search beside the toggle, then the question with refresh
+// at its right.
 
 const MAX_BANNER_ROWS = 24
 
@@ -39,6 +44,9 @@ export function QuestionTable({
   wording,
   about,
   onPick,
+  query,
+  onQuery,
+  onRefresh,
 }: {
   /** The question's rows alone. */
   rows: SourceRow[]
@@ -55,6 +63,11 @@ export function QuestionTable({
   wording: string | null
   about: About | null
   onPick: (a: About) => void
+  /** The list's search, which the pane's search row carries too. */
+  query: string
+  onQuery: (q: string) => void
+  /** Reads the open question's files again. */
+  onRefresh: () => void
 }) {
   const [view, setView] = React.useState<"crosstab" | "chart" | "tidy">("tidy")
 
@@ -86,9 +99,8 @@ export function QuestionTable({
     return { base, latestYear, options, capped, banner, cell, years, trendCell }
   }, [rows, info])
 
-  // The bar reads the question itself (Brendan, 2026-10-26) and the chevrons
-  // changing the open question change it with them; the toggle rides the
-  // filter row's right in the Data view and the bar's right elsewhere.
+  // The title row reads the question itself (Brendan, 2026-10-26) and the
+  // chevrons changing the open question change it with them.
   const heading = <span className="min-w-0 truncate text-sm font-semibold">{normalizeWording(wording ?? title)}</span>
   const toggle = (
     <div className="flex shrink-0 rounded-lg border p-0.5 text-xs">
@@ -106,15 +118,25 @@ export function QuestionTable({
     </div>
   )
 
+  const refresh = (
+    <Button variant="ghost" size="icon-sm" aria-label="Refresh" title="Refresh" className="-mr-1.5 shrink-0" onClick={onRefresh}>
+      <RefreshCwIcon className="size-4" />
+    </Button>
+  )
+
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
+      <div className="flex h-[52px] shrink-0 items-center gap-2 border-b px-4">
+        <SearchField query={query} onQuery={onQuery} />
+        {toggle}
+      </div>
       {view === "tidy" ? (
-        <RowsView rows={rows} title={title} id={metric} short={short} source={source} header={heading} trailing={toggle} about={about} onPick={onPick} />
+        <RowsView rows={rows} title={title} id={metric} short={short} source={source} header={heading} trailing={refresh} about={about} onPick={onPick} />
       ) : (
         <>
       <div className="flex h-[52px] shrink-0 items-center gap-2 border-b px-4">
         {heading}
-        <div className="ml-auto flex shrink-0 items-center">{toggle}</div>
+        <div className="ml-auto flex shrink-0 items-center">{refresh}</div>
       </div>
       {/* Native scroll, not the ScrollArea primitive: radix's viewport sizes
           itself to the banner's intrinsic width, which blew the pane out
