@@ -60,3 +60,40 @@ The whole list standing in the working tree, nothing committed, ping the lead wi
 ---
 
 ## Worker report
+
+All eleven steps landed across the ten files the brief names. No other route's files were touched (`_wire/wire-bits.tsx` included). The lead QA'd on :3000 and approved all three deviations. Committed per feature, not pushed:
+- **0906477**: the question pane, steps 1–6. It carries a pane-only version of audience-inbox.tsx, so the commit stands without the rail.
+- **6032e46**: the rail, step 10.
+- **cd17623**: the dossier, steps 7–9.
+
+**Smoke** (curl :3000 plus a grep of the compiled chunks):
+- /audience 200, carrying "Back to the list", "Nothing marked important.", "Open in the panel", "Copy row", Favorites, Index, "Mark as important", `max-w-[115ch]`, the chip's `border` and the rail's `bg-pax2-mist`.
+- /lift 200 and /survey 200 (they share the frame and rail).
+- /q/gss/confidence_congress 200, carrying `group/copy` and `max-w-[920px]`.
+- All ten files parse clean under the TypeScript parser. No type check was run (hook).
+
+**Per step:**
+1. In table mode the list renders only when split is on. Off, the pane takes the full width and its search row leads with Back (ArrowLeft), which returns to the list. **Deviation:** opening a question turns the split on, as opening always has. Otherwise, with the default split off, every click would hide the list, against Brendan's 10-26 "don't close the middle panel". The toggle now works with a question open. Say the word if the split should instead stick across opens (Gmail's reading-pane setting).
+2. The card chip has `border`.
+3. The pane title has `max-w-[115ch]`.
+4. `PaneTitleRow` takes `leading`. The open question's leading controls are the house Checkbox, the recovered amber importance arrow and the star, on all four title rows (Data, Crosstab/Trend, dossier drill, About layer). `important` state is revived. **Deviation:** the checkbox only adds or removes the column and leaves the question open. `toggleColumn` also leaves the question for the compare grid, so ticking the box would have made it vanish. The row kebab's "Add as column" still jumps to the grid.
+5. The Rows view has a ninth column with a hover kebab, held visible while open: "Open in the panel" (the row's onPick) and "Copy row" (eight printed cells, tab-separated). Both clicks stop propagation. Printed cells and copied cells share one helper.
+6. `AboutPanel` takes `layer`: full width, reading capped at `max-w-2xl`. In table mode it replaces the content under the two bars, and About wins over the drill. The table branch's aside keeps only Blocks; the grid branch keeps the 420 aside. Opening another question now clears a picked value, so the layer can't cover the new question with the old one's figure.
+7. The dossier is one column, `max-w-[920px] mx-auto`. Related, Used by, Provenance and Chips follow the three blocks in the same order.
+8. The Trend card renders only with two or more waves. "One wave on file" and the no-wave line are gone. A skeleton still holds the slot while the rows load, so a single-wave question shows it briefly before the card drops.
+9. `Copyable` wraps the Trend, Headline and Crosstab cards: a hover Copy button in the top-right corner copies the block's `innerText` and shows Check for 1.5s. It's one small component in dossier.tsx; skeleton cards don't get it.
+10. **Frame:** the rail is 240 wide on `bg-pax2-mist`, for /audience, /lift and /survey alike.
+    **BankRail:** `header` replaces the title, and `title` still serves /lift and /survey.
+    **RailRow:** `menu` swaps the count for a kebab on hover. The kebab is a sibling of the row, not inside it, because a button can't hold a button.
+    **RailGroup:** `collapsible` / `defaultOpen`.
+    **SourceRail:**
+    - The shell's ⌘K bar dress, wired to the list's query.
+    - Constructs, then Favorites (Star) and Important (Flag) as selections, using the `__favorites` / `__important` sentinels across the bank, with LIFT/PAX left out.
+    - "Index" over the topics, each with the brief's icon and a kebab holding "N questions" (disabled).
+    - "Data" over Electorate and the sources, with Database icons, collapsible. **Deviation:** the Data group starts shut unless the address opened a folder. /electorate's `?source=` links would otherwise land on a hidden open row.
+
+**Type-risk notes:**
+- The Base UI Checkbox takes `title` and an `onCheckedChange` of `() => void`. Both were already in use on this component before 4e2f464, and that code built remotely.
+- `onRefresh` came off QuestionTable, and its now-unused `refresh` came out of audience-inbox. Brendan's 4am pass had already removed the button.
+- `aboutLayer` and `aside` take `JSX.Element | null | false`, which is valid ReactNode.
+- `tableMetric` is used inside closures within its narrowed branch, the same pattern the old `refresh(tableMetric)` used.
