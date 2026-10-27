@@ -104,6 +104,9 @@ export function SegmentList({
   const listed = ordered.slice(0, depth)
   const more = React.useCallback(() => setDepth((d) => d + PER_READ), [])
   const allChecked = ordered.length > 0 && ordered.slice(0, MAX_COLS).every((id) => checked.includes(id))
+  // Gmail's own behavior: the one-line anatomy at full width, the stacked
+  // anatomy when the list is folded beside an open question.
+  const stacked = split === "vertical"
 
   // The chevrons walk the questions: the one before and after the open one.
   const at = selected ? ordered.indexOf(selected) : -1
@@ -206,33 +209,57 @@ export function SegmentList({
                 key={id}
                 data-active={active}
                 className={cn(
-                  "group/row relative flex h-10 cursor-pointer items-center gap-3 px-3 text-sm transition-[background-color,box-shadow] hover:z-10 hover:bg-accent/60 hover:shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]",
+                  "group/row relative flex cursor-pointer gap-3 px-3 text-sm transition-[background-color,box-shadow] hover:z-10 hover:bg-accent/60 hover:shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]",
+                  stacked ? "items-start py-2.5" : "h-10 items-center",
                   active && "z-10 bg-muted shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]"
                 )}
                 onClick={() => onOpen(id)}
               >
-                <span className="flex shrink-0 items-center gap-2" onClick={(event) => event.stopPropagation()}>
+                <span className={cn("flex shrink-0 items-center gap-2", stacked && "pt-0.5")} onClick={(event) => event.stopPropagation()}>
                   <Checkbox aria-label={`A column for ${label(id)}`} checked={checked.includes(id)} disabled={atCap} title={atCap ? "Four at most" : undefined} onCheckedChange={() => onCheck(id)} />
                   {star}
                 </span>
-                {/* The mnemonic where Gmail's sender sits: plain text, fixed width, truncating — a pill overflowed ANES's long ids. */}
-                <span className="w-44 shrink-0 truncate font-medium" title={mnemonicOf(id)}>
-                  {mnemonicOf(id)}
-                </span>
-                <span className="min-w-0 flex-1 truncate" title={wordingOf(id) ?? label(id)}>
-                  <span className="font-semibold">
-                    {normalizeWording(wordingOf(id) ?? label(id))}
-                    {WEB_GRID.has(id) && <span className="font-normal text-muted-foreground"> (web grid)</span>}
-                  </span>
-                  {foot && (
-                    <span className="text-muted-foreground">
-                      {" "}
-                      - {scale ? `${scale} · ` : ""}
-                      {foot.waves} {foot.waves === 1 ? "wave" : "waves"}
+                {stacked ? (
+                  <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <span className="flex items-center gap-2">
+                      <span className="truncate text-xs font-medium tracking-wide" title={mnemonicOf(id)}>
+                        {mnemonicOf(id)}
+                      </span>
+                      {foot && <span className="ml-auto shrink-0 text-xs text-muted-foreground tabular-nums">{foot.span}</span>}
                     </span>
-                  )}
-                </span>
-                {foot && <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{foot.span}</span>}
+                    <span className="truncate font-semibold" title={wordingOf(id) ?? label(id)}>
+                      {normalizeWording(wordingOf(id) ?? label(id))}
+                      {WEB_GRID.has(id) && <span className="font-normal text-muted-foreground"> (web grid)</span>}
+                    </span>
+                    {foot && (
+                      <span className="truncate text-xs text-muted-foreground">
+                        {scale ? `${scale} · ` : ""}
+                        {foot.waves} {foot.waves === 1 ? "wave" : "waves"}
+                      </span>
+                    )}
+                  </span>
+                ) : (
+                  <>
+                    {/* The mnemonic where Gmail's sender sits: plain text, fixed width, truncating — a pill overflowed ANES's long ids. */}
+                    <span className="w-44 shrink-0 truncate font-medium" title={mnemonicOf(id)}>
+                      {mnemonicOf(id)}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate" title={wordingOf(id) ?? label(id)}>
+                      <span className="font-semibold">
+                        {normalizeWording(wordingOf(id) ?? label(id))}
+                        {WEB_GRID.has(id) && <span className="font-normal text-muted-foreground"> (web grid)</span>}
+                      </span>
+                      {foot && (
+                        <span className="text-muted-foreground">
+                          {" "}
+                          - {scale ? `${scale} · ` : ""}
+                          {foot.waves} {foot.waves === 1 ? "wave" : "waves"}
+                        </span>
+                      )}
+                    </span>
+                    {foot && <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{foot.span}</span>}
+                  </>
+                )}
               </li>
             )
           })}
