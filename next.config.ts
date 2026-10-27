@@ -19,6 +19,8 @@ const config: NextConfig = {
       { source: "/reference", destination: "/scoring?tab=research", permanent: false },
       { source: "/sources", destination: "/library", permanent: false },
       { source: "/break-out", destination: "/outliers", permanent: true },
+      // Audience became America Thinks (Brendan, 2026-10-27); the query string carries over.
+      { source: "/audience", destination: "/america-thinks", permanent: true },
     ]
   },
   // The ledger and the model run on the server; the compute role supplies credentials. Every AWS

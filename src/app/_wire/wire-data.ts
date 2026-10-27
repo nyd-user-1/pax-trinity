@@ -1,6 +1,6 @@
 import * as React from "react"
 
-import { fetchQuestionRows, num, period, year, type AudienceIndex, type SourceRow } from "../audience/audience-data"
+import { fetchQuestionRows, num, period, year, type AudienceIndex, type SourceRow } from "../america-thinks/audience-data"
 
 // What the three wireframe routes share (/q/[source]/[id], /constructs,
 // /electorate): one index read per tab, one fetch per question file, and the

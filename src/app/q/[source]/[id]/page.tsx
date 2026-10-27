@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 
-import { mnemonicOf, shortSource } from "../../../audience/audience-data"
+import { mnemonicOf, shortSource } from "../../../america-thinks/audience-data"
 import { Dossier } from "./dossier"
 
 type Params = { params: Promise<{ source: string; id: string }> }

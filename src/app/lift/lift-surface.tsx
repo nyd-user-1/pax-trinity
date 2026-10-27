@@ -10,7 +10,7 @@ import { CardList, type Card } from "@/components/bank/card-list"
 import { PaneSearchRow, PaneTitleRow, RefreshButton } from "@/components/bank/pane-bars"
 import { ScrollArea } from "@govblock/ui/components/ny4/scroll-area"
 
-import { groupSources, num, period, type AudienceIndex, type SourceRow } from "../audience/audience-data"
+import { groupSources, num, period, type AudienceIndex, type SourceRow } from "../america-thinks/audience-data"
 
 // /lift — the message tests on /audience's anatomy (2026-10-27): the folders
 // in the rail (the PAX tests, the archive of campaigns' own experiments), the

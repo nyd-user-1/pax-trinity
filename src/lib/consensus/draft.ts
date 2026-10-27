@@ -16,7 +16,7 @@ export function saveDraft(questions: DraftQuestion[]): SurveyDraft {
   const draft: SurveyDraft = {
     slug: DRAFT_SLUG,
     title: "Draft survey",
-    description: "Questions picked on the audience instrument, each with its source's own answer options.",
+    description: "Questions picked in America Thinks, each with its source's own answer options.",
     questions,
   }
   localStorage.setItem(KEY, JSON.stringify(draft))

@@ -22,7 +22,7 @@ function alias(path: string, q: URLSearchParams): string | null {
   // The 2026-10-27 consolidation: /inbox-2 took the /audience address, the
   // reference pages became /data-dictionary's tabs, and consensus became one
   // page whose tabs the old sub-routes open.
-  if (path === "/inbox-2") return `/audience${q.size ? `?${q}` : ""}`
+  if (path === "/inbox-2") return `/america-thinks${q.size ? `?${q}` : ""}`
   if (path === "/glossary" || path === "/schema" || path === "/erd") return `/data-dictionary?tab=${path.slice(1)}`
   const consensusTab = ({ "/consensus/survey": "questions", "/questions": "questions", "/consensus/report": "results", "/consensus/admin": "admin" } as Record<string, string>)[path]
   if (consensusTab) {

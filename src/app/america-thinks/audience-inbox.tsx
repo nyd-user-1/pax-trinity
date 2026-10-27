@@ -466,7 +466,7 @@ export function AudienceInbox() {
   )
 
   return (
-    <BankFrame rail={railNode} crumb="Audience" search={{ query, onQuery: setQuery, placeholder: "Search questions" }} overlay={drafting}>
+    <BankFrame rail={railNode} crumb="America Thinks" search={{ query, onQuery: setQuery, placeholder: "Search questions" }} overlay={drafting}>
       {mode === "table" && tableMetric ? (
         // The reading pane off (split none), the question has the screen and
         // the search row leads with Back; on, the list stands folded beside it.

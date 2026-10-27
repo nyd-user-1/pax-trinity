@@ -763,7 +763,7 @@ export type Kind = keyof typeof KINDS;
  * and the library's real figures on the day they were written.
  */
 export const PAX_BOXES: HomeCardData[] = [
-  { href: "/audience", title: "Audience", accent: "", tag: "Data", value: 213_518, unit: "rows",
+  { href: "/america-thinks", title: "America Thinks", accent: "", tag: "Data", value: 213_518, unit: "rows",
     body: "Who the electorate is, where attitudes stand, and what the priors say: the census, the turnout record, five decades of surveys, and the enrollment rolls, one store.",
     guide: {
       about: "My normative database: what America thinks, in what wording, measured by whom. Five decades of the General Social Survey, ANES and CES sit beside the census, the turnout record and the enrollment rolls, one question at a time. Every question opens to its rows, its crosstab, its trend and a one-page dossier.",
@@ -788,7 +788,7 @@ export const PAX_BOXES: HomeCardData[] = [
     body: "Gather opinion at scale; groups emerge from the votes, not the loudest voice.",
     guide: {
       about: "Opinion gathered one statement at a time: agree, disagree or pass, with the opinion groups found in the votes rather than in who spoke loudest. One page holds the surveys, the voting card, the results and, for admins, the admin view.",
-      steps: ["Open Surveys and pick a conversation to read its results.", "Open Questions, press Start voting, and answer each statement agree, disagree or pass; mark the one that matters more than most.", "Open Results for where the groups agree, where they split, and every statement's shares.", "Open Survey in the sidebar for the same conversations on the inbox pattern: the statements as cards, each one's results beside it.", "Signed in as an admin, open Admin for the conversation's numbers, its busiest statements and the survey draft built from Audience."],
+      steps: ["Open Surveys and pick a conversation to read its results.", "Open Questions, press Start voting, and answer each statement agree, disagree or pass; mark the one that matters more than most.", "Open Results for where the groups agree, where they split, and every statement's shares.", "Open Survey in the sidebar for the same conversations on the inbox pattern: the statements as cards, each one's results beside it.", "Signed in as an admin, open Admin for the conversation's numbers, its busiest statements and the survey draft built from America Thinks."],
       gaps: ["Votes cast on the voting card are not recorded.", "A statement added on the card is not saved.", "A survey cannot be created, fielded or closed here; the survey draft can be read and discarded, nothing more."],
     } },
   { href: "", title: "Scripts", accent: "", tag: "Platform", value: 0, unit: "",
@@ -819,7 +819,7 @@ export const PAX_BOXES: HomeCardData[] = [
       steps: ["Open Clips and choose a desk from the Partners block's menu; the list and the feed narrow to that partner's videos.", "Open a clip to read its review thread and, where it was tested, its report.", "Choose All partners to see every desk again."],
       gaps: ["Partners do not sign in as their desk; partner accounts are not connected to sign-in.", "A desk has no roster of its people.", "A partner cannot manage or upload to their own desk; an upload goes to the uploader's own library.", "The PAX desk has no YouTube channel."],
     } },
-  { href: "/audience?source=POLL", title: "Polls", accent: "", tag: "Data", value: 20, unit: "polls",
+  { href: "/america-thinks?source=POLL", title: "Polls", accent: "", tag: "Data", value: 20, unit: "polls",
     body: "Thirteen polls and seven official measure results on open primaries, 2014 through the 2026 Massachusetts tracking.",
     guide: {
       about: "Public polling on open primaries as a source in my audience database, beside the official measure results, from 2014 through the 2026 Massachusetts tracking. A poll question opens like any other question.",

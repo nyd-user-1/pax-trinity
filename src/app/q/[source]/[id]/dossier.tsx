@@ -7,7 +7,7 @@ import { Check, ChevronLeft, ChevronRight, Copy } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
 
-import { dimLabel, mnemonicOf, normalizeWording, num, shortSource, WORDING, type SourceRow } from "../../../audience/audience-data"
+import { dimLabel, mnemonicOf, normalizeWording, num, shortSource, WORDING, type SourceRow } from "../../../america-thinks/audience-data"
 import { Card, CardLabel, Gap, pillClass, Tag } from "../../../_wire/wire-bits"
 import { cap, clausesOf, leadsWithSubject } from "./headline"
 import {

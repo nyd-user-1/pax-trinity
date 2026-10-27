@@ -6,7 +6,7 @@ import { Search } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
-import { SHORT_SEGMENT, type SourceRow } from "../audience/audience-data"
+import { SHORT_SEGMENT, type SourceRow } from "../america-thinks/audience-data"
 import { Absent, Tag, pillClass } from "../_wire/wire-bits"
 import { bandOf, loadRows, one, signed, typeOf, useWireIndex, type Band } from "../_wire/wire-data"
 
@@ -236,10 +236,10 @@ export function ElectorateSlice({ initial }: { initial: string }) {
       {/* Rail */}
       <nav className="w-[260px] shrink-0 overflow-y-auto border-r px-3 py-4 text-[15px]">
         <RailHead>Scope</RailHead>
-        <RailLink href="/audience" label="All sources" count={index ? bank : null} />
+        <RailLink href="/america-thinks" label="All sources" count={index ? bank : null} />
         <RailHead>Attitudes</RailHead>
         {ATTITUDES.map((s) => (
-          <RailLink key={s.key} href={`/audience?source=${s.key}`} label={s.label} count={index ? (counts.get(s.key) ?? 0) : null} />
+          <RailLink key={s.key} href={`/america-thinks?source=${s.key}`} label={s.label} count={index ? (counts.get(s.key) ?? 0) : null} />
         ))}
         <RailHead>Population &amp; electorate</RailHead>
         {SLICE.map((s) => (

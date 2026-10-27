@@ -27,7 +27,7 @@ const DiscussionPanel = dynamic(() => import("@/components/discussion-panel").th
 // as a route, off the sidebar.
 // The pages trinity keeps (the 2026-10-27 kill list, /reports since): every other destination renders in place but
 // goes nowhere. /changelog is unpublished pending Brendan's word, reachable by URL alone.
-const LIVE = new Set(["/", "/chat", "/clips", "/audience", "/inbox", "/survey", "/consensus", "/lift", "/reports", "/message-tests", "/data-dictionary", "/signin", "/signup"])
+const LIVE = new Set(["/", "/chat", "/clips", "/america-thinks", "/inbox", "/survey", "/consensus", "/lift", "/reports", "/message-tests", "/data-dictionary", "/signin", "/signup"])
 
 type NavLink = { href: string; label: string; icon: typeof House }
 type NavGroup = { label: string; icon: typeof House; children: NavLink[]; admin?: boolean }
@@ -40,7 +40,7 @@ const NAV_TREE: (NavLink | NavGroup)[] = [
   { href: "/clips", label: "Clips", icon: Film },
   { href: "/inbox", label: "Inbox", icon: Inbox },
   { href: "/data-dictionary", label: "Data dictionary", icon: BookA },
-  { href: "/audience", label: "Audience", icon: Users },
+  { href: "/america-thinks", label: "America Thinks", icon: Users },
   { href: "/lift", label: "Lift", icon: FlaskConical },
   { href: "/reports", label: "Reports", icon: FileText },
   // Admins only: the admin surfaces that exist so far.
@@ -53,6 +53,7 @@ const NAV: NavLink[] = NAV_TREE.filter((n) => !("children" in n) || n.label !== 
 // The header names the page; the first match wins, so a deeper route comes before its parent.
 const TITLES: [string, string][] = [
   ["/v/", "Video"],
+  ["/america-thinks", "America Thinks"],
   ["/data-dictionary", "Data dictionary"],
   ["/message-tests", "Message tests"],
   ["/q/", "Question"],
@@ -352,7 +353,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
   const paired = open && !takeover
   const closePanel = () => (panelOpen ? router.back() : discuss ? setDiscuss(false) : setAside(null))
   // /chat fills the content card edge to edge, as solar's chat fills its main area; /app/home is the same chat dressed as the home.
-  const full = path === "/" || ["/data-dictionary", "/audience", "/survey", "/lift", "/chat", "/inbox"].some((p) => path.startsWith(p))
+  const full = path === "/" || ["/data-dictionary", "/america-thinks", "/survey", "/lift", "/chat", "/inbox"].some((p) => path.startsWith(p))
   return (
     <PanelCtx.Provider value={panel}>
       <div className="flex min-h-dvh md:h-dvh md:overflow-hidden md:bg-slate-200/60 md:p-[18px]">

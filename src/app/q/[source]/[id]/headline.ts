@@ -1,4 +1,4 @@
-import type { SourceRow } from "../../../audience/audience-data"
+import type { SourceRow } from "../../../america-thinks/audience-data"
 import { bandOf, baseGeoOf, baseWave, fmtPct, seriesOf, type Band, type Point } from "../../../_wire/wire-data"
 
 // The headline's sentence rules, shared by the dossier's Headline and the
