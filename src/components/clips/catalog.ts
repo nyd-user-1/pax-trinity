@@ -60,7 +60,8 @@ const by = (id: string) => {
 // The Frame.io review cuts (2026-10-25): transcoded once to 720-width
 // faststart MP4 and served from S3 behind CloudFront (private bucket, OAC).
 // The originals stay in public/clips-media/, untracked, as the archive.
-const CLIPS_CDN = "https://d3tyjc2amjpyom.cloudfront.net"
+// NEXT_PUBLIC_CLIPS_CDN names the distribution per deploy (inlined at build); the old account's is the default.
+const CLIPS_CDN = process.env.NEXT_PUBLIC_CLIPS_CDN ?? "https://d3tyjc2amjpyom.cloudfront.net"
 
 // The partner channels' shorts (pulled 2026-10-25 through the Webshare fleet),
 // one manifest row per cut, files at <CDN>/<dir>/<id>.mp4.
