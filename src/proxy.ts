@@ -29,35 +29,12 @@ function alias(path: string, q: URLSearchParams): string | null {
     const c = q.get("c")
     return `/consensus?tab=${consensusTab}${c ? `&c=${encodeURIComponent(c)}` : ""}`
   }
-  if (path === "/patterns") return "/metrics?tab=patterns"
-  if (path === "/outliers") return "/metrics?tab=outliers"
-  if (["/feature-lift", "/ml", "/velocity-tracker", "/live-tracking", "/flow"].includes(path) || path.startsWith("/flow/")) return "/metrics"
-  if (path === "/evidence") {
-    const tab = q.get("tab")
-    return tab === "patterns" || tab === "outliers" ? `/metrics?tab=${tab}` : "/metrics"
-  }
-  if (path === "/scoring/method") {
-    const o = q.get("o")
-    return q.get("tab") === "research" ? `/metrics?tab=worth${o ? `&o=${encodeURIComponent(o)}` : ""}` : "/methodology"
-  }
-  if (path === "/tracking") {
-    const tab = q.get("tab")
-    if (tab === "outliers" || tab === "settled") return "/metrics?tab=outliers"
-    const out = new URLSearchParams()
-    if (tab === "complete") out.set("tab", "complete")
-    for (const k of ["s", "f", "v"]) {
-      const v = q.get(k)
-      if (v) out.set(k, v)
-    }
-    const qs = out.toString()
-    return `/metrics${qs ? `?${qs}` : ""}`
-  }
   return null
 }
 
 // Pages that send a signed-out reader to /signin. With no session and no refresh cookie the answer is
 // known before render, so the redirect happens here (each page still checks for itself).
-const GATED = ["/metrics", "/methodology", "/data", "/experiments", "/polling", "/dashboard", "/pipeline", "/evals", "/app/home", "/signup/welcome", "/lab", "/project-management", "/my-channels", "/graph", "/campaigns", "/build", "/reinforcement-learning", "/message-tests"]
+const GATED = ["/signup/welcome", "/message-tests"]
 const gated = (path: string) => GATED.some((g) => path === g || path.startsWith(`${g}/`))
 
 export async function proxy(req: NextRequest) {
