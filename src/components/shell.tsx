@@ -27,7 +27,9 @@ const DiscussionPanel = dynamic(() => import("@/components/discussion-panel").th
 // as a route, off the sidebar.
 // The pages trinity starts with; every other destination renders in place but goes nowhere
 // until its page exists (Brendan, 2026-10-24).
-const LIVE = new Set(["/", "/chat", "/consensus", "/consensus/survey", "/consensus/report", "/consensus/admin", "/clips", "/inbox", "/glossary", "/audience", "/changelog", "/signin", "/signup", "/erd", "/pipeline-2", "/message-tests"])
+// /erd is unpublished (Brendan, 2026-10-26): the page stands for a rewrite-or-drop
+// decision, reachable by URL alone.
+const LIVE = new Set(["/", "/chat", "/consensus", "/consensus/survey", "/consensus/report", "/consensus/admin", "/clips", "/inbox", "/glossary", "/audience", "/changelog", "/signin", "/signup", "/message-tests"])
 
 type NavLink = { href: string; label: string; icon: typeof House }
 type NavGroup = { label: string; icon: typeof House; children: NavLink[]; admin?: boolean }

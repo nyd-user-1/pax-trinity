@@ -301,7 +301,11 @@ export function SchemaCanvas() {
     <div className="relative flex min-h-[70dvh] min-w-0 flex-1 overflow-hidden bg-pax2-mist">
       <LitCtx.Provider value={lit}>
         <ReactFlowProvider>
-          <Canvas nodes={nodes} edges={edges} onNodesChange={onNodesChange} onPane={() => setFocus(null)} />
+          {/* An absolute frame gives ReactFlow a definite size: its height:100%
+              resolves to zero against a parent sized only by min-height. */}
+          <div className="absolute inset-0">
+            <Canvas nodes={nodes} edges={edges} onNodesChange={onNodesChange} onPane={() => setFocus(null)} />
+          </div>
         </ReactFlowProvider>
       </LitCtx.Provider>
       {moved.size > 0 && (
