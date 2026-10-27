@@ -254,6 +254,18 @@ the formula; the assignment's constraints are hard requirements:
 moving-day makes edits 1–2 to types.ts and follows 3; wireframes renders to
 them.
 
+5. `whatItShows` and `howToRead` become OPTIONAL on SubgroupDimension —
+   absent means the wave doesn't print them (Wave 2 prints neither for its
+   twelve breakdown dimensions; Wave 1 prints both for all twelve). The
+   renderer never invents the pair. Wave 2's page-level strip transcribes as
+   stories `breakdowns-levels`, `breakdowns-comparisons`,
+   `breakdowns-small-cells`, `breakdowns-description`; the media-trust cards
+   as `media-trust-self-selected`, `media-trust-within-group`,
+   `media-trust-not-targeting`. No empty-string sentinels, ever.
+6. Wave 1 has no printed "Marked vs placebo: X of Y" lines; its checksums
+   are the narrative counts ("five of six marked…") and pairing 1's
+   "significant in 29 of 36", which the transcription must reproduce.
+
 ## Rules (you may be context-cleared; this is everything)
 
 - Shared checkout, several windows on main: `git log -1` before every
