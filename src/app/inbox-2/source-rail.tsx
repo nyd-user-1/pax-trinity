@@ -28,7 +28,7 @@ export function SourceRail({
   return (
     <>
       <SidebarHeader className="flex-row items-center gap-2.5 p-4">
-        <p className="text-xl font-semibold">Audience</p>
+        <p className="text-xl font-semibold">Constructs</p>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
