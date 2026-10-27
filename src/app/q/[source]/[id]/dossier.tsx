@@ -465,7 +465,7 @@ function Related({ index, source, id, ownRows }: { index: IndexT; source: string
   if (!family || items.length < 2) return null
   return (
     <Card>
-      <CardLabel>Related constructs</CardLabel>
+      <CardLabel>Related</CardLabel>
       <ul className="divide-y text-sm">
         {items.map((it) => {
           const key = `${it.source}/${it.q}`
@@ -473,8 +473,9 @@ function Related({ index, source, id, ownRows }: { index: IndexT; source: string
           const val = vals[key]
           const name = (
             <>
-              <span className={cn(self ? "font-semibold" : "font-medium")}>{mnemonicOf(it.q)}</span>
-              {many && <span className="text-muted-foreground"> · {shortSource(it.source)}</span>}
+              {/* The source leads, the mnemonic rides muted after it (Brendan, 2026-10-27). */}
+              <span className={cn(self ? "font-semibold" : "font-medium")}>{many ? shortSource(it.source) : mnemonicOf(it.q)}</span>
+              {many && <span className="text-muted-foreground"> · {mnemonicOf(it.q)}</span>}
               <span className="ml-1.5 text-muted-foreground">{it.label}</span>
             </>
           )
