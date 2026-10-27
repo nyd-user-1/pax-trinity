@@ -105,6 +105,9 @@ const TITLES: [string, string][] = [
   ["/reinforcement-learning", "Reinforcement learning"],
   ["/campaigns", "Campaigns"],
   ["/message-tests", "Message tests"],
+  ["/q/", "Question"],
+  ["/constructs", "Constructs"],
+  ["/electorate", "Electorate"],
 ]
 
 // 420px: the width the discussion and take panels open at (Brendan, 2026-10-20).

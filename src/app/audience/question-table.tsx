@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import dynamic from "next/dynamic"
+import Link from "next/link"
 
 import { cn } from "@/lib/utils"
 import { PaneSearchRow, PaneTitleRow, RefreshButton, ViewToggle } from "@/components/bank/pane-bars"
@@ -102,7 +103,17 @@ export function QuestionTable({
   // The title row reads the question itself (Brendan, 2026-10-26) and the
   // chevrons changing the open question change it with them.
   const heading = normalizeWording(wording ?? title)
-  const refresh = <RefreshButton onRefresh={onRefresh} />
+  // The question's own page, the dossier, beside refresh at the title row's right.
+  const refresh = (
+    <>
+      {source && (
+        <Link href={`/q/${source.toLowerCase()}/${encodeURIComponent(metric)}`} className="shrink-0 text-xs font-medium text-pax2-light-blue hover:underline">
+          Open
+        </Link>
+      )}
+      <RefreshButton onRefresh={onRefresh} />
+    </>
+  )
 
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
