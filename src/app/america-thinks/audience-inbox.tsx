@@ -236,7 +236,7 @@ export function AudienceInbox() {
     setAbout(null)
   }
   const toggle = (set: React.Dispatch<React.SetStateAction<string[]>>, id: string) => set((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
-  // The open question's own box: a column in or out, the question staying open.
+  // A row's box: a column in or out, the list staying as it is.
   const pickColumn = (id: string) => setColumns((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : prev.length >= MAX_COLS ? prev : [...prev, id]))
   const toggleColumn = (id: string) => {
     if (columns.includes(id)) {
@@ -350,7 +350,7 @@ export function AudienceInbox() {
       span: c ? (c.first === c.last ? String(c.first) : `${c.first}–${c.last}`) : null,
       detail: c ? `${scale ? `${scale} · ` : ""}${c.waves} ${c.waves === 1 ? "wave" : "waves"}` : null,
       pinned: pinned.includes(id),
-      // The row's marks act on the same state as the open question's (the box stays put).
+      // The row's marks act in place (the box stays put); the open question's title row carries none.
       marks: {
         column: isColumn,
         atCap,
@@ -474,13 +474,6 @@ export function AudienceInbox() {
                 wording={wordingOf(tableMetric)}
                 about={about}
                 onPick={setAbout}
-                isColumn={columns.includes(tableMetric)}
-                atCap={!columns.includes(tableMetric) && columns.length >= MAX_COLS}
-                onColumn={() => pickColumn(tableMetric)}
-                pinned={pinned.includes(tableMetric)}
-                onPin={() => toggle(setPinned, tableMetric)}
-                important={important.includes(tableMetric)}
-                onImportant={() => toggle(setImportant, tableMetric)}
                 onBack={
                   split === "vertical"
                     ? undefined

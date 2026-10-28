@@ -7,7 +7,6 @@ import { ArrowLeft, Globe } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
 import { PaneTitleRow, ViewToggle } from "@/components/bank/pane-bars"
-import { Marks } from "@/components/bank/marks"
 
 // The Trend view loads only when clicked: the chart file carries the ECharts
 // modules, and this dynamic mount keeps that chunk off every route until then.
@@ -36,10 +35,10 @@ import { type About } from "./audience-pane"
 // estimate, margin, base, geo and weight, newest first with the total before
 // its subgroups. A clicked crosstab cell hands its row to the About panel.
 // One 52px bar, flush with the list's one (Brendan's DevTools pass,
-// 2026-10-28): the question — its column box, importance arrow and star
-// before it (pass 2) — with the view toggle at its right. With the reading
-// pane off, Back leads the bar; a picked value's About panel takes the
-// content area as a layer, the dossier's way.
+// 2026-10-28): the question, with the view toggle at its right; the box,
+// importance arrow and star stay on the list's rows (Brendan, 2026-10-28).
+// With the reading pane off, Back leads the bar; a picked value's About panel
+// takes the content area as a layer, the dossier's way.
 
 const VIEWS = [
   { value: "tidy", label: "Data" },
@@ -60,13 +59,6 @@ export function QuestionTable({
   wording,
   about,
   onPick,
-  isColumn,
-  atCap,
-  onColumn,
-  pinned,
-  onPin,
-  important,
-  onImportant,
   onBack,
   aboutLayer,
 }: {
@@ -83,14 +75,6 @@ export function QuestionTable({
   wording: string | null
   about: About | null
   onPick: (a: About) => void
-  /** The open question as a compare-grid column, the box before its title. */
-  isColumn: boolean
-  atCap: boolean
-  onColumn: () => void
-  pinned: boolean
-  onPin: () => void
-  important: boolean
-  onImportant: () => void
   /** Present when the list is hidden: the title row's Back. */
   onBack?: () => void
   /** The picked value's About panel, as the layer over the view. */
@@ -115,19 +99,12 @@ export function QuestionTable({
   // The title row reads the question itself (Brendan, 2026-10-26) and the
   // chevrons changing the open question change it with them.
   const heading = normalizeWording(wording ?? title)
-  // Before the title: Back where the list is hidden, then the question's box
-  // (a compare-grid column), Gmail's importance arrow and the star (pass 2,
-  // 2026-10-27).
-  const leading = (
-    <>
-      {onBack && (
-        <Button variant="ghost" size="icon-sm" aria-label="Back to the list" title="Back to the list" className="-ml-1.5 shrink-0" onClick={onBack}>
-          <ArrowLeft className="size-4" />
-        </Button>
-      )}
-      <Marks column={isColumn} atCap={atCap} onColumn={onColumn} important={important} onImportant={onImportant} pinned={pinned} onPin={onPin} />
-    </>
-  )
+  // Before the title: Back, where the list is hidden.
+  const leading = onBack ? (
+    <Button variant="ghost" size="icon-sm" aria-label="Back to the list" title="Back to the list" className="-ml-1.5 shrink-0" onClick={onBack}>
+      <ArrowLeft className="size-4" />
+    </Button>
+  ) : undefined
   // At the title row's right in every view. The globe needs the question's
   // source to find its dossier.
   const viewToggle = <ViewToggle views={source ? VIEWS : VIEWS.filter((v) => v.value !== "global")} value={view} onChange={setView} />
