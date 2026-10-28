@@ -2,11 +2,13 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { X } from "lucide-react"
+import { Blocks, ClipboardList, Columns3, Maximize2, PanelRight, Star, X } from "lucide-react"
 
 import { addToDraft } from "@/lib/consensus/draft"
 import { BankFrame, BankSplit } from "@/components/bank/bank-frame"
 import { CardList, type Card, type Split } from "@/components/bank/card-list"
+import { ImportantIcon } from "@/components/bank/marks"
+import { MenuFoot, MenuHeader, MenuRow, MenuSeparator } from "@/components/kebab-menu"
 
 import { AboutPanel, type About } from "./audience-pane"
 import { buildInfo, fetchQuestionRows, groupSources, mnemonicOf, normalizeWording, scaleOf, shortSource, topicOf, UNTAGGED, TOPIC_GROUPS, WEB_GRID, WORDING, type AudienceIndex, type MetricInfo, type QuestionSummary, type SourceRow } from "./audience-data"
@@ -227,11 +229,12 @@ export function AudienceInbox() {
   // 2026-10-26). A row's "Add as column" builds the compare grid, and brings
   // it up: the list folded beside it, the grid in the pane.
   // Opening one folds the list beside it, as it always has ("don't close the
-  // middle panel"); the split toggle then turns the list off and on.
-  const open = (id: string) => {
+  // middle panel"); the split toggle then turns the list off and on. The row
+  // menu's Open gives the question the screen instead.
+  const open = (id: string, s: Split = "vertical") => {
     setTableMetric(id)
     setMode("table")
-    setSplit("vertical")
+    setSplit(s)
     // A picked value belongs to the question it was picked on.
     setAbout(null)
   }
@@ -360,18 +363,37 @@ export function AudienceInbox() {
         pinned: pinned.includes(id),
         onPin: () => toggle(setPinned, id),
       },
-      actions: [
-        { label: isColumn ? "Remove column" : atCap ? "Four columns at most" : "Add as column", onSelect: () => toggleColumn(id), disabled: atCap },
-        { label: pinned.includes(id) ? "Unpin" : "Pin", onSelect: () => toggle(setPinned, id) },
-        {
-          label: "Add to blocks",
-          onSelect: () => {
-            setBlocks((prev) => (prev.includes(id) ? prev : [...prev, id]))
-            setBlocksOpen(true)
-          },
-        },
-        { label: "Add to survey", onSelect: () => addToSurvey(id) },
-      ],
+      // The house menu, as the sidebar's items wear it (kebab-menu.tsx): the
+      // question's mnemonic leads and copies, its topic and source at the foot.
+      // Favorite is the star's state, the one Pin was.
+      menu: (
+        <>
+          <MenuHeader text={mnemonicOf(id)} copy={mnemonicOf(id)} />
+          <MenuSeparator />
+          <MenuRow icon={<Maximize2 />} label="Open" onClick={() => open(id, "none")} />
+          <MenuRow icon={<PanelRight />} label="Open split view" onClick={() => open(id)} />
+          <MenuSeparator />
+          <MenuRow icon={<Star className={pinned.includes(id) ? "fill-amber-400 text-amber-400" : undefined} />} label={pinned.includes(id) ? "Unfavorite" : "Favorite"} onClick={() => toggle(setPinned, id)} />
+          <MenuRow
+            icon={<ImportantIcon className={important.includes(id) ? "fill-amber-400 text-amber-400" : "fill-transparent"} />}
+            label={important.includes(id) ? "Mark as not important" : "Mark as important"}
+            onClick={() => toggle(setImportant, id)}
+          />
+          <MenuSeparator />
+          <MenuRow icon={<Columns3 />} label={isColumn ? "Remove column" : atCap ? "Four columns at most" : "Add as column"} disabled={atCap} onClick={() => toggleColumn(id)} />
+          <MenuRow
+            icon={<Blocks />}
+            label="Add to blocks"
+            onClick={() => {
+              setBlocks((prev) => (prev.includes(id) ? prev : [...prev, id]))
+              setBlocksOpen(true)
+            }}
+          />
+          <MenuRow icon={<ClipboardList />} label="Add to survey" onClick={() => addToSurvey(id)} />
+          <MenuSeparator />
+          <MenuFoot title={topicChipOf(id) ?? openName} sub={srcOf(id) ?? undefined} />
+        </>
+      ),
     }
   }
 

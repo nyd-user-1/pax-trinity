@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@govblock/ui/components/ny4/dropdown-menu"
 import { ScrollArea } from "@govblock/ui/components/ny4/scroll-area"
+import { KebabMenu } from "@/components/kebab-menu"
 
 import { BankRail } from "./bank-frame"
 import { Marks, type MarkState } from "./marks"
@@ -27,8 +28,9 @@ import { SearchField } from "./pane-bars"
 // clamped at 68ch, then after Gmail's dash the snippet (or the detail) taking
 // what width is left; the chip; the span at the right edge in the inbox
 // date's weight. Folded beside an open item, the card:
-// the title, then the one chip and the span under it at a 16px gap. The
-// row's kebab takes the span's place on hover, Gmail's own swap. Two 52px
+// the title, then the one chip and the span under it at a 16px gap. On hover
+// the row's kebab takes the chip's and the span's place, Gmail's own swap; the
+// folded card's star stands beside it (Brendan, 2026-10-28). Two 52px
 // bars on top — the search, then the chevrons and the kebab — flush with the
 // pane's two beside them. The split lives in the kebab (No split, Vertical
 // split, the Agentic Inbox's own words), before the list's menu. Compact
@@ -37,8 +39,6 @@ import { SearchField } from "./pane-bars"
 // rail toggle too, the frame's header row being gone.
 
 export type Split = "none" | "vertical"
-
-export type CardAction = { label: string; onSelect: () => void; disabled?: boolean }
 
 export type Card = {
   /** The bold line: the question's wording, the metric's name. */
@@ -56,8 +56,8 @@ export type Card = {
   pinned?: boolean
   /** The three marks leading the one-line row; absent, the row goes without. */
   marks?: MarkState
-  /** The row kebab's items; none leaves the span alone. */
-  actions?: CardAction[]
+  /** The row kebab's menu, in the house menu's parts (kebab-menu.tsx); none leaves the span alone. */
+  menu?: React.ReactNode
 }
 
 /** Sixty rows to a read, sixty more on reaching the end — a bulk folder holds thousands. */
@@ -217,7 +217,11 @@ export function CardList({
                 {c.chip}
               </span>
             )
-            const end = <RowEnd span={c.span ?? null} actions={c.actions} strong={!stacked} />
+            const end = stacked ? (
+              <RowEnd span={c.span ?? null} menu={c.menu} star={c.marks && { on: c.marks.pinned, onToggle: c.marks.onPin }} />
+            ) : (
+              <RowEnd chip={chip} span={c.span ?? null} menu={c.menu} strong />
+            )
             const title = (
               <span className="font-semibold">
                 {c.pinned && <StarIcon aria-label="Pinned" className="mr-1.5 inline size-3.5 -translate-y-px fill-yellow-400 text-yellow-500" />}
@@ -259,7 +263,6 @@ export function CardList({
                       </span>
                       {after && <span className="min-w-0 flex-1 truncate text-muted-foreground">&nbsp;- {after}</span>}
                     </span>
-                    {chip}
                     {end}
                   </>
                 )}
@@ -273,36 +276,60 @@ export function CardList({
   )
 }
 
-/** The row's right edge: the span, and on hover the row's kebab in its place. */
-function RowEnd({ span, actions, strong = false }: { span: string | null; actions?: CardAction[]; strong?: boolean }) {
-  const [open, setOpen] = React.useState(false)
+/** On hover, focus, or with its menu open, the row's controls show and what they cover hides. */
+const COVERED = "group-hover/row:invisible group-has-focus-visible/row:invisible group-has-[[aria-expanded=true]]/row:invisible"
+const SHOWN = "opacity-0 group-hover/row:opacity-100 group-has-focus-visible/row:opacity-100 group-has-[[aria-expanded=true]]/row:opacity-100"
+/** The kebab, drawn as the ghost icon button it was. */
+const KEBAB =
+  "inline-flex size-7 shrink-0 items-center justify-center rounded-lg outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 aria-expanded:bg-muted aria-expanded:text-foreground"
+
+/** The row's right edge: the chip (one-line) and the span, and on hover the
+ *  row's kebab over both, the folded card's star beside it. */
+function RowEnd({
+  chip,
+  span,
+  menu,
+  star,
+  strong = false,
+}: {
+  chip?: React.ReactNode
+  span: string | null
+  menu?: React.ReactNode
+  star?: { on: boolean; onToggle: () => void }
+  strong?: boolean
+}) {
   // The one-line row's span in the /inbox thread list's unread date weight.
   const tone = strong ? "font-semibold" : "text-muted-foreground"
-  if (!actions?.length) return <span className={cn("shrink-0 text-xs tabular-nums", tone)}>{span}</span>
+  if (!menu)
+    return (
+      <>
+        {chip}
+        <span className={cn("shrink-0 text-xs tabular-nums", tone)}>{span}</span>
+      </>
+    )
   return (
-    <span className="relative flex min-w-7 shrink-0 items-center justify-end">
-      <span className={cn("text-xs tabular-nums group-hover/row:invisible group-has-focus-visible/row:invisible", tone, open && "invisible")}>{span}</span>
-      <DropdownMenu open={open} onOpenChange={setOpen}>
-        <DropdownMenuTrigger asChild>
+    <span className="relative flex min-w-7 shrink-0 items-center justify-end gap-3">
+      {chip && <span className={cn("flex", COVERED)}>{chip}</span>}
+      <span className={cn("text-xs tabular-nums", tone, COVERED)}>{span}</span>
+      <span className={cn("absolute top-1/2 right-0 flex -translate-y-1/2 items-center", SHOWN)}>
+        {star && (
           <Button
             variant="ghost"
             size="icon-sm"
-            aria-label="Actions"
-            onClick={(event) => event.stopPropagation()}
-            className={cn("absolute top-1/2 right-0 -translate-y-1/2 opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100", open && "opacity-100")}
+            aria-pressed={star.on}
+            aria-label={star.on ? "Unfavorite" : "Favorite"}
+            onClick={(event) => {
+              event.stopPropagation()
+              star.onToggle()
+            }}
           >
-            <EllipsisVerticalIcon className="size-4" />
+            <StarIcon className={cn("size-4", star.on && "fill-yellow-400 text-yellow-500")} />
           </Button>
-        </DropdownMenuTrigger>
-        {/* The menu portals out, but React bubbles its clicks to the row: stop them here. */}
-        <DropdownMenuContent align="end" className="w-max min-w-44" onClick={(event) => event.stopPropagation()}>
-          {actions.map((a) => (
-            <DropdownMenuItem key={a.label} disabled={a.disabled} onClick={a.onSelect}>
-              {a.label}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
+        )}
+        <KebabMenu label="Actions" width="w-56" trigger={<EllipsisVerticalIcon className="size-4" />} triggerClassName={KEBAB}>
+          {menu}
+        </KebabMenu>
+      </span>
     </span>
   )
 }
