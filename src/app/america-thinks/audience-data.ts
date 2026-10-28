@@ -331,3 +331,31 @@ export function buildInfo(rows: SourceRow[], geoLevel: Map<string, string>): Map
   }
   return m
 }
+
+/** A crosstab's answer options, at most: past it, the largest by the latest total. */
+export const MAX_BANNER_ROWS = 24
+
+/** One question's crosstab, read the way a pollster reads one: the answer
+ *  options down the side, the breakdowns across, and the latest row for any
+ *  cell, at the question's baseline geography unless a place is named. The
+ *  Crosstab view and the compare grid's Banner both read it. */
+export function crosstabOf(rows: SourceRow[], info: MetricInfo) {
+  const base = info.baseGeo
+  const top = rows.filter((r) => !r[5] && r[1] === base)
+  const latest = top.reduce<string | null>((b, r) => (!b || r[3] > b ? r[3] : b), null)
+  const latestYear = latest ? year(latest) : ""
+  let options: (string | null)[] = info.options.length ? info.options : [info.option]
+  const totalOf = (opt: string | null) => latestRow(top.filter((r) => (r[4] ?? null) === opt))
+  const capped = options.length > MAX_BANNER_ROWS
+  if (capped) options = [...options].sort((a, b) => (totalOf(b)?.[7] ?? -Infinity) - (totalOf(a)?.[7] ?? -Infinity)).slice(0, MAX_BANNER_ROWS)
+  const dims: string[] = []
+  for (const r of rows) if (r[5] && !dims.includes(r[5])) dims.push(r[5])
+  const banner = dims.map((d) => {
+    const values: string[] = []
+    for (const r of rows) if (r[5] === d && r[6] && !values.includes(r[6])) values.push(r[6])
+    return { dim: d, values }
+  })
+  const cell = (opt: string | null, dim: string | null, val: string | null, geo: string = base) =>
+    latestRow(rows.filter((r) => (r[4] ?? null) === opt && r[1] === geo && (dim ? r[5] === dim && r[6] === val : !r[5])))
+  return { base, latestYear, options, capped, banner, cell }
+}

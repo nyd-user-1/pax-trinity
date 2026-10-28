@@ -23,7 +23,7 @@ const Dossier = dynamic(() => import("../q/[source]/[id]/dossier").then((m) => m
   loading: () => <p className="p-6 text-sm text-muted-foreground">Reading the question…</p>,
 })
 
-import { dimLabel, latestRow, normalizeWording, num, value, year, type MetricInfo, type SourceRow } from "./audience-data"
+import { crosstabOf, dimLabel, latestRow, MAX_BANNER_ROWS, normalizeWording, num, value, year, type MetricInfo, type SourceRow } from "./audience-data"
 import { RowsView } from "./rows-view"
 import { type About } from "./audience-pane"
 
@@ -41,7 +41,6 @@ import { type About } from "./audience-pane"
 // pane off, Back leads the bar; a picked value's About panel takes the
 // content area as a layer, the dossier's way.
 
-const MAX_BANNER_ROWS = 24
 const VIEWS = [
   { value: "tidy", label: "Data" },
   { value: "crosstab", label: "Crosstab" },
@@ -100,23 +99,9 @@ export function QuestionTable({
   const [view, setView] = React.useState<View>("tidy")
 
   const tab = React.useMemo(() => {
-    const base = info.baseGeo
-    const top = rows.filter((r) => !r[5] && r[1] === base)
-    const latest = top.reduce<string | null>((b, r) => (!b || r[3] > b ? r[3] : b), null)
-    const latestYear = latest ? year(latest) : ""
-    let options: (string | null)[] = info.options.length ? info.options : [info.option]
-    const totalOf = (opt: string | null) => latestRow(top.filter((r) => (r[4] ?? null) === opt))
-    const capped = options.length > MAX_BANNER_ROWS
-    if (capped) options = [...options].sort((a, b) => (totalOf(b)?.[7] ?? -Infinity) - (totalOf(a)?.[7] ?? -Infinity)).slice(0, MAX_BANNER_ROWS)
-    const dims: string[] = []
-    for (const r of rows) if (r[5] && !dims.includes(r[5])) dims.push(r[5])
-    const banner = dims.map((d) => {
-      const values: string[] = []
-      for (const r of rows) if (r[5] === d && r[6] && !values.includes(r[6])) values.push(r[6])
-      return { dim: d, values }
-    })
-    const cell = (opt: string | null, dim: string | null, val: string | null) =>
-      latestRow(rows.filter((r) => (r[4] ?? null) === opt && r[1] === base && (dim ? r[5] === dim && r[6] === val : !r[5])))
+    // The crosstab itself, shared with the compare grid's Banner; the trend stays here.
+    const x = crosstabOf(rows, info)
+    const top = rows.filter((r) => !r[5] && r[1] === x.base)
     const years: string[] = []
     for (const r of top) {
       const y = year(r[3])
@@ -124,7 +109,7 @@ export function QuestionTable({
     }
     years.sort((a, b) => b.localeCompare(a))
     const trendCell = (opt: string | null, y: string) => latestRow(top.filter((r) => (r[4] ?? null) === opt && year(r[3]) === y))
-    return { base, latestYear, options, capped, banner, cell, years, trendCell }
+    return { ...x, years, trendCell }
   }, [rows, info])
 
   // The title row reads the question itself (Brendan, 2026-10-26) and the
@@ -286,8 +271,8 @@ function XCell({ r, metric, segment, first, about, onPick }: { r: SourceRow | nu
   )
 }
 
-/** The base row: each column's unweighted n, and its year when it is not the headline wave. */
-function BaseCell({ r, latestYear, first }: { r: SourceRow | null; latestYear: string; first?: boolean }) {
+/** The base row: each column's unweighted n, and its year when it is not the headline wave. The compare grid's Banner prints it too. */
+export function BaseCell({ r, latestYear, first }: { r: SourceRow | null; latestYear: string; first?: boolean }) {
   if (!r) return <td className={cn("px-2.5 py-2 text-xs text-muted-foreground/40", first && "border-l")}>—</td>
   const y = year(r[3])
   return (
