@@ -14,13 +14,19 @@ import { TooltipProvider } from "@govblock/ui/components/ny4/tooltip"
 // rail full height on the left, the header from its right edge with the
 // rail toggle, the crumb and trinity's header search (an icon until picked,
 // then the bar's width), and the body below. /audience, /lift and /survey
-// stand in it.
+// stand in it. Bare (America Thinks, Brendan's DevTools pass of 2026-10-28),
+// the header row goes and the list's kebab carries the rail toggle, through
+// BankRail.
+
+/** The rail's state, for a control below the frame to show and hide it. */
+export const BankRail = React.createContext<{ open: boolean; toggle: () => void } | null>(null)
 
 export function BankFrame({
   rail,
   crumb,
   search,
   overlay,
+  bare = false,
   children,
 }: {
   rail: React.ReactNode
@@ -29,9 +35,12 @@ export function BankFrame({
   search: { query: string; onQuery: (q: string) => void; placeholder: string }
   /** Floats over the frame's corner, the survey-draft bar's place. */
   overlay?: React.ReactNode
+  /** No header row: no rail toggle, no crumb, no header search. */
+  bare?: boolean
   children: React.ReactNode
 }) {
   const [railOpen, setRailOpen] = React.useState(true)
+  const railCtl = React.useMemo(() => ({ open: railOpen, toggle: () => setRailOpen((v) => !v) }), [railOpen])
   const [searching, setSearching] = React.useState(false)
   const close = () => {
     search.onQuery("")
@@ -51,38 +60,42 @@ export function BankFrame({
           {railOpen && <ResizableHandle withHandle />}
           <ResizablePanel className="min-w-0">
             <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background">
-              <header className="relative z-10 flex h-(--header-height) shrink-0 items-center gap-2 border-b">
-                <div className="flex w-full min-w-0 items-center gap-1 px-4 lg:gap-2 lg:px-6">
-                  <Button variant="ghost" size="icon-sm" aria-label="Toggle sidebar" className="-ml-1 size-7" onClick={() => setRailOpen((v) => !v)}>
-                    <PanelLeftIcon className="size-4" />
-                  </Button>
-                  <Separator orientation="vertical" className="mx-2 data-[orientation=vertical]:h-4" />
-                  <div className="flex min-w-0 flex-1 items-center gap-1 text-base font-medium">
-                    <PathBar crumbs={[{ label: crumb }]} folder onGo={() => {}} />
-                    {searching ? (
-                      <div className="ml-2 flex min-w-0 flex-1 items-center gap-2 rounded-full bg-muted px-3 py-1.5">
-                        <Search className="size-4 shrink-0 text-muted-foreground" />
-                        <input
-                          autoFocus
-                          value={search.query}
-                          onChange={(event) => search.onQuery(event.target.value)}
-                          onKeyDown={(event) => event.key === "Escape" && close()}
-                          placeholder={search.placeholder}
-                          className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-                        />
-                        <button type="button" aria-label="Close the search" className="shrink-0 text-muted-foreground hover:text-foreground" onClick={close}>
-                          <X className="size-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <Button variant="ghost" size="sm" aria-label={search.placeholder} className="ml-1" onClick={() => setSearching(true)}>
-                        <Search className="size-4" />
-                      </Button>
-                    )}
+              {!bare && (
+                <header className="relative z-10 flex h-(--header-height) shrink-0 items-center gap-2 border-b">
+                  <div className="flex w-full min-w-0 items-center gap-1 px-4 lg:gap-2 lg:px-6">
+                    <Button variant="ghost" size="icon-sm" aria-label="Toggle sidebar" className="-ml-1 size-7" onClick={() => setRailOpen((v) => !v)}>
+                      <PanelLeftIcon className="size-4" />
+                    </Button>
+                    <Separator orientation="vertical" className="mx-2 data-[orientation=vertical]:h-4" />
+                    <div className="flex min-w-0 flex-1 items-center gap-1 text-base font-medium">
+                      <PathBar crumbs={[{ label: crumb }]} folder onGo={() => {}} />
+                      {searching ? (
+                        <div className="ml-2 flex min-w-0 flex-1 items-center gap-2 rounded-full bg-muted px-3 py-1.5">
+                          <Search className="size-4 shrink-0 text-muted-foreground" />
+                          <input
+                            autoFocus
+                            value={search.query}
+                            onChange={(event) => search.onQuery(event.target.value)}
+                            onKeyDown={(event) => event.key === "Escape" && close()}
+                            placeholder={search.placeholder}
+                            className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                          />
+                          <button type="button" aria-label="Close the search" className="shrink-0 text-muted-foreground hover:text-foreground" onClick={close}>
+                            <X className="size-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <Button variant="ghost" size="sm" aria-label={search.placeholder} className="ml-1" onClick={() => setSearching(true)}>
+                          <Search className="size-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </header>
-              <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
+                </header>
+              )}
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                <BankRail.Provider value={railCtl}>{children}</BankRail.Provider>
+              </div>
             </div>
           </ResizablePanel>
         </ResizablePanelGroup>

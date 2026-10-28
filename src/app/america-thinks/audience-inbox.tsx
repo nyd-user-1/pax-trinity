@@ -7,7 +7,6 @@ import { X } from "lucide-react"
 import { addToDraft } from "@/lib/consensus/draft"
 import { BankFrame, BankSplit } from "@/components/bank/bank-frame"
 import { CardList, type Card, type Split } from "@/components/bank/card-list"
-import { DropdownMenuRadioGroup, DropdownMenuRadioItem } from "@govblock/ui/components/ny4/dropdown-menu"
 
 import { AboutPanel, type About } from "./audience-pane"
 import { buildInfo, fetchQuestionRows, groupSources, mnemonicOf, normalizeWording, scaleOf, shortSource, topicOf, UNTAGGED, TOPIC_GROUPS, WEB_GRID, WORDING, type AudienceIndex, type MetricInfo, type QuestionSummary, type SourceRow } from "./audience-data"
@@ -24,7 +23,6 @@ import { SegmentGrid } from "./segment-grid"
 // presto — its table takes the pane — and a cell hands its row to the About
 // panel. ?source=<KEY> or ?topic=<name> opens on that folder or topic.
 
-type ListTab = "all" | "pinned"
 /** The compare grid's columns, at most. */
 const MAX_COLS = 4
 
@@ -52,7 +50,6 @@ export function AudienceInbox() {
   const [rowsError, setRowsError] = React.useState<string | null>(null)
   const [query, setQuery] = React.useState("")
   const [split, setSplit] = React.useState<Split>("none")
-  const [tab, setTab] = React.useState<ListTab>("all")
   // The compare grid's columns, four at most, added from a row's kebab.
   const [columns, setColumns] = React.useState<string[]>([])
   const [pinned, setPinned] = React.useState<string[]>([])
@@ -170,7 +167,6 @@ export function AudienceInbox() {
     setRowsError(null)
     setColumns([])
     setAbout(null)
-    setTab("all")
     setTableMetric(null)
   }, [source, topic])
 
@@ -266,14 +262,12 @@ export function AudienceInbox() {
     [rows, summaries, label, wordingOf]
   )
 
-  // The list's reading order: the search and the pinned-only tab, pins first.
+  // The list's reading order: the search, pins first.
   const ordered = React.useMemo(() => {
     const q = query.trim().toLowerCase()
-    const shown = metricIds
-      .filter((id) => !q || label(id).toLowerCase().includes(q) || id.toLowerCase().includes(q) || (wordingOf(id) ?? "").toLowerCase().includes(q))
-      .filter((id) => tab === "all" || pinned.includes(id))
+    const shown = metricIds.filter((id) => !q || label(id).toLowerCase().includes(q) || id.toLowerCase().includes(q) || (wordingOf(id) ?? "").toLowerCase().includes(q))
     return [...shown.filter((id) => pinned.includes(id)), ...shown.filter((id) => !pinned.includes(id))]
-  }, [metricIds, query, tab, pinned, label, wordingOf])
+  }, [metricIds, query, pinned, label, wordingOf])
 
   // A question's snippet: the dossier's headline without its "On {subject},"
   // lead ("62.8% of Americans answer fairly well. That is up from 52.1% in
@@ -399,18 +393,13 @@ export function AudienceInbox() {
       query={query}
       onQuery={setQuery}
       placeholder="Search wording or label…"
-      menu={
-        <DropdownMenuRadioGroup value={tab} onValueChange={(value) => setTab(value as ListTab)}>
-          <DropdownMenuRadioItem value="all">All questions</DropdownMenuRadioItem>
-          <DropdownMenuRadioItem value="pinned">Pinned only</DropdownMenuRadioItem>
-        </DropdownMenuRadioGroup>
-      }
+      compact
       loading={!index && !error}
       error={error}
       empty={
         query.trim()
           ? `Nothing matching “${query.trim()}”.`
-          : tab === "pinned" || topic === FAVORITES
+          : topic === FAVORITES
             ? "Nothing pinned."
             : topic === IMPORTANT
               ? "Nothing marked important."
@@ -466,10 +455,10 @@ export function AudienceInbox() {
   )
 
   return (
-    <BankFrame rail={railNode} crumb="America Thinks" search={{ query, onQuery: setQuery, placeholder: "Search questions" }} overlay={drafting}>
+    <BankFrame rail={railNode} crumb="America Thinks" search={{ query, onQuery: setQuery, placeholder: "Search questions" }} overlay={drafting} bare>
       {mode === "table" && tableMetric ? (
         // The reading pane off (split none), the question has the screen and
-        // the search row leads with Back; on, the list stands folded beside it.
+        // the title row leads with Back; on, the list stands folded beside it.
         <BankSplit
           list={split === "vertical" ? listFor("vertical") : undefined}
           pane={
@@ -485,8 +474,6 @@ export function AudienceInbox() {
                 wording={wordingOf(tableMetric)}
                 about={about}
                 onPick={setAbout}
-                query={query}
-                onQuery={setQuery}
                 isColumn={columns.includes(tableMetric)}
                 atCap={!columns.includes(tableMetric) && columns.length >= MAX_COLS}
                 onColumn={() => pickColumn(tableMetric)}

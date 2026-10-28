@@ -2,10 +2,11 @@
 
 import * as React from "react"
 import dynamic from "next/dynamic"
-import { Globe } from "lucide-react"
+import { ArrowLeft, Globe } from "lucide-react"
 
 import { cn } from "@/lib/utils"
-import { PaneSearchRow, PaneTitleRow, ViewToggle } from "@/components/bank/pane-bars"
+import { Button } from "@govblock/ui/components/nova/button"
+import { PaneTitleRow, ViewToggle } from "@/components/bank/pane-bars"
 import { Marks } from "@/components/bank/marks"
 
 // The Trend view loads only when clicked: the chart file carries the ECharts
@@ -34,11 +35,11 @@ import { type About } from "./audience-pane"
 // mounts the shared Rows view (Brendan, 2026-10-26): wave, segment, band,
 // estimate, margin, base, geo and weight, newest first with the total before
 // its subgroups. A clicked crosstab cell hands its row to the About panel.
-// Two 52px bars, flush with the list's two (Brendan's dev-tool pass,
-// 2026-10-27): the search beside the toggle, then the question — its column
-// box, importance arrow and star before it (pass 2), Open at its right. With
-// the reading pane off the search row leads with Back; a picked value's About
-// panel takes the content area as a layer, the dossier's way.
+// One 52px bar, flush with the list's one (Brendan's DevTools pass,
+// 2026-10-28): the question — its column box, importance arrow and star
+// before it (pass 2) — with the view toggle at its right. With the reading
+// pane off, Back leads the bar; a picked value's About panel takes the
+// content area as a layer, the dossier's way.
 
 const MAX_BANNER_ROWS = 24
 const VIEWS = [
@@ -60,8 +61,6 @@ export function QuestionTable({
   wording,
   about,
   onPick,
-  query,
-  onQuery,
   isColumn,
   atCap,
   onColumn,
@@ -85,9 +84,6 @@ export function QuestionTable({
   wording: string | null
   about: About | null
   onPick: (a: About) => void
-  /** The list's search, which the pane's search row carries too. */
-  query: string
-  onQuery: (q: string) => void
   /** The open question as a compare-grid column, the box before its title. */
   isColumn: boolean
   atCap: boolean
@@ -96,7 +92,7 @@ export function QuestionTable({
   onPin: () => void
   important: boolean
   onImportant: () => void
-  /** Present when the list is hidden: the search row's Back. */
+  /** Present when the list is hidden: the title row's Back. */
   onBack?: () => void
   /** The picked value's About panel, as the layer over the view. */
   aboutLayer?: React.ReactNode
@@ -134,32 +130,48 @@ export function QuestionTable({
   // The title row reads the question itself (Brendan, 2026-10-26) and the
   // chevrons changing the open question change it with them.
   const heading = normalizeWording(wording ?? title)
-  // Before the title: the question's box (a compare-grid column), Gmail's
-  // importance arrow and the star (pass 2, 2026-10-27).
-  const leading = <Marks column={isColumn} atCap={atCap} onColumn={onColumn} important={important} onImportant={onImportant} pinned={pinned} onPin={onPin} />
+  // Before the title: Back where the list is hidden, then the question's box
+  // (a compare-grid column), Gmail's importance arrow and the star (pass 2,
+  // 2026-10-27).
+  const leading = (
+    <>
+      {onBack && (
+        <Button variant="ghost" size="icon-sm" aria-label="Back to the list" title="Back to the list" className="-ml-1.5 shrink-0" onClick={onBack}>
+          <ArrowLeft className="size-4" />
+        </Button>
+      )}
+      <Marks column={isColumn} atCap={atCap} onColumn={onColumn} important={important} onImportant={onImportant} pinned={pinned} onPin={onPin} />
+    </>
+  )
+  // At the title row's right in every view. The globe needs the question's
+  // source to find its dossier.
+  const viewToggle = <ViewToggle views={source ? VIEWS : VIEWS.filter((v) => v.value !== "global")} value={view} onChange={setView} />
+
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
-      <PaneSearchRow query={query} onQuery={onQuery} placeholder="Search wording or label…" onBack={onBack}>
-        {/* The globe needs the question's source to find its dossier. */}
-        <ViewToggle views={source ? VIEWS : VIEWS.filter((v) => v.value !== "global")} value={view} onChange={setView} />
-      </PaneSearchRow>
       {aboutLayer ? (
         <>
-          <PaneTitleRow title={heading} leading={leading} />
+          <PaneTitleRow title={heading} leading={leading}>
+            {viewToggle}
+          </PaneTitleRow>
           {aboutLayer}
         </>
       ) : view === "global" && source ? (
         <>
-          <PaneTitleRow title={heading} leading={leading} />
+          <PaneTitleRow title={heading} leading={leading}>
+            {viewToggle}
+          </PaneTitleRow>
           <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
             <Dossier source={source.toLowerCase()} id={metric} embedded />
           </div>
         </>
       ) : view === "tidy" ? (
-        <RowsView rows={rows} id={metric} source={source} header={heading} leading={leading} about={about} onPick={onPick} />
+        <RowsView rows={rows} id={metric} source={source} header={heading} leading={leading} trailing={viewToggle} about={about} onPick={onPick} />
       ) : (
         <>
-      <PaneTitleRow title={heading} leading={leading} />
+      <PaneTitleRow title={heading} leading={leading}>
+        {viewToggle}
+      </PaneTitleRow>
       {/* Native scroll, not the ScrollArea primitive: radix's viewport sizes
           itself to the banner's intrinsic width, which blew the pane out
           sideways and swallowed the vertical scroll with it. */}

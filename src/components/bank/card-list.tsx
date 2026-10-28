@@ -1,14 +1,22 @@
 "use client"
 
 import * as React from "react"
-import { ChevronLeftIcon, ChevronRightIcon, EllipsisVerticalIcon, PanelRightIcon, RowsIcon, StarIcon } from "lucide-react"
+import { ChevronLeftIcon, ChevronRightIcon, EllipsisVerticalIcon, Search, StarIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@govblock/ui/components/ny4/dropdown-menu"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@govblock/ui/components/ny4/dropdown-menu"
 import { ScrollArea } from "@govblock/ui/components/ny4/scroll-area"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/ny4/tooltip"
 
+import { BankRail } from "./bank-frame"
 import { Marks, type MarkState } from "./marks"
 import { SearchField } from "./pane-bars"
 
@@ -21,8 +29,12 @@ import { SearchField } from "./pane-bars"
 // date's weight. Folded beside an open item, the card:
 // the title, then the one chip and the span under it at a 16px gap. The
 // row's kebab takes the span's place on hover, Gmail's own swap. Two 52px
-// bars on top — the search, then the split toggle, the chevrons and the
-// list's menu — flush with the pane's two beside them.
+// bars on top — the search, then the chevrons and the kebab — flush with the
+// pane's two beside them. The split lives in the kebab (No split, Vertical
+// split, the Agentic Inbox's own words), before the list's menu. Compact
+// (America Thinks, Brendan's DevTools pass of 2026-10-28), one bar: the search
+// an icon until picked, then the chevrons and the kebab, which carries the
+// rail toggle too, the frame's header row being gone.
 
 export type Split = "none" | "vertical"
 
@@ -51,15 +63,6 @@ export type Card = {
 /** Sixty rows to a read, sixty more on reaching the end — a bulk folder holds thousands. */
 const PER_READ = 60
 
-function Tip({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>{children}</TooltipTrigger>
-      <TooltipContent>{label}</TooltipContent>
-    </Tooltip>
-  )
-}
-
 export function CardList({
   ids,
   card,
@@ -72,6 +75,7 @@ export function CardList({
   onQuery,
   placeholder,
   menu,
+  compact = false,
   loading,
   error,
   empty,
@@ -84,13 +88,15 @@ export function CardList({
   /** Told the ids the list renders (its window), as the window changes — memoize it. */
   onVisible?: (ids: string[]) => void
   split: Split
-  /** The split toggle; absent where the list always folds beside an open item. */
+  /** The kebab's split choice; absent where the list always folds beside an open item. */
   onSplit?: (split: Split) => void
   query: string
   onQuery: (q: string) => void
   placeholder: string
-  /** The toolbar kebab's contents; absent, no kebab. */
+  /** The toolbar kebab's own items, after the split's. */
   menu?: React.ReactNode
+  /** One bar: the search an icon until picked, the rail toggle in the kebab. */
+  compact?: boolean
   loading: boolean
   error: string | null
   /** What an empty list says. */
@@ -123,40 +129,80 @@ export function CardList({
   const prevId = at > 0 ? ids[at - 1] : null
   const nextId = at === -1 ? (ids[0] ?? null) : at < ids.length - 1 ? ids[at + 1] : null
 
+  // The compact bar's search: an icon until picked, closing back to it.
+  const [searching, setSearching] = React.useState(false)
+  const closeSearch = () => {
+    onQuery("")
+    setSearching(false)
+  }
+  // The frame's rail toggle, carried here where the frame has no header row.
+  const rail = React.useContext(BankRail)
+  const railCtl = compact ? rail : null
+
+  const tools = (
+    <div className="ml-auto flex items-center gap-1">
+      <Button variant="ghost" size="icon-sm" aria-label="Previous" disabled={!prevId} onClick={() => prevId && onOpen(prevId)}>
+        <ChevronLeftIcon className="size-4" />
+      </Button>
+      <Button variant="ghost" size="icon-sm" aria-label="Next" disabled={!nextId} onClick={() => nextId && onOpen(nextId)}>
+        <ChevronRightIcon className="size-4" />
+      </Button>
+      {(onSplit || railCtl || menu) && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon-sm" aria-label="More">
+              <EllipsisVerticalIcon className="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-max min-w-48">
+            {onSplit && (
+              <DropdownMenuRadioGroup value={split} onValueChange={(v) => onSplit(v as Split)}>
+                <DropdownMenuRadioItem value="none">No split</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="vertical">Vertical split</DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            )}
+            {railCtl && (
+              <>
+                {onSplit && <DropdownMenuSeparator />}
+                <DropdownMenuItem onClick={railCtl.toggle}>{railCtl.open ? "Hide sidebar" : "Show sidebar"}</DropdownMenuItem>
+              </>
+            )}
+            {menu && (
+              <>
+                {(onSplit || railCtl) && <DropdownMenuSeparator />}
+                {menu}
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+    </div>
+  )
+
   return (
     <div ref={rootRef} className="flex h-full min-h-0 flex-col">
-      <div className="flex h-[52px] shrink-0 items-center border-b px-3">
-        <SearchField query={query} onQuery={onQuery} placeholder={placeholder} />
-      </div>
-      <div className="flex h-[52px] shrink-0 items-center gap-1 border-b px-3">
-        {onSplit && (
-          <Tip label={stacked ? "Turn off the vertical split" : "Vertical split"}>
-            <Button variant="ghost" size="icon-sm" aria-label="Toggle vertical split" aria-pressed={stacked} onClick={() => onSplit(stacked ? "none" : "vertical")}>
-              {stacked ? <PanelRightIcon className="size-4" /> : <RowsIcon className="size-4" />}
+      {compact ? (
+        <div className="flex h-[52px] shrink-0 items-center gap-1 border-b px-3">
+          {searching || query ? (
+            <div className="min-w-0 flex-1">
+              {/* Focused when picked from its icon, not when the rail's search fills it. */}
+              <SearchField query={query} onQuery={onQuery} placeholder={placeholder} autoFocus={searching} onClose={closeSearch} />
+            </div>
+          ) : (
+            <Button variant="ghost" size="icon-sm" aria-label={placeholder} onClick={() => setSearching(true)}>
+              <Search className="size-4" />
             </Button>
-          </Tip>
-        )}
-        <div className="ml-auto flex items-center gap-1">
-          <Button variant="ghost" size="icon-sm" aria-label="Previous" disabled={!prevId} onClick={() => prevId && onOpen(prevId)}>
-            <ChevronLeftIcon className="size-4" />
-          </Button>
-          <Button variant="ghost" size="icon-sm" aria-label="Next" disabled={!nextId} onClick={() => nextId && onOpen(nextId)}>
-            <ChevronRightIcon className="size-4" />
-          </Button>
-          {menu && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon-sm" aria-label="More">
-                  <EllipsisVerticalIcon className="size-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-max min-w-48">
-                {menu}
-              </DropdownMenuContent>
-            </DropdownMenu>
           )}
+          {tools}
         </div>
-      </div>
+      ) : (
+        <>
+          <div className="flex h-[52px] shrink-0 items-center border-b px-3">
+            <SearchField query={query} onQuery={onQuery} placeholder={placeholder} />
+          </div>
+          <div className="flex h-[52px] shrink-0 items-center gap-1 border-b px-3">{tools}</div>
+        </>
+      )}
 
       <ScrollArea className="min-h-0 flex-1">
         {error && <p className="p-6 text-center text-sm text-pax2-red">The data did not load: {error}</p>}

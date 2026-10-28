@@ -6,25 +6,48 @@ import { ArrowLeft, RefreshCwIcon, Search, X, type LucideIcon } from "lucide-rea
 import { cn } from "@/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
 
-// The pane's two 52px bars, flush with the list's two beside them (Brendan's
-// dev-tool pass, 2026-10-27): the search row with the view toggle at its
-// right, then the title row — the open item, its controls at the right.
+// The pane's two 52px bars on /lift and /survey, flush with the list's two
+// beside them (Brendan's dev-tool pass, 2026-10-27): the search row with the
+// view toggle at its right, then the title row — the open item, its controls
+// at the right. America Thinks' pane has one bar (Brendan's DevTools pass,
+// 2026-10-28): the title row, with the view toggle at its right.
 
-/** The bordered search box the list's search row and the pane's both carry. */
-export function SearchField({ query, onQuery, placeholder }: { query: string; onQuery: (q: string) => void; placeholder: string }) {
+/** The bordered search box the list's search row and the pane's both carry.
+ *  With `onClose` it closes back to its icon: Escape and the X close it. */
+export function SearchField({
+  query,
+  onQuery,
+  placeholder,
+  autoFocus,
+  onClose,
+}: {
+  query: string
+  onQuery: (q: string) => void
+  placeholder: string
+  autoFocus?: boolean
+  onClose?: () => void
+}) {
   return (
     <div className="flex w-full min-w-0 items-center gap-2 rounded-lg border px-3 py-1.5">
       <Search className="size-4 shrink-0 text-muted-foreground" />
       <input
+        autoFocus={onClose ? autoFocus : undefined}
         value={query}
         onChange={(event) => onQuery(event.target.value)}
+        onKeyDown={onClose ? (event) => event.key === "Escape" && onClose() : undefined}
         placeholder={placeholder}
         className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
       />
-      {query && (
-        <button type="button" aria-label="Clear the search" onClick={() => onQuery("")} className="shrink-0 text-muted-foreground hover:text-foreground">
+      {onClose ? (
+        <button type="button" aria-label="Close the search" onClick={onClose} className="shrink-0 text-muted-foreground hover:text-foreground">
           <X className="size-4" />
         </button>
+      ) : (
+        query && (
+          <button type="button" aria-label="Clear the search" onClick={() => onQuery("")} className="shrink-0 text-muted-foreground hover:text-foreground">
+            <X className="size-4" />
+          </button>
+        )
       )}
     </div>
   )
