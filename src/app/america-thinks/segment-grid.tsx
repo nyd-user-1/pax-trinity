@@ -146,7 +146,7 @@ export function SegmentGrid({
                       <tr key={b.opt} className={rowDress(about != null && b.cells.includes(about.r))}>
                         <td className="w-[150px] border-b px-2.5 py-2 text-[13px]">{b.opt}</td>
                         {grid.cols.map((c, i) => (
-                          <BandCell key={c.id} r={b.cells[i]} c={c} max={grid.bandMax[i]} segment={b.opt} about={about} onPick={onPick} />
+                          <BandCell key={c.id} r={b.cells[i]} c={c} max={grid.bandMax[i]} segment={b.opt} onPick={onPick} />
                         ))}
                       </tr>
                     ))}
@@ -165,7 +165,7 @@ export function SegmentGrid({
                     <tr key={g} className={rowDress(about != null && cells.includes(about.r))}>
                       <td className="w-[150px] border-b px-2.5 py-2 text-[13px]">{place(g)}</td>
                       {grid.cols.map((c, i) => (
-                        <Cell key={c.id} r={cells[i]} c={c} segment={place(g)} about={about} onPick={onPick} />
+                        <Cell key={c.id} r={cells[i]} c={c} segment={place(g)} onPick={onPick} />
                       ))}
                     </tr>
                   )
@@ -183,7 +183,7 @@ export function SegmentGrid({
                         <tr key={v} className={rowDress(about != null && cells.includes(about.r))}>
                           <td className="w-[150px] border-b px-2.5 py-2 text-[13px]">{v}</td>
                           {grid.cols.map((c, i) => (
-                            <Cell key={c.id} r={cells[i]} c={c} segment={v} about={about} onPick={onPick} />
+                            <Cell key={c.id} r={cells[i]} c={c} segment={v} onPick={onPick} />
                           ))}
                         </tr>
                       )
@@ -201,19 +201,18 @@ export function SegmentGrid({
   )
 }
 
-const frameOf = (sel: boolean) => cn("flex w-full items-center gap-1.5 rounded-[3px] text-left tabular-nums", sel && "outline-2 outline-offset-2 outline-pax2-light-blue")
+const frame = "flex w-full items-center gap-1.5 rounded-[3px] text-left tabular-nums focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pax2-light-blue"
 
-/** A data row's dress (Brendan, 2026-10-27): the list rows' hover, and the
- *  picked cell's whole row on the muted ground while the panel holds it. */
-const rowDress = (sel: boolean) => cn("transition-colors hover:bg-accent/60", sel && "bg-muted")
+/** A data row's dress (Brendan, 2026-10-28): the list rows' hover and selected state, Gmail's lift included, as rows-view.tsx's rows wear it. The picked cell's whole row holds the selected state while the About panel holds it. */
+const rowDress = (sel: boolean) => cn("transition-[background-color,box-shadow] hover:bg-accent/60 hover:shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]", sel && "bg-muted shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]")
 
 /** A Bands cell: the band's value with a level bar against the column's largest. */
-function BandCell({ r, c, max, segment, about, onPick }: { r: SourceRow | null; c: MetricInfo; max: number; segment: string; about: About | null; onPick: (a: About) => void }) {
+function BandCell({ r, c, max, segment, onPick }: { r: SourceRow | null; c: MetricInfo; max: number; segment: string; onPick: (a: About) => void }) {
   if (!r) return <td className="border-b px-2.5 py-2 text-xs text-muted-foreground/40">—</td>
   if (r[8] === "lift_pp")
     return (
       <td className="border-b px-2.5 py-2">
-        <button type="button" onClick={() => onPick({ r, metric: c.id, segment })} className={frameOf(about?.r === r)}>
+        <button type="button" onClick={() => onPick({ r, metric: c.id, segment })} className={frame}>
           <Pennant delta={r[7]} moe={r[9]} />
         </button>
       </td>
@@ -221,7 +220,7 @@ function BandCell({ r, c, max, segment, about, onPick }: { r: SourceRow | null; 
   const w = max > 0 ? Math.max(3, (Math.abs(r[7]) / max) * 110) : 3
   return (
     <td className="border-b px-2.5 py-2">
-      <button type="button" onClick={() => onPick({ r, metric: c.id, segment })} className={frameOf(about?.r === r)}>
+      <button type="button" onClick={() => onPick({ r, metric: c.id, segment })} className={frame}>
         <span aria-hidden className="h-[13px] shrink-0 rounded-[2px] bg-pax2-light-blue/40" style={{ width: w }} />
         <span className="text-[13px] font-semibold">{r[8] === "count" ? num(r[7], 0) : `${num(r[7])}%`}</span>
       </button>
@@ -230,7 +229,7 @@ function BandCell({ r, c, max, segment, about, onPick }: { r: SourceRow | null; 
 }
 
 /** A value cell: a count prints, a baseline anchors, everything else is a pennant against it. */
-function Cell({ r, c, segment, about, onPick }: { r: SourceRow | null; c: MetricInfo; segment: string; about: About | null; onPick: (a: About) => void }) {
+function Cell({ r, c, segment, onPick }: { r: SourceRow | null; c: MetricInfo; segment: string; onPick: (a: About) => void }) {
   if (!r) return <td className="border-b px-2.5 py-2 text-xs text-muted-foreground/40">—</td>
   let body: React.ReactNode
   if (r[8] === "count") body = <span className="text-[13px] font-semibold">{num(r[7], 0)}</span>
@@ -252,7 +251,7 @@ function Cell({ r, c, segment, about, onPick }: { r: SourceRow | null; c: Metric
     )
   return (
     <td className="border-b px-2.5 py-2">
-      <button type="button" onClick={() => onPick({ r, metric: c.id, segment })} className={frameOf(about?.r === r)}>
+      <button type="button" onClick={() => onPick({ r, metric: c.id, segment })} className={frame}>
         {body}
       </button>
     </td>
