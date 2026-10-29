@@ -4,10 +4,11 @@ import * as React from "react"
 import { ChartColumn, ChevronDown, CircleHelp, Loader2, X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { RESULT_SETS } from "@/lib/results"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/ny4/tooltip"
 
 import { num, type SourceRow } from "../america-thinks/audience-data"
-import { fielding, levelOf, metricShort, POINT_LEFT, POINT_RIGHT, segOf, signed, significance, testOf, treatmentName, type Pick } from "./lift-data"
+import { fielding, levelOf, metricShort, periodKey, POINT_LEFT, POINT_RIGHT, segOf, signed, significance, testOf, treatmentName, type Pick } from "./lift-data"
 
 // Swayable's About Result (Brendan, 2026-10-28): Analytics and Open-ends; the
 // result on a 0–100 line from its control group's level; the treatment and
@@ -87,6 +88,18 @@ export function AboutResult({
       ranked: [...inTest].sort((a, b) => b[7] - a[7]),
     }
   }, [files, folder, folders, pick, lift])
+
+  // What the results register knows of a PAX wave's arm: its line (producer, length, the printed note) and the
+  // wave's pairings that name it. Archive picks have no register entry.
+  const register = React.useMemo(() => {
+    const set = RESULT_SETS.find((rs) => `${rs.fielded.start}|${rs.fielded.end}` === periodKey(lift))
+    const arm = set?.arms.find((a) => a.name === treatmentName(lift[4] ?? ""))
+    if (!set || !arm) return null
+    return {
+      arm: [arm.producer, arm.durationSeconds != null ? `${Math.round(arm.durationSeconds)}s` : null, arm.note].filter(Boolean).join(" · ") || null,
+      pairings: set.pairings.filter((p) => p.armIds.includes(arm.id)).map((p) => `Pairing #${p.rank}: ${p.audience} — ${p.finding}`),
+    }
+  }, [lift])
 
   return (
     <aside className="flex w-[380px] shrink-0 flex-col overflow-y-auto border-l bg-background">
@@ -200,6 +213,16 @@ export function AboutResult({
             <p>
               {place(lift[1])} · {fielding(lift[2], lift[3])}
             </p>
+            {register && (
+              <>
+                {register.arm && <p>{register.arm}</p>}
+                {register.pairings.map((line) => (
+                  <p key={line} className="mt-1">
+                    {line}
+                  </p>
+                ))}
+              </>
+            )}
             {lift[4] !== treatmentName(lift[4] ?? "") && <p>{lift[4]}</p>}
             {lift[12] &&
               (lift[12].startsWith("http") ? (
