@@ -5,6 +5,7 @@ import type { Arm, Pairing, ResultSet, Story, SubgroupDimension } from "@/lib/re
 import { cn } from "@/lib/utils"
 
 import { LevelTrack, LiftBar, marksLine, SubgroupPanels } from "./charts"
+import { LazyVideo } from "./lazy-video"
 import { Box, ProducerChip, StoryBox, VerdictChip, WaveChip } from "./report-bits"
 import { approx, axis, count, dateRange, isCampaign, pct, placeboOf, signed, toplineOf, treatmentsOf, word } from "./report-math"
 
@@ -45,7 +46,7 @@ export function VideoCard({ rs, arm, index, a }: { rs: ResultSet; arm: Arm; inde
     <article className="report-avoid flex flex-col overflow-hidden rounded-2xl border border-[var(--paper-rule)]/20 bg-[var(--paper)]">
       {clip?.src && (
         // The clip's opening frame: metadata only, nothing plays until the reader opens it.
-        <video src={`${clip.src}#t=0.5`} preload="metadata" muted playsInline className="aspect-video w-full bg-black object-cover" aria-label={clip.title} />
+        <LazyVideo src={`${clip.src}#t=0.5`} title={clip.title} className="aspect-video w-full bg-black" />
       )}
       <div className="flex flex-1 flex-col gap-3 p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">

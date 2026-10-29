@@ -21,7 +21,7 @@ import { Feed, type Reactions } from "./feed"
 import { Grid } from "./grid"
 import { ReportDialog } from "./report"
 import { Upload } from "./upload"
-import { testsOf } from "./clip-test"
+import { isTested } from "./clip-test"
 import { creatorOf, CREATORS, PUBLISHED, SEED_COMMENTS, deleteClip, loadFeed, takeDown, loadFollows, loadLikes, loadMyComments, loadSaves, saveClip, storeFollows, storeLikes, storeMyComments, storeSaves, updateClip, type Clip, type Comment, type Feed as FeedData, type Upload as UploadRow } from "./store"
 
 // Clips: short vertical video, recorded on a phone or a laptop, kept private
@@ -157,7 +157,7 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
   const clips = React.useMemo(() => {
     const list = creator === "you" ? mine : creator === "all" ? published : published.filter((c) => c.creatorId === creator)
     // Newest first, everywhere (Brendan, 2026-10-25), the tested clips ahead of the rest (Brendan, 2026-10-29).
-    const tested = (c: Clip) => (testsOf(c.id).length ? 1 : 0)
+    const tested = (c: Clip) => (isTested(c.id) ? 1 : 0)
     return [...list].sort((a, b) => tested(b) - tested(a) || Date.parse(b.createdAt) - Date.parse(a.createdAt))
   }, [creator, mine, published])
 

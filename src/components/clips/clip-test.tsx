@@ -24,6 +24,10 @@ export type ClipTestRef = { rs: ResultSet; arm: Arm; linked?: boolean }
 export const testsOf = (clipId: string): ClipTestRef[] =>
   RESULT_SETS.flatMap((rs) => rs.arms.filter((arm) => arm.role === "treatment" && arm.clipId === clipId).map((arm) => ({ rs, arm }))).sort((a, b) => b.rs.wave - a.rs.wave)
 
+/** The clips the register joins, read once: the tiles and the list's order ask per clip. */
+const TESTED = new Set(RESULT_SETS.flatMap((rs) => rs.arms.filter((arm) => arm.role === "treatment" && arm.clipId).map((arm) => arm.clipId as string)))
+export const isTested = (clipId: string) => TESTED.has(clipId)
+
 /** The mark on a tile whose clip carries the register's randomized-test results: dark green on light green. */
 export function RctBadge({ className }: { className?: string }) {
   return (

@@ -62,8 +62,6 @@ const by = (id: string) => {
 // The originals stay in public/clips-media/, untracked, as the archive.
 // NEXT_PUBLIC_CLIPS_CDN names the distribution per deploy (inlined at build); the old account's is the default.
 const CLIPS_CDN = process.env.NEXT_PUBLIC_CLIPS_CDN ?? "https://d3tyjc2amjpyom.cloudfront.net"
-/** Where the MA test's Wave 2 videos live, as the results register links them (src/lib/results/ma-wave-2.ts). */
-const GP_MP4 = "https://s3.amazonaws.com/condoropenskies.net/videos/"
 
 // The partner channels' shorts (pulled 2026-10-25 through the Webshare fleet),
 // one manifest row per cut, files at <CDN>/<dir>/<id>.mp4.
@@ -82,7 +80,7 @@ const shortClip = (x: PartnerShort): Clip => ({
   views: 0,
   likes: 0,
 })
-const frame = (id: string, file: string, o: { title: string; duration: number; createdAt?: string; messenger?: string; partner?: string; report?: ClipReport; src?: string; poster?: string; caption?: string }): Clip => ({
+const frame = (id: string, file: string, o: { title: string; duration: number; createdAt?: string; messenger?: string; partner?: string; report?: ClipReport; poster?: string; caption?: string }): Clip => ({
   id: `px-${id}`,
   creatorId: o.partner ?? "parallax",
   author: by(o.partner ?? "parallax"),
@@ -106,20 +104,19 @@ export const PUBLISHED: Clip[] = [
 
   // Wave 1's Donut (the donut-shop line), which the register joins by this id.
   frame("paul", "paul-schilchtman.mp4", { title: "Paul Schilchtman", messenger: "Paul Schilchtman", duration: 43 }),
-  // The rest of the tested videos (2026-10-29): Wave 2's four from the files the report links (the source's own
-  // S3), and Wave 1's campaign ad from its Dropbox file (a horizontal 30s spot behind a slate, so its tile shows a
-  // frame cut from it).
-  frame("pahlow", "", { title: "Henry Pahlow", messenger: "Henry Pahlow", duration: 33, src: `${GP_MP4}435f181a420581798fd5d3f0fb00fc15.mp4` }),
-  frame("dizoglio", "", { title: "DiZoglio", messenger: "DiZoglio", duration: 30, src: `${GP_MP4}526c5d31f5ba126c1776c3cd098c5e9c.mp4` }),
-  frame("matt-wilson", "", { title: "Matt Wilson", messenger: "Matt Wilson", duration: 36, src: `${GP_MP4}6417d791d9411c2c168787b7e8d2008e.mp4` }),
-  frame("green", "", { title: "David Green", messenger: "David Green", duration: 35, src: `${GP_MP4}6ca5b15be2ca5c2ce9ea963e6b66fd35.mp4` }),
-  frame("hold-them-accountable", "", {
+  // The rest of the tested videos (2026-10-29): Wave 2's four and Wave 1's campaign ad, cut to the clips format
+  // (720 wide, H.264, faststart) from the files the register links and served from the CDN with the others. The ad
+  // is a horizontal 30s spot behind a slate, so its tile shows a frame cut from it.
+  frame("pahlow", "henry-pahlow.mp4", { title: "Henry Pahlow", messenger: "Henry Pahlow", duration: 33 }),
+  frame("dizoglio", "dizoglio.mp4", { title: "DiZoglio", messenger: "DiZoglio", duration: 30 }),
+  frame("matt-wilson", "matt-wilson.mp4", { title: "Matt Wilson", messenger: "Matt Wilson", duration: 36 }),
+  frame("green", "david-green.mp4", { title: "David Green", messenger: "David Green", duration: 35 }),
+  frame("hold-them-accountable", "hold-them-accountable.mp4", {
     title: "Hold Them Accountable",
     messenger: "Coalition for Healthy Democracy",
     partner: "yeson3",
     duration: 37,
     caption: "",
-    src: "https://www.dropbox.com/scl/fi/jateupa882uhqcqlhro6u/CFHD_HTA30_1026.mp4?rlkey=v58jz7ynw5derpf80b89803su&raw=1",
     poster: "/clips-posters/hold-them-accountable.jpg",
   }),
 

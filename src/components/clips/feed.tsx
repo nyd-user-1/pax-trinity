@@ -10,7 +10,7 @@ import { cn } from "@govblock/ui/lib/utils"
 import { Skeleton } from "@/ui/components/nova/skeleton"
 
 
-import { RctBadge, testsOf } from "./clip-test"
+import { isTested, RctBadge } from "./clip-test"
 import { ClipMenu } from "./menu"
 import { fmtCount, type Clip } from "./store"
 
@@ -100,7 +100,7 @@ export function Feed({
   return (
     <div className={cn("relative", className)}>
       <div ref={scroller} className="scrollbar-none h-full snap-y snap-mandatory overflow-y-auto overscroll-contain">
-        {clips.map((clip) => (
+        {clips.map((clip, i) => (
           <div
             key={clip.id}
             data-id={clip.id}
@@ -110,7 +110,9 @@ export function Feed({
             }}
             className="flex h-full snap-start snap-always items-center justify-center py-2 lg:py-3"
           >
-            <FeedItem clip={clip} active={clip.id === activeId} muted={muted} onMuted={onMuted} reactions={reactions} />
+            {/* Only the clip in view and two either side carry a player (2026-10-29): the feed mounting every
+                clip's video at once pulled the head of all of them the moment it opened. */}
+            <FeedItem clip={clip} active={clip.id === activeId} near={Math.abs(i - index) <= 2} muted={muted} onMuted={onMuted} reactions={reactions} />
           </div>
         ))}
       </div>
@@ -138,7 +140,7 @@ export function Feed({
   )
 }
 
-function FeedItem({ clip, active, muted, onMuted, reactions }: { clip: Clip; active: boolean; muted: boolean; onMuted: (m: boolean) => void; reactions: Reactions }) {
+function FeedItem({ clip, active, near, muted, onMuted, reactions }: { clip: Clip; active: boolean; near: boolean; muted: boolean; onMuted: (m: boolean) => void; reactions: Reactions }) {
   const videoRef = React.useRef<HTMLVideoElement>(null)
   const [paused, setPaused] = React.useState(false)
   const [progress, setProgress] = React.useState(0)
@@ -146,8 +148,9 @@ function FeedItem({ clip, active, muted, onMuted, reactions }: { clip: Clip; act
   // The frame holds a skeleton until the video has a picture to show.
   const [ready, setReady] = React.useState(false)
   React.useEffect(() => {
-    if ((videoRef.current?.readyState ?? 0) >= 2) setReady(true)
-  }, [])
+    if (!near) setReady(false)
+    else if ((videoRef.current?.readyState ?? 0) >= 2) setReady(true)
+  }, [near])
 
   React.useEffect(() => {
     const v = videoRef.current
@@ -226,6 +229,8 @@ function FeedItem({ clip, active, muted, onMuted, reactions }: { clip: Clip; act
           ) : (
             <img src={clip.poster} alt="" className="absolute inset-0 size-full object-cover" />
           )
+        ) : !near ? (
+          clip.poster ? <img src={clip.poster} alt="" className="absolute inset-0 size-full object-cover" /> : null
         ) : clip.composition ? (
           <CompositionPlayer composition={clip.composition} active={active} onPaused={setPaused} />
         ) : (
@@ -259,7 +264,7 @@ function FeedItem({ clip, active, muted, onMuted, reactions }: { clip: Clip; act
             {clip.status === "processing" && <span className="rounded-full bg-black/50 px-2 py-1 text-[11px] font-medium text-white">Processing</span>}
           </div>
         )}
-        {testsOf(clip.id).length > 0 && <RctBadge className="absolute top-3 right-3" />}
+        {isTested(clip.id) && <RctBadge className="absolute top-3 right-3" />}
         {!clip.youtube && !clip.composition && (
           <button type="button" onClick={() => onMuted(!muted)} className="absolute right-3 bottom-4 z-10 flex size-8 items-center justify-center rounded-full bg-black/50 text-white" aria-label={muted ? "Unmute" : "Mute"}>
             {muted ? <VolumeXIcon className="size-4" /> : <Volume2Icon className="size-4" />}
