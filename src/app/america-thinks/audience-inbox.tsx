@@ -483,7 +483,8 @@ export function AudienceInbox() {
   )
 
   return (
-    <BankFrame rail={railNode} crumb="America Thinks" search={{ query, onQuery: setQuery, placeholder: "Search questions" }} overlay={drafting} bare>
+    // The rail opens on its toggle, and the page wears the rail's dress (Brendan, 2026-10-29: an experiment).
+    <BankFrame rail={railNode} crumb="America Thinks" search={{ query, onQuery: setQuery, placeholder: "Search questions" }} overlay={drafting} bare tone="rail" railDefaultOpen={false}>
       {mode === "table" && tableMetric ? (
         // The reading pane off (split none), the question has the screen and
         // the title row leads with Back; on, the list stands folded beside it.

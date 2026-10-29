@@ -17,7 +17,7 @@ import {
 import { ScrollArea } from "@govblock/ui/components/ny4/scroll-area"
 import { KebabMenu } from "@/components/kebab-menu"
 
-import { BankRail } from "./bank-frame"
+import { BankRail, BankTone } from "./bank-frame"
 import { Marks, type MarkState } from "./marks"
 import { SearchField } from "./pane-bars"
 
@@ -144,6 +144,8 @@ export function CardList({
   // The frame's rail toggle, carried here where the frame has no header row.
   const rail = React.useContext(BankRail)
   const railCtl = compact ? rail : null
+  // The rail tone: rows in the rail's own dress, inset and rounded, the open one white and raised with the left bar.
+  const railTone = React.useContext(BankTone) === "rail"
 
   const chevrons = (
     <>
@@ -229,22 +231,30 @@ export function CardList({
         {error && <p className="p-6 text-center text-sm text-pax2-red">The data did not load: {error}</p>}
         {!error && loading && <p className="p-6 text-center text-sm text-muted-foreground">Reading the index…</p>}
         {!error && !loading && ids.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">{empty}</p>}
-        <ul className="divide-y">
+        <ul className={railTone ? "flex flex-col gap-0.5 p-2" : "divide-y"}>
           {listed.map((id) => {
             const c = card(id)
             const active = selected === id
             const chip = c.chip && (
-              <span className="max-w-44 shrink-0 truncate rounded-full border bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground" title={c.chip}>
+              <span
+                className={cn(
+                  "max-w-44 shrink-0 truncate rounded-full border px-2 py-0.5 text-[10px] font-medium",
+                  railTone ? "border-slate-200 bg-white/70 text-slate-500" : "bg-muted text-muted-foreground"
+                )}
+                title={c.chip}
+              >
                 {c.chip}
               </span>
             )
             const end = stacked ? (
-              <RowEnd span={c.span ?? null} menu={c.menu} star={c.marks && { on: c.marks.pinned, onToggle: c.marks.onPin }} />
+              <RowEnd span={c.span ?? null} menu={c.menu} star={c.marks && { on: c.marks.pinned, onToggle: c.marks.onPin }} quiet={railTone} />
             ) : (
-              <RowEnd chip={chip} span={c.span ?? null} menu={c.menu} strong />
+              <RowEnd chip={chip} span={c.span ?? null} menu={c.menu} strong={!railTone} quiet={railTone} />
             )
+            // The rail's weights: the open row semibold, the rest medium.
+            const weight = railTone && !active ? "font-medium" : "font-semibold"
             const title = (
-              <span className="font-semibold">
+              <span className={weight}>
                 {c.pinned && <StarIcon aria-label="Pinned" className="mr-1.5 inline size-3.5 -translate-y-px fill-yellow-400 text-yellow-500" />}
                 {c.title}
               </span>
@@ -255,12 +265,21 @@ export function CardList({
                 key={id}
                 data-active={active}
                 className={cn(
-                  "group/row relative flex cursor-pointer gap-3 px-4 text-sm transition-[background-color,box-shadow] hover:z-10 hover:bg-accent/60 hover:shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]",
-                  stacked ? "py-2.5" : "h-10 items-center",
-                  active && "z-10 bg-muted shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]"
+                  "group/row relative flex cursor-pointer gap-3 text-sm",
+                  railTone
+                    ? cn(
+                        "rounded-xl px-3 transition-[color,background-color,box-shadow]",
+                        active ? "bg-white text-pax2-blue shadow-e1" : "text-slate-600 hover:bg-white/70 hover:text-pax2-blue hover:shadow-e1"
+                      )
+                    : cn(
+                        "px-4 transition-[background-color,box-shadow] hover:z-10 hover:bg-accent/60 hover:shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]",
+                        active && "z-10 bg-muted shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]"
+                      ),
+                  stacked ? "py-2.5" : "h-10 items-center"
                 )}
                 onClick={() => onOpen(id)}
               >
+                {railTone && active && <span aria-hidden className="absolute top-1/2 left-0 h-4 w-[3px] -translate-y-1/2 rounded-full bg-pax2-light-blue" />}
                 {stacked ? (
                   <span className="flex min-w-0 flex-1 flex-col gap-4">
                     {title}
@@ -278,7 +297,7 @@ export function CardList({
                       </span>
                     )}
                     <span className="flex min-w-0 flex-1 items-baseline">
-                      <span className="max-w-[68ch] min-w-0 truncate font-semibold" title={c.hint}>
+                      <span className={cn("max-w-[68ch] min-w-0 truncate", weight)} title={c.hint}>
                         {!c.marks && c.pinned && <StarIcon aria-label="Pinned" className="mr-1.5 inline size-3.5 -translate-y-px fill-yellow-400 text-yellow-500" />}
                         {c.title}
                       </span>
@@ -312,15 +331,18 @@ function RowEnd({
   menu,
   star,
   strong = false,
+  quiet = false,
 }: {
   chip?: React.ReactNode
   span: string | null
   menu?: React.ReactNode
   star?: { on: boolean; onToggle: () => void }
   strong?: boolean
+  /** The rail tone's count grey. */
+  quiet?: boolean
 }) {
   // The one-line row's span in the /inbox thread list's unread date weight.
-  const tone = strong ? "font-semibold" : "text-muted-foreground"
+  const tone = quiet ? "text-slate-400" : strong ? "font-semibold" : "text-muted-foreground"
   if (!menu)
     return (
       <>

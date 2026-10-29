@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import dynamic from "next/dynamic"
-import { ArrowLeft, ClipboardList, Database, Globe, Grid3x3, TrendingUp } from "lucide-react"
+import { ArrowLeft, ChartColumnIncreasing, ClipboardList, Database, Globe, Grid3x3 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
@@ -52,7 +52,7 @@ const VIEWS = [
   // Every view an icon (Brendan, 2026-10-29), its label the tooltip.
   { value: "tidy", label: "Data", icon: Database },
   { value: "crosstab", label: "Crosstab", icon: Grid3x3 },
-  { value: "chart", label: "Trend", icon: TrendingUp },
+  { value: "chart", label: "Trend", icon: ChartColumnIncreasing },
   { value: "topline", label: "Topline", icon: ClipboardList },
   { value: "global", label: "Global view", icon: Globe },
 ] as const

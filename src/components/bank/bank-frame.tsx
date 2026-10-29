@@ -25,12 +25,24 @@ import { TooltipProvider } from "@govblock/ui/components/ny4/tooltip"
 /** The rail's state, for a control below the frame to show and hide it. */
 export const BankRail = React.createContext<{ open: boolean; toggle: () => void } | null>(null)
 
+/** The dress below the frame. "rail" (Brendan's experiment, 2026-10-29) lays
+ *  the rail's look across the list and the pane: the mist ground, rows in the
+ *  rail's slate with its white raised pick and left bar, controls picked the
+ *  same way. */
+export type Tone = "plain" | "rail"
+export const BankTone = React.createContext<Tone>("plain")
+
+/** The rail's width when it first opens. */
+const RAIL_WIDTH = 240
+
 export function BankFrame({
   rail,
   crumb,
   search,
   overlay,
   bare = false,
+  tone = "plain",
+  railDefaultOpen = true,
   children,
 }: {
   rail: React.ReactNode
@@ -41,9 +53,14 @@ export function BankFrame({
   overlay?: React.ReactNode
   /** No header row: no rail toggle, no crumb, no header search. */
   bare?: boolean
+  tone?: Tone
+  /** Shut, the rail waits for its toggle (America Thinks opens without it, Brendan 2026-10-29). */
+  railDefaultOpen?: boolean
   children: React.ReactNode
 }) {
-  const [railOpen, setRailOpen] = React.useState(true)
+  const [railOpen, setRailOpen] = React.useState(railDefaultOpen)
+  // A rail that has never been open has no size to restore: its first opening sets one.
+  const opened = React.useRef(railDefaultOpen)
   const railRef = React.useRef<PanelImperativeHandle | null>(null)
   const [sliding, setSliding] = React.useState(false)
   const slideEnd = React.useRef<number | undefined>(undefined)
@@ -53,7 +70,7 @@ export function BankFrame({
     window.clearTimeout(slideEnd.current)
     setSliding(true)
     // The transition is on before the size moves.
-    requestAnimationFrame(() => (panel.isCollapsed() ? panel.expand() : panel.collapse()))
+    requestAnimationFrame(() => (panel.isCollapsed() ? (opened.current ? panel.expand() : panel.resize(RAIL_WIDTH)) : panel.collapse()))
     slideEnd.current = window.setTimeout(() => setSliding(false), 340)
   }, [])
   React.useEffect(() => () => window.clearTimeout(slideEnd.current), [])
@@ -77,17 +94,21 @@ export function BankFrame({
             panelRef={railRef}
             collapsible
             collapsedSize={0}
-            defaultSize={240}
+            defaultSize={railDefaultOpen ? RAIL_WIDTH : 0}
             minSize={192}
             maxSize={420}
-            onResize={(size) => setRailOpen(size.inPixels > 0)}
+            onResize={(size) => {
+              setRailOpen(size.inPixels > 0)
+              if (size.inPixels > 0) opened.current = true
+            }}
             className="flex min-w-0 flex-col overflow-x-hidden! bg-pax2-mist **:data-[slot=sidebar-content]:no-scrollbar"
           >
             <div className="flex h-full min-h-0 min-w-48 flex-col">{rail}</div>
           </ResizablePanel>
           <ResizableHandle withHandle className={cn(!railOpen && "pointer-events-none opacity-0")} />
           <ResizablePanel className="min-w-0">
-            <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background">
+            {/* The rail tone's mist is the page's background token too, so the sticky table heads below match it. */}
+            <div className={cn("flex h-full min-h-0 flex-col overflow-hidden", tone === "rail" ? "bg-pax2-mist [--background:var(--pax2-mist)]" : "bg-background")}>
               {!bare && (
                 <header className="relative z-10 flex h-(--header-height) shrink-0 items-center gap-2 border-b">
                   <div className="flex w-full min-w-0 items-center gap-1 px-4 lg:gap-2 lg:px-6">
@@ -122,7 +143,9 @@ export function BankFrame({
                 </header>
               )}
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                <BankRail.Provider value={railCtl}>{children}</BankRail.Provider>
+                <BankTone.Provider value={tone}>
+                  <BankRail.Provider value={railCtl}>{children}</BankRail.Provider>
+                </BankTone.Provider>
               </div>
             </div>
           </ResizablePanel>

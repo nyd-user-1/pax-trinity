@@ -5,6 +5,7 @@ import { ArrowLeft, RefreshCwIcon, Search, X, type LucideIcon } from "lucide-rea
 
 import { cn } from "@/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
+import { BankTone } from "./bank-frame"
 
 // The pane's two 52px bars on /lift and /survey, flush with the list's two
 // beside them (Brendan's dev-tool pass, 2026-10-27): the search row with the
@@ -120,19 +121,42 @@ export function RefreshButton({ onRefresh }: { onRefresh: () => void }) {
 
 /** The segmented toggle: Data, Crosstab, Trend, Topline and the globe on America Thinks, each an icon. A view with an icon shows the icon alone, its label as the name. */
 export function ViewToggle<V extends string>({ views, value, onChange }: { views: readonly { value: V; label: string; icon?: LucideIcon }[]; value: V; onChange: (v: V) => void }) {
+  const rail = React.useContext(BankTone) === "rail"
+  // The hover's grey slides from one view to the next (Brendan, 2026-10-29),
+  // under the buttons, so the picked one's own ground covers it there. It
+  // appears in place, and slides only once it is showing.
+  const [hl, setHl] = React.useState({ left: 0, width: 0, shown: false, slide: false })
   return (
-    <div className="flex shrink-0 rounded-lg border p-0.5 text-xs">
+    <div className="relative flex shrink-0 rounded-lg border p-0.5 text-xs" onMouseLeave={() => setHl((h) => ({ ...h, shown: false, slide: false }))}>
+      <span
+        aria-hidden
+        className={cn(
+          "pointer-events-none absolute inset-y-0.5 rounded-md bg-slate-200/70 duration-200 ease-out",
+          hl.slide ? "transition-[left,width,opacity]" : "transition-opacity",
+          hl.shown ? "opacity-100" : "opacity-0"
+        )}
+        style={{ left: hl.left, width: hl.width }}
+      />
       {views.map((v) => {
         const Icon = v.icon
+        const on = value === v.value
         return (
           <button
             key={v.value}
             type="button"
-            aria-pressed={value === v.value}
+            aria-pressed={on}
             aria-label={Icon ? v.label : undefined}
             title={Icon ? v.label : undefined}
             onClick={() => onChange(v.value)}
-            className={cn("rounded-md py-1 transition-colors", Icon ? "px-2" : "px-2.5", value === v.value ? "bg-pax2-mist font-semibold text-pax2-blue" : "text-muted-foreground hover:text-foreground")}
+            onMouseEnter={(event) => {
+              const { offsetLeft: left, offsetWidth: width } = event.currentTarget
+              setHl((h) => ({ left, width, shown: true, slide: h.shown }))
+            }}
+            className={cn(
+              "relative rounded-md py-1 transition-colors",
+              Icon ? "px-2" : "px-2.5",
+              on ? (rail ? "bg-white font-semibold text-pax2-blue shadow-e1" : "bg-pax2-mist font-semibold text-pax2-blue") : "text-muted-foreground hover:text-foreground"
+            )}
           >
             {Icon ? <Icon className="size-4" /> : v.label}
           </button>
