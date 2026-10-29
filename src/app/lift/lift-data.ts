@@ -42,7 +42,7 @@ function adLabel(a: AdInfo) {
 }
 
 /** The Archive's trait columns: each its cell's value, its sort key, and the value its filter lists. */
-export const AD_COLUMNS: { key: string; name: string; width: number; value: (a: AdInfo) => string; order: (a: AdInfo) => string }[] = [
+export const AD_COLUMNS: AdColumn[] = [
   { key: "@office", name: "Office", width: 124, value: adOffice, order: adOffice },
   { key: "@state", name: "State", width: 92, value: adWhere, order: adWhere },
   { key: "@tested", name: "Tested", width: 96, value: adWhen, order: (a) => a.date ?? String(a.cycle) },

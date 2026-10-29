@@ -25,7 +25,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components
 import { dimLabel, groupSources, num, type AudienceIndex, type SourceRow } from "../america-thinks/audience-data"
 import { rowDress } from "../america-thinks/segment-grid"
 import { AboutResult } from "./about-result"
-import { AD_COLUMNS, AD_INFO, TRAIT_COLUMN, TRAIT_COLUMNS, adOffice, adWhen, adWhere, dimOf, fielding, isPlacebo, metricShort, ordered, periodKey, segKey, segOf, setAds, signed, significance, testOf, TRAIT_GROUPS, treatmentName, valOf, type AdInfo, type Cell, type Pick } from "./lift-data"
+import { AD_COLUMNS, AD_INFO, TRAIT_COLUMN, TRAIT_COLUMNS, adOffice, adWhen, adWhere, dimOf, fielding, isPlacebo, metricShort, ordered, periodKey, segKey, segOf, setAds, signed, significance, testOf, TRAIT_GROUPS, treatmentName, valOf, type AdColumn, type AdInfo, type Cell, type Pick } from "./lift-data"
 import { AppealBar, AppealKey, axisOf, Candle, EmotionBar, EmotionKey, heat, HeatKey, sampleEmotions } from "./lift-marks"
 
 // /lift — Swayable's results view (Brendan, 2026-10-28, from the Dream Crazy
@@ -1221,7 +1221,7 @@ const testName = (lift: SourceRow) => WAVE.get(periodKey(lift)) ?? testOf(lift)
 
 type Seg = { key: string; name: string }
 type RowRead = { cell: (option: string, metric: string, sk: string) => Cell | null }
-type RowView = { metrics: string[]; emotion: boolean; axis: number; scale: number; spread: number; waveOf: (ek: string) => string | null; segment: boolean; adCols: typeof AD_COLUMNS }
+type RowView = { metrics: string[]; emotion: boolean; axis: number; scale: number; spread: number; waveOf: (ek: string) => string | null; segment: boolean; adCols: AdColumn[] }
 /** The Archive's one segment, its ads' only row each. */
 const EVERYONE: Seg = { key: "", name: "Everyone" }
 type OnPick = (o: string, m: string, s: Seg, c: Cell) => void
