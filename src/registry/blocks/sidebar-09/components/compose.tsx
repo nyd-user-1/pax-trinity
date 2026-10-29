@@ -2,14 +2,13 @@
 
 import * as React from "react"
 import { Combobox } from "@base-ui/react/combobox"
-import { ChevronDownIcon, Trash2Icon, X } from "lucide-react"
+import { Trash2Icon, X } from "lucide-react"
 
 import { ADDRESS_GROUPS, addressFor, nameOf, type Address } from "@/lib/agents/inbox"
 import { cn } from "@/lib/utils"
 import { DEFAULT_REPORT_TYPE, REPORT_TYPES } from "@/lib/agents/report-modes"
 import { Button } from "@govblock/ui/components/nova/button"
 import { Input } from "@govblock/ui/components/ny4/input"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@govblock/ui/components/ny4/dropdown-menu"
 import {
   TaskSurface,
   TaskToolbar,
@@ -50,6 +49,7 @@ const AGENT_COLORS: Record<string, string> = {
   "reporter":             "bg-[#FF6D00] text-white",
   "strategist":           "bg-[#00897B] text-white",
   "producer":             "bg-[#5C6BC0] text-white",
+  "assistant":            "bg-[#F4511E] text-white",
 }
 
 /** A recipient's face: a staff photo, a partner's channel art, a channel's logo, or an agent's monogram. */
@@ -57,14 +57,15 @@ export function Face({ address, className = "size-8" }: { address: Address; clas
   if (address.image)
     return <img src={address.image} alt="" className={cn("shrink-0 rounded-full bg-white", address.kind === "channel" ? "object-contain p-1 ring-1 ring-border" : "object-cover", className)} />
   return (
-    <span className={cn("flex shrink-0 items-center justify-center rounded-full text-[10px] font-medium", AGENT_COLORS[address.agent] ?? "bg-muted text-foreground", className)}>
+    <span className={cn("flex shrink-0 items-center justify-center rounded-full text-[10px] font-medium", AGENT_COLORS[address.agent] ?? (address.kind === "group" ? "bg-pax2-lavender text-pax2-blue" : "bg-muted text-foreground"), className)}>
       {address.monogram}
     </span>
   )
 }
 
 const unknown = (handle: string): Address => ({ agent: handle, name: nameOf(handle), email: handle, monogram: handle.slice(0, 2).toUpperCase(), speciality: "", kind: "person" })
-const shown = (a: Address) => (a.kind === "channel" ? a.email : `<${a.email}>`)
+const plain = (a: Address) => a.kind === "channel" || a.kind === "group"
+const shown = (a: Address) => (plain(a) ? a.email : `<${a.email}>`)
 
 /** Gmail's matching: the start of a name's word or of the address; what an agent does once the query is a word long. */
 const matchesQuery = (a: Address, query: string) => {
@@ -117,7 +118,7 @@ function Recipients({
             {(value: Address[]) => (
               <>
                 {value.map((a) => (
-                  <Combobox.Chip key={a.agent} aria-label={a.name} title={a.kind === "channel" ? a.email : `${a.name} <${a.email}>`} className="flex items-center gap-1.5 rounded-full bg-muted py-0.5 pr-1 pl-0.5 text-sm outline-none data-[highlighted]:ring-2 data-[highlighted]:ring-ring/50">
+                  <Combobox.Chip key={a.agent} aria-label={a.name} title={plain(a) ? `${a.name} · ${a.email}` : `${a.name} <${a.email}>`} className="flex items-center gap-1.5 rounded-full bg-muted py-0.5 pr-1 pl-0.5 text-sm outline-none data-[highlighted]:ring-2 data-[highlighted]:ring-ring/50">
                     <Face address={a} className="size-5" />
                     {a.name}
                     <Combobox.ChipRemove aria-label={`Remove ${a.name}`} className="flex size-4 items-center justify-center rounded-full text-muted-foreground hover:bg-background hover:text-foreground">
@@ -284,26 +285,6 @@ export function Compose({
               onChange={(event) => onChange({ ...draft, subject: event.target.value })}
               className="min-w-0 flex-1 border-0 shadow-none focus-visible:ring-0"
             />
-            {/* The kind of report to write. Its own control on the subject line,
-                because "what is this report about" is also "what shape should it
-                take"; unset means a Traditional Report. */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button type="button" variant="ghost" size="sm" className="shrink-0 gap-1 text-muted-foreground">
-                  {draft.reportType ?? DEFAULT_REPORT_TYPE}
-                  <ChevronDownIcon className="size-3.5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-max min-w-44">
-                <DropdownMenuRadioGroup value={draft.reportType ?? DEFAULT_REPORT_TYPE} onValueChange={(value) => onChange({ ...draft, reportType: value })}>
-                  {REPORT_TYPES.map((type) => (
-                    <DropdownMenuRadioItem key={type} value={type} className="whitespace-nowrap">
-                      {type}
-                    </DropdownMenuRadioItem>
-                  ))}
-                </DropdownMenuRadioGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
         </>
       )}

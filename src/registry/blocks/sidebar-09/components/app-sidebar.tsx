@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { File, Inbox, LayoutTemplate, PenSquare, Send, Star, Trash2 } from "lucide-react"
+import { ClipboardList, File, FlaskConical, Inbox, LayoutTemplate, PenSquare, Send, Star, Trash2 } from "lucide-react"
 
 import { unreadIn, type Folder, type Thread } from "@/lib/agents/inbox"
 import { cn } from "@/lib/utils"
@@ -29,12 +29,15 @@ export function InboxRail({
   folder,
   onFolder,
   onCompose,
+  onNew,
   onDropThread,
 }: {
   threads: Thread[]
   folder: Folder
   onFolder: (folder: Folder) => void
   onCompose: () => void
+  /** A structured request to the Pollster: a test of a clip, or a survey. */
+  onNew: (kind: "test" | "survey") => void
   /** A list row dragged onto a folder lands here. */
   onDropThread: (id: string, folder: Folder) => void
 }) {
@@ -55,6 +58,18 @@ export function InboxRail({
                 <SidebarMenuButton onClick={onCompose} className="text-primary">
                   <PenSquare />
                   <span>Compose</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton onClick={() => onNew("test")}>
+                  <FlaskConical />
+                  <span>New test</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton onClick={() => onNew("survey")}>
+                  <ClipboardList />
+                  <span>New survey</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>

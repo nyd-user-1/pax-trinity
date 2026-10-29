@@ -4,10 +4,10 @@ import * as React from "react"
 import { ArrowLeft, Check, Copy, ExternalLink, Forward as ForwardIcon, PenSquare, Reply as ReplyIcon, RotateCcw, Search, Star, Trash2, UserRound, X } from "lucide-react"
 
 import { agent as findAgent, maxRounds } from "@/lib/agents/registry"
-import { findAddress, isPerson, isUnread, loadThreads, messageId, nameOf, newThread, reply, running, runners, saveThreads, settle, shownRecipients, snippet, threadCost, when, type Attached, type Folder, type Message, type Thread } from "@/lib/agents/inbox"
+import { addressFor, findAddress, isPerson, isUnread, loadThreads, messageId, nameOf, newThread, reply, running, runners, saveThreads, settle, shownRecipients, snippet, threadCost, when, type Attached, type Folder, type Message, type Thread } from "@/lib/agents/inbox"
 import { emptyRun, runAgent, type RunTurn } from "@/lib/agents/run-client"
-import { FEATURED } from "@/lib/agents/featured"
-import { sampleThreads } from "@/lib/agents/sample"
+import { HISTORY } from "@/lib/agents/history"
+import { PENDING_DRAFT } from "@/lib/agents/pending-draft"
 import { cn } from "@/lib/utils"
 import { ADMIN_USER } from "@/components/admin/account-footer"
 import { SaveToDrive } from "@/components/connectors/save-to-drive"
@@ -131,6 +131,20 @@ function Tip({ label, children }: { label: string; children: React.ReactNode }) 
   )
 }
 
+/** The skeletons New test and New survey open with. */
+const REQUESTS: Record<"test" | "survey", Pick<Draft, "to" | "subject" | "body">> = {
+  test: {
+    to: ["tracker"],
+    subject: "New test: ",
+    body: "**Clips:** \n\n**Question card:** \n\n**Group:** \n\n**Quota:** 1,200 completes, at least 150 per arm, randomized to a cut or the placebo on arrival\n\n**Close by:** ",
+  },
+  survey: {
+    to: ["tracker"],
+    subject: "New survey: ",
+    body: "**Questions:** \n\n**Group:** \n\n**Quota:** \n\n**Close by:** \n\n**Panels to build from it:** ",
+  },
+}
+
 export default function Page() {
   const [threads, setThreads] = React.useState<Thread[]>([])
   const [selected, setSelected] = React.useState<string | null>(null)
@@ -147,6 +161,8 @@ export default function Page() {
   const [replying, setReplying] = React.useState(false)
   // Gmail's "Message sent" bar: the id of what just went, for a few seconds.
   const [sent, setSent] = React.useState<string | null>(null)
+  // What the real send did: who was mailed, how many the allowlist held.
+  const [mailNote, setMailNote] = React.useState<string | null>(null)
   // The header search: closed it is an icon; open it filters the list as you type.
   const [searching, setSearching] = React.useState(false)
   const [query, setQuery] = React.useState("")
@@ -161,29 +177,27 @@ export default function Page() {
   const [, setTick] = React.useState(0)
 
   React.useEffect(() => {
-    // An inbox that has never held anything shows the fifty placeholders
-    // (Brendan, 2026-09-07); one that was cleared stays empty.
-    const kept = loadThreads()
-    const cleared = Boolean(window.localStorage.getItem(CLEARED))
-    const base = kept.length || cleared ? kept : sampleThreads()
-    // The Clerk's featured deliveries lead every inbox. They are authored, not
-    // user data, so a stored copy is refreshed to its current definition on
-    // load — only the reader's own flags (starred, trashed) are kept —
-    // otherwise an edit to a featured report would never reach a browser that
-    // saw the old one. They are pinned to the top rather than dated into
-    // place: the placeholders are dated relative to today, so a delivery dated
-    // the 7th sank beneath fifty of them within days (Brendan, 2026-09-11:
-    // "where is the open primary report? It should be there... top of the
-    // list"). A cleared inbox gets them back too; Trash is how one goes away.
-    const authored = new Map(FEATURED.map((thread) => [thread.id, thread]))
-    const overlaid = base.map((thread) => {
-      const fresh = authored.get(thread.id)
-      return fresh ? { ...fresh, starred: thread.starred ?? fresh.starred, trashed: thread.trashed ?? fresh.trashed } : thread
+    // Two weeks of the platform (lib/agents/history.ts) stand in every inbox,
+    // refreshed to their authored text on load with only the reader's own flags
+    // kept. govblock's placeholders and featured deliveries are gone
+    // (2026-10-29); the reader's own threads stay. A cleared inbox gets the
+    // history back too; Trash is how one goes away.
+    const kept = loadThreads().filter((thread) => !/^(sample|featured)-/.test(thread.id))
+    const authored = new Map(HISTORY.map((thread) => [thread.id, thread]))
+    const flags = new Map(kept.filter((thread) => authored.has(thread.id)).map((thread) => [thread.id, thread]))
+    const history = HISTORY.map((fresh) => {
+      const mine = flags.get(fresh.id)
+      if (!mine) return fresh
+      const read = new Set(mine.messages.filter((message) => !message.unread).map((message) => message.id))
+      return {
+        ...fresh,
+        starred: mine.starred ?? fresh.starred,
+        trashed: mine.trashed ?? fresh.trashed,
+        important: mine.important ?? fresh.important,
+        messages: fresh.messages.map((message) => (read.has(message.id) ? { ...message, unread: false } : message)),
+      }
     })
-    const missing = FEATURED.filter((thread) => !base.some((entry) => entry.id === thread.id))
-    const merged = [...missing, ...overlaid]
-    const pinned = FEATURED.map((f) => merged.find((t) => t.id === f.id)).filter((t): t is Thread => Boolean(t))
-    const stored = [...pinned, ...merged.filter((t) => !authored.has(t.id))]
+    const stored = [...history, ...kept.filter((thread) => !authored.has(thread.id))].sort((x, y) => y.updatedAt - x.updatedAt)
     // A run that was in flight when the tab closed did not survive it. Say so
     // on that reply — and only that one; earlier replies on the thread stand —
     // rather than leave a spinner that will never stop.
@@ -204,6 +218,17 @@ export default function Page() {
     })
     setThreads(settled)
     setRestored(true)
+    // A question card handed over from /consensus opens as a New test.
+    const pending = window.localStorage.getItem(PENDING_DRAFT)
+    if (pending) {
+      window.localStorage.removeItem(PENDING_DRAFT)
+      try {
+        setDraft({ ...EMPTY_DRAFT, ...(JSON.parse(pending) as Partial<Draft>) })
+        setComposing(true)
+      } catch {
+        // A card that does not parse is dropped; the inbox opens as usual.
+      }
+    }
   }, [])
 
   React.useEffect(() => {
@@ -302,6 +327,27 @@ export default function Page() {
       setDraftId(null)
       announce(thread.id)
 
+      // Staff and partners on the To and Cc lines get the message for real,
+      // through /api/inbox/send and its allowlist; agents, groups and channels
+      // stay on the thread.
+      const mailable = (handles: string[]) =>
+        handles.map((handle) => addressFor(handle)).filter((a) => a && (a.kind === "person" || a.kind === "partner")).map((a) => a!.email)
+      const mailTo = mailable(draft.to)
+      const mailCc = mailable(draft.cc)
+      setMailNote(null)
+      if (mailTo.length || mailCc.length)
+        void fetch("/api/inbox/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ from: draft.from ?? "you", to: mailTo, cc: mailCc, subject: draft.subject, markdown: draft.body }),
+        })
+          .then((res) => res.json())
+          .then((res: { sent?: string[]; held?: string[]; error?: string }) => {
+            const held = res.held?.length ? `${res.held.length} held by the allowlist` : ""
+            setMailNote(res.error ? `Not mailed: ${res.error}` : res.sent?.length ? [`Mailed to ${res.sent.join(", ")}`, held].filter(Boolean).join(" · ") : held || null)
+          })
+          .catch(() => setMailNote("Not mailed"))
+
       // Every recipient runs the task — that is what Cc means here. They run
       // together; each one's reply lands on the thread as it finishes.
       const turns: RunTurn[] = [{ role: "user", text: draft.body }]
@@ -375,6 +421,15 @@ export default function Page() {
     })
     setDraftId(null)
     setPopped(false)
+    setComposing(true)
+  }
+
+  // New test and New survey: a request to the Pollster with the fields fielding needs.
+  const startRequest = (kind: "test" | "survey") => {
+    setDraft({ ...EMPTY_DRAFT, ...REQUESTS[kind] })
+    setDraftId(null)
+    setPopped(false)
+    setSelected(null)
     setComposing(true)
   }
 
@@ -541,6 +596,7 @@ export default function Page() {
             setComposing(false)
           }}
           onCompose={startCompose}
+          onNew={startRequest}
           onDropThread={moveToFolder}
         />
       }
@@ -937,7 +993,7 @@ export default function Page() {
             // Gmail's bar: dark, bottom left, gone in a few seconds. "View"
             // opens the thread in Sent, where it is.
             <div role="status" className="absolute bottom-4 left-4 z-20 flex items-center gap-4 rounded-md bg-foreground px-4 py-2.5 text-sm text-background shadow-lg">
-              <span>Message sent</span>
+              <span>Message sent{mailNote ? ` · ${mailNote}` : ""}</span>
               <button
                 type="button"
                 className="font-medium text-background/80 hover:text-background"

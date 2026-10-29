@@ -13,6 +13,8 @@ import {
 } from "@/lib/consensus/data"
 import { fmtNumber } from "@/lib/format"
 
+import { MakeQuestionCard } from "./make-card"
+
 // The Results tab — what a conversation actually thought.
 //
 // This is the artifact people share, which is why it is the surface worth
@@ -41,7 +43,10 @@ export function ResultsPanel({ conversation: c }: { conversation: Conversation }
   return (
     <div data-not-typeset="true" className="my-8 flex flex-col gap-10">
       <header className="flex flex-col gap-4">
-        <h2 className="text-xl font-semibold tracking-tight">{c.title}</h2>
+        <div className="flex items-start justify-between gap-4">
+          <h2 className="text-xl font-semibold tracking-tight">{c.title}</h2>
+          <MakeQuestionCard title={c.title} voters={fmtNumber(c.stats.voters)} groups={c.stats.groups} shared={agreed.map((s) => s.text)} split={split.map((s) => s.text)} />
+        </div>
         {c.description && (
           <p className="text-sm text-balance text-muted-foreground">
             {c.description}
