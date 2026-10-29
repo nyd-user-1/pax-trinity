@@ -26,10 +26,10 @@ import { crosstabOf, dimLabel, latestRow, MAX_BANNER_ROWS, normalizeWording, num
 import { RowsView } from "./rows-view"
 import { type About } from "./audience-pane"
 
-// The clicked question, read the way a pollster reads one: a crosstab — the
-// answer options down the side, the banner across the top (Total, then every
-// breakdown), the latest wave's shares in the cells with unweighted bases
-// underneath. The wave-by-wave trend table rides the Trend view under the
+// The clicked question, read the way a pollster reads one: a vertical
+// crosstab — the answer options across the top, the subgroups down the side
+// (Total, then every breakdown's values under its name), the latest wave's
+// shares in the cells with each row's unweighted base at its right. The wave-by-wave trend table rides the Trend view under the
 // chart (Brendan, 2026-10-27). The toggle's first position
 // mounts the shared Rows view (Brendan, 2026-10-26): wave, segment, band,
 // estimate, margin, base, geo and weight, newest first with the total before
@@ -179,43 +179,49 @@ export function QuestionTable({
               {def && `${def} · `}
               {place(tab.base)} · latest wave {tab.latestYear}
             </p>
+            {/* Vertical (Brendan, 2026-10-29): the answers across the top, Total
+                then each breakdown's values down the side under its name, and
+                each row's unweighted n last. */}
             <div className="overflow-x-auto">
-              <table className="w-max min-w-full border-collapse text-[13px]">
+              <table className="w-max border-collapse text-[13px]">
                 <thead>
                   <tr>
                     <th className="min-w-[180px] border-b px-2.5 py-2" />
-                    <th className="border-b border-l px-2.5 py-2 text-left text-xs font-semibold text-muted-foreground">Total</th>
-                    {tab.banner.map((b) => (
-                      <th key={b.dim} colSpan={b.values.length} className="border-b border-l px-2.5 py-2 text-left text-xs font-semibold text-muted-foreground">
-                        {dimLabel(b.dim)}
+                    {tab.options.map((opt, k) => (
+                      <th key={opt ?? "·"} className={cn("min-w-[96px] border-b px-2.5 py-2 text-left align-bottom text-xs font-semibold text-muted-foreground", k === 0 && "border-l")}>
+                        <span className="block max-w-[9rem]">{opt ?? title}</span>
                       </th>
                     ))}
-                  </tr>
-                  <tr>
-                    <th className="border-b px-2.5 py-1.5" />
-                    <th className="border-b border-l px-2.5 py-1.5" />
-                    {tab.banner.map((b) =>
-                      b.values.map((v, k) => (
-                        <th key={`${b.dim}:${v}`} className={cn("border-b px-2.5 py-1.5 text-left text-xs font-medium whitespace-nowrap text-muted-foreground", k === 0 && "border-l")}>
-                          {v}
-                        </th>
-                      ))
-                    )}
+                    <th className="border-b border-l px-2.5 py-2 text-left align-bottom text-xs font-medium whitespace-nowrap text-muted-foreground">Unweighted n</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {tab.options.map((opt) => (
-                    <tr key={opt ?? "·"}>
-                      <td className="border-b px-2.5 py-2 font-medium whitespace-nowrap">{opt ?? title}</td>
-                      <XCell r={tab.cell(opt, null, null)} metric={metric} segment="Total" first about={about} onPick={onPick} />
-                      {tab.banner.map((b) => b.values.map((v, k) => <XCell key={`${b.dim}:${v}`} r={tab.cell(opt, b.dim, v)} metric={metric} segment={v} first={k === 0} about={about} onPick={onPick} />))}
-                    </tr>
-                  ))}
                   <tr>
-                    <td className="px-2.5 py-2 text-xs text-muted-foreground">Unweighted n</td>
-                    <BaseCell r={tab.cell(tab.options[0], null, null)} latestYear={tab.latestYear} first />
-                    {tab.banner.map((b) => b.values.map((v, k) => <BaseCell key={`${b.dim}:${v}`} r={tab.cell(tab.options[0], b.dim, v)} latestYear={tab.latestYear} first={k === 0} />))}
+                    <td className="border-b px-2.5 py-2 font-medium whitespace-nowrap">Total</td>
+                    {tab.options.map((opt, k) => (
+                      <XCell key={opt ?? "·"} r={tab.cell(opt, null, null)} metric={metric} segment="Total" first={k === 0} about={about} onPick={onPick} />
+                    ))}
+                    <BaseCell r={tab.cell(tab.options[0], null, null)} latestYear={tab.latestYear} first className="border-b" />
                   </tr>
+                  {tab.banner.map((b) => (
+                    <React.Fragment key={b.dim}>
+                      {/* The group's name, the column rules running through it. */}
+                      <tr>
+                        <td className="px-2.5 pt-4 pb-1 text-xs font-semibold text-muted-foreground">{dimLabel(b.dim)}</td>
+                        <td colSpan={tab.options.length} className="border-l" />
+                        <td className="border-l" />
+                      </tr>
+                      {b.values.map((v) => (
+                        <tr key={v}>
+                          <td className="border-b py-2 pr-2.5 pl-5 whitespace-nowrap">{v}</td>
+                          {tab.options.map((opt, k) => (
+                            <XCell key={opt ?? "·"} r={tab.cell(opt, b.dim, v)} metric={metric} segment={v} first={k === 0} about={about} onPick={onPick} />
+                          ))}
+                          <BaseCell r={tab.cell(tab.options[0], b.dim, v)} latestYear={tab.latestYear} first className="border-b" />
+                        </tr>
+                      ))}
+                    </React.Fragment>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -249,11 +255,11 @@ function XCell({ r, metric, segment, first, about, onPick }: { r: SourceRow | nu
 }
 
 /** The base row: each column's unweighted n, and its year when it is not the headline wave. The compare grid's Banner prints it too. */
-export function BaseCell({ r, latestYear, first }: { r: SourceRow | null; latestYear: string; first?: boolean }) {
-  if (!r) return <td className={cn("px-2.5 py-2 text-xs text-muted-foreground/40", first && "border-l")}>—</td>
+export function BaseCell({ r, latestYear, first, className }: { r: SourceRow | null; latestYear: string; first?: boolean; className?: string }) {
+  if (!r) return <td className={cn("px-2.5 py-2 text-xs text-muted-foreground/40", first && "border-l", className)}>—</td>
   const y = year(r[3])
   return (
-    <td className={cn("px-2.5 py-2 text-xs text-muted-foreground tabular-nums", first && "border-l")}>
+    <td className={cn("px-2.5 py-2 text-xs text-muted-foreground tabular-nums", first && "border-l", className)}>
       {r[11] != null ? num(r[11], 0) : "—"}
       {y !== latestYear && <span className="text-muted-foreground/60"> · {y}</span>}
     </td>

@@ -338,9 +338,10 @@ export function buildInfo(rows: SourceRow[], geoLevel: Map<string, string>): Map
 export const MAX_BANNER_ROWS = 24
 
 /** One question's crosstab, read the way a pollster reads one: the answer
- *  options down the side, the breakdowns across, and the latest row for any
+ *  options, the breakdowns with their values, and the latest row for any
  *  cell, at the question's baseline geography unless a place is named. The
- *  Crosstab view and the compare grid's Banner both read it. */
+ *  Crosstab view (vertical) and the compare grid's Banner (horizontal) both
+ *  read it. */
 export function crosstabOf(rows: SourceRow[], info: MetricInfo) {
   const base = info.baseGeo
   const top = rows.filter((r) => !r[5] && r[1] === base)

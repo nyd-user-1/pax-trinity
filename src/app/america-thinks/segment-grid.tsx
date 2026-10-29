@@ -21,7 +21,8 @@ import { BaseCell } from "./question-table"
 // 2026-10-28) is a pollster's banner table: the groups across (Total, the
 // places, each breakdown's values), every question's answers down the side,
 // levels with their margins, each question read by the Crosstab view's own
-// crosstabOf, so a one-question Banner reads as that question's Crosstab.
+// crosstabOf: the Crosstab's figures, laid horizontally where the Crosstab
+// view now runs vertical (2026-10-29).
 // Segments, Breakdowns and Filter govern both. Clicking a cell hands the row
 // to the About panel, which arrives as the fourth column.
 
