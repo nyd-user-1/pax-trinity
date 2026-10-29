@@ -1,7 +1,8 @@
 'use client'
 
 // Ported from solar (src/components/SolarPlusMenu.tsx): the + button, its category list, and the
-// drill-down drawer with its search field. The categories: Onboarding (questions that teach the platform),
+// drill-down drawer with its search field, opening upward. The categories: Skills (ways of answering the
+// chat carries once picked), Onboarding (questions that teach the platform),
 // Scripts (every script /scripts lists), Videos (on /chat the e2 videos and more Voter Freedom shorts;
 // the scored takes elsewhere), Shorts (the catalog's real shorts), and Voices (the studio's readers —
 // hear one, or write for it), Generate video (a script, put in the chat with its shots to generate; then
@@ -9,9 +10,10 @@
 // the chat with its Graphics card). Icons wear the sidebar's clothes: 18px, 1.75 stroke, lavender fill on hover.
 
 import { useState, useRef, useEffect } from 'react'
-import { Plus, ChevronRight, ArrowLeft, X, Compass, NotebookPen, Paperclip, PlaySquare, Clapperboard, AudioLines, Volume2, Loader2, Film, Shapes } from 'lucide-react'
+import { Plus, ChevronRight, ArrowLeft, X, Compass, NotebookPen, Paperclip, PlaySquare, Clapperboard, AudioLines, Volume2, Loader2, Film, Shapes, Sparkles } from 'lucide-react'
 
 import { narrate } from '@/app/studio-actions'
+import { CHAT_SKILLS, type ChatSkill } from '@/lib/chat-skills'
 import { BROLL, GRAPHIC_KINDS, type FootageFocus, type GraphicKind } from '@/lib/footage'
 import type { ListedScript } from '@/lib/script-list'
 import { VOICES, type VoiceId } from '@/lib/studio-style'
@@ -49,7 +51,7 @@ const ONBOARDING_QUESTIONS = [
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
 
-type DrillStep = 'categories' | 'prompts' | 'pick-script' | 'pick-video' | 'pick-short' | 'pick-voice' | 'generate' | 'graphics' | 'graphic-script'
+type DrillStep = 'categories' | 'skills' | 'prompts' | 'pick-script' | 'pick-video' | 'pick-short' | 'pick-voice' | 'generate' | 'graphics' | 'graphic-script'
 
 export type ScriptChip = { id: string; title: string; short: string }
 /** `youtube`: a YouTube video, whose score is its Outlier Score (views over its channel's median). */
@@ -61,7 +63,7 @@ interface Props {
   onSelect: (text: string) => void
   /** A video picked from the menu: the chat attaches its page as context (and a short brings the question bank's chips). */
   onShort?: (v: VideoChip) => void
-  /** Once the input is pinned to the bottom of the page, the menu opens upward. */
+  /** Ignored: the menu always opens upward (2026-10-29). */
   dropUp?: boolean
   /** A script picked under Generate video or Graphics: the chat shows it with its footage, `focus` lit. */
   onFootage?: (script: string, focus: FootageFocus) => void
@@ -73,6 +75,8 @@ interface Props {
   hasScript?: boolean
   /** Attach: the chat's file upload, housed in the menu rather than beside it (Brendan, 2026-10-24). */
   onAttach?: () => void
+  /** A skill picked from the top of the menu: the chat carries it as a chip and in every message after. */
+  onSkill?: (skill: ChatSkill) => void
 }
 
 /* Sidebar dress for every menu icon (shell.tsx's item): 18px, 1.75 stroke, lavender fill on row hover. */
@@ -86,7 +90,7 @@ const outlier = (x: number) => `${x >= 10 ? x.toFixed(0) : x.toFixed(1)}×`
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
 
-export function PlusMenu({ videos, shorts = [], onSelect, onShort, dropUp = false, onFootage, onBroll, onGraphic, hasScript = false, onAttach }: Props) {
+export function PlusMenu({ videos, shorts = [], onSelect, onShort, onFootage, onBroll, onGraphic, hasScript = false, onAttach, onSkill }: Props) {
   const [scripts, setScripts] = useState<ListedScript[] | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [step, setStep] = useState<DrillStep>('categories')
@@ -95,6 +99,18 @@ export function PlusMenu({ videos, shorts = [], onSelect, onShort, dropUp = fals
   const [kind, setKind] = useState<GraphicKind | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  // The menu always opens upward (Brendan, 2026-10-29), no taller than the room above the + inside
+  // whatever clips it (the page's card), its rows scrolling past that.
+  const [room, setRoom] = useState<number | null>(null)
+  useEffect(() => {
+    if (!menuOpen || !menuRef.current) return
+    let top = 0
+    for (let p = menuRef.current.parentElement; p; p = p.parentElement) {
+      const o = getComputedStyle(p)
+      if (/(hidden|auto|scroll|clip)/.test(o.overflowY + o.overflow)) top = Math.max(top, p.getBoundingClientRect().top)
+    }
+    setRoom(Math.max(200, Math.round(menuRef.current.getBoundingClientRect().top - top - 16)))
+  }, [menuOpen, step])
 
   useEffect(() => {
     function h(e: MouseEvent) {
@@ -132,12 +148,14 @@ export function PlusMenu({ videos, shorts = [], onSelect, onShort, dropUp = fals
 
   const q = search.toLowerCase()
   const filteredPrompts = ONBOARDING_QUESTIONS.filter(p => !search || p.toLowerCase().includes(q))
+  const filteredSkills = CHAT_SKILLS.filter(k => !search || k.name.toLowerCase().includes(q) || k.about.toLowerCase().includes(q))
   const filteredScripts = (scripts ?? []).filter(s => !search || s.title.toLowerCase().includes(q) || s.framing.toLowerCase().includes(q) || s.text.toLowerCase().includes(q))
   const filteredVideos = videos.filter(v => !search || v.label.toLowerCase().includes(q))
   const filteredShorts = shorts.filter(v => !search || v.label.toLowerCase().includes(q))
   const voices = VOICES.filter(v => v.provider !== 'none').filter(v => !search || v.label.toLowerCase().includes(q))
 
   const getStepLabel = () => {
+    if (step === 'skills') return 'Skills'
     if (step === 'prompts') return 'Onboarding'
     if (step === 'pick-script') return 'Scripts'
     if (step === 'pick-video') return 'Videos'
@@ -152,6 +170,7 @@ export function PlusMenu({ videos, shorts = [], onSelect, onShort, dropUp = fals
   const isDrawer = step !== 'categories'
 
   const CATEGORIES: { key: Exclude<DrillStep, 'categories'>; label: string; icon: React.ReactNode }[] = [
+    ...(onSkill ? [{ key: 'skills' as const, label: 'Skills', icon: <Sparkles className={ICON} strokeWidth={1.75} /> }] : []),
     { key: 'prompts', label: 'Onboarding', icon: <Compass className={ICON} strokeWidth={1.75} /> },
     { key: 'pick-script', label: 'Scripts', icon: <NotebookPen className={ICON} strokeWidth={1.75} /> },
     ...(videos.length ? [{ key: 'pick-video' as const, label: 'Videos', icon: <PlaySquare className={ICON} strokeWidth={1.75} /> }] : []),
@@ -181,7 +200,7 @@ export function PlusMenu({ videos, shorts = [], onSelect, onShort, dropUp = fals
   const section = (label: string, first = false) => <div className={`px-4 pb-1.5 pt-3 text-xs font-medium text-[var(--muted)] ${first ? '' : 'border-t border-[var(--border)]'}`}>{label}</div>
   const filteredBroll = BROLL.filter((b) => !search || b.label.toLowerCase().includes(q))
 
-  const panelSide = dropUp ? 'bottom-full mb-2' : 'top-full mt-2'
+  const panelSide = 'bottom-full mb-2'
 
   return (
     <div className="relative" ref={menuRef}>
@@ -198,7 +217,7 @@ export function PlusMenu({ videos, shorts = [], onSelect, onShort, dropUp = fals
       {/* Category screen */}
       {menuOpen && !isDrawer && (
         <div className={`absolute left-0 ${panelSide} w-56 max-w-[calc(100vw-2rem)] rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl overflow-hidden z-20`}>
-          <div className="py-1">
+          <div className="no-scrollbar overflow-y-auto py-1" style={room ? { maxHeight: room } : undefined}>
             {CATEGORIES.map((cat, i) => (
               <button key={cat.key} onClick={() => handleCategoryClick(cat.key)} className={row(i) + ' text-sm font-medium'}>
                 {cat.icon}
@@ -236,7 +255,23 @@ export function PlusMenu({ videos, shorts = [], onSelect, onShort, dropUp = fals
             )}
           </div>
 
-          <div className="max-h-[320px] overflow-y-auto no-scrollbar">
+          <div className="max-h-[320px] overflow-y-auto no-scrollbar" style={room ? { maxHeight: Math.min(320, room - 52) } : undefined}>
+
+            {/* Skills — a way of answering, carried by the chat from here on */}
+            {step === 'skills' && (
+              <>
+                {filteredSkills.map((k, i) => (
+                  <button key={k.id} onClick={() => { onSkill?.(k); closeMenu() }} className={row(i) + ' items-start'}>
+                    <Sparkles className={ICON} strokeWidth={1.75} />
+                    <span className="min-w-0 flex-1 text-left">
+                      <span className="block text-sm font-semibold text-[var(--txt)]">{k.name}</span>
+                      <span className="block text-xs text-[var(--muted)]">{k.about}</span>
+                    </span>
+                  </button>
+                ))}
+                {filteredSkills.length === 0 && <p className="px-4 py-3 text-xs text-[var(--muted)]">No matches</p>}
+              </>
+            )}
 
             {/* Onboarding — questions that teach the platform */}
             {step === 'prompts' && (

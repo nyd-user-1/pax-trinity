@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ChevronLeftIcon, ChevronRightIcon, EllipsisVerticalIcon, Search, StarIcon } from "lucide-react"
+import { ChevronLeftIcon, ChevronRightIcon, EllipsisVerticalIcon, PanelLeftClose, PanelLeftOpen, StarIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
@@ -36,8 +36,9 @@ import { SearchField } from "./pane-bars"
 // split, the Agentic Inbox's own words), before the list's menu. Compact
 // (America Thinks, Brendan's DevTools pass of 2026-10-28), one bar: the kebab,
 // which carries the rail toggle too, the frame's header row being gone; the
-// search an icon until the icon or the bar's empty run is pressed (Brendan,
-// 2026-10-29); the chevrons at the right.
+// sidebar's toggle beside it, where the search icon was; the search opening
+// on a press on the bar's empty run (Brendan, 2026-10-29); the chevrons at
+// the right.
 
 export type Split = "none" | "vertical"
 
@@ -192,15 +193,17 @@ export function CardList({
           }}
         >
           {kebab}
-          {searching || query ? (
+          {/* The sidebar's own toggle where the search icon was (Brendan, 2026-10-29); the bar's empty run still opens the search. */}
+          {railCtl && (
+            <Button variant="ghost" size="icon-sm" aria-label={railCtl.open ? "Hide sidebar" : "Show sidebar"} title={railCtl.open ? "Hide sidebar" : "Show sidebar"} onClick={railCtl.toggle}>
+              {railCtl.open ? <PanelLeftClose className="size-4" /> : <PanelLeftOpen className="size-4" />}
+            </Button>
+          )}
+          {(searching || query) && (
             <div className="min-w-0 flex-1">
               {/* Focused when picked from the bar, not when the rail's search fills it. */}
               <SearchField query={query} onQuery={onQuery} placeholder={placeholder} autoFocus={searching} onClose={closeSearch} />
             </div>
-          ) : (
-            <Button variant="ghost" size="icon-sm" aria-label={placeholder} onClick={() => setSearching(true)}>
-              <Search className="size-4" />
-            </Button>
           )}
           <div className="ml-auto flex items-center gap-1">{chevrons}</div>
         </div>

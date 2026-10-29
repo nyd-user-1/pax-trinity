@@ -12,7 +12,7 @@
 // and how its last race went (/api/district), and that rides along with the question.
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { ArrowDown, ArrowUp, Check, ChevronLeft, ChevronRight, Loader2, MapPin, Mic, Paperclip, PlaySquare, Square, Video, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Loader2, MapPin, Mic, Paperclip, PlaySquare, Search, Sparkles, Square, User, Video, X } from 'lucide-react'
 
 import { ChatFields } from '@/components/chat/chat-fields'
 import { MarkdownContent } from '@/components/chat/markdown'
@@ -23,6 +23,7 @@ import { answersText, parseCiteBlock, parseFieldBlock, stripFieldBlock, stripOpe
 import { PlusMenu, type ScriptChip, type VideoChip } from '@/components/chat/plus-menu'
 import dynamic from 'next/dynamic'
 import { BorderLight } from '@/components/border-light'
+import type { ChatSkill } from '@/lib/chat-skills'
 import { cn } from '@/ui/lib/utils'
 import { isShelfDrag, readShelfDrag } from '@/lib/shelf-drag'
 import { useShelf } from '@/lib/home-blocks'
@@ -170,6 +171,38 @@ export function Chat({ scripts = [], videos = [], shorts = [], compact = false, 
     return () => { live = false }
   }, [chipTarget, surface, tapped, logUsage])
   const [isFocused, setIsFocused] = useState(false)
+  // How far the input has grown past its one line, so the empty page can hold the box's foot in place.
+  const [grow, setGrow] = useState(0)
+  // A skill from the + menu: a chip in the composer, its instructions in every message after it.
+  const [skill, setSkill] = useState<ChatSkill | null>(null)
+  // Search mode, after hq's send-box search: the box searches this conversation, every hit lit in the
+  // transcript (the CSS Highlight API), the current one red; Enter and ⇧Enter step, Escape leaves.
+  const [searchMode, setSearchMode] = useState(false)
+  const [searchQ, setSearchQ] = useState('')
+  const [searchMine, setSearchMine] = useState(false)
+  const [searchAt, setSearchAt] = useState(0)
+  const [searchHits, setSearchHits] = useState(0)
+  const messagesRef = useRef<HTMLDivElement>(null)
+  const searchRef = useRef<HTMLInputElement>(null)
+  const hitsRef = useRef<Range[]>([])
+  // Bumped when the transcript's DOM changes under a search (an answer re-renders its words), so the
+  // hits are found again on live nodes.
+  const [domTick, setDomTick] = useState(0)
+  const [hitTick, setHitTick] = useState(0)
+  useEffect(() => {
+    const root = messagesRef.current
+    if (!searchMode || !root) return
+    let t: number | undefined
+    const o = new MutationObserver(() => {
+      window.clearTimeout(t)
+      t = window.setTimeout(() => setDomTick((n) => n + 1), 200)
+    })
+    o.observe(root, { subtree: true, childList: true, characterData: true })
+    return () => {
+      window.clearTimeout(t)
+      o.disconnect()
+    }
+  }, [searchMode])
   const [model, setModel] = useChatModel()
   const [videoModel, setVideoModel] = useVideoModel()
   // A script the plus menu put in the chat (or picked a graphic for), and what its footage block should light.
@@ -343,11 +376,79 @@ export function Chat({ scripts = [], videos = [], shorts = [], compact = false, 
     }
   }, [])
 
+  // The input grows with its text, a script the + menu puts in included, to five lines (147px at 17px
+  // relaxed), then holds and scrolls. Pinned to the foot it grows upward on its own; on the empty page
+  // the box's foot is held where it is and the heading rises with it.
   const autoResize = () => {
     const el = textareaRef.current
     if (!el) return
     el.style.height = 'auto'
-    el.style.height = `${Math.min(el.scrollHeight, 144)}px`
+    const h = Math.min(el.scrollHeight, 147)
+    el.style.height = `${h}px`
+    setGrow(Math.max(0, h - 40))
+  }
+  useEffect(() => autoResize(), [input])
+
+  // Search mode's hits: every match of the query in the transcript (the user's own turns alone when
+  // filtered), registered as highlights; the current one scrolled into view.
+  useEffect(() => {
+    const api = (globalThis as unknown as { CSS?: { highlights?: Map<string, unknown> }; Highlight?: new (...r: Range[]) => unknown })
+    const reg = api.CSS?.highlights
+    const clear = () => {
+      reg?.delete('pax-chat-hit')
+      reg?.delete('pax-chat-hit-active')
+    }
+    const needle = searchQ.trim().toLowerCase()
+    const root = messagesRef.current
+    if (!searchMode || !needle || !root || !reg || !api.Highlight) {
+      hitsRef.current = []
+      setSearchHits(0)
+      clear()
+      return clear
+    }
+    const t = window.setTimeout(() => {
+      const ranges: Range[] = []
+      const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+      for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+        const turn = n.parentElement?.closest('[data-turn]')
+        if (!turn || (searchMine && turn.getAttribute('data-turn') !== 'user')) continue
+        const text = (n.textContent ?? '').toLowerCase()
+        for (let i = text.indexOf(needle); i >= 0; i = text.indexOf(needle, i + needle.length)) {
+          const r = document.createRange()
+          r.setStart(n, i)
+          r.setEnd(n, i + needle.length)
+          ranges.push(r)
+        }
+      }
+      hitsRef.current = ranges
+      setSearchHits(ranges.length)
+      setSearchAt((i) => (i < ranges.length ? i : 0))
+      if (ranges.length) {
+        reg.set('pax-chat-hit', new api.Highlight!(...ranges))
+        setHitTick((n) => n + 1)
+      } else clear()
+    }, 150)
+    return () => {
+      window.clearTimeout(t)
+      clear()
+    }
+  }, [searchMode, searchQ, searchMine, messages, domTick])
+  useEffect(() => {
+    const api = (globalThis as unknown as { CSS?: { highlights?: Map<string, unknown> }; Highlight?: new (...r: Range[]) => unknown })
+    const r = hitsRef.current[searchAt]
+    const root = messagesRef.current
+    if (!r || !root || !api.CSS?.highlights || !api.Highlight) return
+    api.CSS.highlights.set('pax-chat-hit-active', new api.Highlight(r))
+    const box = r.getBoundingClientRect()
+    const view = root.getBoundingClientRect()
+    if (box.top < view.top + 24 || box.bottom > view.bottom - 24) root.scrollTop += box.top - view.top - view.height / 3
+  }, [searchAt, searchHits, hitTick])
+  const stepHit = (by: number) => setSearchAt((i) => (searchHits ? (i + by + searchHits) % searchHits : 0))
+  const leaveSearch = () => {
+    setSearchMode(false)
+    setSearchQ('')
+    setSearchMine(false)
+    setTimeout(() => textareaRef.current?.focus(), 0)
   }
 
   const handleInputChange = (value: string) => {
@@ -374,7 +475,7 @@ export function Chat({ scripts = [], videos = [], shorts = [], compact = false, 
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: allMessages.map(m => ({ role: m.role, content: m.content })), ...(pdf ? { document: { name: pdf.name, data: pdf.data } } : {}), ...(selectedAddress ? { address: selectedAddress.description, place: placeInsight } : {}), ...((context || attached?.context || recordMode || analysisRef.current) ? { systemContext: [context?.(), attached?.context, recordMode ? RECORD_GUIDE : null, analysisRef.current].filter(Boolean).join('\n\n') } : {}), ...(recordMode ? { record: true } : {}), model }),
+        body: JSON.stringify({ messages: allMessages.map(m => ({ role: m.role, content: m.content })), ...(pdf ? { document: { name: pdf.name, data: pdf.data } } : {}), ...(selectedAddress ? { address: selectedAddress.description, place: placeInsight } : {}), ...((context || attached?.context || recordMode || analysisRef.current || skill) ? { systemContext: [context?.(), attached?.context, recordMode ? RECORD_GUIDE : null, analysisRef.current, skill?.instructions].filter(Boolean).join('\n\n') } : {}), ...(recordMode ? { record: true } : {}), model }),
         signal: controller.signal,
       })
       if (!res.ok || !res.body) {
@@ -738,8 +839,28 @@ export function Chat({ scripts = [], videos = [], shorts = [], compact = false, 
           </button>
         </div>
       )}
-      <div className={`relative flex flex-col rounded-2xl border ${addressMode || recordMode ? 'border-pax2-light-blue' : recordingState !== 'idle' ? 'border-blue-500' : 'border-[var(--border)]'} bg-[var(--inp-bg)] px-4 pt-3 pb-3 transition-all gap-1 shadow-[0_1px_3px_rgba(0,0,0,0.04)] ${isFocused ? 'shadow-[0_8px_24px_rgba(0,0,0,0.08)]' : ''}`}>
-        {recordMode && <BorderLight />}
+      <div
+        onKeyDown={(e) => {
+          if (searchMode && e.key === 'Escape') {
+            e.preventDefault()
+            leaveSearch()
+          }
+        }}
+        onFocus={() => setIsFocused(true)}
+        onBlur={(e) => !e.currentTarget.contains(e.relatedTarget as Node | null) && setIsFocused(false)}
+        className={`relative flex flex-col rounded-2xl border ${searchMode ? 'border-pax2-red/60' : addressMode || recordMode || (isEmpty && isFocused) ? 'border-pax2-light-blue' : recordingState !== 'idle' ? 'border-blue-500' : 'border-[var(--border)]'} bg-[var(--inp-bg)] px-4 pt-3 pb-3 transition-all gap-1 shadow-[0_1px_3px_rgba(0,0,0,0.04)] ${isFocused ? 'shadow-[0_8px_24px_rgba(0,0,0,0.08)]' : ''}`}>
+        {/* Record mode's light, and before a chat starts the same light while the cursor is in the box (Brendan, 2026-10-29). */}
+        {!searchMode && (recordMode || (isEmpty && isFocused)) && <BorderLight />}
+
+        {skill && !searchMode && (
+          <div className="flex items-center gap-2 pb-2.5 mb-1 border-b border-[var(--border)]">
+            <Sparkles className="h-3.5 w-3.5 text-pax2-light-blue shrink-0" />
+            <span className="text-xs text-pax2-light-blue truncate flex-1 font-medium">{skill.name}</span>
+            <button type="button" onClick={() => setSkill(null)} aria-label={`Drop the ${skill.name} skill`} className="text-[var(--muted)] hover:text-pax2-light-blue transition-colors shrink-0">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
 
         {selectedAddress && (
           <div className="flex items-center gap-2 pb-2.5 mb-1 border-b border-[var(--border)]">
@@ -763,6 +884,23 @@ export function Chat({ scripts = [], videos = [], shorts = [], compact = false, 
             <span className="text-[var(--txt)]">What explains the score on </span>
             <span className="text-pax2-light-blue font-semibold">{selectedVideo.label}</span>
             <span className="text-[var(--txt)]">?</span>
+          </div>
+        ) : searchMode ? (
+          <div className="flex items-start">
+            <input
+              ref={searchRef}
+              autoFocus
+              value={searchQ}
+              onChange={(e) => setSearchQ(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') { e.preventDefault(); leaveSearch() }
+                else if (e.key === 'Enter') { e.preventDefault(); stepHit(e.shiftKey ? -1 : 1) }
+              }}
+              placeholder="Search this chat…"
+              aria-label="Search this chat"
+              className="flex-1 bg-transparent py-1 text-[17px] text-[var(--txt)] placeholder:text-[var(--muted2)] outline-none leading-relaxed"
+              style={{ minHeight: '40px' }}
+            />
           </div>
         ) : recordingState === 'recording' ? (
           <div className="flex items-center min-h-[40px] py-1">
@@ -790,15 +928,14 @@ export function Chat({ scripts = [], videos = [], shorts = [], compact = false, 
               }}
               placeholder={addressMode ? 'Enter an address…' : recordMode ? 'Record mode — tell me a little about you…' : selectedAddress ? 'Ask about this address…' : 'Ask about the scores, scripts and results…'}
               className="flex-1 resize-none bg-transparent py-1 text-[17px] text-[var(--txt)] placeholder:text-[var(--muted2)] outline-none leading-relaxed"
-              style={{ minHeight: '40px' }}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)} />
+              style={{ minHeight: '40px' }} />
           </div>
         )}
 
         <div className="flex items-center pt-1">
           <PlusMenu videos={videos} shorts={shorts} dropUp={!isEmpty || compact} onSelect={(text) => { setInput(text); textareaRef.current?.focus() }} onShort={(v) => { if (!chipVideo && v.youtube) { setChipTarget(v.id); setTapped([]) } attachVideo(v) }}
             onAttach={() => pdfInput.current?.click()}
+            onSkill={(k) => { setSkill(k); textareaRef.current?.focus() }}
             hasScript={messages.some((m) => m.role === 'assistant' && !!scriptText(m.content))}
             onFootage={(text, focus) => { setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: 'assistant', content: '```pax-script\n' + text.trim() + '\n```', model: focus === 'shots' ? 'library-shots' : 'library-graphics' }]); setFootageFocus({ script: text.trim(), focus }) }}
             onBroll={(id) => setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: 'assistant', content: '```pax-broll\n' + id + '\n```', model: 'library-broll' }])}
@@ -829,6 +966,16 @@ export function Chat({ scripts = [], videos = [], shorts = [], compact = false, 
             {videoReady && <span aria-hidden className="absolute right-0 top-0 size-2.5 rounded-full bg-red-500 ring-2 ring-[var(--inp-bg)]" />}
           </button>
           <button
+            type="button"
+            onClick={() => (searchMode ? leaveSearch() : setSearchMode(true))}
+            aria-pressed={searchMode}
+            className={`ml-2 shrink-0 flex h-8 w-8 items-center justify-center rounded-full transition-colors ${
+              searchMode ? 'bg-pax2-red text-white' : 'text-[var(--muted)] hover:bg-[rgba(0,0,0,0.07)] hover:text-[var(--txt)]'
+            }`}
+            title={searchMode ? 'Leave search (Esc)' : 'Search this chat'}>
+            <Search className="h-4 w-4" />
+          </button>
+          <button
             onClick={toggleMic}
             disabled={recordingState === 'transcribing'}
             className={`ml-2 shrink-0 flex h-8 w-8 items-center justify-center rounded-full transition-colors disabled:opacity-40 ${
@@ -857,6 +1004,27 @@ export function Chat({ scripts = [], videos = [], shorts = [], compact = false, 
             </button>
           )}
           <div className="flex-1" />
+          {searchMode ? (
+            <span className="flex items-center gap-1 text-[13px] text-[var(--muted)]">
+              <button
+                type="button"
+                onClick={() => setSearchMine((v) => !v)}
+                aria-pressed={searchMine}
+                title="Only my messages"
+                className={`mr-1 flex h-8 w-8 items-center justify-center rounded-full transition-colors ${searchMine ? 'bg-pax2-red-soft text-pax2-red' : 'hover:bg-[rgba(0,0,0,0.07)] hover:text-[var(--txt)]'}`}
+              >
+                <User className="h-4 w-4" />
+              </button>
+              {searchQ.trim() && <span className="tabular-nums">{searchHits ? `${searchAt + 1} of ${searchHits}` : 'No matches'}</span>}
+              <button type="button" onClick={() => stepHit(-1)} disabled={!searchHits} aria-label="Previous match" className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-[rgba(0,0,0,0.07)] disabled:opacity-30">
+                <ChevronUp className="h-4 w-4" />
+              </button>
+              <button type="button" onClick={() => stepHit(1)} disabled={!searchHits} aria-label="Next match" className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-[rgba(0,0,0,0.07)] disabled:opacity-30">
+                <ChevronDown className="h-4 w-4" />
+              </button>
+            </span>
+          ) : (
+          <>
           <VideoModelPicker value={videoModel} onChange={setVideoModel} />
           <ModelPicker value={model} onChange={setModel} />
           {streaming ? (
@@ -874,6 +1042,8 @@ export function Chat({ scripts = [], videos = [], shorts = [], compact = false, 
               className="ml-1 flex h-9 w-9 items-center justify-center rounded-xl bg-pax2-blue text-white disabled:opacity-25 hover:opacity-80 transition-opacity">
               {reading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
             </button>
+          )}
+          </>
           )}
         </div>
       </div>
@@ -905,7 +1075,10 @@ export function Chat({ scripts = [], videos = [], shorts = [], compact = false, 
           </span>
         </div>
       )}
+      {/* Search mode's marks: every hit tinted, the current one red. */}
+      <style>{'::highlight(pax-chat-hit){background-color:#fee2e2;color:inherit}::highlight(pax-chat-hit-active){background-color:#dc2626;color:#fff}'}</style>
       <div
+        ref={messagesRef}
         className="flex-1 overflow-y-auto"
         onScroll={(e) => {
           const el = e.currentTarget
@@ -923,13 +1096,19 @@ export function Chat({ scripts = [], videos = [], shorts = [], compact = false, 
           <>
           <div className={cn("flex flex-col items-center px-4", below ? "min-h-full pb-10 pt-16" : "min-h-full justify-center py-8")}>
             <div className="flex w-full max-w-[773px] flex-col gap-6">
-              {!compact &&
-                (heading ?? (
-                  <div className="flex h-[65px] flex-col items-center justify-center">
-                    <TextType as="span" text={READY} loop={false} typingSpeed={70} className="font-display text-2xl font-normal text-pax2-blue md:text-3xl" />
-                  </div>
-                ))}
-              {inputBox}
+              {!compact && (
+                <div className="transition-transform duration-150" style={{ transform: `translateY(-${grow}px)` }}>
+                  {heading ?? (
+                    <div className="flex h-[65px] flex-col items-center justify-center">
+                      <TextType as="span" text={READY} loop={false} typingSpeed={70} className="font-display text-2xl font-normal text-pax2-blue md:text-3xl" />
+                    </div>
+                  )}
+                </div>
+              )}
+              {/* The box grows upward: its added height is taken back above it, so its foot stays put. */}
+              <div className="transition-[margin] duration-150" style={{ marginTop: -grow }}>
+                {inputBox}
+              </div>
               {explore && videos.length > 0 && (
                 <div className="max-w-[636px] mx-auto w-full">
                   <div className="flex items-center justify-between mb-4">
@@ -1002,7 +1181,7 @@ export function Chat({ scripts = [], videos = [], shorts = [], compact = false, 
                   ),
                 )
               return (
-              <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div key={msg.id} data-turn={msg.role} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {msg.role === 'user' ? (
                   <div className="max-w-[80%] whitespace-pre-wrap rounded-2xl rounded-br-sm px-4 py-3 text-[17px] leading-relaxed bg-[var(--inp-bg)] text-[var(--txt)]">
                     {msg.content}

@@ -2,6 +2,7 @@
 
 // Ported from solar (src/components/MarkdownContent.tsx); pax2 colors arrive through the --txt/--muted/--border/--inp-bg variables the chat root sets.
 
+import { memo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import Link from 'next/link'
@@ -14,7 +15,9 @@ interface Props {
   isStreaming?: boolean // kept for API compatibility, no visual indicator used
 }
 
-export function MarkdownContent({ content, isStreaming }: Props) {
+// Memoized (2026-10-29): its element components are built per render, so an unmemoized re-render of the
+// chat (a keystroke in the composer, a search hit) remounted every paragraph and link of every answer.
+export const MarkdownContent = memo(function MarkdownContent({ content, isStreaming }: Props) {
   // One reply, one underline per term: the first mention gets the hover definition, the rest read plain.
   const seen = new Set<string>()
   const mdComponents: Parameters<typeof ReactMarkdown>[0]['components'] = {
@@ -105,4 +108,4 @@ export function MarkdownContent({ content, isStreaming }: Props) {
       {content}
     </ReactMarkdown>
   )
-}
+})
