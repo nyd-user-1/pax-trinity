@@ -9,9 +9,9 @@
    "views": 1964,
    "voters": 412,
    "commenters": 57,
-   "statements": 23,
+   "statements": 24,
    "groups": 3,
-   "votes": 7911
+   "votes": 8250
   },
   "groups": [
    {
@@ -738,6 +738,37 @@
       "disagree": 23,
       "pass": 8,
       "seen": 69
+     }
+    }
+   },
+   {
+    "tid": 23,
+    "text": "Unenrolled voters, the largest group in Massachusetts, should not have to pick a party's ballot to vote in a primary.",
+    "moderated": 1,
+    "votes": {
+     "agree": 165,
+     "disagree": 120,
+     "pass": 54,
+     "seen": 339
+    },
+    "byGroup": {
+     "0": {
+      "agree": 41,
+      "disagree": 64,
+      "pass": 27,
+      "seen": 132
+     },
+     "1": {
+      "agree": 91,
+      "disagree": 22,
+      "pass": 15,
+      "seen": 128
+     },
+     "2": {
+      "agree": 33,
+      "disagree": 34,
+      "pass": 12,
+      "seen": 79
      }
     }
    }
