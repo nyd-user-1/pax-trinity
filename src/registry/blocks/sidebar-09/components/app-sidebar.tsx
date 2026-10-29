@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { File, Inbox, PenSquare, Send, Star, Trash2 } from "lucide-react"
+import { File, Inbox, LayoutTemplate, PenSquare, Send, Star, Trash2 } from "lucide-react"
 
 import { unreadIn, type Folder, type Thread } from "@/lib/agents/inbox"
 import { cn } from "@/lib/utils"
@@ -20,6 +20,7 @@ const FOLDERS: { title: string; icon: typeof Inbox; folder: Folder }[] = [
   { title: "Sent", icon: Send, folder: "sent" },
   { title: "Drafts", icon: File, folder: "drafts" },
   { title: "Starred", icon: Star, folder: "starred" },
+  { title: "Templates", icon: LayoutTemplate, folder: "templates" },
   { title: "Trash", icon: Trash2, folder: "trash" },
 ]
 

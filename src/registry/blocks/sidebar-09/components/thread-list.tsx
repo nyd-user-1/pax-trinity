@@ -22,7 +22,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components
 export type ListTab = "all" | "unread"
 export type Split = "none" | "vertical"
 
-const TITLES: Record<Folder, string> = { inbox: "Inbox", sent: "Sent", drafts: "Drafts", starred: "Starred", trash: "Trash" }
+const TITLES: Record<Folder, string> = { inbox: "Inbox", sent: "Sent", drafts: "Drafts", starred: "Starred", templates: "Templates", trash: "Trash" }
 
 function Tip({ label, children }: { label: string; children: React.ReactNode }) {
   return (

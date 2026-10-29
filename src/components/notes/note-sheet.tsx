@@ -21,7 +21,7 @@ import { cn } from "@/ui/lib/utils"
 // alone). Leuk's clinical parts (sign, lock, amendments, the session transcript rail) stay behind.
 
 // Diagonal outward arrows: expand to the big size.
-const ExpandIcon = () => (
+export const ExpandIcon = () => (
   <svg viewBox="0 0 24 24" width={15} height={15} fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
     <polyline points="15 4 20 4 20 9" />
     <line x1="20" y1="4" x2="14" y2="10" />
@@ -31,7 +31,7 @@ const ExpandIcon = () => (
 )
 
 // Diagonal inward arrows: restore the big size to compact.
-const RestoreIcon = () => (
+export const RestoreIcon = () => (
   <svg viewBox="0 0 24 24" width={15} height={15} fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
     <polyline points="9 4 9 9 4 9" />
     <line x1="9" y1="9" x2="3" y2="3" />
@@ -41,13 +41,13 @@ const RestoreIcon = () => (
 )
 
 // A single dash: minimize.
-const MinimizeIcon = () => (
+export const MinimizeIcon = () => (
   <svg viewBox="0 0 24 24" width={15} height={15} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden>
     <line x1="5" y1="12" x2="19" y2="12" />
   </svg>
 )
 
-const STRIP_BUTTON = "inline-flex size-8 items-center justify-center rounded-md text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+export const STRIP_BUTTON = "inline-flex size-8 items-center justify-center rounded-md text-white/80 transition-colors hover:bg-white/10 hover:text-white"
 const when = (iso: string) => new Date(iso).toLocaleString("en-US", { month: "numeric", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })
 
 export function NoteSheet({

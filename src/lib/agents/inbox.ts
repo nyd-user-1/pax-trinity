@@ -18,16 +18,18 @@ import { emptyRun, type RunState } from "@/lib/agents/run-client"
 // an unread reply on the same thread. Stars, drafts, and a trash you can undo
 // are all local state on that thread.
 
-export type Folder = "inbox" | "sent" | "drafts" | "starred" | "trash"
+export type Folder = "inbox" | "sent" | "drafts" | "starred" | "templates" | "trash"
 
 export type Address = {
-  /** An agent's slug, or a person's handle. */
+  /** An agent's slug, or a person's, partner's or channel's handle. */
   agent: string
   name: string
   email: string
   monogram: string
   speciality: string
-  kind: "agent" | "person"
+  kind: "agent" | "person" | "partner" | "channel"
+  /** A face or a mark: a staff photo, a partner's channel art, a channel's logo. */
+  image?: string
 }
 
 function monogramOf(name: string) {
@@ -39,6 +41,33 @@ function monogramOf(name: string) {
     .toUpperCase()
 }
 
+// The PAX roster (Brendan, 2026-10-29). govblock's legislative agents give way
+// to a research shop's, each named for the job it does, as theirs were: the
+// Clerk becomes the Analyst, the Librarian the Archivist. The slugs stay, so
+// the threads already on file keep their senders and a send still runs; the
+// Strategist and the Producer are new and, with no run behind them yet, are
+// recorded on the thread the way people are. The Pollster and the Analyst
+// send from real AgentMail inboxes.
+const ROSTER: { slug: string; name: string; email: string; speciality: string }[] = [
+  { slug: "bill-reader", name: "Analyst", email: "pax-analyst@agentmail.to", speciality: "Reads a result, a question, a crosstab, a trend line, and explains it, citing the rows it read." },
+  { slug: "tracker", name: "Pollster", email: "pax-pollster@agentmail.to", speciality: "The agentic one: give it a question and an audience and it drafts the survey, fields it and reports back." },
+  { slug: "jurisdiction-guide", name: "Methodologist", email: "methodologist@pax.com", speciality: "Wording, sample, weights and margins: whether a number holds, and whether two of them compare." },
+  { slug: "money-follower", name: "Field Director", email: "fielddirector@pax.com", speciality: "The fielding: panel, quotas, incidence and cost per complete, and what the sample actually holds." },
+  { slug: "researcher", name: "Archivist", email: "archivist@pax.com", speciality: "The long one: a sourced report across fifty years of GSS, ANES and CES and the Lift archive." },
+  { slug: "strategist", name: "Strategist", email: "strategist@pax.com", speciality: "Reads the tests: which message, messenger and cut moved whom, and by how much." },
+  { slug: "producer", name: "Producer", email: "producer@pax.com", speciality: "Cuts, captions and versions the video for each test." },
+]
+
+export const AGENT_ADDRESSES: Address[] = ROSTER.map((agent) => ({
+  agent: agent.slug,
+  name: agent.name,
+  email: agent.email,
+  monogram: monogramOf(agent.name),
+  speciality: agent.speciality,
+  kind: "agent",
+}))
+
+/** The registry's own address for an agent, for agents outside the roster. */
 export function addressOf(definition: AgentDefinition): Address {
   return {
     agent: definition.slug,
@@ -50,30 +79,70 @@ export function addressOf(definition: AgentDefinition): Address {
   }
 }
 
-// The people on the platform. Seeded rather than discovered, because there is
-// no identity system yet and pretending otherwise would be worse than saying
-// so: writing to a person records them on the thread and in Sent, and the
-// message reaches them when notifications exist. That is the whole mechanic
-// and it is stated once, on the surface, where someone is about to rely on it.
-const PEOPLE: { handle: string; name: string; role: string }[] = [
-  { handle: "brendan", name: "Brendan Stanton", role: "Admin — the first account on pax." },
-  { handle: "peter", name: "Peter Parker", role: "Reader — receives what you send him." },
-  { handle: "tony", name: "Tony Stark", role: "Reader — receives what you send him." },
+// The staff, with their photos (lib/roles.ts names them). Writing to a person
+// records them on the thread and in Sent; nothing runs.
+const STAFF: { handle: string; name: string; image: string }[] = [
+  { handle: "brendan", name: "Brendan Stanton", image: "/brendan.jpg" },
+  { handle: "sajeela", name: "Sajeela Padder", image: "/sajeela.jpeg" },
+  { handle: "garrett", name: "Garrett Hernandez Rimer", image: "/garrett.jpeg" },
+  { handle: "ted", name: "Ted Delicath", image: "/ted.jpeg" },
 ]
 
-export const PEOPLE_ADDRESSES: Address[] = PEOPLE.map((person) => ({
+export const PEOPLE_ADDRESSES: Address[] = STAFF.map((person) => ({
   agent: person.handle,
   name: person.name,
-  email: `${person.handle}@pax`,
+  email: `${person.handle}@pax.com`,
   monogram: monogramOf(person.name),
-  speciality: person.role,
+  speciality: "",
   kind: "person",
+  image: person.image,
 }))
 
-export const ADDRESSES: Address[] = [...AGENTS.map(addressOf), ...PEOPLE_ADDRESSES]
+// The partners on the Clips page, with their YouTube channel art.
+const PARTNERS: { handle: string; name: string; image: string }[] = [
+  { handle: "voterfreedom", name: "Voter Freedom", image: "/partners/voter-freedom.jpg" },
+  { handle: "uniteamerica", name: "Unite America", image: "/partners/unite-america.jpg" },
+  { handle: "yeson3", name: "Yes on 3", image: "/partners/yeson3.jpg" },
+]
+
+export const PARTNER_ADDRESSES: Address[] = PARTNERS.map((partner) => ({
+  agent: partner.handle,
+  name: partner.name,
+  email: `${partner.handle}@partners.pax.com`,
+  monogram: monogramOf(partner.name),
+  speciality: "",
+  kind: "partner",
+  image: partner.image,
+}))
+
+// Where a message can go besides a mailbox.
+export const CHANNEL_ADDRESSES: Address[] = [
+  { agent: "@slack", name: "Slack", email: "@slack", monogram: "S", speciality: "", kind: "channel", image: "/logos/slack.png" },
+  { agent: "@discord", name: "Discord", email: "@discord", monogram: "D", speciality: "", kind: "channel", image: "/logos/discord-icon.svg" },
+  { agent: "@frame.io", name: "Frame.io", email: "@frame.io", monogram: "F", speciality: "", kind: "channel", image: "/logos/frameio.png" },
+]
+
+export const ADDRESSES: Address[] = [...AGENT_ADDRESSES, ...PEOPLE_ADDRESSES, ...PARTNER_ADDRESSES, ...CHANNEL_ADDRESSES]
+
+/** The To line's groups, in the order the picker lists them. */
+export const ADDRESS_GROUPS: { value: string; items: Address[] }[] = [
+  { value: "Agents", items: AGENT_ADDRESSES },
+  { value: "Staff", items: PEOPLE_ADDRESSES },
+  { value: "Partners", items: PARTNER_ADDRESSES },
+  { value: "Channels", items: CHANNEL_ADDRESSES },
+]
+
+export function addressFor(handle: string): Address | undefined {
+  return ADDRESSES.find((a) => a.agent === handle) ?? (AGENTS.find((a) => a.slug === handle) && addressOf(AGENTS.find((a) => a.slug === handle)!))
+}
+
+/** Whether a recipient runs the task. Only agents with a run behind them do; everyone else is recorded. */
+export function runs(handle: string) {
+  return AGENTS.some((agent) => agent.slug === handle)
+}
 
 export function isPerson(handle: string) {
-  return PEOPLE_ADDRESSES.some((address) => address.agent === handle)
+  return !runs(handle)
 }
 
 export function findAddress(query: string) {
@@ -196,12 +265,12 @@ export function newThread({ to, cc = [], bcc = [], subject, body, status, report
 }
 
 export function nameOf(slug: string) {
-  return ADDRESSES.find((a) => a.agent === slug)?.name ?? slug
+  return addressFor(slug)?.name ?? slug
 }
 
-/** Only the agents on the lines actually run. People are recorded, not run. */
+/** Only the agents on the lines actually run. Everyone else is recorded, not run. */
 export function runners(thread: Thread) {
-  return allRecipients(thread).filter((slug) => !isPerson(slug))
+  return allRecipients(thread).filter(runs)
 }
 
 /** Everyone who ran it. Bcc is deliberately absent — that is what bcc means. */
@@ -295,6 +364,8 @@ export function inFolder(thread: Thread, folder: Folder) {
       return Boolean(thread.starred) && thread.status !== "draft"
     case "sent":
       return thread.status !== "draft"
+    case "templates":
+      return false
     case "inbox":
       // A thread reaches the inbox when a reply has arrived — the same rule
       // mail follows, and the reason a running task sits in Sent until it has

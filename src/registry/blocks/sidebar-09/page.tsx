@@ -16,6 +16,9 @@ import { BlockShell } from "@/components/policy/block-shell"
 import { PathBar } from "@/components/create/path-bar"
 import { InboxRail } from "@/registry/blocks/sidebar-09/components/app-sidebar"
 import { Compose, EMPTY_DRAFT, type Draft } from "@/registry/blocks/sidebar-09/components/compose"
+import { ComposeWindow } from "@/registry/blocks/sidebar-09/components/compose-window"
+import { TemplateList } from "@/registry/blocks/sidebar-09/components/template-list"
+import type { Template } from "@/lib/agents/templates"
 import { isReportType, isTrace, reportBody } from "@/lib/agents/report-modes"
 import { attachmentMeta, reportFor, save } from "@/lib/agents/report-pdf"
 import { AttachmentGroup } from "@/registry/blocks/sidebar-09/components/attachment"
@@ -134,6 +137,8 @@ export default function Page() {
   const [folder, setFolder] = React.useState<Folder>("inbox")
   const [tab, setTab] = React.useState<ListTab>("all")
   const [composing, setComposing] = React.useState(false)
+  // The composer popped out into Gmail's floating window (compose-window.tsx); the draft is the same one.
+  const [popped, setPopped] = React.useState(false)
   const [draft, setDraft] = React.useState<Draft>(EMPTY_DRAFT)
   const [draftId, setDraftId] = React.useState<string | null>(null)
   const [restored, setRestored] = React.useState(false)
@@ -292,6 +297,7 @@ export default function Page() {
       setThreads((current) => [thread, ...current.filter((entry) => entry.id !== existingId)])
       if (selected === existingId) setSelected(null)
       setComposing(false)
+      setPopped(false)
       setDraft(EMPTY_DRAFT)
       setDraftId(null)
       announce(thread.id)
@@ -346,6 +352,8 @@ export default function Page() {
   }, [openId])
 
   const startCompose = () => {
+    // A popped-out message is still being written; Compose leaves it be.
+    if (popped) return
     setDraft(EMPTY_DRAFT)
     setDraftId(null)
     setComposing(true)
@@ -366,6 +374,15 @@ export default function Page() {
       reportType: thread.reportType,
     })
     setDraftId(null)
+    setPopped(false)
+    setComposing(true)
+  }
+
+  // A template fills the composer: its sender on the From line, its subject and body ready to edit.
+  const fromTemplate = (template: Template) => {
+    setDraft({ ...EMPTY_DRAFT, from: template.from, subject: template.subject, body: template.body })
+    setDraftId(null)
+    setPopped(false)
     setComposing(true)
   }
 
@@ -380,7 +397,35 @@ export default function Page() {
     })
   }
 
+  // Writes the draft into Drafts, replacing the one it was opened from.
+  const keepDraft = () => {
+    const thread = newThread({
+      to: draft.to,
+      cc: draft.cc,
+      bcc: draft.bcc,
+      subject: draft.subject,
+      body: draft.body,
+      reportType: draft.reportType,
+      status: "draft",
+    })
+    setThreads((current) => [thread, ...current.filter((entry) => entry.id !== draftId)])
+    setDraft(EMPTY_DRAFT)
+    setDraftId(null)
+    return thread
+  }
+
+  // Closing the popped-out window keeps anything written as a draft, Gmail's way, and leaves you where you are.
+  const closeWindow = () => {
+    if (draft.subject.trim() || draft.body.trim() || draft.to.length || draft.cc.length || draft.bcc.length) keepDraft()
+    else {
+      setDraft(EMPTY_DRAFT)
+      setDraftId(null)
+    }
+    setPopped(false)
+  }
+
   const saveDraft = () => {
+    setPopped(false)
     const thread = newThread({
       to: draft.to,
       cc: draft.cc,
@@ -501,7 +546,9 @@ export default function Page() {
       }
     >
       {(() => {
-        const list = (
+        const list = folder === "templates" ? (
+          <TemplateList onUse={fromTemplate} />
+        ) : (
           <ThreadList
             threads={threads}
             folder={folder}
@@ -590,7 +637,21 @@ export default function Page() {
                     <>
                       <div className="flex h-[52px] shrink-0 items-center gap-2 border-b px-4">
                         {back}
-                        <span className="text-sm font-medium">New task</span>
+                        <span className="text-sm font-medium">New message</span>
+                        <Tip label="Pop out">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            aria-label="Pop out"
+                            className="ml-auto"
+                            onClick={() => {
+                              setComposing(false)
+                              setPopped(true)
+                            }}
+                          >
+                            <ExternalLink className="size-4" />
+                          </Button>
+                        </Tip>
                       </div>
                       <div className="flex min-h-0 flex-1 flex-col p-4">
                         <Compose
@@ -890,6 +951,20 @@ export default function Page() {
                 View
               </button>
             </div>
+          )}
+          {popped && (
+            <ComposeWindow title={draft.subject.trim() || "New message"} onClose={closeWindow}>
+              <Compose
+                draft={draft}
+                onChange={setDraft}
+                onSend={(current) => void send(current, draftId ?? undefined)}
+                onDiscard={() => {
+                  setPopped(false)
+                  setDraft(EMPTY_DRAFT)
+                  setDraftId(null)
+                }}
+              />
+            </ComposeWindow>
           )}
           </div>
         )
