@@ -187,7 +187,7 @@ export const TEMPLATES: Template[] = [
     "name": "Invitation",
     "from": "assistant",
     "subject": "{{INVITER}} invited you to PAX",
-    "body": "Hi {{RECIPIENT_NAME}},\n\n{{INVITER}} invited you to PAX, where {{ORG_NAME}} sees its clips, surveys, tests, Lift and reports in one place.\n\n[Accept the invitation]({{INVITE_URL}}). The link works for seven days.\n\nAssistant"
+    "body": "Hi {{RECIPIENT_NAME}},\n\n{{INVITER}} invited you to PAX, where {{ORG_NAME}} sees its clips, surveys, tests, Lift and reports in one place.\n\nYour account is ready under this address. To set your password, open [sign in]({{SIGNIN_URL}}), choose Forgot password, and enter the code that arrives by email.\n\nAssistant"
   },
   {
     "id": "f784b4c1-f68f-4778-ae9a-3c82eef70ec0",
@@ -195,7 +195,7 @@ export const TEMPLATES: Template[] = [
     "name": "Your login",
     "from": "assistant",
     "subject": "Your PAX login",
-    "body": "Hi {{RECIPIENT_NAME}},\n\nYour account is ready. Your username is {{USERNAME}}. Sign in [here]({{SIGNIN_URL}}) with Google, or with the password you set.\n\nIf you didn't expect this, reply and I'll close the account.\n\nAssistant"
+    "body": "Hi {{RECIPIENT_NAME}},\n\nYour account is ready. Your username is {{USERNAME}}. [Sign in]({{SIGNIN_URL}}) with your password; if you haven't set one yet, choose Forgot password and enter the code that arrives by email.\n\nIf you didn't expect this, reply and I'll close the account.\n\nAssistant"
   },
   {
     "id": "b61002fc-f16c-468f-90e2-fcc80b521b17",

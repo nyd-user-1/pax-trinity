@@ -22,10 +22,10 @@ export function MakeQuestionCard({ title, voters, groups, shared, split }: { tit
     ]
     const body = [
       `**Question card: ${title}**`,
-      `From Consensus (${voters} voters, ${groups} opinion groups) and the America Thinks bank. The first ${bank.length} carry their norms; the rest are the shared ground and the divides.`,
+      `From Consensus (${voters} participants, ${groups} opinion groups) and the America Thinks bank. The first ${bank.length} carry their norms; the rest are the shared ground and the divides.`,
       items.map((item, i) => `${i + 1}. ${item}`).join("\n"),
       "**Clips:** ",
-      "**Group:** Consensus: MA open primaries",
+      "**Group:** Open primaries conversation",
       "**Quota:** 1,200 completes, at least 150 per arm, randomized to a cut or the placebo on arrival",
       "**Close by:** ",
     ].join("\n\n")

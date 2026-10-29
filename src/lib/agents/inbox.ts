@@ -115,18 +115,20 @@ export const PARTNER_ADDRESSES: Address[] = PARTNERS.map((partner) => ({
 // The respondent groups the Pollster's surveys built: a test or a survey goes
 // to a group, and the test page randomizes each respondent to the video or the
 // placebo when they arrive. Groups define who is invited, never who sees what.
+// The conversation's 412 are the people who read its statements and marked
+// them agree, disagree or pass; some wrote statements of their own.
 export const GROUPS: { handle: string; name: string; size: number; built: string }[] = [
   { handle: "group-ma-adults", name: "MA adults panel", size: 2410, built: "Open primaries survey, Oct 20–23" },
   { handle: "group-ma-independents", name: "MA independents", size: 812, built: "Open primaries survey, party: independent or other" },
   { handle: "group-ma-undecided", name: "MA undecided on Question 3", size: 377, built: "Open primaries survey, Question 3: undecided" },
-  { handle: "group-consensus-ma", name: "Consensus: MA open primaries", size: 412, built: "Voters in the Oct 17–21 Consensus conversation" },
+  { handle: "group-consensus-ma", name: "Open primaries conversation", size: 412, built: "Everyone who took part in the Oct 17–21 Consensus conversation" },
 ]
 
 export const GROUP_ADDRESSES: Address[] = GROUPS.map((group) => ({
   agent: group.handle,
   name: group.name,
   email: `${group.size.toLocaleString("en-US")} people`,
-  monogram: monogramOf(group.name.replace(/^Consensus: /, "")),
+  monogram: monogramOf(group.name),
   speciality: group.built,
   kind: "group",
 }))

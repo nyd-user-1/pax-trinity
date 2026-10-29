@@ -50,7 +50,7 @@ export const HISTORY: Thread[] = [
     msg(ANALYST, "2026-10-16T16:30", "[Lift](/lift) now holds both waves: ten treatments against their placebos. Danielle Allen still leads overall at **+18** (Wave 1); in Wave 2, Green leads at **+14**. Turn both waves on to compare them side by side.\n\nAnalyst"),
   ]),
   thread("onboard-unite-america", ASSISTANT, "Ted Delicath joined from Unite America", [
-    msg(ASSISTANT, "2026-10-17T09:10", "Ted Delicath accepted the invitation and signed in with Google (ted@uniteamerica.org). His account sees Unite America's clips, surveys, tests, Lift and reports.\n\nI sent the invitation, his login and, an hour later, a password reset he asked for. All three went from the Onboarding templates.\n\nAssistant"),
+    msg(ASSISTANT, "2026-10-17T09:10", "Ted Delicath accepted the invitation, set his password and signed in (ted@uniteamerica.org). His account sees Unite America's clips, surveys, tests, Lift and reports.\n\nI sent the invitation, his login and, an hour later, a password reset he asked for. All three went from the Onboarding templates.\n\nAssistant"),
   ]),
   thread("consensus-open", POLLSTER, "Consensus: open primaries in Massachusetts", [
     msg("you", "2026-10-17T10:00", "Before we cut the next round I want to know which arguments land. Open a Consensus conversation with MA adults on open primaries."),
@@ -63,7 +63,7 @@ export const HISTORY: Thread[] = [
     msg(POLLSTER, "2026-10-22T09:00", "Reminder sent to the 3,100 who haven't answered. 1,640 completes so far.\n\nPollster"),
   ]),
   thread("consensus-summary", ANALYST, "What MA voters agree on: open primaries", [
-    msg(ANALYST, "2026-10-22T08:45", "**412 people** cast **7,911 votes** on 23 statements about open primaries and split into three opinion groups (171, 149 and 92 people).\n\nEvery group leaned toward: “Allowing unaffiliated voters to choose one party's ballot is a fair middle ground.” Most also agreed that “Most voters do not know their own state's primary rules, and that is the bigger problem.”\n\nThe sharpest divide: “Congress should require states to let unaffiliated voters vote in federal primaries.” Close behind: “Closing a primary to party members is a reasonable way to stop rival voters from meddling.”\n\n[See the groups](/consensus?tab=results)\n\nAnalyst"),
+    msg(ANALYST, "2026-10-22T08:45", "**412 people** took part, marking agree, disagree or pass **7,911 times** on 23 statements, about open primaries and their marks split them into three opinion groups (171, 149 and 92 people).\n\nEvery group leaned toward: “Allowing unaffiliated voters to choose one party's ballot is a fair middle ground.” Most also agreed that “Most voters do not know their own state's primary rules, and that is the bigger problem.”\n\nThe sharpest divide: “Congress should require states to let unaffiliated voters vote in federal primaries.” Close behind: “Closing a primary to party members is a reasonable way to stop rival voters from meddling.”\n\n[See the groups](/consensus?tab=results)\n\nAnalyst"),
   ]),
   thread("question-card", ANALYST, "Question card: Massachusetts Wave 3", [
     msg(ANALYST, "2026-10-22T11:00", "From the conversation and the bank, six closed-ended questions for Massachusetts Wave 3, each matched to America Thinks wording so it reads against the norm:\n\n1. MA Question 3 (top-two open primary): how would you vote? Yes / No / Undecided\n2. Favorable or unfavorable view of top-two primaries\n3. Favorable or unfavorable view of closed primaries\n4. Allowing unaffiliated voters to choose one party's ballot is a fair middle ground. Agree / Disagree\n5. Congress should require states to let unaffiliated voters vote in federal primaries. Agree / Disagree\n6. Under Question 3, who could vote in the primary? (comprehension)\n\nItems 1–3 carry their norms from the bank; 4 and 5 are the shared ground and the divide from Consensus.\n\nAnalyst"),
@@ -84,7 +84,7 @@ export const HISTORY: Thread[] = [
     msg(ASSISTANT, "2026-10-26T09:00", "The six Wave 3 cuts are waiting on notes in Frame.io from Ted. The test fields Wednesday, so notes by Tuesday make the next cut.\n\nAssistant"),
   ]),
   thread("weekly-digest", ASSISTANT, "This week on PAX", [
-    msg(ASSISTANT, "2026-10-26T18:00", "This week: **6 new clips**, one survey closed (2,410 completes), one Consensus conversation closed (412 voters), one question card approved and one report filed.\n\nThe biggest move: Green at **+14** on Question 3 in Wave 2.\n\nAssistant"),
+    msg(ASSISTANT, "2026-10-26T18:00", "This week: **6 new clips**, one survey closed (2,410 completes), one Consensus conversation closed (412 participants), one question card approved and one report filed.\n\nThe biggest move: Green at **+14** on Question 3 in Wave 2.\n\nAssistant"),
   ]),
   thread("test-approved", ASSISTANT, "Approved to field: Massachusetts Wave 3", [
     msg(ASSISTANT, "2026-10-27T15:30", "Massachusetts Wave 3 is ready and waiting on your approval: the six cuts and a placebo, the six questions from the card, to MA independents and MA undecided.\n\nAssistant"),
