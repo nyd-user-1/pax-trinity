@@ -6,6 +6,7 @@ import { LockIcon, PlayIcon } from "lucide-react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@govblock/ui/components/nova/avatar"
 import { cn } from "@govblock/ui/lib/utils"
+import { Skeleton } from "@/ui/components/nova/skeleton"
 
 
 import { RctBadge, testsOf } from "./clip-test"
@@ -51,7 +52,7 @@ export function Grid({ clips, onOpen, className }: { clips: Clip[]; onOpen: (cli
           </div>
           {/* The play button shows on hover; the tile opens the clip in the single view, playing. */}
           <span aria-hidden className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
-            <span className="flex size-14 items-center justify-center rounded-full bg-black/35">
+            <span className="pointer-events-auto flex size-14 items-center justify-center rounded-full bg-black/35 transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-1 hover:shadow-lg hover:shadow-black/40">
               <PlayIcon className="size-7 translate-x-0.5 fill-white text-white" />
             </span>
           </span>
@@ -87,11 +88,25 @@ function TileVideo({ clip }: { clip: Clip }) {
     io.observe(el)
     return () => io.disconnect()
   }, [near])
+  // The tile holds a skeleton until its still paints.
+  const [ready, setReady] = React.useState(false)
   return (
-    <div ref={ref} className="size-full">
+    <div ref={ref} className="relative size-full">
+      {!ready && <Skeleton className="absolute inset-0 rounded-none" />}
       {near && (
         // A recording has no cues to seek by, so it loads whole rather than sitting black on metadata alone.
-        <video src={clip.mine ? clip.src : `${clip.src}#t=0.1`} preload={clip.mine ? "auto" : "metadata"} muted playsInline className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
+        <video
+          src={clip.mine ? clip.src : `${clip.src}#t=0.1`}
+          preload={clip.mine ? "auto" : "metadata"}
+          muted
+          playsInline
+          ref={(v) => {
+            if (v && v.readyState >= 2) setReady(true)
+          }}
+          onLoadedData={() => setReady(true)}
+          onSeeked={() => setReady(true)}
+          className={cn("size-full object-cover transition-[opacity,transform] duration-300 group-hover:scale-[1.03]", ready ? "opacity-100" : "opacity-0")}
+        />
       )}
     </div>
   )

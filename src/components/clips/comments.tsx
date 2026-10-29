@@ -7,7 +7,7 @@ import { AtSignIcon, BoldIcon, CodeIcon, HeartIcon, ItalicIcon, Link2Icon, ListI
 import { Avatar, AvatarFallback, AvatarImage } from "@govblock/ui/components/nova/avatar"
 import { cn } from "@govblock/ui/lib/utils"
 
-import { ClipTest, testsOf } from "./clip-test"
+import { ClipTest, drawnTest, testsOf } from "./clip-test"
 import { fmtAge, type Clip, type Comment } from "./store"
 
 // Instagram's post panel, as the page's right rail: the author with Follow
@@ -171,37 +171,10 @@ const EDITS = [
   { who: "Brendan", ago: "48h", text: "🥘 is not 🍕.", image: "/avatars/default.jpg" },
 ]
 
-// The cut's randomized-test readout: lifts against the wave's own placebo, the
-// source's labels, nothing invented. A cut the results register tested reads
-// its arm there (clip-test.tsx); untested cuts say so.
+// The cut's readout (clip-test.tsx): the register's arm where it joins the clip, else the panel drawn for it.
 function ReportView({ clip }: { clip: Clip }) {
   const tests = testsOf(clip.id)
-  if (tests.length) return <ClipTest tests={tests} />
-  const r = clip.report
-  if (!r)
-    return (
-      <div className="flex min-h-0 flex-1 items-center justify-center px-6 text-center text-sm text-muted-foreground">
-        Untested. When this cut runs in a randomized test, its movement against the placebo lands here.
-      </div>
-    )
-  return (
-    <div className="scrollbar-none min-h-0 flex-1 overflow-y-auto px-4 py-4">
-      <p className="text-xs text-muted-foreground">{r.study} · fielded {r.fielded}</p>
-      <div className="mt-3 flex flex-col gap-3">
-        {r.outcomes.map((o) => (
-          <div key={o.name} className="rounded-lg border px-3 py-2.5">
-            <p className="text-xs text-muted-foreground">{o.name}</p>
-            <div className="mt-1 flex items-baseline gap-2">
-              <span className="text-xl font-semibold tabular-nums">{o.lift > 0 ? `+${o.lift}` : o.lift} pp</span>
-              <span className={o.label === "Persuasive" ? "rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700" : "rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground"}>{o.label}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-      <p className="mt-3 text-xs text-muted-foreground">{r.armN} weighted saw this cut · {r.placeboN} weighted saw the placebo.</p>
-      <p className="mt-2 text-xs text-muted-foreground">Lifts are against the wave's own placebo at the source's 90% criterion. "No measurable effect" means not detected — not proof of zero.</p>
-    </div>
-  )
+  return <ClipTest tests={tests.length ? tests : [drawnTest(clip)]} />
 }
 
 

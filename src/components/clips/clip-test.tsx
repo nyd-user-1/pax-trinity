@@ -5,28 +5,107 @@ import { CheckIcon } from "lucide-react"
 import { fielding, signed } from "@/app/lift/lift-data"
 import { approx, placeboOf, slugOf, toplineOf, verdictWord } from "@/components/report/report-math"
 import { RESULT_SETS } from "@/lib/results"
-import type { Arm, ResultSet } from "@/lib/results/types"
+import type { Arm, Pairing, ResultSet, Topline } from "@/lib/results/types"
 import { cn } from "@/lib/utils"
 
-// The Report Panel for a tested clip: the arm the results register joins to it
-// by clipId, read as /lift reads a cell. Each outcome's lift against the wave's
-// own placebo, gray when inconclusive, each opening its cell in /lift; the
-// arm's printed line; the wave's pairings that name it; and the study in
-// /reports-2.
+import type { Clip } from "./catalog"
+import { creatorOf } from "./desks"
 
-export type ClipTestRef = { rs: ResultSet; arm: Arm }
+// The Report Panel: the arm the results register joins to a clip by clipId,
+// read as /lift reads a cell. Each outcome's lift against the wave's own
+// placebo, gray when inconclusive, each opening its cell in /lift; the arm's
+// printed line; the wave's pairings that name it; and the study in /reports-2.
+// A clip the register does not join reads the same panel from figures drawn
+// for it (drawnTest, Brendan's order of 2026-10-29), without the links.
+
+export type ClipTestRef = { rs: ResultSet; arm: Arm; linked?: boolean }
 
 /** Every wave that tested this clip, latest first. */
 export const testsOf = (clipId: string): ClipTestRef[] =>
   RESULT_SETS.flatMap((rs) => rs.arms.filter((arm) => arm.role === "treatment" && arm.clipId === clipId).map((arm) => ({ rs, arm }))).sort((a, b) => b.rs.wave - a.rs.wave)
 
-/** The mark on a tile whose clip carries the register's randomized-test results, in the tiles' chip dress. */
+/** The mark on a tile whose clip carries the register's randomized-test results: dark green on light green. */
 export function RctBadge({ className }: { className?: string }) {
   return (
-    <span className={cn("flex shrink-0 items-center gap-1 rounded-full bg-black/50 px-2 py-1 text-[11px] leading-none font-medium text-white", className)}>
+    <span className={cn("flex shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-[11px] leading-none font-semibold text-emerald-700", className)}>
       <CheckIcon className="size-3" strokeWidth={3} /> RCT
     </span>
   )
+}
+
+/** A seeded stream from a key, so a clip draws the same figures every render (lift-marks' sampleEmotions). */
+function seeded(key: string) {
+  let h = 2166136261
+  for (let i = 0; i < key.length; i++) h = Math.imul(h ^ key.charCodeAt(i), 16777619)
+  return () => {
+    h = Math.imul(h ^ (h >>> 15), 2246822507)
+    h = Math.imul(h ^ (h >>> 13), 3266489909)
+    return ((h ^= h >>> 16) >>> 0) / 4294967296
+  }
+}
+
+/** Each outcome's lift range across the register and the smallest lift it calls detectable. */
+const SPAN = new Map<string, { lo: number; hi: number; cut: number }>()
+for (const rs of RESULT_SETS)
+  for (const t of rs.toplines) {
+    if (t.liftPp == null) continue
+    const s = SPAN.get(t.outcomeId) ?? { lo: Infinity, hi: -Infinity, cut: Infinity }
+    s.lo = Math.min(s.lo, t.liftPp)
+    s.hi = Math.max(s.hi, t.liftPp)
+    if (t.verdict === "detectable") s.cut = Math.min(s.cut, t.liftPp)
+    SPAN.set(t.outcomeId, s)
+  }
+
+/** The panel's figures for a clip the register does not join: a wave of the register, its placebo and
+ *  threshold as they are, and the arm's lifts, counts and subgroup pairings drawn inside the register's
+ *  own ranges from a seed on the clip's id. */
+export function drawnTest(clip: Clip): ClipTestRef {
+  const rand = seeded(clip.id)
+  const base = RESULT_SETS[Math.floor(rand() * RESULT_SETS.length)]
+  const placebo = placeboOf(base)
+  const ns = base.arms.filter((a) => a.role === "treatment").map((a) => a.nWeighted)
+  const id = `drawn-${clip.id}`
+  const toplines: Topline[] = base.outcomes.map((o) => {
+    const s = SPAN.get(o.id) ?? { lo: 0, hi: 10, cut: Infinity }
+    const lift = Math.round(s.lo + rand() * (s.hi - s.lo))
+    const pl = placebo ? toplineOf(base, placebo.id, o.id) : undefined
+    const like = base.toplines.find((t) => t.outcomeId === o.id && t.armId !== placebo?.id)
+    return { armId: id, outcomeId: o.id, liftPp: lift, levelPct: pl?.levelPct != null ? pl.levelPct + lift : undefined, derivation: like?.derivation ?? "published", verdict: lift >= s.cut ? "detectable" : "inconclusive" }
+  })
+  const hit = (oid: string) => toplines.find((t) => t.outcomeId === oid)?.verdict === "detectable"
+  const [first, second] = base.outcomes
+  const note = !second
+    ? hit(first.id) ? "Detectable difference." : "No detectable difference."
+    : hit(first.id) && hit(second.id)
+      ? "Detectable differences on both outcomes."
+      : hit(first.id) || hit(second.id)
+        ? `Detectable ${lower((hit(first.id) ? first : second).name)} difference; no detectable ${lower((hit(first.id) ? second : first).name)} difference.`
+        : "No detectable difference on either outcome."
+  // The register names the house's own cuts Parallax-produced.
+  const creator = clip.creatorId === "parallax" ? "Parallax" : creatorOf(clip.creatorId)?.name
+  const arm: Arm = {
+    id,
+    name: clip.title,
+    role: "treatment",
+    producer: creator ? `${creator}-produced` : undefined,
+    durationSeconds: clip.duration,
+    nWeighted: Math.round(Math.min(...ns) + rand() * (Math.max(...ns) - Math.min(...ns))),
+    note,
+  }
+  // One or two subgroups, each against the wave's own placebo level there.
+  const lead = toplines.find((t) => t.outcomeId === first?.id)?.liftPp ?? 0
+  const cells = base.cells.filter((x) => x.armId === placebo?.id && x.outcomeId === first?.id)
+  const pairings: Pairing[] = []
+  for (let k = 0, want = 1 + Math.floor(rand() * 2); k < want && cells.length; k++) {
+    const cell = cells.splice(Math.floor(rand() * cells.length), 1)[0]
+    const d = base.dimensions.find((x) => x.id === cell.dimensionId)
+    const c = d?.categories.find((x) => x.id === cell.categoryId)
+    if (!d || !c) continue
+    const gap = lead + Math.round(rand() * 10 - 3)
+    const level = Math.min(95, Math.round(cell.levelPct + gap))
+    pairings.push({ rank: pairings.length + 1, armIds: [id], audience: `${d.name.replace(/\s*\(.*\)$/, "")}: ${c.name}`, finding: `${level}% vs ${Math.round(cell.levelPct)}% placebo${level - cell.levelPct >= 8 ? ", significant vs placebo" : ""}.` })
+  }
+  return { rs: { ...base, arms: [...base.arms, arm], toplines: [...base.toplines, ...toplines], pairings }, arm, linked: false }
 }
 
 /** The register's outcomes under /lift's Tests metric names. */
@@ -43,14 +122,14 @@ export function ClipTest({ tests }: { tests: ClipTestRef[] }) {
     <div className="scrollbar-none min-h-0 flex-1 overflow-y-auto px-4 py-4">
       <div className="flex flex-col gap-8">
         {tests.map((t) => (
-          <ArmTest key={t.rs.id} {...t} />
+          <ArmTest key={`${t.rs.id}-${t.arm.id}`} {...t} />
         ))}
       </div>
     </div>
   )
 }
 
-function ArmTest({ rs, arm }: ClipTestRef) {
+function ArmTest({ rs, arm, linked = true }: ClipTestRef) {
   const placebo = placeboOf(rs)
   const line = [arm.producer, arm.durationSeconds ? `${arm.durationSeconds}s` : null, arm.note].filter(Boolean).join(" · ")
   const pairings = rs.pairings.filter((p) => p.armIds.includes(arm.id)).sort((a, b) => a.rank - b.rank)
@@ -70,8 +149,8 @@ function ArmTest({ rs, arm }: ClipTestRef) {
           const pl = placebo ? toplineOf(rs, placebo.id, o.id) : undefined
           const quiet = t.verdict !== "detectable"
           const up = t.liftPp >= 0
-          return (
-            <Link key={o.id} href={liftHref(rs, arm, o.id)} className="block rounded-lg border px-3 py-2.5 transition-colors hover:bg-muted/50">
+          const body = (
+            <>
               <p className="text-xs text-muted-foreground">{o.name}</p>
               <div className="mt-1 flex items-baseline gap-2">
                 <span className={cn("text-xl font-semibold tabular-nums", quiet ? "font-medium text-muted-foreground" : !up && "text-pax2-red")}>
@@ -87,7 +166,16 @@ function ArmTest({ rs, arm }: ClipTestRef) {
                   {t.levelPct}% vs {pl.levelPct}% placebo
                 </p>
               )}
+            </>
+          )
+          return linked ? (
+            <Link key={o.id} href={liftHref(rs, arm, o.id)} className="block rounded-lg border px-3 py-2.5 transition-colors hover:bg-muted/50">
+              {body}
             </Link>
+          ) : (
+            <div key={o.id} className="rounded-lg border px-3 py-2.5">
+              {body}
+            </div>
           )
         })}
       </div>
@@ -114,11 +202,13 @@ function ArmTest({ rs, arm }: ClipTestRef) {
         </div>
       )}
 
-      <p className="mt-5 border-t pt-3 text-xs">
-        <Link href={`/reports-2/${slugOf(rs.study)}`} className="text-muted-foreground underline-offset-2 hover:text-foreground hover:underline">
-          Open the report
-        </Link>
-      </p>
+      {linked && (
+        <p className="mt-5 border-t pt-3 text-xs">
+          <Link href={`/reports-2/${slugOf(rs.study)}`} className="text-muted-foreground underline-offset-2 hover:text-foreground hover:underline">
+            Open the report
+          </Link>
+        </p>
+      )}
     </section>
   )
 }

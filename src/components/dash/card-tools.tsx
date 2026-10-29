@@ -120,7 +120,7 @@ export function CardTools({
   name = "card",
   size,
   onSize,
-  sizes = true,
+  panel = false,
   menuItems,
   title,
   anchor,
@@ -139,8 +139,9 @@ export function CardTools({
   /** The block's size: collapsed (header only), half (420px) or full (840px). */
   size?: "collapsed" | "half" | "full"
   onSize?: (size: "collapsed" | "half" | "full") => void
-  /** Whether the menu offers the three sizes; a side panel, which fills its column, does not. */
-  sizes?: boolean
+  /** A side panel's menu (Brendan, 2026-10-29): it fills its column and has no place in an order or the
+   *  favorites, so no Pin to top, no Favorite and no sizes. */
+  panel?: boolean
   /** The block's title and anchor: Favorite and Add to Blocks key on them, the foot shows the title. */
   title?: string
   anchor?: string
@@ -163,12 +164,12 @@ export function CardTools({
       {children}
       {/* Code/hq's row kebab, in PAX's light dress (components/kebab-menu.tsx). */}
       <KebabMenu label="Block options" trigger={<EllipsisVerticalIcon className="size-4" />} triggerClassName="inline-flex size-8 items-center justify-center rounded-md text-slate-800 outline-none hover:bg-muted hover:text-foreground aria-expanded:bg-muted">
-        <MenuRow icon={<PinIcon />} label="Pin to top" disabled={!pinTop || pinTop.first} onClick={() => pinTop?.pin()} />
-        <MenuRow icon={<StarIcon className={fav ? "fill-amber-400 text-amber-400" : undefined} />} label={fav ? "Unfavorite" : "Favorite"} disabled={!key} onClick={() => key && toggleFav(key)} />
+        {!panel && <MenuRow icon={<PinIcon />} label="Pin to top" disabled={!pinTop || pinTop.first} onClick={() => pinTop?.pin()} />}
+        {!panel && <MenuRow icon={<StarIcon className={fav ? "fill-amber-400 text-amber-400" : undefined} />} label={fav ? "Unfavorite" : "Favorite"} disabled={!key} onClick={() => key && toggleFav(key)} />}
         <MenuRow icon={<LayoutGridIcon />} label={onShelf ? "Remove from Blocks" : "Add to Blocks"} checked={onShelf} disabled={!key || !title} onClick={() => key && title && anchor && (onShelf ? shelf.remove(key) : shelf.add({ key, title, path, anchor }))} />
         <MenuRow icon={<MessagesSquareIcon />} label="Ask PAX" onClick={ask} />
         <MenuRow icon={<RefreshCwIcon />} label="Refresh" onClick={() => router.refresh()} />
-        {sizes && (
+        {!panel && (
           <>
             <MenuSeparator />
             <MenuRow icon={<ChevronsDownUpIcon />} label="Collapse" checked={size === "collapsed"} disabled={!onSize} onClick={() => onSize?.("collapsed")} />

@@ -96,8 +96,8 @@ export function MainBlock({ title, children, search, searchValue, onSearch, tool
             {search && <PAX2Search placeholder={search} />}
           </div>
           <CardAction>
-            {/* A side panel fills its column at every size, so it carries no size chevron and no size rows (Brendan, 2026-10-29). */}
-            <CardTools rows={rows} name={name ?? title.toLowerCase()} views={views} view={view} onView={onView} size={size} onSize={panel ? undefined : setSize} sizes={!panel} menuItems={menuItems} title={title || undefined} anchor={title || id ? (id ?? slug(title)) : undefined}>
+            {/* A side panel fills its column at every size, so it carries no size chevron, and its menu no sizes, Pin to top or Favorite (Brendan, 2026-10-29). */}
+            <CardTools rows={rows} name={name ?? title.toLowerCase()} views={views} view={view} onView={onView} size={size} onSize={panel ? undefined : setSize} panel={panel} menuItems={menuItems} title={title || undefined} anchor={title || id ? (id ?? slug(title)) : undefined}>
               {actions}
               {!panel && (
                 <button type="button" aria-label={size === "half" ? `Full view ${title}` : `Half view ${title}`} onClick={() => setSize(size === "half" ? "full" : "half")} className="inline-flex size-8 items-center justify-center rounded-md text-slate-800 hover:bg-muted hover:text-foreground">

@@ -7,6 +7,7 @@ import { BookmarkIcon, ChevronDownIcon, ChevronUpIcon, HeartIcon, LockIcon, Mess
 
 import { Avatar, AvatarFallback, AvatarImage } from "@govblock/ui/components/nova/avatar"
 import { cn } from "@govblock/ui/lib/utils"
+import { Skeleton } from "@/ui/components/nova/skeleton"
 
 
 import { RctBadge, testsOf } from "./clip-test"
@@ -142,6 +143,11 @@ function FeedItem({ clip, active, muted, onMuted, reactions }: { clip: Clip; act
   const [paused, setPaused] = React.useState(false)
   const [progress, setProgress] = React.useState(0)
   const [expanded, setExpanded] = React.useState(false)
+  // The frame holds a skeleton until the video has a picture to show.
+  const [ready, setReady] = React.useState(false)
+  React.useEffect(() => {
+    if ((videoRef.current?.readyState ?? 0) >= 2) setReady(true)
+  }, [])
 
   React.useEffect(() => {
     const v = videoRef.current
@@ -233,9 +239,11 @@ function FeedItem({ clip, active, muted, onMuted, reactions }: { clip: Clip; act
             preload={active ? "auto" : "metadata"}
             className="absolute inset-0 size-full object-cover"
             onClick={toggle}
+            onLoadedData={() => setReady(true)}
             onTimeUpdate={(e) => e.currentTarget.duration && setProgress(e.currentTarget.currentTime / e.currentTarget.duration)}
           />
         )}
+        {!clip.youtube && !clip.composition && !clip.poster && !ready && <Skeleton className="pointer-events-none absolute inset-0 rounded-none" />}
         {paused && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
             <PauseIcon className="size-14 fill-white/80 text-white/80" />
