@@ -1,7 +1,6 @@
 import { MODEL_IDS } from "@/lib/model-options"
 import { BedrockRuntimeClient, ConverseStreamCommand, type Message } from "@aws-sdk/client-bedrock-runtime"
 
-import { COMPONENTS } from "@/lib/resonance"
 import { SCRIPTS, scriptById, takeLabel } from "@/lib/catalog"
 import { board, workspace } from "@/lib/review"
 import { anonSpend } from "@/lib/anon"
@@ -11,8 +10,8 @@ import { platformGuide } from "@/lib/platform-guide"
 import { termById } from "@/lib/glossary"
 import { videosContext } from "@/lib/chat-videos"
 
-// The /chat answer, after solar's /api/chat: a system prompt carrying the record (here, every take's
-// current score and its parts, and the scripts), then the reply streamed back as plain text.
+// The /chat answer, after solar's /api/chat: a system prompt carrying the record (here, every take
+// and its reach, and the scripts), then the reply streamed back as plain text.
 
 const client = new BedrockRuntimeClient({ region: process.env.PAX2_BEDROCK_REGION ?? process.env.PAX2_REGION ?? "us-east-1" })
 const MODEL = process.env.PAX2_CHAT_MODEL ?? process.env.PAX2_MODEL ?? "us.anthropic.claude-sonnet-4-6"
@@ -40,13 +39,12 @@ When the context lists blocks from an attached page, you may show one in the ans
 async function record(): Promise<string> {
   try {
     const { takes } = await board(await workspace())
+    // A take's old pre-publication stack score is not printed (the lead's ruling, 2026-10-29): no
+    // figure rather than a wrongly named one. A take gains a Resonance when the loop measures it.
     const lines = takes.map(({ take, latest }) => {
-      const s = latest?.score
       const name = `${scriptById(take.scriptId)?.short ?? take.scriptId} · ${takeLabel(take)}`
-      if (!s || s.value == null) return `- ${name} (/v/${take.id}): not scored`
-      const parts = s.components.map((c) => `${COMPONENTS.find((x) => x.key === c.key)?.name ?? c.key} ${c.score?.toFixed(0) ?? "—"}`).join(", ")
-      const reach = latest!.snapshot.metrics.reach.value
-      return `- ${name} (/v/${take.id}): Resonance ${s.value.toFixed(0)} (range ${s.low?.toFixed(0)}–${s.high?.toFixed(0)}); ${parts}; reach ${reach?.toLocaleString() ?? "—"}`
+      const reach = latest?.snapshot.metrics.reach.value
+      return `- ${name} (/v/${take.id}): no Resonance yet; reach ${reach?.toLocaleString() ?? "—"}`
     })
     const scripts = SCRIPTS.map((s) => `- ${s.title} (${s.short}): ${s.framing}`)
     return `\n\n=== THE RECORD — USE THESE EXACT NUMBERS ===\nTakes:\n${lines.join("\n")}\n\nScripts:\n${scripts.join("\n")}\n=== END RECORD ===`
