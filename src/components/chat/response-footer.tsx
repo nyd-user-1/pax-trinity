@@ -3,19 +3,18 @@
 import * as React from "react"
 import { Check, Copy, RotateCcw, ThumbsDown, ThumbsUp } from "lucide-react"
 
-import { modelById } from "@/lib/model-options"
 import { cn } from "@/ui/lib/utils"
 
 // The row under each finished reply, after Code/hq's message menu (app/ui/block-menu.tsx): Copy, Good and
-// Bad response, Retry on the latest reply, and the model that wrote it. Shown on the latest reply, on
-// hover for the earlier ones.
+// Bad response, and Retry on the latest reply. Shown on the latest reply, on hover for the earlier ones.
+// The model that wrote it is never named here (the standing rule, 2026-10-29); `model` stays in the props
+// for the callers that pass it.
 
 const BTN = "inline-flex size-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 [&_svg]:size-3.5"
 
-export function ResponseFooter({ text, model, latest, onRetry }: { text: string; model?: string; latest: boolean; onRetry?: () => void }) {
+export function ResponseFooter({ text, latest, onRetry }: { text: string; model?: string; latest: boolean; onRetry?: () => void }) {
   const [copied, setCopied] = React.useState(false)
   const [reaction, setReaction] = React.useState<"up" | "down" | null>(null)
-  const m = model ? modelById(model) : null
   return (
     <div className={cn("mt-2 flex items-center gap-0.5 transition-opacity", latest ? "opacity-100" : "opacity-0 group-hover/reply:opacity-100 focus-within:opacity-100")}>
       <button
@@ -41,13 +40,6 @@ export function ResponseFooter({ text, model, latest, onRetry }: { text: string;
         <button type="button" aria-label="Retry" title="Retry" onClick={onRetry} className={BTN}>
           <RotateCcw />
         </button>
-      )}
-      {m && (
-        <span className="ml-2 flex items-center gap-1.5 text-[11px] text-slate-400">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={m.logo} alt="" className="size-3.5 rounded-sm object-contain" />
-          {m.label}
-        </span>
       )}
     </div>
   )

@@ -4,7 +4,9 @@ import { currentUser } from "@/lib/auth"
 import { listChats, patchChat, readChat, writeChat, type ChatMessage, type ChatMeta } from "@/lib/chats"
 
 // The reader's saved /chat conversations. Signed out, or on a shared demo account, nothing is kept:
-// a demo login is one account for every visitor, so its chats would be everyone's.
+// a demo login is one account for every visitor, so its chats would be everyone's. Where the chats'
+// store can't be reached (its pax2-ledger table sits in us-east-1, which the new account's policy
+// denies), each action answers as if nothing were kept, quietly, instead of a 500 on every page.
 
 async function reader(): Promise<string | null> {
   const u = await currentUser()
@@ -13,16 +15,18 @@ async function reader(): Promise<string | null> {
 
 const ID = /^[\w-]{8,64}$/
 
+const quiet = <T, E>(work: Promise<T>, empty: E): Promise<T | E> => work.catch(() => empty)
+
 export async function myChats(): Promise<ChatMeta[]> {
   const who = await reader()
-  return who ? listChats(who) : []
+  return who ? quiet(listChats(who), []) : []
 }
 
 export async function saveChat(id: string, messages: ChatMessage[]): Promise<ChatMeta | null> {
   const who = await reader()
   if (!who || !ID.test(id) || messages.length === 0) return null
   const clean = messages.map((m) => ({ id: String(m.id), role: m.role === "user" ? ("user" as const) : ("assistant" as const), content: String(m.content ?? ""), ...(m.model ? { model: String(m.model) } : {}) }))
-  return writeChat(who, id, clean)
+  return quiet(writeChat(who, id, clean), null)
 }
 
 export async function updateChat(id: string, patch: { title?: string; favorite?: boolean; pinned?: boolean; hidden?: boolean; archived?: boolean }): Promise<ChatMeta | null> {
@@ -31,13 +35,13 @@ export async function updateChat(id: string, patch: { title?: string; favorite?:
   const p: typeof patch = {}
   if (typeof patch.title === "string") p.title = patch.title.slice(0, 120)
   for (const k of ["favorite", "pinned", "hidden", "archived"] as const) if (typeof patch[k] === "boolean") p[k] = patch[k]
-  return patchChat(who, id, p)
+  return quiet(patchChat(who, id, p), null)
 }
 
 /** For the /chat page's server render. */
 export async function openChat(id: string) {
   const who = await reader()
-  return who && ID.test(id) ? readChat(who, id) : null
+  return who && ID.test(id) ? quiet(readChat(who, id), null) : null
 }
 
 /** The evidence behind a chat script's citations, by id (unknown ids left out), and every fact a
