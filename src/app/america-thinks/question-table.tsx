@@ -2,11 +2,11 @@
 
 import * as React from "react"
 import dynamic from "next/dynamic"
-import { ArrowLeft, ClipboardList, Globe } from "lucide-react"
+import { ArrowLeft, ClipboardList, Database, Globe, Grid3x3, TrendingUp } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
-import { PaneTitleRow, ViewToggle } from "@/components/bank/pane-bars"
+import { PaneTitleRow, ViewToggle, type PaneSearch } from "@/components/bank/pane-bars"
 import { Card, CardLabel } from "../_wire/wire-bits"
 
 // The Trend view loads only when clicked: the chart file carries the ECharts
@@ -49,9 +49,10 @@ import { type About } from "./audience-pane"
 // takes the content area as a layer, the dossier's way.
 
 const VIEWS = [
-  { value: "tidy", label: "Data" },
-  { value: "crosstab", label: "Crosstab" },
-  { value: "chart", label: "Trend" },
+  // Every view an icon (Brendan, 2026-10-29), its label the tooltip.
+  { value: "tidy", label: "Data", icon: Database },
+  { value: "crosstab", label: "Crosstab", icon: Grid3x3 },
+  { value: "chart", label: "Trend", icon: TrendingUp },
   { value: "topline", label: "Topline", icon: ClipboardList },
   { value: "global", label: "Global view", icon: Globe },
 ] as const
@@ -70,6 +71,7 @@ export function QuestionTable({
   about,
   onPick,
   onBack,
+  search,
   aboutLayer,
 }: {
   /** The question's rows alone. */
@@ -89,6 +91,8 @@ export function QuestionTable({
   onPick: (a: About) => void
   /** Present when the list is hidden: the title row's Back. */
   onBack?: () => void
+  /** The list's search, carried in the title row after the kebab. */
+  search?: PaneSearch
   /** The picked value's About panel, as the layer over the view. */
   aboutLayer?: React.ReactNode
 }) {
@@ -143,14 +147,14 @@ export function QuestionTable({
     <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
       {aboutLayer ? (
         <>
-          <PaneTitleRow title={heading} leading={leading}>
+          <PaneTitleRow title={heading} leading={leading} search={search}>
             {viewToggle}
           </PaneTitleRow>
           {aboutLayer}
         </>
       ) : view === "global" && source ? (
         <>
-          <PaneTitleRow title={heading} leading={leading}>
+          <PaneTitleRow title={heading} leading={leading} search={search}>
             {viewToggle}
           </PaneTitleRow>
           <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
@@ -158,10 +162,10 @@ export function QuestionTable({
           </div>
         </>
       ) : view === "tidy" ? (
-        <RowsView rows={rows} id={metric} source={source} header={heading} leading={leading} trailing={viewToggle} about={about} onPick={onPick} />
+        <RowsView rows={rows} id={metric} source={source} header={heading} leading={leading} trailing={viewToggle} search={search} about={about} onPick={onPick} />
       ) : (
         <>
-      <PaneTitleRow title={heading} leading={leading}>
+      <PaneTitleRow title={heading} leading={leading} search={search}>
         {viewToggle}
       </PaneTitleRow>
       {/* Native scroll, not the ScrollArea primitive: radix's viewport sizes

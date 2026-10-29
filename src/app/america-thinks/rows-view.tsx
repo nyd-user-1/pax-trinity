@@ -5,7 +5,7 @@ import { EllipsisVerticalIcon, Loader2 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
-import { PaneTitleRow } from "@/components/bank/pane-bars"
+import { PaneTitleRow, type PaneSearch } from "@/components/bank/pane-bars"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@govblock/ui/components/ny4/dropdown-menu"
 
 import { num, weightOf, year, type SourceRow } from "./audience-data"
@@ -26,6 +26,7 @@ export function RowsView({
   header,
   leading,
   trailing,
+  search,
   about,
   onPick,
 }: {
@@ -40,6 +41,8 @@ export function RowsView({
   /** The open question's own controls, before the heading. */
   leading?: React.ReactNode
   trailing?: React.ReactNode
+  /** The title row's search, after the filters kebab. */
+  search?: PaneSearch
   /** A clicked row hands itself to the About panel, where the mount has one. */
   about?: About | null
   onPick?: (a: About) => void
@@ -105,8 +108,9 @@ export function RowsView({
 
   const listed = sorted.slice(0, depth)
   const more = React.useCallback(() => setDepth((d) => d + PER_READ), [])
-  // The filters live in one kebab after the trailing control (Brendan,
-  // 2026-10-27: the chips crowded the question off the row). A group prints
+  // The filters live in one kebab, leading the title row before the search
+  // (Brendan, 2026-10-29; at the right after the toggle since 2026-10-27,
+  // when the chips crowded the question off the row). A group prints
   // only where there is something to pick: one wave, one band or no subgroups
   // leaves nothing to filter, and nothing at all leaves no kebab.
   const groups: { label: string; value: string; onPick: (v: string) => void; items: { value: string; label: string }[] }[] = []
@@ -122,11 +126,11 @@ export function RowsView({
   const kebab = groups.length > 0 && (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon-sm" aria-label="Filters" title="Filters" className="-mr-1.5 shrink-0">
+        <Button variant="ghost" size="icon-sm" aria-label="Filters" title="Filters" className={cn("shrink-0", !leading && "-ml-1.5")}>
           <EllipsisVerticalIcon className="size-4" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="max-h-96 w-max min-w-44 overflow-y-auto">
+      <DropdownMenuContent align="start" className="max-h-96 w-max min-w-44 overflow-y-auto">
         {groups.map((g, i) => (
           <React.Fragment key={g.label}>
             {i > 0 && <DropdownMenuSeparator />}
@@ -147,11 +151,21 @@ export function RowsView({
 
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
-      {/* The mount's title row: the heading truncating at the left, the
-          trailing control then the filters kebab at the right. */}
-      <PaneTitleRow title={header} leading={leading}>
+      {/* The mount's title row: Back where the list is hidden, the filters
+          kebab, the search, the heading truncating, the trailing control at the right. */}
+      <PaneTitleRow
+        title={header}
+        leading={
+          leading || kebab ? (
+            <>
+              {leading}
+              {kebab}
+            </>
+          ) : undefined
+        }
+        search={search}
+      >
         {trailing}
-        {kebab}
       </PaneTitleRow>
 
       <div className="min-h-0 flex-1 overflow-y-auto">

@@ -80,13 +80,31 @@ export function PaneSearchRow({
   )
 }
 
-export function PaneTitleRow({ title, leading, children }: { title: React.ReactNode; leading?: React.ReactNode; children?: React.ReactNode }) {
+/** The title row's search (Brendan, 2026-10-29): an icon after the row's
+ *  leading controls; opened, or holding a query, the field takes the row up to
+ *  the controls at its right, over the title. The owner keeps it open across
+ *  remounts. */
+export type PaneSearch = { query: string; onQuery: (q: string) => void; placeholder: string; open: boolean; onOpen: () => void; onClose: () => void }
+
+export function PaneTitleRow({ title, leading, search, children }: { title: React.ReactNode; leading?: React.ReactNode; search?: PaneSearch; children?: React.ReactNode }) {
+  const searching = search != null && (search.open || search.query !== "")
   return (
     <div className="flex h-[52px] shrink-0 items-center gap-2 border-b px-4">
-      {leading && <div className="flex shrink-0 items-center gap-2">{leading}</div>}
-      {/* 68ch, the list row's clamp: the measure of "All things considered, how
-          well do you think relying on volunteers…". */}
-      <span className="max-w-[68ch] min-w-0 truncate text-sm font-semibold">{title}</span>
+      {leading && <div className="flex shrink-0 items-center gap-1">{leading}</div>}
+      {search && !searching && (
+        <Button variant="ghost" size="icon-sm" aria-label="Search" title="Search" className={cn("shrink-0", !leading && "-ml-1.5")} onClick={search.onOpen}>
+          <Search className="size-4" />
+        </Button>
+      )}
+      {search && searching ? (
+        <div className="min-w-0 flex-1">
+          <SearchField query={search.query} onQuery={search.onQuery} placeholder={search.placeholder} autoFocus={search.open} onClose={search.onClose} />
+        </div>
+      ) : (
+        // 68ch, the list row's clamp: the measure of "All things considered,
+        // how well do you think relying on volunteers…".
+        <span className="max-w-[68ch] min-w-0 truncate text-sm font-semibold">{title}</span>
+      )}
       <div className="ml-auto flex shrink-0 items-center gap-2">{children}</div>
     </div>
   )
@@ -100,7 +118,7 @@ export function RefreshButton({ onRefresh }: { onRefresh: () => void }) {
   )
 }
 
-/** The segmented toggle: Data, Crosstab, Trend and the globe on /audience. A view with an icon shows the icon alone, its label as the name. */
+/** The segmented toggle: Data, Crosstab, Trend, Topline and the globe on America Thinks, each an icon. A view with an icon shows the icon alone, its label as the name. */
 export function ViewToggle<V extends string>({ views, value, onChange }: { views: readonly { value: V; label: string; icon?: LucideIcon }[]; value: V; onChange: (v: V) => void }) {
   return (
     <div className="flex shrink-0 rounded-lg border p-0.5 text-xs">

@@ -78,6 +78,7 @@ export function CardList({
   placeholder,
   menu,
   compact = false,
+  onSearch,
   loading,
   error,
   empty,
@@ -99,6 +100,9 @@ export function CardList({
   menu?: React.ReactNode
   /** One bar: the search an icon until picked, the rail toggle in the kebab. */
   compact?: boolean
+  /** The search lives elsewhere (America Thinks' open question carries it in
+   *  its title row): the bar's empty run opens that one, and the bar shows no field. */
+  onSearch?: () => void
   loading: boolean
   error: string | null
   /** What an empty list says. */
@@ -189,7 +193,7 @@ export function CardList({
           className={cn("flex h-[52px] shrink-0 items-center gap-1 border-b px-3", !(searching || query) && "cursor-text")}
           onClick={(event) => {
             const target = event.target as HTMLElement
-            if (event.currentTarget.contains(target) && !target.closest("button")) setSearching(true)
+            if (event.currentTarget.contains(target) && !target.closest("button")) (onSearch ? onSearch() : setSearching(true))
           }}
         >
           {kebab}
@@ -199,7 +203,7 @@ export function CardList({
               {railCtl.open ? <PanelLeftClose className="size-4" /> : <PanelLeftOpen className="size-4" />}
             </Button>
           )}
-          {(searching || query) && (
+          {!onSearch && (searching || query) && (
             <div className="min-w-0 flex-1">
               {/* Focused when picked from the bar, not when the rail's search fills it. */}
               <SearchField query={query} onQuery={onQuery} placeholder={placeholder} autoFocus={searching} onClose={closeSearch} />

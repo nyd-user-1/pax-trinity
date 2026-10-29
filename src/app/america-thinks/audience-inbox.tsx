@@ -51,6 +51,9 @@ export function AudienceInbox() {
   const [error, setError] = React.useState<string | null>(null)
   const [rowsError, setRowsError] = React.useState<string | null>(null)
   const [query, setQuery] = React.useState("")
+  // The open question's title row carries the search (Brendan, 2026-10-29):
+  // opened there, it stays open across the pane's views until closed.
+  const [paneSearch, setPaneSearch] = React.useState(false)
   const [split, setSplit] = React.useState<Split>("none")
   // The compare grid's columns, four at most, added from a row's kebab.
   const [columns, setColumns] = React.useState<string[]>([])
@@ -404,7 +407,8 @@ export function AudienceInbox() {
 
   // The list keeps its place beside the open question (Brendan, 2026-10-26:
   // "don't close the middle panel"), stacked the way the split folds it.
-  const listFor = (s: Split) => (
+  // Beside an open question the list's bar hands its search to the pane's title row.
+  const listFor = (s: Split, searchInPane = false) => (
     <CardList
       ids={ordered}
       card={s === "vertical" ? cardOf : (id) => ({ ...cardOf(id), chip: null })}
@@ -417,6 +421,7 @@ export function AudienceInbox() {
       onQuery={setQuery}
       placeholder="Search wording or label…"
       compact
+      onSearch={searchInPane ? () => setPaneSearch(true) : undefined}
       loading={!index && !error}
       error={error}
       empty={
@@ -483,7 +488,7 @@ export function AudienceInbox() {
         // The reading pane off (split none), the question has the screen and
         // the title row leads with Back; on, the list stands folded beside it.
         <BankSplit
-          list={split === "vertical" ? listFor("vertical") : undefined}
+          list={split === "vertical" ? listFor("vertical", true) : undefined}
           pane={
             loaded(tableMetric) && info.get(tableMetric) ? (
               <QuestionTable
@@ -495,6 +500,17 @@ export function AudienceInbox() {
                 info={info.get(tableMetric) as MetricInfo}
                 source={srcOf(tableMetric)}
                 sourceLabel={index?.sources.find((s) => s.source === srcOf(tableMetric))?.label ?? null}
+                search={{
+                  query,
+                  onQuery: setQuery,
+                  placeholder: "Search wording or label…",
+                  open: paneSearch,
+                  onOpen: () => setPaneSearch(true),
+                  onClose: () => {
+                    setQuery("")
+                    setPaneSearch(false)
+                  },
+                }}
                 wording={wordingOf(tableMetric)}
                 about={about}
                 onPick={setAbout}
