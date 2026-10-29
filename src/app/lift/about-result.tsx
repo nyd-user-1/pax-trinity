@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import dynamic from "next/dynamic"
 import { ChartColumn, ChevronDown, CircleHelp, Loader2, X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -9,6 +10,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components
 
 import { num, type SourceRow } from "../america-thinks/audience-data"
 import { fielding, levelOf, metricShort, periodKey, POINT_LEFT, POINT_RIGHT, segOf, signed, significance, testOf, treatmentName, type Pick } from "./lift-data"
+
+// ECharts loads only when a benchmark card opens.
+const DensityChart = dynamic(() => import("./density-chart").then((m) => m.DensityChart), { ssr: false, loading: () => <div className="h-[92px]" /> })
 
 // Swayable's About Result (Brendan, 2026-10-28): Analytics and Open-ends; the
 // result on a 0–100 line from its control group's level; the treatment and
@@ -19,7 +23,6 @@ import { fielding, levelOf, metricShort, periodKey, POINT_LEFT, POINT_RIGHT, seg
 
 const ORDINAL = ["1st", "2nd", "3rd", "4th", "5th"]
 const QUINTILE = ["bg-red-500", "bg-orange-400", "bg-yellow-400", "bg-green-500", "bg-green-700"]
-const QUINTILE_HEX = ["#ef4444", "#fb923c", "#facc15", "#22c55e", "#15803d"]
 
 /** Where x falls among values: the percent below it, ties counted half (audience/api.py's place_lift). */
 function percentile(values: number[], x: number) {
@@ -315,7 +318,7 @@ function Benchmark({ name, values, x, moe, context }: { name: string; values: nu
       </button>
       {open && values.length > 0 && (
         <div className="border-t px-3 pt-3 pb-2.5">
-          {pct != null && <Density values={values} x={x} moe={moe} />}
+          {pct != null && <DensityChart values={values} x={x} moe={moe} />}
           <dl className="mt-2 grid grid-cols-[1fr_auto] gap-x-3 text-[13px]">
             <dt className="border-b py-2">Impact from Treatment</dt>
             <dd className="border-b py-2 text-right tabular-nums">
@@ -345,77 +348,6 @@ function Benchmark({ name, values, x, moe, context }: { name: string; values: nu
         </div>
       )}
     </div>
-  )
-}
-
-/** The benchmark's lifts as a smoothed distribution (a Gaussian kernel, Silverman's bandwidth), its baseline
- *  colored by quintile and ticked at the four cuts, the result marked on it with its margin. */
-function Density({ values, x, moe }: { values: number[]; x: number; moe: number | null }) {
-  const W = 300
-  const BASE = 56
-  const shape = React.useMemo(() => {
-    const s = [...values].sort((a, b) => a - b)
-    const at = (p: number) => {
-      const i = p * (s.length - 1)
-      const lo = Math.floor(i)
-      return s[lo] + (s[Math.min(lo + 1, s.length - 1)] - s[lo]) * (i - lo)
-    }
-    const mean = s.reduce((a, b) => a + b, 0) / s.length
-    const sd = Math.sqrt(s.reduce((a, b) => a + (b - mean) ** 2, 0) / s.length)
-    const lo = Math.min(s[0], x - (moe ?? 0))
-    const hi = Math.max(s[s.length - 1], x + (moe ?? 0))
-    const pad = (hi - lo || 1) * 0.06
-    const min = lo - pad
-    const max = hi + pad
-    const bw = sd > 0 ? 1.06 * sd * s.length ** -0.2 : (max - min) / 12
-    const N = 72
-    const ys = Array.from({ length: N + 1 }, (_, i) => {
-      const v = min + ((max - min) * i) / N
-      let d = 0
-      for (const t of s) d += Math.exp(-0.5 * ((v - t) / bw) ** 2)
-      return d
-    })
-    const top = Math.max(...ys) || 1
-    const xOf = (v: number) => ((v - min) / (max - min)) * W
-    const path = `M0,${BASE} ` + ys.map((d, i) => `L${((i / N) * W).toFixed(1)},${(BASE - (d / top) * (BASE - 16)).toFixed(1)}`).join(" ") + ` L${W},${BASE} Z`
-    return { path, xOf, cuts: [0.2, 0.4, 0.6, 0.8].map(at), min, max }
-  }, [values, x, moe])
-  const X = Math.min(W - 4, Math.max(4, shape.xOf(x)))
-  // A cut's label stands only where it clears the last one drawn; a small pool's cuts crowd.
-  const labeled: number[] = []
-  for (let i = 0; i < shape.cuts.length; i++) {
-    const last = labeled.at(-1)
-    if (last == null || shape.xOf(shape.cuts[i]) - shape.xOf(shape.cuts[last]) >= 26) labeled.push(i)
-  }
-  const edges = [shape.min, ...shape.cuts, shape.max]
-  return (
-    <svg viewBox={`0 0 ${W} ${BASE + 16}`} className="w-full" role="img" aria-label={`The result, ${signed(x)}, among the benchmark's lifts`}>
-      <path d={shape.path} fill="#e7e6e2" />
-      {edges.slice(0, -1).map((e, i) => (
-        <rect key={i} x={shape.xOf(e)} y={BASE - 1} width={Math.max(0, shape.xOf(edges[i + 1]) - shape.xOf(e))} height={2.5} fill={QUINTILE_HEX[i]} />
-      ))}
-      {shape.cuts.map((c, i) => (
-        <g key={i}>
-          <line x1={shape.xOf(c)} x2={shape.xOf(c)} y1={BASE - 3} y2={BASE + 3} stroke="#52514e" strokeWidth={1} />
-          {labeled.includes(i) && (
-            <text x={shape.xOf(c)} y={BASE + 14} textAnchor="middle" fontSize={10} fill="#52514e">
-              {num(c)}
-            </text>
-          )}
-        </g>
-      ))}
-      {moe != null && <line x1={shape.xOf(x - moe)} x2={shape.xOf(x + moe)} y1={BASE - 5} y2={BASE - 5} stroke="#0f172a" strokeWidth={1.5} />}
-      <path d={`M${X - 5},${BASE - 11} L${X + 5},${BASE - 11} L${X},${BASE - 4} Z`} fill="#0f172a" />
-      <text x={Math.min(W - 30, Math.max(30, X))} y={10} textAnchor="middle" fontSize={12} fontWeight={600} fill="#0b0b0b">
-        {signed(x)}
-        {moe != null && (
-          <tspan fontSize={10} fontWeight={400} fill="#52514e">
-            {" "}
-            ±{num(moe)}
-          </tspan>
-        )}
-      </text>
-    </svg>
   )
 }
 
