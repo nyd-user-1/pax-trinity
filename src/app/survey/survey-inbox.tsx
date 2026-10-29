@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { ClipboardList, FlaskConical } from "lucide-react"
+import { ClipboardList, FileText, FlaskConical } from "lucide-react"
 
 import { BankFrame, BankSplit } from "@/components/bank/bank-frame"
 import { BankRail, RailGroup, RailRow } from "@/components/bank/bank-rail"
@@ -12,6 +12,7 @@ import { SplitBar, SplitLegend } from "@/components/consensus/split-bar"
 import { agreement, consensusStatements, divisiveness, divisiveStatements, share, type Conversation, type Statement } from "@/lib/consensus/data"
 import { readDraft, type SurveyDraft } from "@/lib/consensus/draft"
 import { fmtNumber } from "@/lib/format"
+import { SURVEYS } from "@/lib/surveys/catalog"
 
 // /survey — the second consensus experience on /audience's anatomy: the
 // surveys and pretrainings as the rail's folders, the open one's questions as
@@ -89,6 +90,11 @@ export function SurveyInbox({ surveys, open }: { surveys: SurveyMeta[]; open: Co
   const folderName = onDraft ? (draft?.title ?? "Draft survey") : (open?.title ?? "")
   const rail = (
     <BankRail title="Surveys">
+      <RailGroup label="Toplines">
+        {SURVEYS.map((s) => (
+          <RailRow key={s.slug} href={`/survey/${s.slug}`} icon={FileText} label={s.title} count={s.questions.length} />
+        ))}
+      </RailGroup>
       <RailGroup>
         {surveys.map((s) => (
           <RailRow key={s.slug} on={folder === s.slug} onClick={() => openSurvey(s.slug)} icon={ClipboardList} label={s.title} count={s.statements} />
