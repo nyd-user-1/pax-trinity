@@ -6,7 +6,20 @@ import { num, type SourceRow } from "../america-thinks/audience-data"
 
 /** What the archive records about one of its ads (public/lift/archive-ads.json, written by
  *  audience/audience/lift_ads.py). The campaigns are anonymized and stay so. */
-export type AdInfo = { state: string; race: string | null; date: string | null; cycle: number; ad: number; ads: number; tone: string | null; focus: string | null; traits: string[]; emotions: Record<string, number> }
+export type AdInfo = {
+  state: string
+  race: string | null
+  date: string | null
+  cycle: number
+  ad: number
+  ads: number
+  tone: string | null
+  focus: string | null
+  traits: string[]
+  emotions: Record<string, number>
+  /** The ad's test's placebo group per outcome: [mean, n], from the archive's respondent-level file. */
+  control?: Record<string, [number, number]>
+}
 export const AD_INFO = new Map<string, AdInfo>()
 /** The ads' descriptions arrive with the Archive's rows, before its table draws. */
 export function setAds(ads: Record<string, AdInfo>) {
@@ -58,6 +71,10 @@ export const TRAIT_GROUPS: { name: string; traits: { key: string; name: string; 
         ["mentions_party", "Mentions a party"],
         ["mentions_trump", "Mentions Trump"],
         ["cites_source", "Cites a source"],
+        ["asks_for_vote", "Asks for the vote"],
+        ["issue_healthcare", "Health care"],
+        ["issue_taxes", "Taxes"],
+        ["high_production", "High production value"],
       ] as const
     ).map(([k, n]) => ({ key: k, name: n, has: (a) => a.traits.includes(k) })),
   },
@@ -66,7 +83,9 @@ export const TRAIT_GROUPS: { name: string; traits: { key: string; name: string; 
     traits: (
       [
         ["name_calling", "Name-calling"],
+        ["positive_labels", "Positive labels"],
         ["testimonial", "Testimonial"],
+        ["transfer", "Transfer"],
         ["plain_folks", "Plain folks"],
       ] as const
     ).map(([k, n]) => ({ key: k, name: n, has: (a) => a.traits.includes(k) })),
@@ -83,8 +102,15 @@ export const TRAIT_GROUPS: { name: string; traits: { key: string; name: string; 
         ["messenger_male", "Man"],
         ["messenger_black", "Black"],
         ["messenger_white", "White"],
+        ["messenger_asian", "Asian"],
+        ["messenger_latinx", "Latino"],
+        ["messenger_young_adult", "Young adult"],
+        ["messenger_middle_aged", "Middle-aged"],
         ["messenger_elderly", "Older adult"],
         ["messenger_children", "Children"],
+        ["messenger_politician", "Politician"],
+        ["messenger_celebrity", "Celebrity"],
+        ["messenger_veteran", "Veteran"],
       ] as const
     ).map(([k, n]) => ({ key: k, name: n, has: (a) => a.traits.includes(k) })),
   },
@@ -142,3 +168,11 @@ export function fielding(start: string, end: string) {
 /** The arrow's two headings: the lift's direction from the control group. */
 export const POINT_RIGHT = "polygon(0 0, calc(100% - 6px) 0, 100% 50%, calc(100% - 6px) 100%, 0 100%)"
 export const POINT_LEFT = "polygon(6px 0, 100% 0, 100% 100%, 6px 100%, 0 50%)"
+
+export type AdColumn = { key: string; name: string; width: number; value: (a: AdInfo) => string; order: (a: AdInfo) => string; mark?: boolean }
+/** Every coded trait as an optional column (Brendan, 2026-10-29): Yes where the ad carries it, sorting those first. */
+export const TRAIT_COLUMNS: { group: string; columns: AdColumn[] }[] = TRAIT_GROUPS.filter((g) => !["Tone", "Focus", "Race", "Cycle"].includes(g.name)).map((g) => ({
+  group: g.name,
+  columns: g.traits.map((t) => ({ key: `@t:${t.key}`, name: t.name, width: 104, mark: true, value: (a: AdInfo) => (t.has(a) ? "Yes" : "No"), order: (a: AdInfo) => (t.has(a) ? "0" : "1") })),
+}))
+export const TRAIT_COLUMN = new Map(TRAIT_COLUMNS.flatMap((g) => g.columns.map((c) => [c.key, c] as const)))

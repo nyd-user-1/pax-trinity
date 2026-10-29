@@ -25,7 +25,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components
 import { dimLabel, groupSources, num, type AudienceIndex, type SourceRow } from "../america-thinks/audience-data"
 import { rowDress } from "../america-thinks/segment-grid"
 import { AboutResult } from "./about-result"
-import { AD_COLUMNS, AD_INFO, adOffice, adWhen, adWhere, dimOf, fielding, isPlacebo, metricShort, ordered, periodKey, segKey, segOf, setAds, signed, significance, testOf, TRAIT_GROUPS, treatmentName, valOf, type AdInfo, type Cell, type Pick } from "./lift-data"
+import { AD_COLUMNS, AD_INFO, TRAIT_COLUMN, TRAIT_COLUMNS, adOffice, adWhen, adWhere, dimOf, fielding, isPlacebo, metricShort, ordered, periodKey, segKey, segOf, setAds, signed, significance, testOf, TRAIT_GROUPS, treatmentName, valOf, type AdInfo, type Cell, type Pick } from "./lift-data"
 import { AppealBar, AppealKey, axisOf, Candle, EmotionBar, EmotionKey, heat, HeatKey, sampleEmotions } from "./lift-marks"
 
 // /lift — Swayable's results view (Brendan, 2026-10-28, from the Dream Crazy
@@ -110,6 +110,9 @@ export function LiftSurface() {
   const [metricFilter, setMetricFilter] = React.useState<Record<string, "measured" | "significant">>({})
   // The Archive's ads under their tests, off until the Content column's filter turns it on.
   const [grouped, setGrouped] = React.useState(() => link.one("g") === "1")
+  // The Archive's columns: the trait columns switched on (every coded trait is one), the standing ones switched off.
+  const [traitCols, setTraitCols] = React.useState<string[]>(() => link.list("tc"))
+  const [adColsOff, setAdColsOff] = React.useState<string[]>(() => link.list("ao"))
   // The Treatments menu's choice; null is the folder's opening set.
   const [picked, setPicked] = React.useState<string[] | null>(() => (link.has("t") ? link.list("t") : null))
   const [segsOff, setSegsOff] = React.useState<string[]>(() => link.list("so"))
@@ -186,6 +189,8 @@ export function LiftSurface() {
     setColFilter({})
     setMetricFilter({})
     setGrouped(false)
+    setTraitCols([])
+    setAdColsOff([])
     setPicked(null)
     setSegsOff([])
     setPeriodsOff([])
@@ -263,7 +268,15 @@ export function LiftSurface() {
       if (!lift) return null
       const option = optionOf(ek)
       const pk = fieldingOf(ek)
-      return { lift, level: levels.get(`${option}\u0001${metric}\u0001${sk}\u0001${pk}`) ?? null, control: levels.get(`${PLACEBO}\u0001${metric}\u0001${sk}\u0001${pk}`) ?? null }
+      const level = levels.get(`${option}\u0001${metric}\u0001${sk}\u0001${pk}`) ?? null
+      const control = levels.get(`${PLACEBO}\u0001${metric}\u0001${sk}\u0001${pk}`) ?? null
+      // An archive ad starts from its own test's placebo group (the respondent file's mean), and lands at that plus its lift.
+      const base = !control && sk === "" ? AD_INFO.get(option)?.control?.[metric] : undefined
+      if (base) {
+        const at = (v: number, n: number | null): SourceRow => [metric, lift[1], lift[2], lift[3], "Placebo", null, null, v, "mean", null, null, n, lift[12]]
+        return { lift, level: at(base[0] + lift[7], lift[11] ?? null), control: at(base[0], base[1]) }
+      }
+      return { lift, level, control }
     }
     return { metrics, periods, options, byOption, dims, cell }
   }, [rows, periodsOff])
@@ -312,7 +325,8 @@ export function LiftSurface() {
   const view = React.useMemo(() => {
     if (!read) return null
     const metrics = read.metrics.filter((m) => !metricsOff.includes(m))
-    const adCol = (k: string | undefined) => (archive ? AD_COLUMNS.find((c) => c.key === k) : undefined)
+    const adCols = archive ? [...AD_COLUMNS.filter((c) => !adColsOff.includes(c.key)), ...traitCols.map((k) => TRAIT_COLUMN.get(k)!).filter(Boolean)] : []
+    const adCol = (k: string | undefined) => adCols.find((c) => c.key === k)
     const by = sort?.by === BY_NAME || adCol(sort?.by) ? sort!.by : sort && metrics.includes(sort.by) ? sort.by : (metrics[0] ?? BY_NAME)
     const dir = sort && sort.by === by ? sort.dir : by === BY_NAME ? 1 : -1
     // An entry the metrics measured, and that the Archive's column filters keep.
@@ -324,7 +338,7 @@ export function LiftSurface() {
         if (!c || (f === "significant" && significance(c.lift) !== true)) return false
       }
       const ad = archive ? AD_INFO.get(optionOf(ek)) : undefined
-      if (ad) for (const c of AD_COLUMNS) if (colFilter[c.key]?.includes(c.value(ad))) return false
+      if (ad) for (const c of adCols) if (colFilter[c.key]?.includes(c.value(ad))) return false
       return true
     }
     const measured = (o: string) => (read.byOption.get(o) ?? []).filter(keeps)
@@ -386,8 +400,8 @@ export function LiftSurface() {
           }
     const primary = metrics.filter((m) => PRIMARY.has(m)).length
     const emotion = !metricsOff.includes(EMOTION)
-    return { metrics, primary, emotion, by, dir, treatments, waveOf, groups, segCount: groups.reduce((n, g) => n + g.segs.length, 0), axis, scale, spread, segment: !archive, adCols: archive ? AD_COLUMNS : [] }
-  }, [read, chosen, metricsOff, segsOff, periodsOff, sort, bench, median, archive, colFilter, metricFilter])
+    return { metrics, primary, emotion, by, dir, treatments, waveOf, groups, segCount: groups.reduce((n, g) => n + g.segs.length, 0), axis, scale, spread, segment: !archive, adCols }
+  }, [read, chosen, metricsOff, segsOff, periodsOff, sort, bench, median, archive, colFilter, metricFilter, traitCols, adColsOff])
 
   const shown = view ? view.treatments.slice(0, depth) : []
   const canLoad = view ? depth < view.treatments.length : false
@@ -435,6 +449,8 @@ export function LiftSurface() {
     if (picked && (picked.length !== opening.length || picked.some((o) => !opening.includes(o)))) pairs.push(["t", picked])
     if (!sameSet(metricsOff, DEFAULT_OFF[source] ?? [])) pairs.push(["mo", metricsOff])
     if (grouped) pairs.push(["g", ["1"]])
+    if (traitCols.length) pairs.push(["tc", traitCols])
+    if (adColsOff.length) pairs.push(["ao", adColsOff])
     if (segsOff.length) pairs.push(["so", segsOff])
     if (periodsOff.length) pairs.push(["fo", periodsOff])
     if (!bench) pairs.push(["bench", ["0"]])
@@ -477,7 +493,7 @@ export function LiftSurface() {
             {plural((view?.metrics.length ?? 0) + (view?.emotion ? 1 : 0), "Metric")}
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-max min-w-48">
+        <DropdownMenuContent align="start" className="max-h-[28rem] w-max min-w-48 overflow-y-auto">
           {(read?.metrics ?? []).map((m, i, all) => (
             <React.Fragment key={m}>
               {(i === 0 || PRIMARY.has(all[i - 1]) !== PRIMARY.has(m)) && <DropdownMenuLabel className="text-xs text-muted-foreground">{PRIMARY.has(m) ? "Primary" : "Secondary"}</DropdownMenuLabel>}
@@ -490,6 +506,27 @@ export function LiftSurface() {
           <DropdownMenuCheckboxItem checked={!metricsOff.includes(EMOTION)} onSelect={(e) => e.preventDefault()} onCheckedChange={() => setMetricsOff((prev) => toggled(prev, EMOTION))}>
             {archive ? "Emotional appeal" : "Emotional response"}
           </DropdownMenuCheckboxItem>
+          {archive && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel className="text-xs text-muted-foreground">Traits</DropdownMenuLabel>
+              {AD_COLUMNS.map((c) => (
+                <DropdownMenuCheckboxItem key={c.key} checked={!adColsOff.includes(c.key)} onSelect={(e) => e.preventDefault()} onCheckedChange={() => setAdColsOff((prev) => toggled(prev, c.key))}>
+                  {c.name}
+                </DropdownMenuCheckboxItem>
+              ))}
+              {TRAIT_COLUMNS.map((g) => (
+                <React.Fragment key={g.group}>
+                  <DropdownMenuLabel className="pt-2 text-[11px] font-normal text-muted-foreground">{g.group}</DropdownMenuLabel>
+                  {g.columns.map((c) => (
+                    <DropdownMenuCheckboxItem key={c.key} checked={traitCols.includes(c.key)} onSelect={(e) => e.preventDefault()} onCheckedChange={() => setTraitCols((prev) => toggled(prev, c.key))}>
+                      {c.name}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </React.Fragment>
+              ))}
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -1216,7 +1253,7 @@ function AdCells({ o, view }: { o: string | null; view: RowView }) {
     <>
       {view.adCols.map((c) => (
         <td key={c.key} className={cn(TD, "truncate border-l")}>
-          {ad ? c.value(ad) : null}
+          {ad ? c.mark ? c.value(ad) === "Yes" && <Check aria-label="Yes" className="size-4 text-foreground" /> : c.value(ad) : null}
         </td>
       ))}
     </>

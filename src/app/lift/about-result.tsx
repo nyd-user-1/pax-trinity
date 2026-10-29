@@ -2,14 +2,15 @@
 
 import * as React from "react"
 import dynamic from "next/dynamic"
-import { ChartColumn, ChevronDown, CircleHelp, Loader2, X } from "lucide-react"
+import { Check, ChartColumn, ChevronDown, CircleHelp, Loader2, X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { RESULT_SETS } from "@/lib/results"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/ny4/tooltip"
 
 import { num, type SourceRow } from "../america-thinks/audience-data"
-import { fielding, levelOf, metricShort, periodKey, POINT_LEFT, POINT_RIGHT, segOf, signed, significance, testOf, treatmentName, type Pick } from "./lift-data"
+import { AD_INFO, adOffice, adWhen, adWhere, fielding, levelOf, metricShort, periodKey, POINT_LEFT, POINT_RIGHT, segOf, signed, significance, testOf, TRAIT_GROUPS, treatmentName, type AdInfo, type Pick } from "./lift-data"
+import { APPEALS } from "./lift-marks"
 
 // ECharts loads only when a benchmark card opens.
 const DensityChart = dynamic(() => import("./density-chart").then((m) => m.DensityChart), { ssr: false, loading: () => <div className="h-[92px]" /> })
@@ -68,7 +69,9 @@ export function AboutResult({
   place: (code: string) => string
   onClose: () => void
 }) {
-  const [tab, setTab] = React.useState<"analytics" | "open-ends">("analytics")
+  const [tab, setTab] = React.useState<"analytics" | "second">("analytics")
+  // An archive ad has no open-ends; its second tab is its coded traits (Brendan, 2026-10-29).
+  const ad = AD_INFO.get(pick.option)
   const { lift, level, control } = pick.cell
   const delta = lift[7]
   // The export's margin is 1.645 standard errors, a 90% interval.
@@ -115,7 +118,7 @@ export function AboutResult({
 
       <div className="px-4">
         <div className="grid grid-cols-2 rounded-md bg-muted p-0.5 text-xs">
-          {(["analytics", "open-ends"] as const).map((t) => (
+          {(["analytics", "second"] as const).map((t) => (
             <button
               key={t}
               type="button"
@@ -123,14 +126,18 @@ export function AboutResult({
               onClick={() => setTab(t)}
               className={cn("rounded-[5px] py-1 transition-colors", tab === t ? "bg-background font-medium shadow-sm" : "text-muted-foreground hover:text-foreground")}
             >
-              {t === "analytics" ? "Analytics" : "Open-ends"}
+              {t === "analytics" ? "Analytics" : ad ? "Traits" : "Open-ends"}
             </button>
           ))}
         </div>
       </div>
 
-      {tab === "open-ends" ? (
-        <p className="px-4 py-6 text-center text-sm text-muted-foreground">Nothing on file.</p>
+      {tab === "second" ? (
+        ad ? (
+          <AdTraits ad={ad} />
+        ) : (
+          <p className="px-4 py-6 text-center text-sm text-muted-foreground">Nothing on file.</p>
+        )
       ) : (
         <>
           <div className="px-4 pt-4 pb-4">
@@ -361,5 +368,60 @@ function Help({ text }: { text: string }) {
       </TooltipTrigger>
       <TooltipContent className="max-w-64">{text}</TooltipContent>
     </Tooltip>
+  )
+}
+
+/** An archive ad's coded profile: where and when it ran, then every trait group with what it carries checked,
+ *  and the eight emotions' ratings, the archive coders' (0 to 1, full strength at 0.5). */
+function AdTraits({ ad }: { ad: AdInfo }) {
+  return (
+    <div className="px-4 pt-3 pb-4 text-[13px]">
+      <dl className="grid grid-cols-[auto_1fr] gap-x-4">
+        {(
+          [
+            ["Office", adOffice(ad)],
+            ["State", adWhere(ad)],
+            ["Tested", adWhen(ad)],
+            ["Test", `Ad ${ad.ad} of ${ad.ads}`],
+          ] as const
+        ).map(([k, v]) => (
+          <React.Fragment key={k}>
+            <dt className="border-b py-1.5 text-muted-foreground">{k}</dt>
+            <dd className="border-b py-1.5">{v}</dd>
+          </React.Fragment>
+        ))}
+      </dl>
+      {TRAIT_GROUPS.filter((g) => !["Race", "Cycle", "Emotional appeal"].includes(g.name)).map((g) => (
+        <section key={g.name} className="mt-3">
+          <h4 className="mb-1 text-xs font-semibold">{g.name}</h4>
+          <ul className="grid grid-cols-2 gap-x-3">
+            {g.traits.map((t) => {
+              const has = t.has(ad)
+              return (
+                <li key={t.key} className={cn("flex items-center gap-1.5 py-0.5", !has && "text-muted-foreground/50")}>
+                  {has ? <Check aria-label="Carries it" className="size-3.5 shrink-0" /> : <span aria-hidden className="w-3.5 shrink-0" />}
+                  {t.name}
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+      ))}
+      <section className="mt-3">
+        <h4 className="mb-1 text-xs font-semibold">Emotional appeal</h4>
+        {APPEALS.map((e) => {
+          const v = Math.max(0, Math.min(1, ad.emotions[e.key] ?? 0))
+          return (
+            <div key={e.key} className="flex items-center gap-2 py-0.5">
+              <span className={cn("w-20 shrink-0", v < 0.5 && "text-muted-foreground")}>{e.name}</span>
+              <span className="h-2 flex-1 rounded-full bg-muted">
+                <span className="block h-full rounded-full" style={{ width: `${v * 100}%`, background: e.color }} />
+              </span>
+              <span className="w-8 shrink-0 text-right text-xs text-muted-foreground tabular-nums">{num(v, 2)}</span>
+            </div>
+          )
+        })}
+      </section>
+    </div>
   )
 }
