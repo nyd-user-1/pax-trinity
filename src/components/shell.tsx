@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { ArrowLeft, BadgeCheck, Bell, BookA, ClipboardList, ChevronDown, Users, ChevronUp, ChevronsUpDown, Columns2, Columns3, EllipsisVertical, ExternalLink, Film, FlaskConical, Gauge, House, Inbox, LifeBuoy, Link2, LogIn, LogOut, MessagesSquare, PanelLeftClose, PanelLeftOpen, Search, Settings, ShieldCheck, Star, User2, Video, Vote, X, ListChecks, FileText } from "lucide-react"
+import { ArrowLeft, BadgeCheck, Bell, BookA, ClipboardList, ChevronDown, Users, ChevronUp, ChevronsUpDown, Columns2, Columns3, EllipsisVertical, ExternalLink, Film, FlaskConical, Gauge, House, Inbox, LifeBuoy, Link2, LogIn, LogOut, MessagesSquare, PanelLeftClose, PanelLeftOpen, Puzzle, Search, Settings, Shield, ShieldCheck, SlidersHorizontal, Star, User2, Video, Vote, X, ListChecks, FileText } from "lucide-react"
 
 import dynamic from "next/dynamic"
 import { SidebarChats } from "@/components/sidebar-chats"
@@ -12,7 +12,8 @@ import { useNavFavorites } from "@/lib/nav-favorites"
 import { RevealFx } from "@/components/reveal-fx"
 import { Wordmark } from "@/components/wordmark"
 import { CommandKHost, openCommandK } from "@/components/command/command-k-host"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/ui/components/nova/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/ui/components/nova/dropdown-menu"
+import type { SettingsTab } from "@/components/settings/settings-dialog"
 import { cn } from "@/ui/lib/utils"
 import { whiteButton } from "@/components/white-button"
 import type { ChipOffer } from "@/lib/question-resolver"
@@ -20,6 +21,8 @@ import type { ChipOffer } from "@/lib/question-resolver"
 // The discussion panel carries the whole chat (markdown, the Remotion player): it loads the first time it opens,
 // not with every page.
 const DiscussionPanel = dynamic(() => import("@/components/discussion-panel").then((m) => m.DiscussionPanel), { ssr: false })
+// Settings, the account menu's dialog, loads the first time it opens.
+const SettingsDialog = dynamic(() => import("@/components/settings/settings-dialog").then((m) => m.SettingsDialog), { ssr: false })
 
 // The sidebar by audience (the UX audit's split, ruled 2026-10-19): the creator's product first, then the
 // research behind it, then the admin surfaces for admins only. Brendan's grouping (2026-10-22): Chat,
@@ -647,6 +650,9 @@ export function AccountMenu() {
   const router = useRouter()
   const path = usePathname()
   const [user, setUser] = React.useState<User | null | undefined>(undefined)
+  // The settings dialog: mounted on its first opening, then kept so it can animate shut.
+  const [settings, setSettings] = React.useState<{ open: boolean; tab: SettingsTab } | null>(null)
+  const openSettings = (tab: SettingsTab) => setSettings({ open: true, tab })
   React.useEffect(() => {
     fetch("/api/auth/me")
       .then((r) => r.json())
@@ -669,45 +675,78 @@ export function AccountMenu() {
     )
   const name = user.name
   const item = "gap-2.5 rounded-lg px-2.5 py-2 text-sm [&_svg]:size-4 [&_svg]:text-slate-500"
+  const sub = "min-w-44 rounded-2xl border border-slate-500 bg-white p-1.5 shadow-e2 ring-0"
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger aria-label="Account menu" className="flex w-full max-w-full items-center gap-2 rounded-full py-1 pl-1 pr-2.5 text-pax2-blue outline-none transition-colors hover:bg-white/70 data-[popup-open]:bg-white/70">
-        {user ? <Initials name={name} size="sm" /> : <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-slate-200 text-slate-500"><User2 className="size-3.5" /></span>}
-        <span className="flex-1 truncate text-left text-sm font-semibold">{name}</span>
-        <ChevronsUpDown className="size-3.5 shrink-0 text-slate-400" />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-(--anchor-width) rounded-2xl border border-slate-500 bg-white p-1.5 shadow-e2 ring-0">
-        <div className="flex items-center gap-3 px-2.5 py-2">
-          {user ? <Initials name={name} size="md" /> : <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-slate-200 text-slate-500"><User2 className="size-4" /></span>}
-          <span className="min-w-0">
-            <span className="block truncate text-[15px] font-semibold text-pax2-blue">{name}</span>
-            {user && <span className="block truncate text-sm text-slate-500">{user.email}</span>}
-          </span>
-        </div>
-        <DropdownMenuSeparator />
-        {/* Unwired until their pages exist in trinity (Brendan, 2026-10-24); Log out stays live. */}
-        <DropdownMenuItem disabled className={item}>
-          <User2 /> Profile
-        </DropdownMenuItem>
-        <DropdownMenuItem disabled className={item}>
-          <BadgeCheck /> Account
-        </DropdownMenuItem>
-        <DropdownMenuItem disabled className={item}>
-          <Bell /> Notifications
-        </DropdownMenuItem>
-        <DropdownMenuItem disabled className={item}>
-          <Settings /> Settings
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem disabled className={item}>
-          <LifeBuoy /> Help
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={signOut} className={cn(item, "text-pax2-red-deep [&_svg]:text-pax2-red-deep")}>
-          <LogOut /> Log out
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger aria-label="Account menu" className="flex w-full max-w-full items-center gap-2 rounded-full py-1 pl-1 pr-2.5 text-pax2-blue outline-none transition-colors hover:bg-white/70 data-[popup-open]:bg-white/70">
+          {user ? <Initials name={name} size="sm" /> : <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-slate-200 text-slate-500"><User2 className="size-3.5" /></span>}
+          <span className="flex-1 truncate text-left text-sm font-semibold">{name}</span>
+          <ChevronsUpDown className="size-3.5 shrink-0 text-slate-400" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-(--anchor-width) rounded-2xl border border-slate-500 bg-white p-1.5 shadow-e2 ring-0">
+          <div className="flex items-center gap-3 px-2.5 py-2">
+            {user ? <Initials name={name} size="md" /> : <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-slate-200 text-slate-500"><User2 className="size-4" /></span>}
+            <span className="min-w-0">
+              <span className="block truncate text-[15px] font-semibold text-pax2-blue">{name}</span>
+              {user && <span className="block truncate text-sm text-slate-500">{user.email}</span>}
+            </span>
+          </div>
+          <DropdownMenuSeparator />
+          {/* Each opens the settings dialog at its tab (Brendan, 2026-10-29); Account and Settings fold the
+              tabs the menu had no row for. Help stays unwired. */}
+          <DropdownMenuItem onClick={() => openSettings("profile")} className={item}>
+            <User2 /> Profile
+          </DropdownMenuItem>
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger className={item}>
+              <BadgeCheck /> Account
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className={sub}>
+              <DropdownMenuItem onClick={() => openSettings("members")} className={item}>
+                <Users /> Members
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => openSettings("permissions")} className={item}>
+                <Shield /> Permissions
+              </DropdownMenuItem>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+          <DropdownMenuItem onClick={() => openSettings("notifications")} className={item}>
+            <Bell /> Notifications
+          </DropdownMenuItem>
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger className={item}>
+              <Settings /> Settings
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className={sub}>
+              <DropdownMenuItem onClick={() => openSettings("general")} className={item}>
+                <SlidersHorizontal /> General
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => openSettings("integrations")} className={item}>
+                <Puzzle /> Integrations
+              </DropdownMenuItem>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem disabled className={item}>
+            <LifeBuoy /> Help
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={signOut} className={cn(item, "text-pax2-red-deep [&_svg]:text-pax2-red-deep")}>
+            <LogOut /> Log out
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      {settings && (
+        <SettingsDialog
+          open={settings.open}
+          tab={settings.tab}
+          onTab={openSettings}
+          onOpenChange={(open) => setSettings((s) => s && { ...s, open })}
+          user={user}
+        />
+      )}
+    </>
   )
 }
 
