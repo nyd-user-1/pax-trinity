@@ -47,6 +47,10 @@ export type ReportSection = { id: string; label: string; node: React.ReactNode }
 /** The study's one lift scale, every wave's overview and card on it: the PDF's shared −5 to +20. */
 export const studyAxis = (waves: ResultSet[]) => axis(waves.flatMap((rs) => rs.toplines.map((t) => t.liftPp).filter((v): v is number => v != null)))
 
+/** The newest wave carrying the source report's printed language (its stories, its population, its
+ *  limitations); a computed wave carries none, so the summary's words stay the printed waves'. */
+const printedOf = (waves: ResultSet[]) => [...waves].reverse().find((rs) => rs.stories.length > 0) ?? waves[waves.length - 1]
+
 const summaryHeadline = (waves: ResultSet[]) => {
   const latest = waves[waves.length - 1]
   const treat = waves.flatMap((rs) => treatmentsOf(rs))
@@ -62,11 +66,11 @@ const waveHeadline = (rs: ResultSet) => {
   return `${countOf(b, treat.length)} videos showed detectable ${lower(outcomeName(rs, BALLOT))} differences${hasComp ? `; ${c ? `${word(c)} showed` : "none showed"} detectable ${lower(outcomeName(rs, COMPREHENSION))} differences` : ""}`
 }
 
-const waveMeta = (rs: ResultSet) => `${dateRange(rs.fielded.start, rs.fielded.end)} · ${count(rs.sample.raw)} respondents (${count(rs.sample.weighted)} weighted) · ${armsLine(rs)}`
+const waveMeta = (rs: ResultSet) => `${dateRange(rs.fielded.start, rs.fielded.end)} · ${count(rs.sample.raw)} ${rs.simulated ? "simulated " : ""}respondents (${count(rs.sample.weighted)} weighted) · ${armsLine(rs)}`
 
 /** The study's pages in order: the summary across waves (where there are two or more), then each wave. */
 export function studyParts(waves: ResultSet[]): ReportPart[] {
-  const latest = waves[waves.length - 1]
+  const latest = printedOf(waves)
   const summary: ReportPart[] =
     waves.length > 1 ? [{ slug: "summary", kicker: "Executive summary", title: summaryHeadline(waves), headline: summaryHeadline(waves), meta: `${waves.length === 2 ? "Both waves" : "Every wave"} · ${latest.population} · separate samples` }] : []
   return [...summary, ...waves.map((rs) => ({ slug: `wave-${rs.wave}`, kicker: `Wave ${rs.wave}`, title: rs.title, headline: waveHeadline(rs), meta: waveMeta(rs) }))]
@@ -74,7 +78,7 @@ export function studyParts(waves: ResultSet[]): ReportPart[] {
 
 /** The study's cover: when it was fielded, its name, its waves and what they measured. */
 export function StudyCover({ name, waves }: { name: string; waves: ResultSet[] }) {
-  const latest = waves[waves.length - 1]
+  const latest = printedOf(waves)
   const self = latest.dimensions.find((d) => d.selfSelected)
   const tagline = listed([...latest.outcomes.map((o) => o.name), ...(self ? [self.name.replace(/\s*\(.*\)$/, "")] : [])].map((s, i) => (i === 0 ? s : lower(s))))
   return (
@@ -92,8 +96,8 @@ export function StudyCover({ name, waves }: { name: string; waves: ResultSet[] }
 
 /** The executive summary's sections, across every wave. */
 export function summarySections(waves: ResultSet[]): ReportSection[] {
-  const latest = waves[waves.length - 1]
-  const lw = latest.wave
+  const latest = printedOf(waves)
+  const lw = waves[waves.length - 1].wave
   const out: ReportSection[] = [
     {
       id: "ballot",
@@ -157,7 +161,7 @@ export function summarySections(waves: ResultSet[]): ReportSection[] {
 function ComprehensionSummary({ waves }: { waves: ResultSet[] }) {
   const withLevels = [...waves].reverse().find((rs) => rs.arms.some((arm) => toplineOf(rs, arm.id, COMPREHENSION)?.levelPct != null))
   const context = waves.filter((rs) => rs !== withLevels && rs.toplines.some((t) => t.outcomeId === COMPREHENSION))
-  const latest = waves[waves.length - 1]
+  const latest = printedOf(waves)
   const iteration = [...waves].reverse().map((rs) => story(rs, "card-iteration")).find(Boolean)
   const hits = withLevels ? detectable(withLevels, COMPREHENSION).length : 0
   const name = outcomeName(latest, COMPREHENSION)
@@ -225,7 +229,7 @@ function ComprehensionSummary({ waves }: { waves: ResultSet[] }) {
 }
 
 function SetupSummary({ waves }: { waves: ResultSet[] }) {
-  const latest = waves[waves.length - 1]
+  const latest = printedOf(waves)
   const flow = stories(latest, ["flow-1", "flow-2", "flow-3", "flow-4", "flow-5"])
   const qs = stories(latest, ["question-trust", "question-vote", "question-understand"])
   const self = waves.map((rs) => ({ rs, d: rs.dimensions.find((d) => d.selfSelected && d.categories.some((c) => c.sharePct != null)) })).filter((x): x is { rs: ResultSet; d: NonNullable<typeof x.d> } => !!x.d)
