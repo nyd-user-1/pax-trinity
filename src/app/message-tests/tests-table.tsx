@@ -37,7 +37,7 @@ export function TestsTable({ tests, reachable }: { tests: Row[]; reachable: bool
     <div className="flex flex-col gap-4">
       {!reachable && <p className="text-sm text-pax2-red">The tests table could not be read, so only the seeded test is listed.</p>}
       <TableBlock
-        title="Message tests"
+        title="Tests"
         name="message-tests"
         rows={tests.map((t) => ({ id: t.id, title: t.title, status: t.status, arms: t.arms, completes: done[t.id] ?? "", target: t.targetPerArm * t.arms }))}
         actions={

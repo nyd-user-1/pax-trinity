@@ -34,7 +34,7 @@ function alias(path: string, q: URLSearchParams): string | null {
 
 // Pages that send a signed-out reader to /signin. With no session and no refresh cookie the answer is
 // known before render, so the redirect happens here (each page still checks for itself).
-const GATED = ["/signup/welcome", "/message-tests"]
+const GATED = ["/signup/welcome", "/message-tests", "/dashboard"]
 const gated = (path: string) => GATED.some((g) => path === g || path.startsWith(`${g}/`))
 
 export async function proxy(req: NextRequest) {

@@ -4,7 +4,7 @@ import { adminOrSignin } from "./admin"
 import { TestsTable } from "./tests-table"
 
 export const dynamic = "force-dynamic"
-export const metadata = { title: "Message tests" }
+export const metadata = { title: "Tests" }
 
 export default async function MessageTestsPage() {
   await adminOrSignin("/message-tests")

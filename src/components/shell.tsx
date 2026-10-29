@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { ArrowLeft, BadgeCheck, Bell, BookA, Boxes, ClipboardList, ChevronDown, Users, ChevronUp, ChevronsUpDown, Columns2, Columns3, EllipsisVertical, ExternalLink, Film, FlaskConical, Gauge, House, Inbox, LifeBuoy, Link2, LogIn, LogOut, MessagesSquare, PanelLeftClose, PanelLeftOpen, Puzzle, Search, Settings, Shield, ShieldCheck, SlidersHorizontal, Star, User2, Video, Vote, X, ListChecks, FileText } from "lucide-react"
+import { ArrowLeft, BadgeCheck, Bell, BookA, Boxes, ChevronDown, ChevronUp, ChevronsUpDown, ClipboardList, Columns2, Columns3, EllipsisVertical, ExternalLink, FileText, Film, FlaskConical, Gauge, House, Inbox, LayoutDashboard, LifeBuoy, Link2, ListChecks, LogIn, LogOut, MessagesSquare, PanelLeftClose, PanelLeftOpen, Puzzle, Search, Settings, Shield, ShieldCheck, SlidersHorizontal, Star, User2, Users, Video, Vote, X } from "lucide-react"
 
 import dynamic from "next/dynamic"
 import { SidebarChats } from "@/components/sidebar-chats"
@@ -28,12 +28,16 @@ const DiscussionPanel = dynamic(() => import("@/components/discussion-panel").th
 // as a route, off the sidebar.
 // The pages trinity keeps (the 2026-10-27 kill list, /reports since): every other destination renders in place but
 // goes nowhere. /changelog is unpublished pending Brendan's word, reachable by URL alone.
-const LIVE = new Set(["/", "/chat", "/clips", "/america-thinks", "/inbox", "/survey", "/consensus", "/lift", "/reports", "/message-tests", "/data-dictionary", "/signin", "/signup"])
+const LIVE = new Set(["/", "/chat", "/clips", "/america-thinks", "/inbox", "/survey", "/consensus", "/lift", "/reports", "/message-tests", "/dashboard", "/data-dictionary", "/signin", "/signup"])
 
 type NavLink = { href: string; label: string; icon: typeof House }
 type NavGroup = { label: string; icon: typeof House; children: NavLink[]; admin?: boolean }
 // A to Z (Brendan, 2026-10-23, again 2026-10-29); the Admin group holds the foot.
-const ADMIN = [{ href: "/message-tests", label: "Message tests", icon: ClipboardList }]
+// Dashboard joined, and Message tests became Tests (Brendan, 2026-10-29).
+const ADMIN = [
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/message-tests", label: "Tests", icon: ClipboardList },
+]
 const NAV_TREE: (NavLink | NavGroup)[] = [
   { href: "/america-thinks", label: "America Thinks", icon: Users },
   { href: "/chat", label: "Chat", icon: MessagesSquare },
@@ -56,7 +60,7 @@ const TITLES: [string, string][] = [
   ["/v/", "Video"],
   ["/america-thinks", "America Thinks"],
   ["/data-dictionary", "Data dictionary"],
-  ["/message-tests", "Message tests"],
+  ["/message-tests", "Tests"],
   ["/q/", "Question"],
   ["/reports-2", "Report 2"],
   ["/constructs", "Constructs"],

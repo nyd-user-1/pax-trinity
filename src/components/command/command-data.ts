@@ -85,7 +85,7 @@ export const KINDS: Record<Kind, { section: string; label: string; icon: LucideI
   report: { section: "Reports", label: "Report", icon: FileText, tint: "#1e3a8a", action: "Open Report" },
   treatment: { section: "Lift", label: "Treatment", icon: Clapperboard, tint: "#2563eb", action: "Open in Lift" },
   ad: { section: "Lift", label: "Archive ad", icon: Archive, tint: "#64748b", action: "Open in Lift" },
-  test: { section: "Message tests", label: "Test", icon: ClipboardList, tint: "#d97706", action: "Open Test" },
+  test: { section: "Tests", label: "Test", icon: ClipboardList, tint: "#d97706", action: "Open Test" },
   survey: { section: "Surveys", label: "Survey", icon: ListChecks, tint: "#059669", action: "Open Survey" },
   statement: { section: "Consensus", label: "Statement", icon: MessageSquareQuote, tint: "#9333ea", action: "Open Statement" },
   thread: { section: "Inbox", label: "Thread", icon: Mail, tint: "#0284c7", action: "Open Thread" },
@@ -100,7 +100,7 @@ export const KINDS: Record<Kind, { section: string; label: string; icon: LucideI
 }
 
 /** The sections in the order the palette lists them. */
-export const SECTIONS = ["Pages", "Commands", "America Thinks", "Clips", "Reports", "Lift", "Message tests", "Surveys", "Consensus", "Inbox", "Chat", "Glossary", "Data dictionary"]
+export const SECTIONS = ["Pages", "Commands", "America Thinks", "Clips", "Reports", "Lift", "Tests", "Surveys", "Consensus", "Inbox", "Chat", "Glossary", "Data dictionary"]
 
 const r = (kind: Kind, title: string, subtitle?: string, href?: string, keywords?: string): CommandItem => ({ id: `${kind}:${title}`, kind, title, subtitle, href, keywords })
 
@@ -113,16 +113,17 @@ export const ITEMS: CommandItem[] = [
   r("page", "Constructs", "One idea across sources", "/constructs"),
   r("page", "Data dictionary", "Every table and field", "/data-dictionary"),
   r("page", "Electorate", "Massachusetts registration and turnout", "/electorate"),
+  r("page", "Dashboard", "Admin", "/dashboard", "delivery board worklogs"),
   r("page", "Inbox", "The Pollster, the Analyst and the Assistant", "/inbox", "mail agents"),
   r("page", "Lift", "Every lift against its placebo", "/lift", "results benchmarks"),
-  r("page", "Message tests", "Admin", "/message-tests", "tests setup field kit"),
+  r("page", "Tests", "Admin", "/message-tests", "message tests setup field kit"),
   r("page", "Reports", "Every report as a card", "/reports"),
   r("page", "Survey", "Toplines and consensus surveys", "/survey"),
 
   // Commands
   r("command", "New Chat", "Chat", "/chat"),
   r("command", "Record a Video", "Chat · record mode", "/chat?record=1", "camera teleprompter"),
-  r("command", "New Message Test", "Message tests", "/message-tests/new"),
+  r("command", "New Test", "Tests", "/message-tests/new", "message test"),
   r("command", "New Survey", "Inbox · to the Pollster"),
   r("command", "Field a Test", "Inbox · to a contact group"),
   r("command", "Make a Question Card", "Consensus · from the results"),
