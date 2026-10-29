@@ -1,6 +1,5 @@
 import type { Metadata } from "next"
 
-import { PAPER_BRIDGE } from "@/components/editorial/PaperBridge"
 import { ReportCardLink, reportCards, ReportsCover } from "@/components/report/report-pages"
 
 import "../paper.css"
@@ -13,7 +12,7 @@ export const metadata: Metadata = { title: "Reports" }
 export default function ReportsPage() {
   const cards = reportCards()
   return (
-    <div className="nysgpt-app report-pax relative min-h-0 flex-1 overflow-y-auto" style={{ backgroundColor: "var(--paper)", ...PAPER_BRIDGE }}>
+    <div className="nysgpt-app report-pax relative min-h-0 flex-1 overflow-y-auto" style={{ backgroundColor: "var(--paper)" }}>
       <div className="report-doc mx-auto w-full max-w-[1120px] px-6 py-10 text-[var(--paper-text)] sm:px-10">
         <ReportsCover />
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3" data-reports={cards.length}>

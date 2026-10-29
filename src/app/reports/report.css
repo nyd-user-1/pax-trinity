@@ -13,6 +13,11 @@
   --paper-rule-soft: rgba(15, 23, 42, 0.06);
   --paper-quiet: var(--pax2-mist);
   --paper-strong: var(--pax2-blue);
+  /* NYSgpt's wrapper names its muted text and its rule --muted and --border, the two tokens the house
+     components (blocks, the block order's arrows, buttons) read as a fill and a hairline; they get the
+     app's own values back here, so every control looks as it does everywhere else. */
+  --muted: oklch(0.97 0 0);
+  --border: oklch(0.922 0 0);
 }
 .dark .nysgpt-app.report-pax {
   --paper: #0f172a;
@@ -23,6 +28,8 @@
   --paper-rule-soft: rgba(241, 245, 249, 0.06);
   --paper-quiet: rgba(241, 245, 249, 0.04);
   --paper-strong: #93c5fd;
+  --muted: oklch(0.269 0 0);
+  --border: oklch(1 0 0 / 10%);
 }
 .report-doc {
   --r-detect: var(--pax2-light-blue);

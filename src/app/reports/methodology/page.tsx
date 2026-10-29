@@ -1,6 +1,5 @@
 import type { Metadata } from "next"
 
-import { PAPER_BRIDGE } from "@/components/editorial/PaperBridge"
 import { MethodologyPage } from "@/components/report/report-pages"
 
 import "../../paper.css"
@@ -13,7 +12,7 @@ export const metadata: Metadata = { title: "Methodology · Reports" }
 export default function ReportsMethodologyRoute() {
   return (
     // No overflow of its own, so the contents column sticks to the shell's scrolling main.
-    <div className="nysgpt-app report-pax relative min-h-0 flex-1" style={{ backgroundColor: "var(--paper)", ...PAPER_BRIDGE }}>
+    <div className="nysgpt-app report-pax relative min-h-0 flex-1" style={{ backgroundColor: "var(--paper)" }}>
       <MethodologyPage />
     </div>
   )

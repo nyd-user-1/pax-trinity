@@ -1,7 +1,6 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 
-import { PAPER_BRIDGE } from "@/components/editorial/PaperBridge"
 import { studyParts } from "@/components/report/report-doc"
 import { partSlugs, ReportPartPage } from "@/components/report/report-pages"
 
@@ -30,7 +29,7 @@ export default async function ReportPartRoute({ params }: Params) {
   if (!s || !partSlugs(s).includes(part)) notFound()
   return (
     // No overflow of its own, so the contents column sticks to the shell's scrolling main (as Report 2's does).
-    <div className="nysgpt-app report-pax relative min-h-0 flex-1" style={{ backgroundColor: "var(--paper)", ...PAPER_BRIDGE }}>
+    <div className="nysgpt-app report-pax relative min-h-0 flex-1" style={{ backgroundColor: "var(--paper)" }}>
       <ReportPartPage study={s} slug={part} />
     </div>
   )

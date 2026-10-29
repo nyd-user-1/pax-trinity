@@ -4,6 +4,7 @@ import type { ResultSet, Story } from "@/lib/results/types"
 import { cn } from "@/lib/utils"
 
 import { ChartBlock } from "@/components/blocks"
+import { BlockOrder, OrderedBlock } from "@/components/dash/block-order"
 
 import { marksLine } from "./charts"
 import { Block, Box, Footnote, StoryBox, VerdictMark, WaveChip } from "./report-bits"
@@ -90,7 +91,7 @@ export function summarySections(waves: ResultSet[]): ReportSection[] {
       label: outcomeName(latest, BALLOT),
       node: (
         <Block level={2} title={`${outcomeName(latest, BALLOT)}, every wave against its own placebo`}>
-          <CrossWaveBlock waves={waves} />
+          <Ordered page={`report-summary-${latest.id}-ballot`} items={[{ id: "lifts", label: `${outcomeName(latest, BALLOT)} lift, every wave`, node: <CrossWaveBlock waves={waves} /> }]} />
           <div className="mt-6 grid gap-4 md:grid-cols-3">
             {stories(latest, ["caution-separate-studies", "caution-published-vs-approximate", "caution-campaign-ad"]).map((s) => (
               <StoryBox key={s.id} story={s} />
@@ -178,7 +179,7 @@ function ComprehensionSummary({ waves }: { waves: ResultSet[] }) {
           )
         })}
       </ol>
-      {withLevels && <LevelBlock rs={withLevels} outcomeId={COMPREHENSION} />}
+      {withLevels && <Ordered page={`report-summary-${withLevels.id}-comprehension`} items={[{ id: "levels", label: `Wave ${withLevels.wave} ${lower(name)} level`, node: <LevelBlock rs={withLevels} outcomeId={COMPREHENSION} /> }]} />}
       {context.map((rs) => (
         <div key={rs.id} className="mt-4">
           <p className="mb-2 text-[13px]">
@@ -255,9 +256,20 @@ function SetupSummary({ waves }: { waves: ResultSet[] }) {
       )}
       {self.length > 0 && (
         <div className="mt-8">
-          <Chart title={self[self.length - 1].d.name} spec={shareSpec(self)}>
-            <span className="mb-3 inline-flex h-6 items-center rounded-full bg-[var(--paper-text)] px-3 text-[10px] font-semibold tracking-[0.12em] text-[var(--paper)] uppercase">Asked before watching any video</span>
-          </Chart>
+          <Ordered
+            page={`report-summary-${latest.id}-shares`}
+            items={[
+              {
+                id: "shares",
+                label: self[self.length - 1].d.name,
+                node: (
+                  <Chart title={self[self.length - 1].d.name} spec={shareSpec(self)}>
+                    <span className="mb-3 inline-flex h-6 items-center rounded-full bg-[var(--paper-text)] px-3 text-[10px] font-semibold tracking-[0.12em] text-[var(--paper)] uppercase">Asked before watching any video</span>
+                  </Chart>
+                ),
+              },
+            ]}
+          />
           <Footnote>Shares of respondents choosing each answer — not ballot support or persuasion results.</Footnote>
         </div>
       )}
@@ -284,10 +296,15 @@ export function waveSections(rs: ResultSet, a: ReturnType<typeof axis>, latest: 
       node: (
       <Block level={2} title={headline}>
         <FactBoxes rs={rs} />
-        <div className="mt-6 flex flex-col gap-6 print:mt-4">
-          <Chart title="Lift versus own-wave placebo" spec={liftSpec(rs, a)} />
-          <FingerprintBlock rs={rs} />
-          <SubgroupLinesBlock rs={rs} />
+        <div className="mt-1 print:mt-4">
+          <Ordered
+            page={`report-${rs.id}-found`}
+            items={[
+              { id: "lifts", label: "Lift versus own-wave placebo", node: <Chart title="Lift versus own-wave placebo" spec={liftSpec(rs, a)} /> },
+              ...(fingerprintSpec(rs) ? [{ id: "fingerprint", label: "Fingerprint", node: <FingerprintBlock rs={rs} /> }] : []),
+              ...(subgroupLinesSpec(rs) ? [{ id: "lines", label: `Every subgroup, ${lower(outcomeName(rs, BALLOT))} level`, node: <SubgroupLinesBlock rs={rs} /> }] : []),
+            ]}
+          />
         </div>
         {stories(rs, ["overview-1", "overview-2", "overview-3", "overview-4"]).length > 0 && (
           <ol className="mt-6 grid gap-5 md:grid-cols-2 print:mt-4 print:gap-3">
@@ -369,18 +386,25 @@ export function waveSections(rs: ResultSet, a: ReturnType<typeof axis>, latest: 
       node: (
         <Block level={2} title={`${Word(rs.outcomes.length)} outcomes in detail`}>
           <div className="flex flex-col gap-8">
-            {rs.outcomes.map((o) => (
-              <div key={o.id}>
-                <LevelBlock rs={rs} outcomeId={o.id} />
-                {o.id === BALLOT && stories(rs, ["reading-a-lift", "between-videos"]).length > 0 && (
-                  <div className="mt-4 grid gap-4 md:grid-cols-2">
-                    {stories(rs, ["reading-a-lift", "between-videos"]).map((s) => (
-                      <StoryBox key={s.id} story={s} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
+            <Ordered
+              page={`report-${rs.id}-outcomes`}
+              items={rs.outcomes.map((o) => ({
+                id: o.id,
+                label: `${o.name} level`,
+                node: (
+                  <>
+                    <LevelBlock rs={rs} outcomeId={o.id} />
+                    {o.id === BALLOT && stories(rs, ["reading-a-lift", "between-videos"]).length > 0 && (
+                      <div className="mt-4 grid gap-4 md:grid-cols-2">
+                        {stories(rs, ["reading-a-lift", "between-videos"]).map((s) => (
+                          <StoryBox key={s.id} story={s} />
+                        ))}
+                      </div>
+                    )}
+                  </>
+                ),
+              }))}
+            />
             {comprehension?.question && (
               <div className="max-w-xl rounded-xl border border-[var(--paper-rule)]/25 p-4">
                 <p className="text-[14px] font-semibold">{comprehension.question}</p>
@@ -441,9 +465,7 @@ export function waveSections(rs: ResultSet, a: ReturnType<typeof axis>, latest: 
               return (
                 <section key={g} className="report-group flex flex-col gap-6">
                   {ds.length > 1 && <h4 className="text-[24px] font-semibold tracking-tight">{listed(ds.map((d, i) => (i === 0 ? d.name.replace(/\s*\(.*\)$/, "") : lower(d.name.replace(/\s*\(.*\)$/, "")))))}</h4>}
-                  {ds.map((d) => (
-                    <SubgroupBlock key={d.id} rs={rs} d={d} stories={d.selfSelected ? trustCards : []} />
-                  ))}
+                  <Ordered page={`report-${rs.id}-subgroups-${g}`} items={ds.map((d) => ({ id: d.id, label: d.name, node: <SubgroupBlock rs={rs} d={d} stories={d.selfSelected ? trustCards : []} /> }))} />
                 </section>
               )
             })}
@@ -473,6 +495,20 @@ export function waveSections(rs: ResultSet, a: ReturnType<typeof axis>, latest: 
 }
 
 // ── The charts' blocks ───────────────────────────────────────────────────
+
+/** A run of blocks in pax2's block order (components/dash/block-order.tsx): each block's up and down
+ *  arrows show at its top right on hover, and the order is kept per page in this browser. */
+function Ordered({ page, items }: { page: string; items: { id: string; label: string; node: React.ReactNode }[] }) {
+  return (
+    <BlockOrder page={page} initial={items.map((i) => i.id)}>
+      {items.map((i) => (
+        <OrderedBlock key={i.id} id={i.id} label={i.label}>
+          {i.node}
+        </OrderedBlock>
+      ))}
+    </BlockOrder>
+  )
+}
 
 /** A chart's block: the house ChartBlock, as tall as its chart and its notes (never a scroll inside it). */
 const FIT = "min-h-0 max-h-none"

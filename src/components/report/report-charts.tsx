@@ -66,37 +66,43 @@ const signedTick = (v: number) => (v > 0 ? `+${v}` : v < 0 ? `−${Math.abs(v)}`
 function Canvas({ option, height, label }: { option: EChartsCoreOption | null; height: number; label: string }) {
   const ref = React.useRef<HTMLDivElement>(null)
   const chart = React.useRef<EChartsType | null>(null)
+  const seen = React.useRef(false)
   const latest = React.useRef(option)
   latest.current = option
+  // Draws once the canvas has been near the screen and its option is ready, whichever comes last.
+  const draw = React.useCallback(() => {
+    const el = ref.current
+    if (!el || !seen.current || !latest.current) return
+    chart.current ??= init(el, undefined, { renderer: "canvas" })
+    chart.current.setOption(latest.current, true)
+  }, [])
   React.useEffect(() => {
     const el = ref.current
     if (!el) return
-    const draw = () => {
-      if (!latest.current) return
-      chart.current ??= init(el, undefined, { renderer: "canvas" })
-      chart.current.setOption(latest.current, true)
-    }
-    const seen = new IntersectionObserver((xs) => {
+    const near = new IntersectionObserver((xs) => {
       if (xs.some((x) => x.isIntersecting)) {
+        seen.current = true
         draw()
-        seen.disconnect()
+        near.disconnect()
       }
     }, { rootMargin: "400px" })
-    seen.observe(el)
+    near.observe(el)
     const sized = new ResizeObserver(() => chart.current?.resize())
     sized.observe(el)
-    window.addEventListener("beforeprint", draw)
+    const print = () => {
+      seen.current = true
+      draw()
+    }
+    window.addEventListener("beforeprint", print)
     return () => {
-      seen.disconnect()
+      near.disconnect()
       sized.disconnect()
-      window.removeEventListener("beforeprint", draw)
+      window.removeEventListener("beforeprint", print)
       chart.current?.dispose()
       chart.current = null
     }
-  }, [])
-  React.useEffect(() => {
-    if (chart.current && option) chart.current.setOption(option, true)
-  }, [option])
+  }, [draw])
+  React.useEffect(() => draw(), [option, draw])
   return <div ref={ref} role="img" aria-label={label} style={{ height }} className="w-full" />
 }
 
