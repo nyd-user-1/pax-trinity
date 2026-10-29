@@ -64,10 +64,10 @@ export function ReportsCover() {
   )
 }
 
-/** A report's card. */
+/** A report's card, in pax2's /scripts card dress: the raised surface (pax2.css .surface), rising 3px with the deeper shadow on hover (.lift). */
 export function ReportCardLink({ card }: { card: ReportCard }) {
   return (
-    <Link href={card.href} className="group flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-e1 transition-shadow hover:shadow-e2">
+    <Link href={card.href} className="lift surface group flex flex-col p-6">
       <span className="text-[11px] font-semibold tracking-[0.14em] text-pax2-blue uppercase">{card.kicker}</span>
       <span className="mt-2 text-[20px] leading-snug font-semibold tracking-tight text-slate-900 transition-colors group-hover:text-pax2-blue">{card.headline}</span>
       <span className="mt-auto pt-6 text-[13px] leading-relaxed text-slate-500">{card.meta}</span>

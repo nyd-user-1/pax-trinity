@@ -3,10 +3,14 @@ import * as React from "react"
 import type { ResultSet, Story } from "@/lib/results/types"
 import { cn } from "@/lib/utils"
 
-import { CrossWaveLift, DualLift, LevelChart } from "./charts"
-import { Block, Box, Footnote, StoryBox, WaveChip } from "./report-bits"
-import { approx, axis, count, countOf, dateRange, listed, signed, toplineOf, treatmentsOf, word, Word } from "./report-math"
-import { armsLine, DimensionBlock, FactBoxes, LevelsKey, Methodology, PairingCard, ShareBars, VideoCard } from "./sections"
+import { ChartBlock } from "@/components/blocks"
+
+import { marksLine } from "./charts"
+import { Block, Box, Footnote, StoryBox, VerdictMark, WaveChip } from "./report-bits"
+import { Fingerprint, PanelBars, type BarSpec } from "./report-charts"
+import { approx, axis, count, countOf, dateRange, isCampaign, listed, pct, signed, toplineOf, treatmentsOf, word, Word } from "./report-math"
+import { crossWaveSpec, fingerprintSpec, levelSpec, liftSpec, rowsOf, shareSpec, subgroupSpec } from "./report-specs"
+import { armsLine, FactBoxes, LevelsKey, Methodology, PairingCard, VideoCard } from "./sections"
 
 // /reports/[study] — the wave readout, in three pages (Brendan, 2026-10-29):
 // the executive summary across waves, then each wave in full, each page its
@@ -86,7 +90,7 @@ export function summarySections(waves: ResultSet[]): ReportSection[] {
       label: outcomeName(latest, BALLOT),
       node: (
         <Block level={2} title={`${outcomeName(latest, BALLOT)}, every wave against its own placebo`}>
-          <CrossWaveLift waves={waves} />
+          <CrossWaveBlock waves={waves} />
           <div className="mt-6 grid gap-4 md:grid-cols-3">
             {stories(latest, ["caution-separate-studies", "caution-published-vs-approximate", "caution-campaign-ad"]).map((s) => (
               <StoryBox key={s.id} story={s} />
@@ -174,7 +178,7 @@ function ComprehensionSummary({ waves }: { waves: ResultSet[] }) {
           )
         })}
       </ol>
-      {withLevels && <LevelChart rs={withLevels} outcomeId={COMPREHENSION} />}
+      {withLevels && <LevelBlock rs={withLevels} outcomeId={COMPREHENSION} />}
       {context.map((rs) => (
         <div key={rs.id} className="mt-4">
           <p className="mb-2 text-[13px]">
@@ -251,11 +255,9 @@ function SetupSummary({ waves }: { waves: ResultSet[] }) {
       )}
       {self.length > 0 && (
         <div className="mt-8">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <h4 className="text-[19px] font-semibold">{self[self.length - 1].d.name}</h4>
-            <span className="inline-flex h-6 items-center rounded-full bg-[var(--paper-text)] px-3 text-[10px] font-semibold tracking-[0.12em] text-[var(--paper)] uppercase">Asked before watching any video</span>
-          </div>
-          <ShareBars waves={self} latest={latest.wave} />
+          <Chart title={self[self.length - 1].d.name} spec={shareSpec(self)}>
+            <span className="mb-3 inline-flex h-6 items-center rounded-full bg-[var(--paper-text)] px-3 text-[10px] font-semibold tracking-[0.12em] text-[var(--paper)] uppercase">Asked before watching any video</span>
+          </Chart>
           <Footnote>Shares of respondents choosing each answer — not ballot support or persuasion results.</Footnote>
         </div>
       )}
@@ -282,8 +284,9 @@ export function waveSections(rs: ResultSet, a: ReturnType<typeof axis>, latest: 
       node: (
       <Block level={2} title={headline}>
         <FactBoxes rs={rs} />
-        <div className="mt-6 print:mt-4">
-          <DualLift rs={rs} a={a} />
+        <div className="mt-6 flex flex-col gap-6 print:mt-4">
+          <Chart title="Lift versus own-wave placebo" spec={liftSpec(rs, a)} />
+          <FingerprintBlock rs={rs} />
         </div>
         {stories(rs, ["overview-1", "overview-2", "overview-3", "overview-4"]).length > 0 && (
           <ol className="mt-6 grid gap-5 md:grid-cols-2 print:mt-4 print:gap-3">
@@ -367,7 +370,7 @@ export function waveSections(rs: ResultSet, a: ReturnType<typeof axis>, latest: 
           <div className="flex flex-col gap-8">
             {rs.outcomes.map((o) => (
               <div key={o.id}>
-                <LevelChart rs={rs} outcomeId={o.id} />
+                <LevelBlock rs={rs} outcomeId={o.id} />
                 {o.id === BALLOT && stories(rs, ["reading-a-lift", "between-videos"]).length > 0 && (
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
                     {stories(rs, ["reading-a-lift", "between-videos"]).map((s) => (
@@ -438,7 +441,7 @@ export function waveSections(rs: ResultSet, a: ReturnType<typeof axis>, latest: 
                 <section key={g} className="report-group flex flex-col gap-6">
                   {ds.length > 1 && <h4 className="text-[24px] font-semibold tracking-tight">{listed(ds.map((d, i) => (i === 0 ? d.name.replace(/\s*\(.*\)$/, "") : lower(d.name.replace(/\s*\(.*\)$/, "")))))}</h4>}
                   {ds.map((d) => (
-                    <DimensionBlock key={d.id} rs={rs} d={d} stories={d.selfSelected ? trustCards : []} />
+                    <SubgroupBlock key={d.id} rs={rs} d={d} stories={d.selfSelected ? trustCards : []} />
                   ))}
                 </section>
               )
@@ -466,4 +469,140 @@ export function waveSections(rs: ResultSet, a: ReturnType<typeof axis>, latest: 
     ),
   })
   return out
+}
+
+// ── The charts' blocks ───────────────────────────────────────────────────
+
+/** A chart's block: the house ChartBlock, as tall as its chart and its notes (never a scroll inside it). */
+const FIT = "min-h-0 max-h-none"
+
+function Chart({ title, spec, children }: { title: string; spec: BarSpec; children?: React.ReactNode }) {
+  return (
+    <ChartBlock title={title} className={FIT} rows={rowsOf(spec)}>
+      {children}
+      <PanelBars spec={spec} label={title} />
+    </ChartBlock>
+  )
+}
+
+/** One outcome's levels against the placebo's, in its block. */
+function LevelBlock({ rs, outcomeId }: { rs: ResultSet; outcomeId: string }) {
+  const spec = levelSpec(rs, outcomeId)
+  return spec ? <Chart title={`Wave ${rs.wave} · ${outcomeName(rs, outcomeId)} level`} spec={spec} /> : null
+}
+
+/** The executive summary's chart: every wave's videos ranked by ballot lift, with its key. */
+function CrossWaveBlock({ waves }: { waves: ResultSet[] }) {
+  const spec = crossWaveSpec(waves)
+  const all = waves.flatMap((rs) => treatmentsOf(rs).map((arm) => ({ rs, arm })))
+  const campaign = all.find(({ arm }) => isCampaign(arm))?.arm.producer
+  const rounded = waves.some((rs) => rs.toplines.some((t) => t.derivation === "derived_from_rounded"))
+  const simulated = waves.filter((rs) => rs.simulated)
+  const name = outcomeName(waves[waves.length - 1], BALLOT)
+  return (
+    <Chart title={`${name} lift, every wave`} spec={spec}>
+      <ul className="mb-3 flex flex-wrap gap-x-6 gap-y-1.5 text-[12px] text-[var(--paper-muted)]">
+        <li className="flex items-center gap-2">
+          <VerdictMark verdict="detectable" /> — meets the {waves[0]?.threshold.label ?? "stated threshold"} vs placebo
+        </li>
+        <li className="flex items-center gap-2">
+          <VerdictMark verdict="inconclusive" /> — not detected; not proof of zero effect
+        </li>
+        {campaign && (
+          <li className="flex items-center gap-2">
+            <span className="inline-block h-2.5 w-4 rounded-[2px] bg-[var(--r-campaign)]" /> {campaign}
+          </li>
+        )}
+        {rounded && (
+          <li className="flex items-center gap-2">
+            <span className="font-semibold text-[var(--paper-text)]">≈</span> lift derived from rounded percentages
+          </li>
+        )}
+        {simulated.map((rs) => (
+          <li key={rs.id} className="flex items-center gap-2">
+            W{rs.wave} — simulated respondents
+          </li>
+        ))}
+      </ul>
+    </Chart>
+  )
+}
+
+/** The wave's fingerprint, pax2's viometric heat bar made a wave's signature. */
+function FingerprintBlock({ rs }: { rs: ResultSet }) {
+  const spec = fingerprintSpec(rs)
+  if (!spec) return null
+  const rows = spec.readout.flatMap(([column, ...lines]) => lines.map((line) => ({ column, reading: line })))
+  return (
+    <ChartBlock title="Fingerprint" className={FIT} rows={rows}>
+      <Fingerprint spec={spec} label={`Wave ${rs.wave} fingerprint`} />
+    </ChartBlock>
+  )
+}
+
+/** A subgroup dimension in its block: its marks, its flags, its shares, the levels, and the printed notes. */
+function SubgroupBlock({ rs, d, stories: cards }: { rs: ResultSet; d: ResultSet["dimensions"][number]; stories: Story[] }) {
+  const spec = subgroupSpec(rs, d)
+  return (
+    <ChartBlock title={d.name} className={FIT} rows={rowsOf(spec)}>
+      <div className="report-dimension flex flex-col gap-4">
+        <p className="text-[12px] text-[var(--paper-muted)]">{marksLine(rs, d)}</p>
+        {(d.selfSelected || d.needsVerification) && (
+          <div className="flex flex-wrap gap-2">
+            {d.selfSelected && (
+              <span className="inline-flex h-6 items-center rounded-full bg-[var(--paper-text)] px-3 text-[11px] font-semibold tracking-wide text-[var(--paper)] uppercase">
+                Self-selected{d.askedBeforeExposure ? " · asked before exposure" : ""} · stated trust, not an outcome
+              </span>
+            )}
+            {d.needsVerification && (
+              <span className="inline-flex h-6 items-center rounded-full border border-dashed border-[var(--paper-strong)] px-3 text-[11px] font-medium text-[var(--paper-strong)]">
+                Needs verification · {d.needsVerification}
+              </span>
+            )}
+          </div>
+        )}
+        {d.selfSelected && d.categories.some((c) => c.sharePct != null) && (
+          <div className="grid gap-1.5 sm:grid-cols-3">
+            {d.categories.map((c) =>
+              c.sharePct != null ? (
+                <div key={c.id} className="rounded-lg bg-[var(--r-tint)] px-3 py-2 text-[12px]">
+                  <span className="block text-[var(--paper-muted)]">{c.name}</span>
+                  <span className="font-semibold tabular-nums">
+                    {approx(d.shareDerivation)}
+                    {pct(c.sharePct)}
+                  </span>
+                  {c.nWeighted != null && <span className="ml-1.5 text-[var(--paper-muted)] tabular-nums">{count(c.nWeighted)}</span>}
+                  <span className="block text-[11px] text-[var(--paper-muted)]">share of the weighted sample</span>
+                </div>
+              ) : null
+            )}
+          </div>
+        )}
+        <PanelBars spec={spec} label={d.name} />
+        {(d.whatItShows || d.howToRead) && (
+          <div className="grid gap-4 rounded-xl bg-[var(--r-tint)] p-4 text-[13px] leading-relaxed md:grid-cols-2">
+            {d.whatItShows && (
+              <div>
+                <p className="mb-1 text-[11px] font-semibold tracking-[0.12em] text-[var(--paper-muted)] uppercase">What the chart shows</p>
+                {d.whatItShows}
+              </div>
+            )}
+            {d.howToRead && (
+              <div>
+                <p className="mb-1 text-[11px] font-semibold tracking-[0.12em] text-[var(--paper-muted)] uppercase">How to read it</p>
+                {d.howToRead}
+              </div>
+            )}
+          </div>
+        )}
+        {cards.length > 0 && (
+          <div className="grid gap-3 md:grid-cols-3">
+            {cards.map((st) => (
+              <StoryBox key={st.id} story={st} />
+            ))}
+          </div>
+        )}
+      </div>
+    </ChartBlock>
+  )
 }
