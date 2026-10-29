@@ -125,12 +125,12 @@ export function EmotionBar({ shares }: { shares: number[] }) {
   )
 }
 
-/** The Emotional Response key, in the column's group header. */
-export function EmotionKey() {
+/** The Emotional Response key, in the column's info tooltip. */
+export function EmotionKey({ className }: { className?: string }) {
   return (
     <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
       {EMOTIONS.map((e) => (
-        <span key={e.name} className="flex items-center gap-1 text-[10.5px] whitespace-nowrap text-muted-foreground">
+        <span key={e.name} className={cn("flex items-center gap-1 text-[10.5px] whitespace-nowrap", className ?? "text-muted-foreground")}>
           <span className="size-2 rounded-[2px]" style={{ background: e.color }} />
           {e.name}
         </span>

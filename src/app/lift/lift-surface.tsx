@@ -33,7 +33,7 @@ import { Candle, EmotionBar, EmotionKey, heat, HeatKey, sampleEmotions } from ".
 // campaigns' own experiments); a toolbar of Treatments, Metrics, Segments and
 // Filter menus with Options, Share, Download and the respondent count; then
 // one table. Treatment and Segment down the left, each a resizable column;
-// the metrics across under Primary and Secondary, each with its definition
+// the metrics across (Primary and Secondary label them in the Metrics menu), each with its definition
 // and a sort menu. Every treatment's Everyone row comes first, then a mist
 // band per breakdown with each treatment's segments under it. A cell is the
 // control group's level and a bar of the lift from it, its margin drawn
@@ -583,10 +583,10 @@ export function LiftSurface() {
     []
   )
 
-  const contentHead = (label: string) => (
-    <th rowSpan={2} aria-sort={ariaSort(BY_NAME)} className={cn(TH, "align-top", label !== "Treatment" && "border-l")}>
+  const contentHead = (first: boolean) => (
+    <th aria-sort={ariaSort(BY_NAME)} className={cn(TH, !first && "border-l")}>
       <span className="flex items-center gap-2">
-        {label}
+        Content
         <span className="ml-auto flex items-center gap-2">
           {sortMenu(BY_NAME, [
             { label: "Name, A to Z", dir: 1 },
@@ -598,7 +598,7 @@ export function LiftSurface() {
     </th>
   )
   const segmentHead = (
-    <th rowSpan={2} className={cn(TH, "border-l align-top")}>
+    <th className={cn(TH, "border-l")}>
       <span className="flex items-center gap-2">
         Segment
         <span className="ml-auto">
@@ -606,29 +606,6 @@ export function LiftSurface() {
         </span>
       </span>
     </th>
-  )
-  const GROUP_TH = "border-b border-l px-3 pt-2 pb-1 text-left align-top text-xs font-normal text-muted-foreground"
-  const groupHeads = view && (
-    <>
-      {view.primary > 0 && (
-        <th colSpan={view.primary} className={GROUP_TH}>
-          Primary
-        </th>
-      )}
-      {view.metrics.length > view.primary && (
-        <th colSpan={view.metrics.length - view.primary} className={GROUP_TH}>
-          Secondary
-        </th>
-      )}
-      {view.emotion && (
-        <th className={GROUP_TH}>
-          <span className="flex items-start gap-3">
-            Emotion
-            <EmotionKey />
-          </span>
-        </th>
-      )}
-    </>
   )
   const metricHeads = view && (
     <>
@@ -677,7 +654,10 @@ export function LiftSurface() {
                     <Info className="size-4" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent className="max-w-72">The share of respondents naming each feeling after the ad. No test has asked it yet: these shares are placeholders.</TooltipContent>
+                <TooltipContent className="max-w-72">
+                  <p className="mb-1.5">The share of respondents naming each feeling after the ad. No test has asked it yet: these shares are placeholders.</p>
+                  <EmotionKey className="text-background/80" />
+                </TooltipContent>
               </Tooltip>
             </span>
           </span>
@@ -698,11 +678,10 @@ export function LiftSurface() {
       </colgroup>
       <thead className="sticky top-0 z-[1] bg-background">
         <tr>
-          {contentHead("Treatment")}
+          {contentHead(true)}
           {segmentHead}
-          {groupHeads}
+          {metricHeads}
         </tr>
-        <tr>{metricHeads}</tr>
       </thead>
       <tbody>
         {view.groups.map((g) => (
@@ -739,14 +718,11 @@ export function LiftSurface() {
       </colgroup>
       <thead className="sticky top-0 z-[1] bg-background">
         <tr>
-          <th rowSpan={2} className={cn(TH, "align-top")}>
-            Breakdown
-          </th>
-          {contentHead("Content")}
+          <th className={TH}>Breakdown</th>
+          {contentHead(false)}
           {segmentHead}
-          {groupHeads}
+          {metricHeads}
         </tr>
-        <tr>{metricHeads}</tr>
       </thead>
       <tbody>
         {view.groups.map((g) => {
@@ -844,7 +820,7 @@ function TreatmentPicker({ options, chosen, onChosen, count, disabled }: { optio
         <Combobox.Positioner align="start" sideOffset={4} className="z-50">
           <Combobox.Popup initialFocus={input} className="w-72 overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md">
             <div className="border-b p-1.5">
-              <Combobox.Input ref={input} placeholder="Find a treatment" className="w-full rounded-md px-2 py-1 text-sm outline-none placeholder:text-muted-foreground" />
+              <Combobox.Input ref={input} aria-label="Find a treatment" className="w-full rounded-md px-2 py-1 text-sm outline-none" />
             </div>
             <Combobox.Empty className="px-3 py-2 text-sm text-muted-foreground empty:hidden">Nothing matching.</Combobox.Empty>
             <Combobox.List className="max-h-80 overflow-y-auto p-1 empty:hidden">
@@ -853,6 +829,7 @@ function TreatmentPicker({ options, chosen, onChosen, count, disabled }: { optio
                   <Combobox.ItemIndicator className="absolute left-2 flex size-3.5 items-center justify-center">
                     <Check className="size-4" />
                   </Combobox.ItemIndicator>
+                  {THUMB[o] ? <img src={THUMB[o]} alt="" width={36} height={24} className="mr-2.5 h-6 w-9 shrink-0 rounded-[3px] bg-muted object-cover" /> : <span aria-hidden className="mr-2.5 h-6 w-9 shrink-0 rounded-[3px] bg-muted" />}
                   <span className="truncate">{treatmentName(o)}</span>
                 </Combobox.Item>
               )}
