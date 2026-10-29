@@ -54,7 +54,8 @@ const PLACEBO = "\u0000placebo"
 const PRIMARY = new Set(["lift_support", "lift_favorability", "lift_vote_choice"])
 /** The Emotional Response column's key in the Metrics menu and metricsOff. */
 const EMOTION = "@emotion"
-const EMOTION_WIDTH = 300
+/** Every metric column's opening width, Emotional Response's too (Brendan, 2026-10-29: the three alike); each drags on its own. */
+const METRIC_WIDTH = 280
 
 /** A treatment's thumbnail: one still frame of its tested video, cut once with ffmpeg (public/lift/thumbs/). */
 const THUMB: Record<string, string> = {
@@ -109,6 +110,9 @@ export function LiftSurface() {
   }, [about])
   const [depth, setDepth] = React.useState(PER_READ)
   const [widths, setWidths] = React.useState({ treatment: 220, segment: 170 })
+  const [metricWidths, setMetricWidths] = React.useState<Record<string, number>>({})
+  const widthOf = (key: string) => metricWidths[key] ?? METRIC_WIDTH
+  const resizeMetric = (key: string) => (w: number) => setMetricWidths((p) => ({ ...p, [key]: w }))
   const [shared, setShared] = React.useState(false)
   const [display, setDisplay] = React.useState<"bars" | "heatmap">("bars")
   // The heatmap's benchmark: every lift on file for the metric and segment, by its median.
@@ -540,6 +544,7 @@ export function LiftSurface() {
   )
 
   const cols = view ? view.metrics.length + (view.emotion ? 1 : 0) : 0
+  const metricsWidth = view ? view.metrics.reduce((n, m) => n + widthOf(m), 0) + (view.emotion ? widthOf(EMOTION) : 0) : 0
   // Stable, so a pick re-renders only the rows whose selection changed (the rows are memoized).
   // The same cell again closes the panel.
   const pick = React.useCallback(
@@ -624,6 +629,7 @@ export function LiftSurface() {
                   <DropdownMenuItem onSelect={() => setMetricsOff((prev) => [...prev, m])}>Hide this metric</DropdownMenuItem>
                 </>
               )}
+              <Resize width={widthOf(m)} onWidth={resizeMetric(m)} max={640} />
             </span>
           </span>
         </th>
@@ -633,7 +639,7 @@ export function LiftSurface() {
           <span className="flex items-center gap-2">
             Emotional Response
             <span className="rounded-md border px-1.5 py-px text-[10px] font-normal text-muted-foreground">Sample</span>
-            <span className="ml-auto flex items-center">
+            <span className="ml-auto flex items-center gap-2">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button type="button" aria-label="About Emotional Response" className={HEAD_ICON}>
@@ -642,6 +648,7 @@ export function LiftSurface() {
                 </TooltipTrigger>
                 <TooltipContent className="max-w-72">The share of respondents naming each feeling after the ad. No test has asked it yet: these shares are placeholders.</TooltipContent>
               </Tooltip>
+              <Resize width={widthOf(EMOTION)} onWidth={resizeMetric(EMOTION)} max={640} />
             </span>
           </span>
         </th>
@@ -649,14 +656,14 @@ export function LiftSurface() {
     </>
   )
   const barsTable = view && read && (
-    <table className="w-full table-fixed border-collapse" style={{ minWidth: widths.treatment + widths.segment + view.metrics.length * 220 + (view.emotion ? EMOTION_WIDTH : 0) }}>
+    <table className="table-fixed border-collapse" style={{ width: widths.treatment + widths.segment + metricsWidth, minWidth: "100%" }}>
       <colgroup>
         <col style={{ width: widths.treatment }} />
         <col style={{ width: widths.segment }} />
         {view.metrics.map((m) => (
-          <col key={m} />
+          <col key={m} style={{ width: widthOf(m) }} />
         ))}
-        {view.emotion && <col style={{ width: EMOTION_WIDTH }} />}
+        {view.emotion && <col style={{ width: widthOf(EMOTION) }} />}
       </colgroup>
       <thead className="sticky top-0 z-[1] bg-background">
         <tr>
@@ -672,7 +679,7 @@ export function LiftSurface() {
             {g.dim && (
               <tr>
                 <td className="border-b bg-pax2-mist" />
-                <td colSpan={1 + cols} className="border-b bg-pax2-mist px-3 py-1.5 text-xs font-semibold text-muted-foreground">
+                <td colSpan={1 + cols} className="border-b bg-pax2-mist px-3 py-1.5 text-xs font-semibold text-foreground">
                   {g.name}
                 </td>
               </tr>
@@ -689,15 +696,15 @@ export function LiftSurface() {
   )
 
   const heatTable = view && read && (
-    <table className="w-full table-fixed border-collapse" style={{ minWidth: 110 + widths.treatment + widths.segment + view.metrics.length * 130 + (view.emotion ? EMOTION_WIDTH : 0) }}>
+    <table className="table-fixed border-collapse" style={{ width: 110 + widths.treatment + widths.segment + metricsWidth, minWidth: "100%" }}>
       <colgroup>
         <col style={{ width: 110 }} />
         <col style={{ width: widths.treatment }} />
         <col style={{ width: widths.segment }} />
         {view.metrics.map((m) => (
-          <col key={m} />
+          <col key={m} style={{ width: widthOf(m) }} />
         ))}
-        {view.emotion && <col style={{ width: EMOTION_WIDTH }} />}
+        {view.emotion && <col style={{ width: widthOf(EMOTION) }} />}
       </colgroup>
       <thead className="sticky top-0 z-[1] bg-background">
         <tr>
@@ -966,11 +973,11 @@ const HeatRow = React.memo(function HeatRow({
 })
 
 /** The column-resize handle: drag it to set the column's width. */
-function Resize({ width, onWidth }: { width: number; onWidth: (w: number) => void }) {
+function Resize({ width, onWidth, min = 120, max = 480 }: { width: number; onWidth: (w: number) => void; min?: number; max?: number }) {
   const start = (e: React.PointerEvent) => {
     e.preventDefault()
     const x0 = e.clientX
-    const move = (ev: PointerEvent) => onWidth(Math.min(480, Math.max(120, width + ev.clientX - x0)))
+    const move = (ev: PointerEvent) => onWidth(Math.min(max, Math.max(min, width + ev.clientX - x0)))
     const up = () => {
       window.removeEventListener("pointermove", move)
       window.removeEventListener("pointerup", up)
