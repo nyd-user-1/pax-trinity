@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/ny4/tooltip"
 
 import { num, type SourceRow } from "../america-thinks/audience-data"
-import { fielding, levelOf, metricShort, POINT_LEFT, POINT_RIGHT, segOf, signed, testOf, treatmentName, type Pick } from "./lift-data"
+import { fielding, levelOf, metricShort, POINT_LEFT, POINT_RIGHT, segOf, signed, significance, testOf, treatmentName, type Pick } from "./lift-data"
 
 // Swayable's About Result (Brendan, 2026-10-28): Analytics and Open-ends; the
 // result on a 0–100 line from its control group's level; the treatment and
@@ -96,7 +96,7 @@ export function AboutResult({ pick, rows, complete, place, onClose }: { pick: Pi
       ) : (
         <>
           <div className="px-4 pt-4 pb-4">
-            {control && <Scale control={control[7]} delta={delta} />}
+            {control && <Scale control={control[7]} delta={delta} quiet={significance(lift) === false} />}
             <div className={cn("grid grid-cols-[1fr_88px_72px] items-center gap-x-3 gap-y-2.5 text-[13px]", control && "mt-4")}>
               <span />
               <span className="text-xs leading-4 font-medium">
@@ -195,7 +195,7 @@ export function AboutResult({ pick, rows, complete, place, onClose }: { pick: Pi
 }
 
 /** The result on the metric's 0–100 line: the arrow runs from the control group's level by the impact. */
-function Scale({ control, delta }: { control: number; delta: number }) {
+function Scale({ control, delta, quiet }: { control: number; delta: number; quiet: boolean }) {
   const c = Math.min(100, Math.max(0, control))
   const t = Math.min(100, Math.max(0, control + delta))
   const up = delta >= 0
@@ -204,10 +204,10 @@ function Scale({ control, delta }: { control: number; delta: number }) {
       <div className="relative h-5 text-xs tabular-nums">
         <span
           aria-hidden
-          className={cn("absolute bottom-1 h-[11px]", up ? "bg-pax2-light-blue" : "bg-pax2-red")}
+          className={cn("absolute bottom-1 h-[11px]", quiet ? "bg-muted-foreground/25" : up ? "bg-pax2-light-blue" : "bg-pax2-red")}
           style={{ left: `${Math.min(c, t)}%`, width: `max(5px, ${Math.abs(t - c)}%)`, clipPath: up ? POINT_RIGHT : POINT_LEFT }}
         />
-        <span className={cn("absolute bottom-0.5 font-semibold", !up && "text-pax2-red")} style={up ? { left: `calc(${t}% + 4px)` } : { right: `calc(${100 - t}% + 4px)` }}>
+        <span className={cn("absolute bottom-0.5 font-semibold", quiet ? "text-muted-foreground" : !up && "text-pax2-red")} style={up ? { left: `calc(${t}% + 4px)` } : { right: `calc(${100 - t}% + 4px)` }}>
           {signed(delta)}
         </span>
         <span className="absolute bottom-0.5 text-muted-foreground" style={up ? { right: `calc(${100 - c}% + 4px)` } : { left: `calc(${c}% + 4px)` }}>

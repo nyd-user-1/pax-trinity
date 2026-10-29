@@ -27,10 +27,12 @@ export async function fetchQuestionRows(source: string, id: string): Promise<Sou
   return r.json()
 }
 // [metric, geo_code, period_start, period_end, response_option, subgroup_dim,
-//  subgroup_value, estimate, estimate_type, moe, item_text, n, provenance_url]
-// — item_text null except polls and results; n and provenance_url null where
-// the store has none, and absent entirely in a pre-regeneration file.
-export type SourceRow = [string, string, string, string, string | null, string | null, string | null, number, string, number | null, string | null, (number | null)?, (string | null)?]
+//  subgroup_value, estimate, estimate_type, moe, item_text, n, provenance_url,
+//  significant?] — item_text null except polls and results; n and
+// provenance_url null where the store has none, and absent entirely in a
+// pre-regeneration file; significant, the source's own call on a lift
+// (migration 013), present only on the rows that carry one (PAX's tests).
+export type SourceRow = [string, string, string, string, string | null, string | null, string | null, number, string, number | null, string | null, (number | null)?, (string | null)?, (boolean | null)?]
 
 /** One rail row per source key: a split source's parts summed back together. */
 export type SourceGroup = { source: string; label: string; rows: number; files: string[] }

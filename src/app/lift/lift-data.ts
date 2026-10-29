@@ -30,6 +30,17 @@ export const isPlacebo = (option: string | null) => !!option && /^placebo$/i.tes
 export type Cell = { lift: SourceRow; level: SourceRow | null; control: SourceRow | null }
 export type Pick = { option: string; metric: string; seg: string; segName: string; cell: Cell }
 
+/** Whether a lift clears its test: the source's own call where it makes one,
+ *  else its margin; null where there is neither. */
+export const significance = (r: SourceRow): boolean | null => (typeof r[13] === "boolean" ? r[13] : r[9] != null ? Math.abs(r[7]) > r[9] : null)
+
+/** A breakdown's segments in reading order: by their first number where every
+ *  one has a number (ages, incomes), else as the export lists them. */
+export function ordered(values: string[]) {
+  const lead = (v: string) => Number(v.replace(/,/g, "").match(/\d+(\.\d+)?/)?.[0])
+  return values.every((v) => Number.isFinite(lead(v))) ? [...values].sort((a, b) => lead(a) - lead(b)) : values
+}
+
 export const signed = (x: number) => `${x >= 0 ? "+" : "−"}${num(Math.abs(x))}`
 export const levelOf = (r: SourceRow) => (r[8] === "pct" ? `${num(r[7])}%` : `${num(r[7])} pts`)
 

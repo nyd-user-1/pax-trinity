@@ -221,7 +221,7 @@ export function SegmentGrid({
 const frame = "flex w-full items-center gap-1.5 rounded-[3px] text-left tabular-nums focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pax2-light-blue"
 
 /** A data row's dress (Brendan, 2026-10-28): the list rows' hover and selected state, Gmail's lift included, as rows-view.tsx's rows wear it. The picked cell's whole row holds the selected state while the About panel holds it. */
-const rowDress = (sel: boolean) => cn("transition-[background-color,box-shadow] hover:bg-accent/60 hover:shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]", sel && "bg-muted shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]")
+export const rowDress = (sel: boolean) => cn("transition-[background-color,box-shadow] hover:bg-accent/60 hover:shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]", sel && "bg-muted shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]")
 
 type Crosstab = ReturnType<typeof crosstabOf>
 /** A Banner column: its header, whether it opens a group, and its cell in a question's crosstab. */
