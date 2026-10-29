@@ -784,7 +784,7 @@ export function LiftSurface() {
     <BankFrame rail={rail} crumb="Lift" search={NO_SEARCH} bare>
       <div className="flex h-full min-h-0 flex-col">
         {toolbar}
-        <div className="flex min-h-0 flex-1">
+        <div className="relative flex min-h-0 flex-1">
           {/* Native scroll, as the compare grid's: the table sets its own width. */}
           <div className="min-h-0 min-w-0 flex-1 overflow-auto">
             {error && <p className="p-6 text-center text-sm text-pax2-red">The data did not load: {error}</p>}
@@ -799,8 +799,10 @@ export function LiftSurface() {
               <p className="p-6 text-center text-sm text-muted-foreground">{read && read.options.length && !chosen.length ? "No treatments picked — choose one under Treatments." : "Nothing on file."}</p>
             )}
           </div>
+          {/* About Result in the house drawer's dress (the shell's Discussion panel): a card floating over the table at
+              the right, 18px in from the edges, sliding in and out on its transform. */}
           <div
-            className={cn("flex shrink-0 overflow-hidden transition-[width] duration-300 ease-out", about ? "w-[380px]" : "w-0")}
+            className={cn("absolute inset-y-[18px] right-[18px] z-20 w-[min(400px,calc(100%-36px))] transition-transform duration-300 ease-in-out", about ? "translate-x-0" : "pointer-events-none translate-x-[calc(100%+18px)]")}
             onTransitionEnd={(e) => e.target === e.currentTarget && !about && setSheet(null)}
           >
             {(about ?? sheet) && (

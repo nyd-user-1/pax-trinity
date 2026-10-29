@@ -102,7 +102,7 @@ export function AboutResult({
   }, [lift])
 
   return (
-    <aside className="flex w-[380px] shrink-0 flex-col overflow-y-auto border-l bg-background">
+    <aside className="flex h-full w-full flex-col overflow-y-auto rounded-2xl border border-slate-500 bg-background shadow-e2">
       <div className="flex items-center justify-between px-4 pt-4 pb-3">
         <h3 className="text-sm font-semibold">About Result</h3>
         <button type="button" onClick={onClose} aria-label="Close" className="text-muted-foreground hover:text-foreground">
