@@ -28,8 +28,7 @@ export function Grid({ clips, onOpen, className }: { clips: Clip[]; onOpen: (cli
           ) : clip.poster ? (
             <img src={clip.poster} alt="" className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
           ) : (
-            // A recording has no cues to seek by, so it loads whole rather than sitting black on metadata alone.
-            <video src={clip.mine ? clip.src : `${clip.src}#t=0.1`} preload={clip.mine ? "auto" : "metadata"} muted playsInline className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
+            <TileVideo clip={clip} />
           )}
           <div className="absolute inset-x-0 top-0 flex items-center gap-1.5 bg-gradient-to-b from-black/60 to-transparent p-2 pb-6">
             <Avatar className="size-6 ring-1 ring-white/40 max-sm:size-5">
@@ -55,6 +54,37 @@ export function Grid({ clips, onOpen, className }: { clips: Clip[]; onOpen: (cli
           )}
         </button>
       ))}
+    </div>
+  )
+}
+
+/** A tile's video mounts only as the tile nears the screen (2026-10-29): the grid
+ *  mounting all 209 players at once pulled the head of every video to paint its
+ *  still, and the page took 8-11 s to settle even with everything cached. */
+function TileVideo({ clip }: { clip: Clip }) {
+  const ref = React.useRef<HTMLDivElement>(null)
+  const [near, setNear] = React.useState(false)
+  React.useEffect(() => {
+    const el = ref.current
+    if (!el || near) return
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting) {
+          setNear(true)
+          io.disconnect()
+        }
+      },
+      { rootMargin: "400px 0px" },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [near])
+  return (
+    <div ref={ref} className="size-full">
+      {near && (
+        // A recording has no cues to seek by, so it loads whole rather than sitting black on metadata alone.
+        <video src={clip.mine ? clip.src : `${clip.src}#t=0.1`} preload={clip.mine ? "auto" : "metadata"} muted playsInline className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
+      )}
     </div>
   )
 }

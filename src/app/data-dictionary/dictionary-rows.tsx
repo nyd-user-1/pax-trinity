@@ -19,7 +19,6 @@ export function DictionaryRows({ rows }: { rows: DictionaryRow[] }) {
           <TableRow
             key={t.id}
             id={t.id}
-            data-find={`${t.term} ${t.definition}`}
             onClick={() => setOpen(on ? null : t.id)}
             className="scroll-mt-24 cursor-pointer target:bg-pax2-lavender/50"
           >

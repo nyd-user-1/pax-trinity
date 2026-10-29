@@ -8,7 +8,7 @@ import { GLOSSARY } from "@/lib/glossary"
 import { Table, TableHead, TableHeader, TableRow } from "@/ui/components/nova/table"
 
 import { dictionaryRows } from "./dictionary-data"
-import { DictionaryRows } from "./dictionary-rows"
+import { DictionaryTable } from "./dictionary-table"
 import { GlossaryRows } from "./glossary-rows"
 import { SchemaCanvas } from "./schema-canvas"
 
@@ -80,19 +80,5 @@ export default async function DataDictionaryPage({ searchParams }: { searchParam
 /** The bank's constructs as the terms, the glossary's table shape. */
 async function Dictionary() {
   // One array for the rows and the menu's Download, so the payload carries them once.
-  const rows = await dictionaryRows()
-  return (
-    <TableBlock fill title="" search="Search the dictionary…" rows={rows} name="data-dictionary">
-      <Table className="table-fixed">
-        <TableHeader>
-          <TableRow className="bg-muted/60">
-            <TableHead className="w-[26%]">Term</TableHead>
-            <TableHead className="w-[60%]">Definition</TableHead>
-            <TableHead className="w-[14%]">Section</TableHead>
-          </TableRow>
-        </TableHeader>
-        <DictionaryRows rows={rows} />
-      </Table>
-    </TableBlock>
-  )
+  return <DictionaryTable rows={await dictionaryRows()} />
 }
