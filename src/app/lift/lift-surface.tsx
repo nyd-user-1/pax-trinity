@@ -541,7 +541,11 @@ export function LiftSurface() {
 
   const cols = view ? view.metrics.length + (view.emotion ? 1 : 0) : 0
   // Stable, so a pick re-renders only the rows whose selection changed (the rows are memoized).
-  const pick = React.useCallback((o: string, m: string, s: Seg, c: Cell) => setAbout({ option: o, metric: m, seg: s.key, segName: s.name, cell: c }), [])
+  // The same cell again closes the panel.
+  const pick = React.useCallback(
+    (o: string, m: string, s: Seg, c: Cell) => setAbout((prev) => (prev && prev.option === o && prev.metric === m && prev.seg === s.key ? null : { option: o, metric: m, seg: s.key, segName: s.name, cell: c })),
+    []
+  )
 
   const contentHead = (label: string) => (
     <th rowSpan={2} className={cn(TH, "align-top", label !== "Treatment" && "border-l")}>
