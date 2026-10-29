@@ -7,9 +7,9 @@ import { ChartBlock } from "@/components/blocks"
 
 import { marksLine } from "./charts"
 import { Block, Box, Footnote, StoryBox, VerdictMark, WaveChip } from "./report-bits"
-import { Fingerprint, PanelBars, type BarSpec } from "./report-charts"
+import { Fingerprint, PanelBars, SubgroupLines, type BarSpec } from "./report-charts"
 import { approx, axis, count, countOf, dateRange, isCampaign, listed, pct, signed, toplineOf, treatmentsOf, word, Word } from "./report-math"
-import { crossWaveSpec, fingerprintSpec, levelSpec, liftSpec, rowsOf, shareSpec, subgroupSpec } from "./report-specs"
+import { crossWaveSpec, fingerprintSpec, levelSpec, liftSpec, rowsOf, shareSpec, subgroupLinesSpec, subgroupSpec } from "./report-specs"
 import { armsLine, FactBoxes, LevelsKey, Methodology, PairingCard, VideoCard } from "./sections"
 
 // /reports/[study] — the wave readout, in three pages (Brendan, 2026-10-29):
@@ -287,6 +287,7 @@ export function waveSections(rs: ResultSet, a: ReturnType<typeof axis>, latest: 
         <div className="mt-6 flex flex-col gap-6 print:mt-4">
           <Chart title="Lift versus own-wave placebo" spec={liftSpec(rs, a)} />
           <FingerprintBlock rs={rs} />
+          <SubgroupLinesBlock rs={rs} />
         </div>
         {stories(rs, ["overview-1", "overview-2", "overview-3", "overview-4"]).length > 0 && (
           <ol className="mt-6 grid gap-5 md:grid-cols-2 print:mt-4 print:gap-3">
@@ -536,6 +537,18 @@ function FingerprintBlock({ rs }: { rs: ResultSet }) {
   return (
     <ChartBlock title="Fingerprint" className={FIT} rows={rows}>
       <Fingerprint spec={spec} label={`Wave ${rs.wave} fingerprint`} />
+    </ChartBlock>
+  )
+}
+
+/** Every subgroup as lines, pax2's viometric line chart: zoom with the slider or a drag inside. */
+function SubgroupLinesBlock({ rs }: { rs: ResultSet }) {
+  const spec = subgroupLinesSpec(rs)
+  if (!spec) return null
+  const rows = spec.columns.flatMap((c, i) => spec.series.map((x) => ({ subgroup: `${c.band} · ${c.label}`, arm: x.name, level: x.values[i], significant: x.marks[i] })))
+  return (
+    <ChartBlock title={`Every subgroup, ${lower(outcomeName(rs, BALLOT))} level`} className={FIT} rows={rows}>
+      <SubgroupLines spec={spec} label={`Wave ${rs.wave}, every subgroup`} />
     </ChartBlock>
   )
 }

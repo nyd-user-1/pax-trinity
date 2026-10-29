@@ -2,19 +2,23 @@
 
 import * as React from "react"
 import { init, use, type EChartsCoreOption, type EChartsType } from "echarts/core"
-import { BarChart } from "echarts/charts"
-import { GridComponent, MarkLineComponent, TooltipComponent } from "echarts/components"
+import { BarChart, LineChart, ScatterChart } from "echarts/charts"
+import { DataZoomInsideComponent, DataZoomSliderComponent, GridComponent, LegendComponent, MarkAreaComponent, MarkLineComponent, TooltipComponent } from "echarts/components"
 import { CanvasRenderer } from "echarts/renderers"
 
 // The readout's charts on ECharts canvas (Brendan, 2026-10-29), each sized to its block's width and
-// to its rows' height, so none scrolls. Two shapes. PanelBars: rows of bars across one or more side-by-
+// to its rows' height, so none scrolls. Three shapes. SubgroupLines: pax2's Multi-Modal Viometric Line
+// Chart (CompositeChart in pax2's viometrics/charts.tsx) made a wave's: every subgroup along the axis,
+// each video's level a line and the placebo's a dashed one, each dimension a shaded band, a mark where
+// a video beat the placebo inside a subgroup, the crosshair readout, and the zoom (drag inside, or the
+// slider under it) down to a handful of subgroups. PanelBars: rows of bars across one or more side-by-
 // side panels on a shared scale (lifts from zero, levels on 0–100 against a dashed reference). The
 // Fingerprint: pax2's viometric heat bar (src/components/viometrics/charts.tsx in pax2) made a wave's
 // signature, one cell per subgroup per video, each band in its own hue and a cell's strength in its
 // depth, the whole column read out under the chart on hover. Specs arrive built on the server
 // (report-doc.tsx), so no result set crosses the wire.
 
-use([BarChart, GridComponent, MarkLineComponent, TooltipComponent, CanvasRenderer])
+use([BarChart, LineChart, ScatterChart, GridComponent, LegendComponent, MarkAreaComponent, MarkLineComponent, TooltipComponent, DataZoomInsideComponent, DataZoomSliderComponent, CanvasRenderer])
 
 export type Tone = "detect" | "quiet" | "campaign" | "placebo"
 /** A bar: its value, its color, the figure printed past it and the word after that, and its hover lines. */
@@ -283,6 +287,107 @@ export function Fingerprint({ spec, label }: { spec: FingerprintSpec; label: str
           })),
         }
       }),
+    }
+  }, [spec])
+  return <Canvas option={option} height={height} label={label} />
+}
+
+export type LinesSpec = {
+  /** Every subgroup along the axis, the overall level first. */
+  columns: { band: string; label: string }[]
+  /** Each dimension's run of columns, for its shaded band. */
+  bands: { name: string; from: number; to: number }[]
+  /** The placebo first, then each video: its level in every column, and where it was significant. */
+  series: { name: string; placebo?: boolean; values: (number | null)[]; marks: boolean[] }[]
+}
+
+const LINE_COLORS = ["#2563eb", "#dc2626", "#d97706", "#059669", "#7c3aed", "#0891b2", "#db2777", "#65a30d"]
+
+/** A wave's every subgroup as lines, pax2's viometric line chart in shape and in hand. */
+export function SubgroupLines({ spec, label }: { spec: LinesSpec; label: string }) {
+  const height = 400
+  const option = React.useMemo<EChartsCoreOption>(() => {
+    const keys = spec.columns.map((_, i) => String(i))
+    const videos = spec.series.filter((x) => !x.placebo)
+    const colorOf = (name: string) => (spec.series.find((x) => x.name === name)?.placebo ? MUTED : LINE_COLORS[videos.findIndex((x) => x.name === name) % LINE_COLORS.length])
+    // The scale hugs the levels, in tens, so the lines part where they differ.
+    const all = spec.series.flatMap((x) => x.values).filter((v): v is number => v != null)
+    const yMin = Math.max(0, Math.floor((Math.min(...all) - 4) / 10) * 10)
+    const yMax = Math.min(100, Math.ceil((Math.max(...all) + 4) / 10) * 10)
+    return {
+      animation: false,
+      textStyle: { fontFamily: "inherit" },
+      grid: { left: 44, right: 16, top: 30, bottom: 92 },
+      legend: { bottom: 0, icon: "roundRect", itemWidth: 14, itemHeight: 5, textStyle: { color: "#475569", fontSize: 11 } },
+      dataZoom: [
+        { type: "inside", xAxisIndex: 0 },
+        { type: "slider", xAxisIndex: 0, height: 16, bottom: 30, borderColor: RULE, fillerColor: "rgba(37,99,235,0.08)", labelFormatter: (v: number) => spec.columns[v]?.label ?? "" },
+      ],
+      xAxis: {
+        type: "category",
+        data: keys,
+        boundaryGap: false,
+        axisLine: { lineStyle: { color: "#cbd5e1" } },
+        axisTick: { show: false },
+        axisLabel: { color: MUTED, fontSize: 10, hideOverlap: true, formatter: (v: string) => spec.columns[Number(v)]?.label ?? "" },
+      },
+      yAxis: { type: "value", min: yMin, max: yMax, axisLabel: { color: MUTED, fontSize: 11, formatter: (v: number) => `${v}%` }, splitLine: { lineStyle: { color: "#f1f5f9" } } },
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "cross", label: { backgroundColor: "#334155", formatter: (p: { axisDimension: string; value: number | string }) => (p.axisDimension === "x" ? (spec.columns[Number(p.value)]?.label ?? "") : `${Math.round(Number(p.value))}%`) } },
+        ...TIP,
+        formatter: (ps: { dataIndex: number; seriesName: string; value: number | null; color: string }[]) => {
+          const i = ps[0]?.dataIndex ?? 0
+          const col = spec.columns[i]
+          const rows = spec.series
+            .map((x) => {
+              const v = x.values[i]
+              if (v == null) return null
+              return `<span style="display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;background:${colorOf(x.name)}"></span>${esc(x.name)}: <b>${v}%</b>${x.marks[i] ? " · significant" : ""}`
+            })
+            .filter(Boolean)
+          return `<b>${esc(col ? `${col.band} · ${col.label}` : "")}</b><br/>${rows.join("<br/>")}`
+        },
+      },
+      series: [
+        ...spec.series.map((x, k) => ({
+          name: x.name,
+          type: "line",
+          data: x.values,
+          connectNulls: false,
+          showSymbol: true,
+          symbol: "circle",
+          symbolSize: 4,
+          lineStyle: { color: colorOf(x.name), width: x.placebo ? 1.5 : 1.75, type: x.placebo ? "dashed" : "solid" },
+          itemStyle: { color: colorOf(x.name) },
+          z: x.placebo ? 2 : 3,
+          // The dimensions' bands, shaded in turn under every line, each named at its top.
+          ...(k === 0
+            ? {
+                markArea: {
+                  silent: true,
+                  label: { show: true, position: "insideTop", color: "#64748b", fontSize: 10, fontWeight: 700, formatter: (p: { name: string }) => p.name.toUpperCase() },
+                  // A band of one column (the overall level) is too narrow to name.
+                  data: spec.bands.filter((b) => b.to > b.from).map((b, i) => [
+                    { xAxis: String(b.from), name: b.name, itemStyle: { color: i % 2 ? "rgba(241,245,249,0.9)" : "rgba(255,255,255,0)" } },
+                    { xAxis: String(b.to) },
+                  ]),
+                },
+              }
+            : {}),
+        })),
+        // A mark above the line wherever the video beat the placebo inside that subgroup.
+        ...videos.map((x) => ({
+          name: x.name,
+          type: "scatter",
+          data: x.values.map((v, i) => (v != null && x.marks[i] ? [String(i), v] : null)).filter(Boolean),
+          symbol: "diamond",
+          symbolSize: 9,
+          itemStyle: { color: colorOf(x.name), borderColor: "#fff", borderWidth: 1 },
+          tooltip: { show: false },
+          z: 4,
+        })),
+      ],
     }
   }, [spec])
   return <Canvas option={option} height={height} label={label} />

@@ -1,6 +1,6 @@
 import type { Arm, ResultSet, SubgroupDimension, Topline } from "@/lib/results/types"
 
-import type { BarCell, BarSpec, FingerprintSpec, Tone } from "./report-charts"
+import type { BarCell, BarSpec, FingerprintSpec, LinesSpec, Tone } from "./report-charts"
 import { approx, axis, cellOf, isCampaign, pct, placeboOf, signed, toplineOf, treatmentsOf, verdictWord } from "./report-math"
 
 // The charts' specs, built on the server from the result sets (report-charts.tsx draws them): every
@@ -245,4 +245,32 @@ export function fingerprintSpec(rs: ResultSet, ballot = "ballot"): FingerprintSp
 /** A chart's figures as rows, for its block's Download. */
 export function rowsOf(spec: BarSpec): Record<string, string | number | null>[] {
   return spec.rows.flatMap((r) => spec.panels.map((p, i) => ({ row: r.label, panel: p.title, value: r.cells[i]?.value ?? null, label: r.cells[i] ? `${r.cells[i]!.text}${r.cells[i]!.note ? ` · ${r.cells[i]!.note}` : ""}` : null })))
+}
+
+/** The wave's every subgroup along one axis: the overall level, then each dimension's categories, each
+ *  arm's level a line (the placebo's first), with the cells a video won against the placebo marked. */
+export function subgroupLinesSpec(rs: ResultSet, ballot = "ballot"): LinesSpec | null {
+  const placebo = placeboOf(rs)
+  if (!placebo) return null
+  const arms = [placebo, ...treatmentsOf(rs)]
+  const columns: LinesSpec["columns"] = [{ band: "Overall", label: "Everyone" }]
+  const bands: LinesSpec["bands"] = [{ name: "Overall", from: 0, to: 0 }]
+  const values = arms.map((arm) => [toplineOf(rs, arm.id, ballot)?.levelPct ?? null])
+  const marks = arms.map((arm) => [toplineOf(rs, arm.id, ballot)?.verdict === "detectable"])
+  for (const d of rs.dimensions) {
+    const band = SHORT[d.id] ?? d.name.replace(/\s*\(.*\)$/, "").split(" ")[0]
+    const from = columns.length
+    for (const cat of d.categories) {
+      if (!cellOf(rs, d.id, cat.id, placebo.id, ballot)) continue
+      columns.push({ band, label: cat.name })
+      arms.forEach((arm, k) => {
+        const c = cellOf(rs, d.id, cat.id, arm.id, ballot)
+        values[k].push(c?.levelPct ?? null)
+        marks[k].push(!!c?.significant && arm.role !== "placebo")
+      })
+    }
+    if (columns.length > from) bands.push({ name: band, from, to: columns.length - 1 })
+  }
+  if (columns.length < 3) return null
+  return { columns, bands, series: arms.map((arm, k) => ({ name: arm.role === "placebo" ? placeboName(arm) : arm.name, placebo: arm.role === "placebo", values: values[k], marks: marks[k] })) }
 }
