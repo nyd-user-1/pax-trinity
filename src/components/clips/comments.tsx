@@ -7,6 +7,7 @@ import { AtSignIcon, BoldIcon, CodeIcon, HeartIcon, ItalicIcon, Link2Icon, ListI
 import { Avatar, AvatarFallback, AvatarImage } from "@govblock/ui/components/nova/avatar"
 import { cn } from "@govblock/ui/lib/utils"
 
+import { ClipTest, testsOf } from "./clip-test"
 import { fmtAge, type Clip, type Comment } from "./store"
 
 // Instagram's post panel, as the page's right rail: the author with Follow
@@ -172,8 +173,11 @@ const EDITS = [
 ]
 
 // The cut's randomized-test readout: lifts against the wave's own placebo, the
-// source's labels, nothing invented. Untested cuts say so.
+// source's labels, nothing invented. A cut the results register tested reads
+// its arm there (clip-test.tsx); untested cuts say so.
 function ReportView({ clip }: { clip: Clip }) {
+  const tests = testsOf(clip.id)
+  if (tests.length) return <ClipTest tests={tests} />
   const r = clip.report
   if (!r)
     return (
