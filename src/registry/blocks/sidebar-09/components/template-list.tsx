@@ -23,7 +23,7 @@ export function TemplateList({ onUse }: { onUse: (template: Template) => void })
             <ul className="divide-y">
               {TEMPLATES.filter((t) => t.kind === kind).map((template) => {
                 const sender = addressFor(template.from)
-                const snippet = template.body.split("\n\n").find((line) => !/^Hi /.test(line)) ?? ""
+                const snippet = template.body.split("\n\n").find((line) => !/^Hi /.test(line) && !/^\*\*/.test(line)) ?? ""
                 return (
                   <li
                     key={template.id}
