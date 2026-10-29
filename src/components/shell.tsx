@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { ArrowLeft, BadgeCheck, Bell, BookA, Boxes, ChevronDown, ChevronUp, ChevronsUpDown, ClipboardList, Columns2, Columns3, EllipsisVertical, ExternalLink, FileText, Film, FlaskConical, Gauge, House, Inbox, LayoutDashboard, LifeBuoy, Link2, ListChecks, LogIn, LogOut, MessagesSquare, PanelLeftClose, PanelLeftOpen, Puzzle, Search, Settings, Shield, ShieldCheck, SlidersHorizontal, Star, User2, Users, Video, Vote, X } from "lucide-react"
+import { ArrowLeft, BadgeCheck, Bell, BookA, BookOpen, Boxes, ChevronDown, ChevronUp, ChevronsUpDown, ClipboardList, Columns2, Columns3, EllipsisVertical, ExternalLink, FileText, Film, FlaskConical, Gauge, House, Inbox, LayoutDashboard, Link2, ListChecks, LogIn, LogOut, MessagesSquare, PanelLeftClose, PanelLeftOpen, Puzzle, Search, Settings, Shield, ShieldCheck, SlidersHorizontal, Star, User2, Users, Video, Vote, X } from "lucide-react"
 
 import dynamic from "next/dynamic"
 import { SidebarChats } from "@/components/sidebar-chats"
@@ -693,7 +693,7 @@ export function AccountMenu() {
         </div>
         <DropdownMenuSeparator />
         {/* Each opens /settings at its tab (Brendan, 2026-10-29); Account and Settings fold the tabs the
-            menu had no row for. Help joins them, still unwired; Models takes its old place. */}
+            menu had no row for. Docs (Help until 2026-10-29) opens /docs; Models sits in Help's old place. */}
         <DropdownMenuItem onClick={() => openSettings("profile")} className={item}>
           <User2 /> Profile
         </DropdownMenuItem>
@@ -726,8 +726,8 @@ export function AccountMenu() {
             </DropdownMenuItem>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
-        <DropdownMenuItem disabled className={item}>
-          <LifeBuoy /> Help
+        <DropdownMenuItem onClick={() => router.push("/docs")} className={item}>
+          <BookOpen /> Docs
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => router.push("/models")} className={item}>
