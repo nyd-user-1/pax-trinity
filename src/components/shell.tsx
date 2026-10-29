@@ -31,18 +31,18 @@ const LIVE = new Set(["/", "/chat", "/clips", "/america-thinks", "/inbox", "/sur
 
 type NavLink = { href: string; label: string; icon: typeof House }
 type NavGroup = { label: string; icon: typeof House; children: NavLink[]; admin?: boolean }
-// A to Z (Brendan, 2026-10-23).
+// A to Z (Brendan, 2026-10-23, again 2026-10-29); the Admin group holds the foot.
 const ADMIN = [{ href: "/message-tests", label: "Message tests", icon: ClipboardList }]
 const NAV_TREE: (NavLink | NavGroup)[] = [
-  { href: "/chat", label: "Chat", icon: MessagesSquare },
-  { href: "/consensus", label: "Consensus", icon: Vote },
-  { href: "/survey", label: "Survey", icon: ListChecks },
-  { href: "/clips", label: "Clips", icon: Film },
-  { href: "/inbox", label: "Inbox", icon: Inbox },
-  { href: "/data-dictionary", label: "Data dictionary", icon: BookA },
   { href: "/america-thinks", label: "America Thinks", icon: Users },
+  { href: "/chat", label: "Chat", icon: MessagesSquare },
+  { href: "/clips", label: "Clips", icon: Film },
+  { href: "/consensus", label: "Consensus", icon: Vote },
+  { href: "/data-dictionary", label: "Data dictionary", icon: BookA },
+  { href: "/inbox", label: "Inbox", icon: Inbox },
   { href: "/lift", label: "Lift", icon: FlaskConical },
   { href: "/reports", label: "Reports", icon: FileText },
+  { href: "/survey", label: "Survey", icon: ListChecks },
   // Admins only: the admin surfaces that exist so far.
   { label: "Admin", icon: ShieldCheck, admin: true, children: ADMIN.filter((l) => LIVE.has(l.href)) },
 ]
