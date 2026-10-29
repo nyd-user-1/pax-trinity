@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ChevronLeftIcon, ChevronRightIcon, EllipsisVerticalIcon, PanelLeftClose, PanelLeftOpen, StarIcon } from "lucide-react"
+import { ChevronLeftIcon, ChevronRightIcon, EllipsisVerticalIcon, PanelLeftClose, PanelLeftOpen, PinIcon, StarIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
@@ -56,6 +56,10 @@ export type Card = {
   /** Gmail's snippet: when present it stands after the dash in the detail's place. */
   snippet?: string | null
   pinned?: boolean
+  /** Pinned to the top of the list: a pin before the title. */
+  top?: boolean
+  /** Never opened: the title and the span read bold, Gmail's unread. Absent, the list's own weight stands. */
+  unread?: boolean
   /** The three marks leading the one-line row; absent, the row goes without. */
   marks?: MarkState
   /** The row kebab's menu, in the house menu's parts (kebab-menu.tsx); none leaves the span alone. */
@@ -247,14 +251,18 @@ export function CardList({
               </span>
             )
             const end = stacked ? (
-              <RowEnd span={c.span ?? null} menu={c.menu} star={c.marks && { on: c.marks.pinned, onToggle: c.marks.onPin }} quiet={railTone} />
+              <RowEnd span={c.span ?? null} menu={c.menu} star={c.marks && { on: c.marks.pinned, onToggle: c.marks.onPin }} strong={railTone && !!c.unread} quiet={railTone} />
             ) : (
-              <RowEnd chip={chip} span={c.span ?? null} menu={c.menu} strong={!railTone} quiet={railTone} />
+              <RowEnd chip={chip} span={c.span ?? null} menu={c.menu} strong={railTone ? !!c.unread : true} quiet={railTone} />
             )
-            // The rail's weights: the open row semibold, the rest medium.
-            const weight = railTone && !active ? "font-medium" : "font-semibold"
+            // Unopened bold, opened plain (Brendan, 2026-10-29); the open row
+            // keeps the rail's semibold, and a list that tracks no openings its
+            // own weight (the rail tone's medium).
+            const weight = active || c.unread ? "font-semibold" : c.unread === false ? "font-normal" : railTone ? "font-medium" : "font-semibold"
+            const pin = c.top && <PinIcon aria-label="Pinned to the top" className="mr-1.5 inline size-3.5 -translate-y-px fill-pax2-lavender text-pax2-blue" />
             const title = (
               <span className={weight}>
+                {pin}
                 {c.pinned && <StarIcon aria-label="Pinned" className="mr-1.5 inline size-3.5 -translate-y-px fill-yellow-400 text-yellow-500" />}
                 {c.title}
               </span>
@@ -298,6 +306,7 @@ export function CardList({
                     )}
                     <span className="flex min-w-0 flex-1 items-baseline">
                       <span className={cn("max-w-[68ch] min-w-0 truncate", weight)} title={c.hint}>
+                        {pin}
                         {!c.marks && c.pinned && <StarIcon aria-label="Pinned" className="mr-1.5 inline size-3.5 -translate-y-px fill-yellow-400 text-yellow-500" />}
                         {c.title}
                       </span>
@@ -342,7 +351,7 @@ function RowEnd({
   quiet?: boolean
 }) {
   // The one-line row's span in the /inbox thread list's unread date weight.
-  const tone = quiet ? "text-slate-400" : strong ? "font-semibold" : "text-muted-foreground"
+  const tone = quiet ? (strong ? "font-semibold text-slate-600" : "text-slate-400") : strong ? "font-semibold" : "text-muted-foreground"
   if (!menu)
     return (
       <>

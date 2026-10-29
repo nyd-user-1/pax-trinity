@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { Blocks, ClipboardList, Columns3, Maximize2, PanelRight, Star, X } from "lucide-react"
+import { Blocks, ClipboardList, Columns3, Maximize2, PanelRight, Pin, PinOff, Star, X } from "lucide-react"
 
 import { addToDraft } from "@/lib/consensus/draft"
 import { BankFrame, BankSplit } from "@/components/bank/bank-frame"
@@ -54,10 +54,16 @@ export function AudienceInbox() {
   // The open question's title row carries the search (Brendan, 2026-10-29):
   // opened there, it stays open across the pane's views until closed.
   const [paneSearch, setPaneSearch] = React.useState(false)
-  const [split, setSplit] = React.useState<Split>("none")
+  // Split view is the page's default (Brendan, 2026-10-29): the list folded, the pane beside it.
+  const [split, setSplit] = React.useState<Split>("vertical")
   // The compare grid's columns, four at most, added from a row's kebab.
   const [columns, setColumns] = React.useState<string[]>([])
   const [pinned, setPinned] = React.useState<string[]>([])
+  // Pinned to the top of the list, and the questions ever opened (an unopened
+  // one reads bold, Gmail's unread): both kept in this browser.
+  const [top, setTop] = useStoredIds("america-thinks:top")
+  const [opened, setOpened] = useStoredIds("america-thinks:opened")
+  const openedSet = React.useMemo(() => new Set(opened), [opened])
   // Gmail's importance arrow, in front of the open question's title (pass 2).
   const [important, setImportant] = React.useState<string[]>([])
   // The Blocks panel's contents: questions pressed into it from the list.
@@ -235,6 +241,7 @@ export function AudienceInbox() {
   // middle panel"); the split toggle then turns the list off and on. The row
   // menu's Open gives the question the screen instead.
   const open = (id: string, s: Split = "vertical") => {
+    setOpened((prev) => (prev.includes(id) ? prev : [...prev, id]))
     setTableMetric(id)
     setMode("table")
     setSplit(s)
@@ -268,12 +275,13 @@ export function AudienceInbox() {
     [rows, summaries, label, wordingOf]
   )
 
-  // The list's reading order: the search, pins first.
+  // The list's reading order: the search, then the pinned to the top, the favorites, the rest.
   const ordered = React.useMemo(() => {
     const q = query.trim().toLowerCase()
     const shown = metricIds.filter((id) => !q || label(id).toLowerCase().includes(q) || id.toLowerCase().includes(q) || (wordingOf(id) ?? "").toLowerCase().includes(q))
-    return [...shown.filter((id) => pinned.includes(id)), ...shown.filter((id) => !pinned.includes(id))]
-  }, [metricIds, query, pinned, label, wordingOf])
+    const tier = (id: string) => (top.includes(id) ? 0 : pinned.includes(id) ? 1 : 2)
+    return [0, 1, 2].flatMap((t) => shown.filter((id) => tier(id) === t))
+  }, [metricIds, query, top, pinned, label, wordingOf])
 
   // A question's snippet: the dossier's headline without its "On {subject},"
   // lead ("62.8% of Americans answer fairly well. That is up from 52.1% in
@@ -357,6 +365,8 @@ export function AudienceInbox() {
       span: c ? (c.first === c.last ? String(c.first) : `${c.first}–${c.last}`) : null,
       detail: c ? `${scale ? `${scale} · ` : ""}${c.waves} ${c.waves === 1 ? "wave" : "waves"}` : null,
       pinned: pinned.includes(id),
+      top: top.includes(id),
+      unread: !openedSet.has(id),
       // The row's marks act in place (the box stays put); the open question's title row carries none.
       marks: {
         column: isColumn,
@@ -377,6 +387,7 @@ export function AudienceInbox() {
           <MenuRow icon={<Maximize2 />} label="Open" onClick={() => open(id, "none")} />
           <MenuRow icon={<PanelRight />} label="Open split view" onClick={() => open(id)} />
           <MenuSeparator />
+          <MenuRow icon={top.includes(id) ? <PinOff /> : <Pin />} label={top.includes(id) ? "Unpin from top" : "Pin to top"} onClick={() => toggle(setTop, id)} />
           <MenuRow icon={<Star className={pinned.includes(id) ? "fill-amber-400 text-amber-400" : undefined} />} label={pinned.includes(id) ? "Unfavorite" : "Favorite"} onClick={() => toggle(setPinned, id)} />
           <MenuRow
             icon={<ImportantIcon className={important.includes(id) ? "fill-amber-400 text-amber-400" : "fill-transparent"} />}
@@ -608,4 +619,24 @@ function BlocksPanel({
       </ul>
     </div>
   )
+}
+
+/** A list of ids kept in localStorage under its key: read once on mount, written on every change. */
+function useStoredIds(key: string) {
+  const [ids, setIds] = React.useState<string[]>(() => {
+    try {
+      const v: unknown = JSON.parse(window.localStorage.getItem(key) ?? "[]")
+      return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []
+    } catch {
+      return []
+    }
+  })
+  React.useEffect(() => {
+    try {
+      window.localStorage.setItem(key, JSON.stringify(ids))
+    } catch {
+      // A full or blocked store keeps the ids for this visit only.
+    }
+  }, [key, ids])
+  return [ids, setIds] as const
 }
