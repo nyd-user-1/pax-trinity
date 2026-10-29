@@ -11,13 +11,15 @@ Writes public/audience-data/ at the repo root, committed with the app:
   <source>.json   one per source (lowercased): an array of rows
                   [construct, geo_code, period_start, period_end, response_option,
                    subgroup_dim, subgroup_value, estimate, estimate_type, moe, item_text,
-                   n, provenance_url]
+                   n, provenance_url, significant?]
 
 The contract is fixed: the app's /audience page reads exactly this. BLOCKGROUP rows are left
 out everywhere. Estimates and moe are rounded to 1 decimal, counts to whole numbers. item_text
 is carried for POLL and ELECTION_RESULT rows only (null elsewhere). A topline row's
 subgroup_dim and subgroup_value (the store's "all") are null, which the page shows as All.
-Dates are ISO strings. n is the unweighted base (or the registered-voter base) where the store
+Dates are ISO strings. significant, the source's own significance call on a lift (migration
+013), is a 14th field on the rows that carry one and absent on every other row, so a source
+without calls exports byte for byte as before. n is the unweighted base (or the registered-voter base) where the store
 has one, else null. Within a cell, response options run in the coded order response_order
 records (the bulk tier's constructs), else alphabetically. A source file over
 MAX_BYTES is split into <source>-2.json, <source>-3.json, ..., each listed in index.json as
@@ -94,10 +96,15 @@ def source_rows(store: Store, source: str) -> list[list]:
     ordered = store.table_exists("response_order")
     join = ("LEFT JOIN response_order o ON o.source = n.source AND o.construct = n.construct "
             "AND o.response_option = n.response_option " if ordered else "")
+    # A store not yet at migration 013 has no significance calls to carry.
+    has_sig = store.query(
+        "SELECT count(*) FROM information_schema.columns WHERE table_name = 'norms' "
+        "AND column_name = 'significant'")[0][0] > 0
+    sig = "n.significant" if has_sig else "NULL"
     rows = store.query(
         "SELECT n.construct, n.geo_code, n.period_start, n.period_end, n.response_option, "
         "n.subgroup_dim, n.subgroup_value, n.estimate, n.estimate_type, n.moe, n.item_text, n.n, "
-        f"n.provenance_url FROM norms n {join}"
+        f"n.provenance_url, {sig} FROM norms n {join}"
         "WHERE n.source = ? AND n.geography <> 'BLOCKGROUP' "
         "ORDER BY n.construct, n.geo_code, n.period_start, n.period_end, n.item_text, "
         "n.subgroup_dim, n.subgroup_value, "
@@ -105,12 +112,16 @@ def source_rows(store: Store, source: str) -> list[list]:
         [source])
     keep_text = source in ITEM_TEXT_SOURCES
     out = []
-    for (construct, geo, start, end, option, dim, value, est, etype, moe, text, n, url) in rows:
+    for (construct, geo, start, end, option, dim, value, est, etype, moe, text, n, url,
+         significant) in rows:
         if dim == "all":
             dim = value = None
-        out.append([construct, geo, start.isoformat(), end.isoformat(), option, dim, value,
-                    _round(est, etype), etype, _round(moe, etype),
-                    text if keep_text else None, None if n is None else int(n), url])
+        row = [construct, geo, start.isoformat(), end.isoformat(), option, dim, value,
+               _round(est, etype), etype, _round(moe, etype),
+               text if keep_text else None, None if n is None else int(n), url]
+        if significant is not None:
+            row.append(bool(significant))
+        out.append(row)
     return out
 
 

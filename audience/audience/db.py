@@ -22,7 +22,7 @@ NORM_COLUMNS = (
     "norm_id", "natural_key", "source", "source_version", "geography", "geo_code",
     "period_start", "period_end", "construct", "item_text", "response_option",
     "subgroup_dim", "subgroup_value", "estimate", "estimate_type", "n", "se", "moe",
-    "weight_var", "provenance_url", "provenance_note", "extracted_at",
+    "significant", "weight_var", "provenance_url", "provenance_note", "extracted_at",
 )
 
 # The sha256 natural key. estimate_type is part of it: every cell is stored once as a
@@ -47,7 +47,7 @@ NAMESPACE = uuid.UUID("6f1d3a52-7c1e-4b8e-9a43-0c2d5e7f9b10")
 
 # Columns refreshed when a rerun hits an existing natural key.
 _UPDATE_COLUMNS = (
-    "geography", "estimate", "n", "se", "moe", "weight_var",
+    "geography", "estimate", "n", "se", "moe", "significant", "weight_var",
     "provenance_url", "provenance_note", "extracted_at",
 )
 
@@ -225,7 +225,7 @@ class Store:
             ("subgroup_value", pa.string()), ("estimate", pa.float64()),
             ("estimate_type", pa.string()), ("n", pa.int64()),
             ("se", pa.float64()), ("moe", pa.float64()),
-            ("weight_var", pa.string()), ("provenance_url", pa.string()),
+            ("significant", pa.bool_()), ("weight_var", pa.string()), ("provenance_url", pa.string()),
             ("provenance_note", pa.string()),
             ("extracted_at", pa.timestamp("us", tz="UTC")),
         ])

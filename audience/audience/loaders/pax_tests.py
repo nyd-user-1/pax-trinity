@@ -9,11 +9,13 @@ Expected columns (header names compared after lowercasing and dropping non-lette
   sig             the significance flag as the readout states it (kept in the note)
   weighted_n      the arm's weighted n
   placebo_level   the placebo's level of the same outcome and subgroup, percent
-Optional: wave, period_start, period_end (or date), geo_code, se, provenance_url, note.
+Optional: wave, period_start, period_end (or date), geo_code, se, provenance_url, note,
+  placebo_weighted_n  the placebo's weighted n, written on its level row
 
 Each CSV row writes a lift row (estimate_type lift_pp) and a level row (pct) under
 lift_<outcome>, with response_option = arm; each outcome x subgroup also gets one level row
-for "Placebo". Outcomes named like the lift dataset's (favorability, vote_choice) share its
+for "Placebo". The lift row carries sig as significant (migration 013) when it reads as a
+yes or a no; the note keeps it as read out. Outcomes named like the lift dataset's (favorability, vote_choice) share its
 constructs, so get_lift_benchmark pools them; any other outcome gets its own lift_<outcome>
 construct and concordance row. Without period columns the period is the file's modification
 date, and the note says so. No seed file: a note, exit 0, nothing written.
@@ -70,6 +72,16 @@ def _num(v: str) -> float | None:
     if v == "":
         return None
     return float(v)
+
+
+def _bool(v: str) -> bool | None:
+    """The readout's significance flag: a yes or a no, else no call."""
+    v = (v or "").strip().lower()
+    if v in ("true", "yes", "y", "1", "significant", "sig"):
+        return True
+    if v in ("false", "no", "n", "0", "not significant", "ns"):
+        return False
+    return None
 
 
 def _date(v: str) -> dt.date | None:
@@ -143,17 +155,20 @@ def build_rows(records: list[dict], path: Path) -> tuple[list[dict], set[str]]:
         )
         rows.append(dict(base, response_option=rec["arm"].strip(), estimate=lift,
                          estimate_type="lift_pp", se=se,
-                         moe=None if se is None else round(1.645 * se, 6)))
+                         moe=None if se is None else round(1.645 * se, 6),
+                         significant=_bool(rec["sig"])))
         level = _num(rec["level"])
         if level is not None:
             rows.append(dict(base, response_option=rec["arm"].strip(), estimate=level,
                              estimate_type="pct", se=None, moe=None))
         placebo = _num(rec["placebolevel"])
+        placebo_n = _num(rec.get("placeboweightedn", ""))
         key = _cell(rec, mtime)
         if placebo is not None and key not in placebo_done:
             placebo_done.add(key)
             rows.append(dict(base, response_option="Placebo", estimate=placebo,
-                             estimate_type="pct", se=None, moe=None, n=None))
+                             estimate_type="pct", se=None, moe=None,
+                             n=None if placebo_n is None else int(round(placebo_n))))
     return rows, constructs
 
 

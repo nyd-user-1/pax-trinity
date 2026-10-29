@@ -66,3 +66,31 @@ def test_subgroup_forms():
     assert pax.split_subgroup("party=Democrat") == ("party", "Democrat")
     assert pax.split_subgroup("Age: 18-29") == ("age", "18-29")
     assert pax.split_subgroup("Women") == ("subgroup", "Women")
+
+
+def test_significance_and_placebo_n(store, tmp_path):
+    seed = tmp_path / "pax_waves.csv"
+    seed.write_text(
+        "wave,arm,outcome,subgroup,level,lift,sig,weighted_n,placebo_level,placebo_weighted_n,"
+        "period_start,period_end\n"
+        "2,Pahlow,support,all,57,10,true,482,47,443,2026-10-12,2026-10-15\n"
+        "2,Green,comprehension,all,50,5,false,457,45,443,2026-10-12,2026-10-15\n"
+        "2,Green,support,Age=18–34,67,19,true,,48,,2026-10-12,2026-10-15\n"
+        "2,Pahlow,support,Age=55+,44,3,,,41,,2026-10-12,2026-10-15\n")
+    pax.run(store, seed=seed)
+    sig = dict(((r[0], r[1], r[2]), r[3]) for r in store.query(
+        "SELECT response_option, construct, subgroup_value, significant FROM norms "
+        "WHERE source = 'PAX_TEST' AND estimate_type = 'lift_pp'"))
+    assert sig[("Pahlow", "lift_support", "all")] is True
+    assert sig[("Green", "lift_comprehension", "all")] is False
+    assert sig[("Green", "lift_support", "18–34")] is True
+    assert sig[("Pahlow", "lift_support", "55+")] is None     # no call read out
+    levels = store.query(
+        "SELECT count(*) FROM norms WHERE source = 'PAX_TEST' AND estimate_type = 'pct' "
+        "AND significant IS NOT NULL")
+    assert levels[0][0] == 0                                   # only lifts carry a call
+    placebo = dict(((r[0], r[1]), r[2]) for r in store.query(
+        "SELECT construct, subgroup_value, n FROM norms WHERE source = 'PAX_TEST' "
+        "AND response_option = 'Placebo'"))
+    assert placebo[("lift_support", "all")] == 443
+    assert placebo[("lift_support", "18–34")] is None
