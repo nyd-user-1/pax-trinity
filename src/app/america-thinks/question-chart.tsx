@@ -208,12 +208,15 @@ export function QuestionChart({
   info,
   title,
   place,
+  flush = false,
 }: {
   /** The question's rows alone, already filtered by the caller. */
   rows: SourceRow[]
   info: MetricInfo
   title: string
   place: (code: string) => string
+  /** Inside a card that already pads it. */
+  flush?: boolean
 }) {
   const trend = React.useMemo(() => trendOf(rows, info, title), [rows, info, title])
   const option = React.useMemo(() => (trend ? optionFor(trend) : null), [trend])
@@ -223,7 +226,7 @@ export function QuestionChart({
   const first = trend.waves[0]
   const last = trend.waves[trend.waves.length - 1]
   return (
-    <div className="px-5 pt-5 pb-3">
+    <div className={flush ? undefined : "px-5 pt-5 pb-3"}>
       <Canvas option={option} label={`${title}, ${place(info.baseGeo)}, ${first}–${last}: ${trend.lines.map((l) => l.name).join(", ")}`} />
       {trend.capped && <p className="mt-2 text-xs text-muted-foreground">The first {MAX_LINES} of {trend.total} options by the latest value.</p>}
     </div>

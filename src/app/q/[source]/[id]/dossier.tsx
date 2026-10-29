@@ -2,13 +2,14 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { Check, ChevronLeft, ChevronRight, Copy } from "lucide-react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
 
 import { dimLabel, mnemonicOf, normalizeWording, num, shortSource, WORDING, type SourceRow } from "../../../america-thinks/audience-data"
 import { Card, CardLabel, Gap, pillClass, Tag } from "../../../_wire/wire-bits"
+import { B, Copyable, Provenance, ViewColumn, ViewHeading } from "../../../america-thinks/view-shell"
 import { cap, clausesOf, leadsWithSubject } from "./headline"
 import {
   bandOf,
@@ -41,8 +42,6 @@ import {
 // whole when fewer than two waves stand. The headline, trend and crosstab
 // copy their text from a hover button.
 
-/** The loader module that writes a source's rows, where exactly one does. */
-const LOADER: Record<string, string> = { GSS: "gss", ACS: "acs", CVAP: "cvap", CPS: "cps", MA_ENROLLMENT: "ma_enrollment", LIFT_ARCHIVE: "lift_archive", PAX_TEST: "pax_tests" }
 /** Ordinal orders for breakdowns the export files alphabetically. */
 const VALUE_ORDER: Record<string, string[]> = { educ: ["HS or less", "Some college", "BA", "Grad"] }
 
@@ -91,16 +90,12 @@ export function Dossier({ source, id, embedded = false }: { source: string; id: 
     )
 
   return (
-    <div className="mx-auto flex w-full max-w-[920px] flex-col gap-5 p-6" data-dossier={`${SRC.toLowerCase()}/${id}`}>
+    <ViewColumn data-dossier={`${SRC.toLowerCase()}/${id}`}>
       {/* The question is the page's title; in the pane the title row already carries it. */}
       {!embedded && <h2 className="text-[28px] leading-tight font-semibold">{normalizeWording(wording ?? label)}</h2>}
 
       {latest && band ? (
-        <Copyable flush>
-          <div className="pr-10">
-            <Headline source={SRC} label={label} wording={wording} band={band} geo={geo} place={place} total={total} base={base} latest={latest} />
-          </div>
-        </Copyable>
+        <Headline source={SRC} label={label} wording={wording} band={band} geo={geo} place={place} total={total} base={base} latest={latest} />
       ) : (
         <div className="h-16 animate-pulse rounded-md bg-muted/50" />
       )}
@@ -150,36 +145,7 @@ export function Dossier({ source, id, embedded = false }: { source: string; id: 
           <Chips index={index} source={SRC} id={id} rows={rows} geo={geo} geoLevel={geoLevel} geoName={geoName} onGeo={setPick} />
         </div>
       )}
-    </div>
-  )
-}
-
-/** A block with the standard copy control: top right, on hover, its text to the clipboard. */
-function Copyable({ children, flush = false }: { children: React.ReactNode; flush?: boolean }) {
-  const ref = React.useRef<HTMLDivElement>(null)
-  const [copied, setCopied] = React.useState(false)
-  React.useEffect(() => {
-    if (!copied) return
-    const t = window.setTimeout(() => setCopied(false), 1500)
-    return () => window.clearTimeout(t)
-  }, [copied])
-  return (
-    <div className="group/copy relative">
-      <div ref={ref}>{children}</div>
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        aria-label="Copy"
-        title="Copy"
-        onClick={() => {
-          const text = ref.current?.innerText ?? ""
-          void navigator.clipboard.writeText(text).then(() => setCopied(true))
-        }}
-        className={cn("absolute opacity-0 group-hover/copy:opacity-100 focus-visible:opacity-100", flush ? "top-0 right-0" : "top-3 right-3", copied && "opacity-100")}
-      >
-        {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
-      </Button>
-    </div>
+    </ViewColumn>
   )
 }
 
@@ -283,8 +249,8 @@ function Headline({
 }) {
   // The sentence's rules are shared with the /audience row's snippet (./headline).
   const c = clausesOf({ source, band, wording, geo, place, latest, base })
-  const b = <strong className="font-semibold">{c.band}</strong>
-  const v = <strong className="font-semibold">{c.value}</strong>
+  const b = <B>{c.band}</B>
+  const v = <B>{c.value}</B>
   // "Confidence in Congress" reads "confidence in Congress"; an acronym ("ACA support") keeps its case.
   const subject = /^[A-Z][a-z]/.test(label) ? label.charAt(0).toLowerCase() + label.slice(1) : label
   // A subject that is itself a question cannot lead "On …,": the sentence starts at the value.
@@ -327,22 +293,17 @@ function Headline({
     </>
   )
   return (
-    <div>
-      <p className="text-[22px] leading-snug">
-        {lead}
-        {(move || sits) && (
-          <>
-            {" "}
-            That is {move}
-            {move && sits ? " and " : ""}
-            {sits}.
-          </>
-        )}
-      </p>
-      <p className="mt-3 text-sm text-muted-foreground tabular-nums">
-        {[latest.span, latest.moe != null ? `±${one(latest.moe)}` : null, latest.n != null ? `n ${num(latest.n, 0)}` : null].filter(Boolean).join(", ")}
-      </p>
-    </div>
+    <ViewHeading sub={[latest.span, latest.moe != null ? `±${one(latest.moe)}` : null, latest.n != null ? `n ${num(latest.n, 0)}` : null].filter(Boolean).join(", ")}>
+      {lead}
+      {(move || sits) && (
+        <>
+          {" "}
+          That is {move}
+          {move && sits ? " and " : ""}
+          {sits}.
+        </>
+      )}
+    </ViewHeading>
   )
 }
 
@@ -535,38 +496,6 @@ function Related({ index, source, id, ownRows }: { index: IndexT; source: string
   )
 }
 
-
-function Provenance({ source, id, label, rows }: { source: string; id: string; label: string | null; rows: SourceRow[] | null }) {
-  const urls = React.useMemo(() => [...new Set((rows ?? []).map((r) => r[12]).filter((u): u is string => !!u))], [rows])
-  const host = (u: string) => {
-    try {
-      return new URL(u).host.replace(/^www\./, "")
-    } catch {
-      return u
-    }
-  }
-  const parts: React.ReactNode[] = []
-  if (label) parts.push(label)
-  if (urls.length === 1) parts.push(<a key="u" href={urls[0]} className="text-pax2-light-blue underline" target="_blank" rel="noreferrer">{host(urls[0])}</a>)
-  else if (urls.length > 1) parts.push(`${urls.length} source files (${[...new Set(urls.map(host))].join(", ")})`)
-  if (LOADER[source]) parts.push(<span key="l">loader <code className="font-mono text-[11px]">{LOADER[source]}</code></span>)
-  if (rows) parts.push(`${num(rows.length, 0)} rows for this question`)
-  parts.push(
-    <a key="raw" href={rawHref(source, id)} className="text-pax2-light-blue underline" target="_blank" rel="noreferrer">
-      open raw rows
-    </a>
-  )
-  return (
-    <p className="text-[13px] leading-relaxed text-muted-foreground">
-      {parts.map((p, i) => (
-        <React.Fragment key={i}>
-          {i > 0 && " · "}
-          {p}
-        </React.Fragment>
-      ))}
-    </p>
-  )
-}
 
 function Chips({
   index,

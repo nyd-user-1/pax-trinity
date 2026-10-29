@@ -494,6 +494,7 @@ export function AudienceInbox() {
                 place={place}
                 info={info.get(tableMetric) as MetricInfo}
                 source={srcOf(tableMetric)}
+                sourceLabel={index?.sources.find((s) => s.source === srcOf(tableMetric))?.label ?? null}
                 wording={wordingOf(tableMetric)}
                 about={about}
                 onPick={setAbout}

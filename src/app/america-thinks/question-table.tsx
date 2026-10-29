@@ -2,11 +2,12 @@
 
 import * as React from "react"
 import dynamic from "next/dynamic"
-import { ArrowLeft, Globe } from "lucide-react"
+import { ArrowLeft, ClipboardList, Globe } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
 import { PaneTitleRow, ViewToggle } from "@/components/bank/pane-bars"
+import { Card, CardLabel } from "../_wire/wire-bits"
 
 // The Trend view loads only when clicked: the chart file carries the ECharts
 // modules, and this dynamic mount keeps that chunk off every route until then.
@@ -22,7 +23,9 @@ const Dossier = dynamic(() => import("../q/[source]/[id]/dossier").then((m) => m
   loading: () => <p className="p-6 text-sm text-muted-foreground">Reading the question…</p>,
 })
 
-import { crosstabOf, dimLabel, latestRow, MAX_BANNER_ROWS, normalizeWording, num, value, year, type MetricInfo, type SourceRow } from "./audience-data"
+import { crosstabOf, dimLabel, latestRow, MAX_BANNER_ROWS, mnemonicOf, normalizeWording, num, shortSource, value, weightOf, year, type MetricInfo, type SourceRow } from "./audience-data"
+import { ATTITUDE } from "../q/[source]/[id]/headline"
+import { B, Copyable, listed, Provenance, ViewColumn, ViewHeading } from "./view-shell"
 import { RowsView } from "./rows-view"
 import { type About } from "./audience-pane"
 
@@ -34,6 +37,11 @@ import { type About } from "./audience-pane"
 // mounts the shared Rows view (Brendan, 2026-10-26): wave, segment, band,
 // estimate, margin, base, geo and weight, newest first with the total before
 // its subgroups. A clicked crosstab cell hands its row to the About panel.
+// Topline, Crosstab, Trend and the globe stand in the Global view's centered
+// column of cards under the same h2, a sentence of context (Brendan,
+// 2026-10-29). The Topline is the pollster's: the verbatim wording, every
+// answer at the latest wave with the earlier waves beside it, and the
+// provenance under it.
 // One 52px bar, flush with the list's one (Brendan's DevTools pass,
 // 2026-10-28): the question, with the view toggle at its right; the box,
 // importance arrow and star stay on the list's rows (Brendan, 2026-10-28).
@@ -44,6 +52,7 @@ const VIEWS = [
   { value: "tidy", label: "Data" },
   { value: "crosstab", label: "Crosstab" },
   { value: "chart", label: "Trend" },
+  { value: "topline", label: "Topline", icon: ClipboardList },
   { value: "global", label: "Global view", icon: Globe },
 ] as const
 type View = (typeof VIEWS)[number]["value"]
@@ -56,6 +65,7 @@ export function QuestionTable({
   place,
   info,
   source,
+  sourceLabel = null,
   wording,
   about,
   onPick,
@@ -71,6 +81,8 @@ export function QuestionTable({
   info: MetricInfo
   /** The source's key, for the Rows view's weight mapping. */
   source: string | null
+  /** The source's full name, for the Topline's provenance. */
+  sourceLabel?: string | null
   /** The verbatim wording where the bank carries one; the bar reads it over the label. */
   wording: string | null
   about: About | null
@@ -95,6 +107,24 @@ export function QuestionTable({
     const trendCell = (opt: string | null, y: string) => latestRow(top.filter((r) => (r[4] ?? null) === opt && year(r[3]) === y))
     return { ...x, years, trendCell }
   }, [rows, info])
+
+  // What every view's h2 is built from.
+  const baseName = place(info.baseGeo)
+  const who = info.baseGeo === "US" ? "Americans" : `people in ${baseName}`
+  const people = source != null && ATTITUDE.has(source)
+  const latestN = tab.cell(tab.options[0], null, null)?.[11] ?? null
+  const src = source ? shortSource(source) : null
+  const asked = latestN != null ? (
+    <>
+      the <B>{num(latestN, 0)}</B> {who} asked in <B>{tab.latestYear}</B>
+    </>
+  ) : (
+    <>
+      {who} asked in <B>{tab.latestYear}</B>
+    </>
+  )
+  const oldest = tab.years[tab.years.length - 1]
+  const facts = (...xs: (string | null)[]) => xs.filter(Boolean).join(", ")
 
   // The title row reads the question itself (Brendan, 2026-10-26) and the
   // chevrons changing the open question change it with them.
@@ -138,95 +168,121 @@ export function QuestionTable({
           itself to the banner's intrinsic width, which blew the pane out
           sideways and swallowed the vertical scroll with it. */}
       <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
-        {view === "chart" ? (
-          <>
-            <QuestionChart rows={rows} info={info} title={title} place={place} />
+        {view === "topline" ? (
+          <ToplineView tab={tab} title={title} wording={wording} metric={metric} source={source} sourceLabel={sourceLabel} rows={rows} about={about} onPick={onPick}>
+            <ViewHeading sub={facts(baseName, src, tab.years.length > 1 ? `${oldest}–${tab.latestYear}, ${tab.years.length} waves` : null)}>
+              {people ? <>Every answer from {asked}.</> : <>Every figure on file for {baseName} in <B>{tab.latestYear}</B>.</>}
+            </ViewHeading>
+          </ToplineView>
+        ) : view === "chart" ? (
+          <ViewColumn>
+            <ViewHeading sub={facts(baseName, src)}>
+              {tab.years.length > 1 ? (
+                <>
+                  {people ? "Every answer" : "Every figure"} across <B>{tab.years.length}</B> waves, <B>{oldest}</B> to <B>{tab.latestYear}</B>.
+                </>
+              ) : (
+                <>
+                  One wave on file, <B>{tab.latestYear}</B>: nothing to trend yet.
+                </>
+              )}
+            </ViewHeading>
+            {tab.years.length > 1 && info.type !== "lift_pp" && (
+              <Card>
+                <QuestionChart rows={rows} info={info} title={title} place={place} flush />
+              </Card>
+            )}
             {/* The wave-by-wave table under the chart (Brendan, 2026-10-27), off the crosstab. */}
             {tab.years.length > 1 && (
-              <div className="px-5 pb-5">
-                <h3 className="mb-3 text-sm font-semibold text-pax2-blue">Trend</h3>
+              <Copyable>
+                <Card>
+                  <CardLabel>By wave</CardLabel>
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse text-[13px]">
+                      <thead>
+                        <tr>
+                          <th className="border-b px-2.5 py-2 text-left text-xs font-medium text-muted-foreground">Wave</th>
+                          {tab.options.map((opt) => (
+                            <th key={opt ?? "·"} className="border-b px-2.5 py-2 text-left text-xs font-medium whitespace-nowrap text-muted-foreground">
+                              {opt ?? title}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {tab.years.map((y) => (
+                          <tr key={y}>
+                            <td className="border-b px-2.5 py-2 text-muted-foreground tabular-nums">{y}</td>
+                            {tab.options.map((opt) => (
+                              <XCell key={opt ?? "·"} r={tab.trendCell(opt, y)} metric={metric} segment={`${y}`} about={about} onPick={onPick} />
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </Card>
+              </Copyable>
+            )}
+          </ViewColumn>
+        ) : (
+          <ViewColumn>
+            <ViewHeading sub={facts(baseName, src)}>
+              {people ? <>How {asked} answered</> : <>Each figure for {baseName} in <B>{tab.latestYear}</B></>}
+              {tab.banner.length ? `, by ${listed(tab.banner.map((b) => dimLabel(b.dim).toLowerCase()))}.` : "; no breakdowns on file."}
+            </ViewHeading>
+            {/* Vertical (Brendan, 2026-10-29): the answers across the top, Total
+                then each breakdown's values down the side under its name, and
+                each row's unweighted n last. */}
+            <Copyable>
+              <Card>
                 <div className="overflow-x-auto">
-                  <table className="w-max min-w-[420px] border-collapse text-[13px]">
+                  <table className="w-full border-collapse text-[13px]">
                     <thead>
                       <tr>
-                        <th className="border-b px-2.5 py-2 text-left text-xs font-medium text-muted-foreground">Wave</th>
-                        {tab.options.map((opt) => (
-                          <th key={opt ?? "·"} className="border-b px-2.5 py-2 text-left text-xs font-medium whitespace-nowrap text-muted-foreground">
-                            {opt ?? title}
+                        <th className="min-w-[180px] border-b px-2.5 py-2" />
+                        {tab.options.map((opt, k) => (
+                          <th key={opt ?? "·"} className={cn("min-w-[96px] border-b px-2.5 py-2 text-left align-bottom text-xs font-semibold text-muted-foreground", k === 0 && "border-l")}>
+                            <span className="block max-w-[9rem]">{opt ?? title}</span>
                           </th>
                         ))}
+                        <th className="border-b border-l px-2.5 py-2 text-left align-bottom text-xs font-medium whitespace-nowrap text-muted-foreground">Unweighted n</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {tab.years.map((y) => (
-                        <tr key={y}>
-                          <td className="border-b px-2.5 py-2 text-muted-foreground tabular-nums">{y}</td>
-                          {tab.options.map((opt) => (
-                            <XCell key={opt ?? "·"} r={tab.trendCell(opt, y)} metric={metric} segment={`${y}`} about={about} onPick={onPick} />
+                      <tr>
+                        <td className="border-b px-2.5 py-2 font-medium whitespace-nowrap">Total</td>
+                        {tab.options.map((opt, k) => (
+                          <XCell key={opt ?? "·"} r={tab.cell(opt, null, null)} metric={metric} segment="Total" first={k === 0} about={about} onPick={onPick} />
+                        ))}
+                        <BaseCell r={tab.cell(tab.options[0], null, null)} latestYear={tab.latestYear} first className="border-b" />
+                      </tr>
+                      {tab.banner.map((b) => (
+                        <React.Fragment key={b.dim}>
+                          {/* The group's name, the column rules running through it. */}
+                          <tr>
+                            <td className="px-2.5 pt-4 pb-1 text-xs font-semibold text-muted-foreground">{dimLabel(b.dim)}</td>
+                            <td colSpan={tab.options.length} className="border-l" />
+                            <td className="border-l" />
+                          </tr>
+                          {b.values.map((v) => (
+                            <tr key={v}>
+                              <td className="border-b py-2 pr-2.5 pl-5 whitespace-nowrap">{v}</td>
+                              {tab.options.map((opt, k) => (
+                                <XCell key={opt ?? "·"} r={tab.cell(opt, b.dim, v)} metric={metric} segment={v} first={k === 0} about={about} onPick={onPick} />
+                              ))}
+                              <BaseCell r={tab.cell(tab.options[0], b.dim, v)} latestYear={tab.latestYear} first className="border-b" />
+                            </tr>
                           ))}
-                        </tr>
+                        </React.Fragment>
                       ))}
                     </tbody>
                   </table>
                 </div>
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="p-5">
-            <h2 className="text-[17px] font-semibold text-pax2-blue">{title}</h2>
-            <p className="mb-5 text-xs text-muted-foreground">
-              {def && `${def} · `}
-              {place(tab.base)} · latest wave {tab.latestYear}
-            </p>
-            {/* Vertical (Brendan, 2026-10-29): the answers across the top, Total
-                then each breakdown's values down the side under its name, and
-                each row's unweighted n last. */}
-            <div className="overflow-x-auto">
-              <table className="w-max border-collapse text-[13px]">
-                <thead>
-                  <tr>
-                    <th className="min-w-[180px] border-b px-2.5 py-2" />
-                    {tab.options.map((opt, k) => (
-                      <th key={opt ?? "·"} className={cn("min-w-[96px] border-b px-2.5 py-2 text-left align-bottom text-xs font-semibold text-muted-foreground", k === 0 && "border-l")}>
-                        <span className="block max-w-[9rem]">{opt ?? title}</span>
-                      </th>
-                    ))}
-                    <th className="border-b border-l px-2.5 py-2 text-left align-bottom text-xs font-medium whitespace-nowrap text-muted-foreground">Unweighted n</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td className="border-b px-2.5 py-2 font-medium whitespace-nowrap">Total</td>
-                    {tab.options.map((opt, k) => (
-                      <XCell key={opt ?? "·"} r={tab.cell(opt, null, null)} metric={metric} segment="Total" first={k === 0} about={about} onPick={onPick} />
-                    ))}
-                    <BaseCell r={tab.cell(tab.options[0], null, null)} latestYear={tab.latestYear} first className="border-b" />
-                  </tr>
-                  {tab.banner.map((b) => (
-                    <React.Fragment key={b.dim}>
-                      {/* The group's name, the column rules running through it. */}
-                      <tr>
-                        <td className="px-2.5 pt-4 pb-1 text-xs font-semibold text-muted-foreground">{dimLabel(b.dim)}</td>
-                        <td colSpan={tab.options.length} className="border-l" />
-                        <td className="border-l" />
-                      </tr>
-                      {b.values.map((v) => (
-                        <tr key={v}>
-                          <td className="border-b py-2 pr-2.5 pl-5 whitespace-nowrap">{v}</td>
-                          {tab.options.map((opt, k) => (
-                            <XCell key={opt ?? "·"} r={tab.cell(opt, b.dim, v)} metric={metric} segment={v} first={k === 0} about={about} onPick={onPick} />
-                          ))}
-                          <BaseCell r={tab.cell(tab.options[0], b.dim, v)} latestYear={tab.latestYear} first className="border-b" />
-                        </tr>
-                      ))}
-                    </React.Fragment>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            {tab.capped && <p className="mt-2 text-xs text-muted-foreground">The first {MAX_BANNER_ROWS} options by the latest value.</p>}
-          </div>
+                {tab.capped && <p className="mt-2 text-xs text-muted-foreground">The first {MAX_BANNER_ROWS} options by the latest value.</p>}
+              </Card>
+            </Copyable>
+          </ViewColumn>
         )}
       </div>
         </>
@@ -235,8 +291,8 @@ export function QuestionTable({
   )
 }
 
-/** A crosstab cell: the share with its margin small beside it; a count prints whole. */
-function XCell({ r, metric, segment, first, about, onPick }: { r: SourceRow | null; metric: string; segment: string; first?: boolean; about: About | null; onPick: (a: About) => void }) {
+/** A crosstab cell: the share with its margin small beside it (plain: the share alone, its margin on hover); a count prints whole. */
+function XCell({ r, metric, segment, first, plain, about, onPick }: { r: SourceRow | null; metric: string; segment: string; first?: boolean; plain?: boolean; about: About | null; onPick: (a: About) => void }) {
   if (!r) return <td className={cn("border-b px-2.5 py-2 text-xs text-muted-foreground/40", first && "border-l")}>—</td>
   const sel = about?.r === r
   return (
@@ -248,7 +304,7 @@ function XCell({ r, metric, segment, first, about, onPick }: { r: SourceRow | nu
         className={cn("flex items-baseline gap-1 rounded-[3px] text-left tabular-nums", sel && "outline-2 outline-offset-2 outline-pax2-light-blue")}
       >
         <span className="font-medium">{r[8] === "count" ? num(r[7], 0) : num(r[7])}</span>
-        {r[9] != null && <span className="text-[11px] text-muted-foreground">±{num(r[9])}</span>}
+        {!plain && r[9] != null && <span className="text-[11px] text-muted-foreground">±{num(r[9])}</span>}
       </button>
     </td>
   )
@@ -266,3 +322,102 @@ export function BaseCell({ r, latestYear, first, className }: { r: SourceRow | n
   )
 }
 
+
+/** The question's read: its crosstab, its waves newest first, and any answer's row in a wave. */
+type Tab = ReturnType<typeof crosstabOf> & { years: string[]; trendCell: (opt: string | null, y: string) => SourceRow | null }
+
+/** A topline lays a few waves beside the latest; Trend carries every one. */
+const TOPLINE_WAVES = 6
+
+/** The Topline: the question as asked, every answer at the latest wave with
+ *  the earlier waves beside it (shares alone, margins on hover, each wave's
+ *  unweighted n under), then where the rows come from and the weight. */
+function ToplineView({
+  tab,
+  title,
+  wording,
+  metric,
+  source,
+  sourceLabel,
+  rows,
+  about,
+  onPick,
+  children,
+}: {
+  tab: Tab
+  title: string
+  wording: string | null
+  metric: string
+  source: string | null
+  sourceLabel: string | null
+  rows: SourceRow[]
+  about: About | null
+  onPick: (a: About) => void
+  /** The view's h2. */
+  children: React.ReactNode
+}) {
+  const waves = tab.years.slice(0, TOPLINE_WAVES)
+  const weights = [...new Set(waves.map((y) => weightOf(source, y)).filter((w): w is string => !!w))]
+  return (
+    <ViewColumn>
+      {children}
+      <Copyable>
+        <Card>
+          <CardLabel>{[source ? shortSource(source) : null, mnemonicOf(metric)].filter(Boolean).join(" · ")}</CardLabel>
+          <p className="pr-8 text-[15px] leading-relaxed">{normalizeWording(wording ?? title)}</p>
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full border-collapse text-[13px]">
+              <thead>
+                <tr>
+                  <th className="min-w-[180px] border-b px-2.5 py-2" />
+                  {waves.map((y, k) => (
+                    <th key={y} className={cn("min-w-[72px] border-b px-2.5 py-2 text-left text-xs tabular-nums", k === 0 ? "border-l font-semibold text-foreground" : "font-medium text-muted-foreground")}>
+                      {y}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {tab.options.map((opt) => (
+                  <tr key={opt ?? "·"}>
+                    <td className="border-b px-2.5 py-2">{opt ?? title}</td>
+                    {waves.map((y, k) => (
+                      <XCell key={y} r={tab.trendCell(opt, y)} metric={metric} segment={y} first={k === 0} plain about={about} onPick={onPick} />
+                    ))}
+                  </tr>
+                ))}
+                <tr>
+                  <td className="px-2.5 py-2 text-xs text-muted-foreground">Unweighted n</td>
+                  {waves.map((y, k) => {
+                    const n = tab.trendCell(tab.options[0], y)?.[11]
+                    return (
+                      <td key={y} className={cn("px-2.5 py-2 text-xs text-muted-foreground tabular-nums", k === 0 && "border-l")}>
+                        {n != null ? num(n, 0) : "—"}
+                      </td>
+                    )
+                  })}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          {(tab.years.length > waves.length || tab.capped) && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              {[
+                tab.years.length > waves.length ? `The latest ${waves.length} of ${tab.years.length} waves; Trend carries every one.` : null,
+                tab.capped ? `The first ${MAX_BANNER_ROWS} options by the latest value.` : null,
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            </p>
+          )}
+        </Card>
+      </Copyable>
+      {source && (
+        <Card>
+          <CardLabel>Provenance</CardLabel>
+          <Provenance source={source} id={metric} label={sourceLabel} rows={rows} extra={weights.length ? <span key="w">weighted by {listed(weights)}</span> : undefined} />
+        </Card>
+      )}
+    </ViewColumn>
+  )
+}
