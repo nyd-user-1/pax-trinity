@@ -366,11 +366,6 @@ export function LiftSurface() {
         return x == null ? (y == null ? 0 : 1) : y == null ? -1 : dir * (x - y)
       })
       .flatMap(measured)
-    // With more than one fielding on, each row names its own.
-    const names = new Map(read.periods.map((p) => [p.key, p.name]))
-    const several = read.periods.filter((p) => !periodsOff.includes(p.key)).length > 1
-    // The Archive's rows carry their date in their own column, so no chip.
-    const waveOf = (ek: string) => (several && !archive ? (names.get(fieldingOf(ek)) ?? null) : null)
     const groups = [
       { dim: null as string | null, name: "Everyone", segs: [{ key: "", name: "Everyone" }] },
       ...[...read.dims].map(([d, vs]) => ({ dim: d as string | null, name: dimLabel(d), segs: vs.map((v) => ({ key: segKey(d, v), name: v })) })),
@@ -400,8 +395,8 @@ export function LiftSurface() {
           }
     const primary = metrics.filter((m) => PRIMARY.has(m)).length
     const emotion = !metricsOff.includes(EMOTION)
-    return { metrics, primary, emotion, by, dir, treatments, waveOf, groups, segCount: groups.reduce((n, g) => n + g.segs.length, 0), axis, scale, spread, segment: !archive, adCols }
-  }, [read, chosen, metricsOff, segsOff, periodsOff, sort, bench, median, archive, colFilter, metricFilter, traitCols, adColsOff])
+    return { metrics, primary, emotion, by, dir, treatments, groups, segCount: groups.reduce((n, g) => n + g.segs.length, 0), axis, scale, spread, segment: !archive, adCols }
+  }, [read, chosen, metricsOff, segsOff, sort, bench, median, archive, colFilter, metricFilter, traitCols, adColsOff])
 
   const shown = view ? view.treatments.slice(0, depth) : []
   const canLoad = view ? depth < view.treatments.length : false
@@ -1221,7 +1216,7 @@ const testName = (lift: SourceRow) => WAVE.get(periodKey(lift)) ?? testOf(lift)
 
 type Seg = { key: string; name: string }
 type RowRead = { cell: (option: string, metric: string, sk: string) => Cell | null }
-type RowView = { metrics: string[]; emotion: boolean; axis: number; scale: number; spread: number; waveOf: (ek: string) => string | null; segment: boolean; adCols: AdColumn[] }
+type RowView = { metrics: string[]; emotion: boolean; axis: number; scale: number; spread: number; segment: boolean; adCols: AdColumn[] }
 /** The Archive's one segment, its ads' only row each. */
 const EVERYONE: Seg = { key: "", name: "Everyone" }
 type OnPick = (o: string, m: string, s: Seg, c: Cell) => void
@@ -1233,7 +1228,7 @@ const entryKey = (option: string, fielding: string) => `${option}\u0002${fieldin
 const optionOf = (ek: string) => ek.slice(0, ek.indexOf("\u0002"))
 const fieldingOf = (ek: string) => ek.slice(ek.indexOf("\u0002") + 1)
 
-function creative(ek: string, wave: string | null) {
+function creative(ek: string) {
   const o = optionOf(ek)
   return (
     <span className="flex min-h-6 items-center gap-2.5">
@@ -1241,7 +1236,6 @@ function creative(ek: string, wave: string | null) {
       <span className="line-clamp-2 font-medium" title={o}>
         {treatmentName(o)}
       </span>
-      {wave && <span className="shrink-0 rounded-md border px-1.5 py-px text-[10.5px] whitespace-nowrap text-muted-foreground">{wave}</span>}
     </span>
   )
 }
@@ -1270,7 +1264,7 @@ function EmotionCell({ o, s }: { o: string; s: Seg }) {
 const BarsRow = React.memo(function BarsRow({ o, s, first, last, sel, read, view, onPick }: { o: string; s: Seg; first: boolean; last: boolean; sel: boolean; read: RowRead; view: RowView; onPick: OnPick }) {
   return (
     <tr className={rowDress(sel)}>
-      <td className={cn(TD, !last && "border-b-transparent")}>{first && creative(o, view.waveOf(o))}</td>
+      <td className={cn(TD, !last && "border-b-transparent")}>{first && creative(o)}</td>
       {view.segment && <td className={cn(TD, "border-l")}>{s.name}</td>}
       <AdCells o={o} view={view} />
       {view.metrics.map((m) => {
@@ -1327,7 +1321,7 @@ const HeatRow = React.memo(function HeatRow({
       <td className={cn(TD, "border-l", !lastOfBlock && "border-b-transparent")}>
         {firstOfBlock &&
           (o ? (
-            creative(o, view.waveOf(o))
+            creative(o)
           ) : (
             <span className="flex min-h-6 items-center gap-2.5">
               <ChartColumn aria-hidden className="size-4 shrink-0 text-muted-foreground" />
