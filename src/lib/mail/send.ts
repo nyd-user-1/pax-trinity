@@ -1,12 +1,14 @@
 import "server-only"
 
 import { screen } from "@/lib/mail/allowlist"
+import { designedHtml } from "@/lib/mail/design"
 
 // Real mail, one place for it (2026-10-29). An agent sends from its own
 // AgentMail inbox; a person through Resend from their nysgpt.com address. Every
 // recipient passes the allowlist first; anyone not on it is held and returned,
-// never mailed. The body is the composer's markdown; {{NAME}} fields are filled
-// from `fields` before it goes, and a field left unfilled stops the send.
+// never mailed. The body is the composer's markdown, drawn in pax2's mail design
+// (lib/mail/design.ts); {{NAME}} fields are filled from `fields` before it goes,
+// and a field left unfilled stops the send.
 
 export const AGENT_INBOX: Record<string, string> = {
   tracker: "pax-pollster@agentmail.to",
@@ -40,26 +42,6 @@ export function fill(text: string, fields: Record<string, string>): { text: stri
     return whole
   })
   return { text: out, missing: [...missing] }
-}
-
-const escape = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-
-/** The composer's markdown, the subset it writes, as mail HTML. Relative links resolve against `base`. */
-export function html(markdown: string, base: string) {
-  const inline = (s: string) =>
-    escape(s)
-      .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, text, href: string) => `<a href="${href.startsWith("/") ? base + href : href}" style="color:#1d4ed8">${text}</a>`)
-      .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
-      .replace(/(^|[^*])\*([^*]+)\*/g, "$1<em>$2</em>")
-      .replace(/&lt;u&gt;(.*?)&lt;\/u&gt;/g, "<u>$1</u>")
-  const blocks = markdown.trim().split(/\n{2,}/).map((block) => {
-    const lines = block.split("\n")
-    if (lines.every((l) => /^\s*[-*] /.test(l))) return `<ul>${lines.map((l) => `<li>${inline(l.replace(/^\s*[-*] /, ""))}</li>`).join("")}</ul>`
-    if (lines.every((l) => /^\s*\d+\. /.test(l))) return `<ol>${lines.map((l) => `<li>${inline(l.replace(/^\s*\d+\. /, ""))}</li>`).join("")}</ol>`
-    if (lines.every((l) => /^> ?/.test(l))) return `<blockquote style="border-left:2px solid #cbd5e1;margin:0;padding-left:12px;color:#475569">${lines.map((l) => inline(l.replace(/^> ?/, ""))).join("<br>")}</blockquote>`
-    return `<p style="margin:0 0 14px">${lines.map(inline).join("<br>")}</p>`
-  })
-  return `<div style="font-family:Inter,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#0f172a;max-width:560px">${blocks.join("")}</div>`
 }
 
 export type Sent = { sent: string[]; held: string[]; error?: string }
@@ -97,7 +79,7 @@ export async function sendMail({ from, to, cc = [], subject, markdown, base }: {
   const copied = a.allowed.length && b.allowed.length ? b.allowed : undefined
   if (!primary.length) return { sent: [], held }
   const text = markdown.replace(/\*\*|<\/?u>/g, "")
-  const body = html(markdown, base)
+  const body = designedHtml(markdown, base, subject.replace(/^(re|fwd?):\s*/i, ""))
   const inbox = AGENT_INBOX[from]
   // A recipient AgentMail has suppressed (it bounced once) still gets the agent's mail, through
   // Resend from the agent's nysgpt.com name with replies routed back to its AgentMail inbox.

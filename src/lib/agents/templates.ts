@@ -34,7 +34,7 @@ export const TEMPLATES: Template[] = [
     "kind": "Consensus",
     "name": "Consensus summary",
     "from": "bill-reader",
-    "subject": "What {{GROUP_NAME}} agree on",
+    "subject": "Where people agree on {{TOPIC}}",
     "body": "{{VOTERS}} people cast {{VOTES}} votes on {{STATEMENTS}} statements about {{TOPIC}}, and split into {{GROUP_COUNT}} opinion groups.\n\nEvery group agreed that “{{TOP_STATEMENT}}”. The sharpest divide was over “{{DIVISIVE_STATEMENT}}”.\n\n[See the groups]({{RESULTS_URL}})\n\nAnalyst"
   },
   {
@@ -66,8 +66,8 @@ export const TEMPLATES: Template[] = [
     "kind": "Surveys",
     "name": "Survey thank-you",
     "from": "tracker",
-    "subject": "Thanks, you're on the {{GROUP_NAME}} panel",
-    "body": "Hi {{RECIPIENT_NAME}},\n\nThanks for answering. I've added you to the {{GROUP_NAME}} panel, so I may ask you to watch a short video and answer a few questions in the coming weeks.\n\nYou can leave the panel any time from [your settings]({{SETTINGS_URL}}).\n\nPollster"
+    "subject": "Thanks for answering, {{RECIPIENT_NAME}}",
+    "body": "Hi {{RECIPIENT_NAME}},\n\nI've added you to {{GROUP_NAME}}, so I may ask you to watch a short video and answer a few questions in the coming weeks.\n\nYou can leave it any time from [your settings]({{SETTINGS_URL}}).\n\nPollster"
   },
   {
     "id": "00a24180-a1b3-46a7-ad53-5b1bc496964d",
@@ -179,7 +179,7 @@ export const TEMPLATES: Template[] = [
     "name": "Weekly digest",
     "from": "assistant",
     "subject": "This week on PAX",
-    "body": "This week: {{CLIP_COUNT}} new clips, {{TESTS_IN_FIELD}} tests in the field, {{REPORTS_FILED}} reports filed.\n\nThe biggest move: {{TOP_LINE}}.\n\n[See the week]({{DIGEST_URL}})\n\nAssistant"
+    "body": "Here is the week on PAX.\n\n- New clips: {{CLIP_COUNT}}\n- Tests in the field: {{TESTS_IN_FIELD}}\n- Reports filed: {{REPORTS_FILED}}\n\nThe biggest move: {{TOP_LINE}}.\n\n[See the week]({{DIGEST_URL}})\n\nAssistant"
   },
   {
     "id": "f2daf280-6886-41b3-8be7-b60670d42cac",
