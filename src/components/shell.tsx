@@ -57,6 +57,7 @@ const TITLES: [string, string][] = [
   ["/data-dictionary", "Data dictionary"],
   ["/message-tests", "Message tests"],
   ["/q/", "Question"],
+  ["/reports-2", "Report 2"],
   ["/constructs", "Constructs"],
   ["/electorate", "Electorate"],
 ]

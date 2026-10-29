@@ -1,0 +1,10 @@
+/* Report 2 on paper: the contents rail steps aside and the body runs the
+   page's width. Every wave's panel prints through its own print:block. */
+@media print {
+  .report-2-rail {
+    display: none !important;
+  }
+  .report-2-body {
+    display: block !important;
+  }
+}
