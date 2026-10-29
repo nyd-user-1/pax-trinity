@@ -8,6 +8,7 @@ import { addressFor, findAddress, isPerson, isUnread, loadThreads, messageId, na
 import { emptyRun, runAgent, type RunTurn } from "@/lib/agents/run-client"
 import { HISTORY } from "@/lib/agents/history"
 import { PENDING_DRAFT } from "@/lib/agents/pending-draft"
+import { fieldingRequest, liveThread, type LiveFielding } from "@/lib/agents/live"
 import { cn } from "@/lib/utils"
 import { ADMIN_USER } from "@/components/admin/account-footer"
 import { SaveToDrive } from "@/components/connectors/save-to-drive"
@@ -136,12 +137,12 @@ const REQUESTS: Record<"test" | "survey", Pick<Draft, "to" | "subject" | "body">
   test: {
     to: ["tracker"],
     subject: "New test: ",
-    body: "**Clips:** \n\n**Question card:** \n\n**Group:** \n\n**Quota:** 1,200 completes, at least 150 per arm, randomized to a cut or the placebo on arrival\n\n**Close by:** ",
+    body: "**Test:** ma-wave-3\n\n**Question card:** \n\n**Quota:** per the test\n\n**Close by:** ",
   },
   survey: {
     to: ["tracker"],
     subject: "New survey: ",
-    body: "**Questions:** \n\n**Group:** \n\n**Quota:** \n\n**Close by:** \n\n**Panels to build from it:** ",
+    body: "**Survey:** open-primaries\n\n**Quota:** \n\n**Close by:** \n\n**Panels to build from it:** ",
   },
 }
 
@@ -182,7 +183,7 @@ export default function Page() {
     // kept. govblock's placeholders and featured deliveries are gone
     // (2026-10-29); the reader's own threads stay. A cleared inbox gets the
     // history back too; Trash is how one goes away.
-    const kept = loadThreads().filter((thread) => !/^(sample|featured)-/.test(thread.id))
+    const kept = loadThreads().filter((thread) => !/^(sample|featured|live)-/.test(thread.id))
     const authored = new Map(HISTORY.map((thread) => [thread.id, thread]))
     const flags = new Map(kept.filter((thread) => authored.has(thread.id)).map((thread) => [thread.id, thread]))
     const history = HISTORY.map((fresh) => {
@@ -234,6 +235,32 @@ export default function Page() {
   React.useEffect(() => {
     if (restored) saveThreads(threads)
   }, [threads, restored])
+
+  // The Pollster's real fieldings (lib/agents/live.ts): a tick first, so reminders and closes
+  // that fell due go out, then the counts, each fielding a thread that rewrites itself.
+  const refreshLive = React.useCallback(async () => {
+    try {
+      await fetch("/api/fielding/tick", { method: "POST" })
+      const res = (await (await fetch("/api/fielding")).json()) as { fieldings?: LiveFielding[] }
+      const live = (res.fieldings ?? []).map(liveThread)
+      if (!res.fieldings) return
+      setThreads((current) => {
+        const flags = new Map(current.filter((t) => t.id.startsWith("live-")).map((t) => [t.id, t]))
+        const read = new Set(current.flatMap((t) => t.messages).filter((m) => !m.unread).map((m) => m.id))
+        const fresh = live.map((t) => ({ ...t, starred: flags.get(t.id)?.starred, trashed: flags.get(t.id)?.trashed, messages: t.messages.map((m) => (read.has(m.id) ? { ...m, unread: false } : m)) }))
+        return [...fresh, ...current.filter((t) => !t.id.startsWith("live-"))].sort((x, y) => y.updatedAt - x.updatedAt)
+      })
+    } catch {
+      // Signed out, or the table unreachable: the inbox stands on what it has.
+    }
+  }, [])
+
+  React.useEffect(() => {
+    if (!restored) return
+    void refreshLive()
+    const every = window.setInterval(() => void refreshLive(), 60_000)
+    return () => window.clearInterval(every)
+  }, [restored, refreshLive])
 
   const patch = React.useCallback((id: string, change: (thread: Thread) => Thread) => {
     setThreads((current) => current.map((thread) => (thread.id === id ? change(thread) : thread)))
@@ -331,7 +358,7 @@ export default function Page() {
       // through /api/inbox/send and its allowlist; agents, groups and channels
       // stay on the thread.
       const mailable = (handles: string[]) =>
-        handles.map((handle) => addressFor(handle)).filter((a) => a && (a.kind === "person" || a.kind === "partner")).map((a) => a!.email)
+        handles.map((handle) => addressFor(handle)).filter((a) => a && (a.kind === "person" || a.kind === "partner")).map((a) => ({ email: a!.email, name: a!.name }))
       const mailTo = mailable(draft.to)
       const mailCc = mailable(draft.cc)
       setMailNote(null)
@@ -348,12 +375,23 @@ export default function Page() {
           })
           .catch(() => setMailNote("Not mailed"))
 
+      // A New test or New survey to the Pollster naming a real group starts a fielding.
+      const request = fieldingRequest(draft.to, draft.cc, draft.body)
+      if (request)
+        void fetch("/api/fielding", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(request) })
+          .then((res) => res.json())
+          .then((res: { sent?: number; held?: number; error?: string }) => {
+            setMailNote(res.error ? `Not fielded: ${res.error}` : `Fielding: ${res.sent} invitations sent${res.held ? `, ${res.held} held` : ""}`)
+            void refreshLive()
+          })
+          .catch(() => setMailNote("Not fielded"))
+
       // Every recipient runs the task — that is what Cc means here. They run
       // together; each one's reply lands on the thread as it finishes.
       const turns: RunTurn[] = [{ role: "user", text: draft.body }]
       await Promise.all(recipients.map((slug) => dispatch(thread.id, slug, turns, thread.subject, thread.reportType)))
     },
-    [announce, dispatch, selected]
+    [announce, dispatch, selected, refreshLive]
   )
 
   // A reply on an existing thread: your message joins it, and every agent on

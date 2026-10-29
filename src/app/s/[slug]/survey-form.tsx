@@ -6,7 +6,7 @@ import type { Survey } from "@/lib/surveys/catalog"
 import { cn } from "@/lib/utils"
 
 // The respondent's form: every question, one answer each, sent once.
-export function SurveyForm({ survey }: { survey: Survey }) {
+export function SurveyForm({ survey, pid = null }: { survey: Survey; pid?: string | null }) {
   const [startedAt] = React.useState(() => new Date().toISOString())
   const [answers, setAnswers] = React.useState<Record<string, string>>({})
   const [state, setState] = React.useState<"open" | "sending" | "done" | "failed">("open")
@@ -17,7 +17,7 @@ export function SurveyForm({ survey }: { survey: Survey }) {
     if (!complete || state === "sending") return
     setState("sending")
     try {
-      const r = await fetch(`/api/surveys/${encodeURIComponent(survey.slug)}/responses`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ answers, startedAt }) })
+      const r = await fetch(`/api/surveys/${encodeURIComponent(survey.slug)}/responses`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(pid ? { answers, startedAt, pid } : { answers, startedAt }) })
       setState(r.ok ? "done" : "failed")
     } catch {
       setState("failed")

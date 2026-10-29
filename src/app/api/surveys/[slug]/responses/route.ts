@@ -26,7 +26,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
   const v = validAnswers(survey, body as Record<string, unknown>)
   if (!v.ok) return json({ error: v.error }, 400)
   const now = new Date()
-  const item = { test: partition(survey.slug), id: ulid(now.getTime()), kind: "survey" as const, answers: v.answers, startedAt: v.startedAt, completedAt: now.toISOString(), receivedAt: now.toISOString(), env: ENV, schema: 1 as const }
+  const item = { test: partition(survey.slug), id: ulid(now.getTime()), kind: "survey" as const, answers: v.answers, startedAt: v.startedAt, pid: v.pid, completedAt: now.toISOString(), receivedAt: now.toISOString(), env: ENV, schema: 1 as const }
   try {
     await putSurveyItem(item)
   } catch (e) {

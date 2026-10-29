@@ -24,9 +24,9 @@ export function MakeQuestionCard({ title, voters, groups, shared, split }: { tit
       `**Question card: ${title}**`,
       `From Consensus (${voters} participants, ${groups} opinion groups) and the America Thinks bank. The first ${bank.length} carry their norms; the rest are the shared ground and the divides.`,
       items.map((item, i) => `${i + 1}. ${item}`).join("\n"),
-      "**Clips:** ",
+      "**Test:** ma-wave-3",
       "**Group:** Open primaries conversation",
-      "**Quota:** 1,200 completes, at least 150 per arm, randomized to a cut or the placebo on arrival",
+      "**Quota:** per the test, randomized to a cut or the placebo, balanced within the group",
       "**Close by:** ",
     ].join("\n\n")
     leaveDraft({ to: ["tracker"], subject: `New test: ${title}`, body })

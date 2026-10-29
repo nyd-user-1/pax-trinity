@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation"
 
 import { currentUser } from "@/lib/auth"
+import { armForPid } from "@/lib/fielding/engine"
 import { getTest } from "@/lib/tests/store"
 
 import { Flow } from "./flow"
@@ -11,7 +12,9 @@ import { Flow } from "./flow"
 // to everyone else (the collector records only fielding tests either way). The arm is drawn here,
 // on the server, one per page load from the test's own arms, so the assignment is settled before
 // the first card renders.
-// A panel vendor's link carries ?pid=<their respondent id>, handed to the flow as is.
+// A panel vendor's link carries ?pid=<their respondent id>, handed to the flow as is. A Pollster's
+// link carries a fielding's pid, whose arm was settled when the links were made (balanced within
+// the group, lib/fielding/engine.ts); that arm is used, and the open is recorded.
 
 export const dynamic = "force-dynamic"
 
@@ -39,6 +42,7 @@ export default async function RespondentPage({ params, searchParams }: Props) {
   }
   const raw = (await searchParams).pid
   const pid = typeof raw === "string" && raw.trim() ? raw.trim().slice(0, 128) : null
-  const arm = test.arms[Math.floor(Math.random() * test.arms.length)]
+  const assigned = await armForPid(pid).catch(() => null)
+  const arm = assigned && test.arms.includes(assigned) ? assigned : test.arms[Math.floor(Math.random() * test.arms.length)]
   return <Flow arm={arm} pid={pid} test={test} />
 }

@@ -118,6 +118,7 @@ export const PARTNER_ADDRESSES: Address[] = PARTNERS.map((partner) => ({
 // The conversation's 412 are the people who read its statements and marked
 // them agree, disagree or pass; some wrote statements of their own.
 export const GROUPS: { handle: string; name: string; size: number; built: string }[] = [
+  { handle: "group-test-panel", name: "Test panel", size: 14, built: "Fourteen respondents, every invitation delivered to brendan@nysgpt.com" },
   { handle: "group-ma-adults", name: "MA adults panel", size: 2410, built: "Open primaries survey, Oct 20–23" },
   { handle: "group-ma-independents", name: "MA independents", size: 812, built: "Open primaries survey, party: independent or other" },
   { handle: "group-ma-undecided", name: "MA undecided on Question 3", size: 377, built: "Open primaries survey, Question 3: undecided" },

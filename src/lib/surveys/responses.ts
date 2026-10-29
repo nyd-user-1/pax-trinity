@@ -20,13 +20,13 @@ const client = DynamoDBDocumentClient.from(new DynamoDBClient({ region: process.
   marshallOptions: { removeUndefinedValues: true },
 })
 
-export type SurveyItem = { test: string; id: string; kind: "survey"; answers: Record<string, string>; startedAt: string; completedAt: string; receivedAt: string; env: string; schema: 1 }
+export type SurveyItem = { test: string; id: string; kind: "survey"; answers: Record<string, string>; startedAt: string; completedAt: string; receivedAt: string; env: string; schema: 1; pid?: string | null }
 
 export const partition = (slug: string) => `survey:${slug}`
 
 /** A body's answers when every question has one of its own options and nothing else rides along. */
-export function validAnswers(survey: Survey, body: Record<string, unknown>): { ok: true; answers: Record<string, string>; startedAt: string } | { ok: false; error: string } {
-  const extra = Object.keys(body).filter((k) => k !== "answers" && k !== "startedAt")
+export function validAnswers(survey: Survey, body: Record<string, unknown>): { ok: true; answers: Record<string, string>; startedAt: string; pid: string | null } | { ok: false; error: string } {
+  const extra = Object.keys(body).filter((k) => k !== "answers" && k !== "startedAt" && k !== "pid")
   if (extra.length) return { ok: false, error: `unknown fields: ${extra.join(", ")}` }
   const a = body.answers
   if (typeof a !== "object" || a === null || Array.isArray(a)) return { ok: false, error: "answers must be an object" }
@@ -35,7 +35,9 @@ export function validAnswers(survey: Survey, body: Record<string, unknown>): { o
   if (unknown.length) return { ok: false, error: `unknown questions: ${unknown.join(", ")}` }
   for (const q of survey.questions) if (typeof answers[q.id] !== "string" || !q.options.includes(answers[q.id] as string)) return { ok: false, error: `answer ${q.id} is missing or not one of its options` }
   const startedAt = typeof body.startedAt === "string" && /^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/.test(body.startedAt) ? body.startedAt : new Date().toISOString()
-  return { ok: true, answers: answers as Record<string, string>, startedAt }
+  // A Pollster's link carries a fielding pid; nothing else about the respondent is kept.
+  const pid = typeof body.pid === "string" && /^[0-9a-z-]{8,64}$/.test(body.pid) ? body.pid : null
+  return { ok: true, answers: answers as Record<string, string>, startedAt, pid }
 }
 
 export async function putSurveyItem(item: SurveyItem) {

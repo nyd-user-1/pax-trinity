@@ -7,8 +7,8 @@ import { nameOf, type Message, type Thread } from "@/lib/agents/inbox"
 // Consensus conversation on open primaries (the conversation /consensus holds:
 // 412 voters, 7,911 votes, three groups) becomes a question card; the Open
 // primaries survey builds the panels; the six Frame.io cuts are reviewed; and
-// Massachusetts Wave 3 (open-primaries-1) is approved and in the field
-// today. Authored, so a stored copy is refreshed to this text on load.
+// Massachusetts Wave 3 is approved; its fielding is real, carried by the
+// Pollster's live thread (lib/agents/live.ts). Authored, so a stored copy is refreshed to this text on load.
 
 const at = (iso: string) => Date.parse(`${iso}:00-04:00`)
 let n = 0
@@ -87,14 +87,8 @@ export const HISTORY: Thread[] = [
     msg(ASSISTANT, "2026-10-26T18:00", "This week: **6 new clips**, one survey closed (2,410 completes), one Consensus conversation closed (412 participants), one question card approved and one report filed.\n\nThe biggest move: Green at **+14** on Question 3 in Wave 2.\n\nAssistant"),
   ]),
   thread("test-approved", ASSISTANT, "Approved to field: Massachusetts Wave 3", [
-    msg(ASSISTANT, "2026-10-27T15:30", "Massachusetts Wave 3 is ready and waiting on your approval: the six cuts and a placebo, the six questions from the card, to MA independents and MA undecided.\n\nAssistant"),
+    msg(ASSISTANT, "2026-10-27T15:30", "Massachusetts Wave 3 is ready and waiting on your approval: the six cuts and a placebo, the questions from the card, to the Test panel first, then MA independents and MA undecided.\n\nAssistant"),
     msg("you", "2026-10-27T16:02", "Approved."),
-    msg(ASSISTANT, "2026-10-27T16:03", "Approved to field. The Pollster sends it tomorrow morning and expects to close Friday, Oct 30.\n\nAssistant"),
-  ]),
-  thread("test-fielded", POLLSTER, "In the field: Massachusetts Wave 3", [
-    msg(POLLSTER, "2026-10-28T08:00", "Massachusetts Wave 3 (open-primaries-1) went into the field this morning: six cuts and a placebo, the six questions from the card, sent to MA independents (812) and MA undecided (377). Each respondent is randomized to one cut or the placebo when they open the study.\n\nI expect to close Friday, Oct 30. You can watch the sample fill in on the [monitor](/message-tests).\n\nPollster", true),
-  ]),
-  thread("test-reminder", POLLSTER, "Reminder sent: Massachusetts Wave 3", [
-    msg(POLLSTER, "2026-10-29T07:30", "The Test reminder went this morning to everyone who hasn't opened the study. I'll send the last one Thursday at noon.\n\nPollster", true),
+    msg(ASSISTANT, "2026-10-27T16:03", "Approved to field. The Pollster sends it to the Test panel first; its thread shows the count as it fills.\n\nAssistant"),
   ]),
 ]
