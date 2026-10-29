@@ -6,7 +6,6 @@ import { ArrowDownUp, CircleDashed, Copy, Download, Folder, Funnel, Info, ListFi
 import { cn } from "@/lib/utils"
 import { BankFrame } from "@/components/bank/bank-frame"
 import { BankRail, RailGroup, RailRow } from "@/components/bank/bank-rail"
-import { PUBLISHED } from "@/components/clips/catalog"
 import { RESULT_SETS } from "@/lib/results"
 import {
   DropdownMenu,
@@ -49,17 +48,19 @@ const PRIMARY = new Set(["lift_support", "lift_favorability", "lift_vote_choice"
 /** The share of a cell the table's largest lift spans from the axis. */
 const REACH = 40
 
-/** A treatment's creative: its cut in the clips library, else the tested MP4 the report lists. */
-const CREATIVE = (() => {
-  const m = new Map<string, string>()
-  for (const set of RESULT_SETS)
-    for (const arm of set.arms) {
-      if (arm.role !== "treatment") continue
-      const src = PUBLISHED.find((c) => c.id === arm.clipId)?.src || (arm.watchUrl?.endsWith(".mp4") ? arm.watchUrl : undefined)
-      if (src) m.set(arm.name, src)
-    }
-  return m
-})()
+/** A treatment's thumbnail: one still frame of its tested video, cut once with ffmpeg (public/lift/thumbs/). */
+const THUMB: Record<string, string> = {
+  Pahlow: "/lift/thumbs/pahlow.jpg",
+  DiZoglio: "/lift/thumbs/dizoglio.jpg",
+  "Matt Wilson": "/lift/thumbs/matt-wilson.jpg",
+  Green: "/lift/thumbs/green.jpg",
+  "Danielle Allen": "/lift/thumbs/danielle-allen.jpg",
+  Littlewood: "/lift/thumbs/littlewood.jpg",
+  Dustin: "/lift/thumbs/dustin.jpg",
+  Rodriguez: "/lift/thumbs/rodriguez.jpg",
+}
+/** The treatments a folder opens on (Brendan, 2026-10-29); the Treatments menu brings back the rest. */
+const FEATURED: Record<string, string[]> = { PAX_TEST: ["DiZoglio", "Matt Wilson", "Pahlow"] }
 /** A fielding the results register knows is its wave. */
 const WAVE = new Map(RESULT_SETS.map((s) => [`${s.fielded.start}|${s.fielded.end}`, `Wave ${s.wave}`]))
 
@@ -87,7 +88,8 @@ export function LiftSurface() {
   const [query, setQuery] = React.useState("")
   const [find, setFind] = React.useState("")
   const [metricsOff, setMetricsOff] = React.useState<string[]>([])
-  const [treatOff, setTreatOff] = React.useState<string[]>([])
+  // The Treatments menu's choice; null is the folder's opening set.
+  const [picked, setPicked] = React.useState<string[] | null>(null)
   const [segsOff, setSegsOff] = React.useState<string[]>([])
   const [periodsOff, setPeriodsOff] = React.useState<string[]>([])
   const [sort, setSort] = React.useState<Sort | null>(null)
@@ -131,7 +133,7 @@ export function LiftSurface() {
 
   React.useEffect(() => {
     setMetricsOff([])
-    setTreatOff([])
+    setPicked(null)
     setSegsOff([])
     setPeriodsOff([])
     setSort(null)
@@ -197,6 +199,12 @@ export function LiftSurface() {
     return { metrics, periods, options, dims, cell }
   }, [rows, periodsOff])
 
+  const chosen = React.useMemo(() => {
+    if (!read) return []
+    const featured = FEATURED[source]
+    return picked ?? (featured ? read.options.filter((o) => featured.includes(o)) : read.options)
+  }, [read, picked, source])
+
   const view = React.useMemo(() => {
     if (!read) return null
     const metrics = read.metrics.filter((m) => !metricsOff.includes(m))
@@ -205,7 +213,7 @@ export function LiftSurface() {
     const q = query.trim().toLowerCase()
     const lead = (o: string) => read.cell(o, by, "")?.lift[7]
     const treatments = read.options
-      .filter((o) => !treatOff.includes(o) && (!q || o.toLowerCase().includes(q)) && metrics.some((m) => read.cell(o, m, "")))
+      .filter((o) => chosen.includes(o) && (!q || o.toLowerCase().includes(q)) && metrics.some((m) => read.cell(o, m, "")))
       .sort((a, b) => {
         if (by === BY_NAME) return dir * treatmentName(a).localeCompare(treatmentName(b))
         const x = lead(a)
@@ -236,7 +244,7 @@ export function LiftSurface() {
     for (const n of placebos.values()) respondents += n
     const primary = metrics.filter((m) => PRIMARY.has(m)).length
     return { metrics, primary, by, dir, treatments, groups, segCount: groups.reduce((n, g) => n + g.segs.length, 0), extent, respondents }
-  }, [read, metricsOff, treatOff, segsOff, sort, query])
+  }, [read, chosen, metricsOff, segsOff, sort, query])
 
   const shown = view ? view.treatments.slice(0, depth) : []
   const canLoad = view ? depth < view.treatments.length : false
@@ -319,7 +327,7 @@ export function LiftSurface() {
             <DropdownMenuItem
               onSelect={(e) => {
                 e.preventDefault()
-                setTreatOff([])
+                setPicked(read?.options ?? [])
               }}
             >
               Show all
@@ -327,7 +335,7 @@ export function LiftSurface() {
             <DropdownMenuItem
               onSelect={(e) => {
                 e.preventDefault()
-                setTreatOff(read?.options ?? [])
+                setPicked([])
               }}
             >
               Hide all
@@ -336,7 +344,7 @@ export function LiftSurface() {
             {(read?.options ?? [])
               .filter((o) => !findQ || o.toLowerCase().includes(findQ))
               .map((o) => (
-                <DropdownMenuCheckboxItem key={o} checked={!treatOff.includes(o)} onSelect={(e) => e.preventDefault()} onCheckedChange={() => setTreatOff((prev) => toggled(prev, o))}>
+                <DropdownMenuCheckboxItem key={o} checked={chosen.includes(o)} onSelect={(e) => e.preventDefault()} onCheckedChange={() => setPicked(toggled(chosen, o))}>
                   <span className="truncate">{treatmentName(o)}</span>
                 </DropdownMenuCheckboxItem>
               ))}
@@ -507,7 +515,7 @@ export function LiftSurface() {
         <td className={cn(TD, !last && "border-b-transparent")}>
           {first && (
             <span className="flex min-h-6 items-center gap-2.5">
-              {CREATIVE.has(o) && <video src={`${CREATIVE.get(o)}#t=0.1`} preload="metadata" muted playsInline aria-hidden className="h-6 w-9 shrink-0 rounded-[3px] bg-muted object-cover" />}
+              {THUMB[o] && <img src={THUMB[o]} alt="" width={36} height={24} className="h-6 w-9 shrink-0 rounded-[3px] bg-muted object-cover" />}
               <span className="line-clamp-2 font-medium" title={o}>
                 {treatmentName(o)}
               </span>
