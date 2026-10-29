@@ -8,46 +8,41 @@ import { num } from "../america-thinks/audience-data"
 import { levelOf, POINT_LEFT, POINT_RIGHT, signed, significance, type Cell } from "./lift-data"
 
 // The marks /lift draws in its cells: the bar view's candle, the heatmap's
-// fill, and the Emotional Response bar.
+// fill, and the emotion column's stacked bar.
 
-/** The share of a cell the table's largest lift spans from the axis. */
-const REACH = 40
+/** Where zero sits and how far a point reaches, for a table whose lifts run from -neg to +pos (Brendan,
+ *  2026-10-29: no half-empty cells): zero only as far in as the largest negative needs, the bars the rest of the
+ *  width; the control's number keeps room left of zero, the lift's label room right of the longest bar. */
+export function axisOf(neg: number, pos: number) {
+  const left = neg > 0 ? 16 : 12
+  const right = pos > 0 ? 16 : 6
+  const span = neg + pos || 1
+  const usable = 100 - left - right
+  return { axis: left + (usable * neg) / span, scale: usable / span }
+}
 
-/** A result as Swayable draws it: the control group's level at the axis, a
- *  bar of the lift from it (its tip pointing the way the treatment moved), the
- *  lift at the tip, and the margin through it as the resonant-topic chart
- *  draws its range (components/record/resonance-topic.tsx): an ink line with
- *  a cap at each end. A lift that does not clear its test is gray. */
-export function Candle({ cell, extent, baseTitle }: { cell: Cell; extent: number; baseTitle?: string }) {
+/** A result as Swayable draws it: the control group's level at zero, a bar of the lift from it (its tip
+ *  pointing the way the treatment moved), the lift past the tip. A lift that does not clear its test is gray. */
+export function Candle({ cell, axis, scale, baseTitle }: { cell: Cell; axis: number; scale: number; baseTitle?: string }) {
   const d = cell.lift[7]
-  const moe = cell.lift[9]
   const quiet = significance(cell.lift) === false
   const up = d >= 0
-  const at = (x: number) => Math.min(100, Math.max(0, 50 + (extent > 0 ? (x / extent) * REACH : 0)))
-  const tip = at(d)
-  const ink = quiet ? "bg-muted-foreground/60" : "bg-slate-900"
+  const tip = Math.min(100, Math.max(0, axis + d * scale))
   return (
     <span className="relative block h-6 w-full text-[13px]">
       {cell.control && (
-        <span className="absolute top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground" style={up ? { right: "calc(50% + 5px)" } : { left: "calc(50% + 5px)" }} title={baseTitle ?? `Control group ${levelOf(cell.control)}`}>
+        <span className="absolute top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground" style={up ? { right: `calc(${100 - axis}% + 5px)` } : { left: `calc(${axis}% + 5px)` }} title={baseTitle ?? `Control group ${levelOf(cell.control)}`}>
           {num(cell.control[7])}
         </span>
       )}
       <span
         aria-hidden
         className={cn("absolute top-1/2 h-3.5 -translate-y-1/2", quiet ? "bg-muted-foreground/25" : up ? "bg-linear-to-r from-pax2-light-blue/45 to-pax2-light-blue" : "bg-linear-to-l from-pax2-red/45 to-pax2-red")}
-        style={{ left: `${Math.min(50, tip)}%`, width: `max(6px, ${Math.abs(tip - 50)}%)`, clipPath: up ? POINT_RIGHT : POINT_LEFT }}
+        style={{ left: `${Math.min(axis, tip)}%`, width: `max(6px, ${Math.abs(tip - axis)}%)`, clipPath: up ? POINT_RIGHT : POINT_LEFT }}
       />
-      {moe != null && (
-        <span aria-hidden className="absolute top-1/2 h-1.5 -translate-y-1/2" style={{ left: `${at(d - moe)}%`, width: `${at(d + moe) - at(d - moe)}%` }}>
-          <span className={cn("absolute inset-x-0 top-1/2 h-[1.5px] -translate-y-1/2", ink)} />
-          <span className={cn("absolute top-0 left-0 h-full w-[1.5px]", ink)} />
-          <span className={cn("absolute top-0 right-0 h-full w-[1.5px]", ink)} />
-        </span>
-      )}
       <span
-        className={cn("absolute top-1/2 -translate-y-1/2 font-semibold [text-shadow:0_0_3px_var(--background),0_0_3px_var(--background)]", quiet ? "font-medium text-muted-foreground" : !up && "text-pax2-red")}
-        style={up ? { left: `calc(${tip}% + ${tip - 50 < 1 ? 8 : 3}px)` } : { right: `calc(${100 - tip}% + ${50 - tip < 1 ? 8 : 3}px)` }}
+        className={cn("absolute top-1/2 -translate-y-1/2 font-semibold whitespace-nowrap", quiet ? "font-medium text-muted-foreground" : !up && "text-pax2-red")}
+        style={up ? { left: `calc(${tip}% + ${tip - axis < 1 ? 8 : 3}px)` } : { right: `calc(${100 - tip}% + ${axis - tip < 1 ? 8 : 3}px)` }}
       >
         {signed(d)}
       </span>
@@ -112,17 +107,20 @@ export function sampleEmotions(key: string) {
   return pct
 }
 
-/** One row's emotional response: the shares stacked, a 2px gap between, each named on hover. */
-export function EmotionBar({ shares }: { shares: number[] }) {
+/** A stacked bar of parts that add to 100: a 2px gap between, each named with its share on hover. */
+function StackBar({ parts }: { parts: { name: string; color: string; pct: number }[] }) {
   return (
     <span className="flex h-5 w-full gap-[2px]">
-      {shares.map((p, i) =>
-        p > 0 ? (
-          <span key={EMOTIONS[i].name} title={`${EMOTIONS[i].name} ${p}%`} className="h-full first:rounded-l-[4px] last:rounded-r-[4px]" style={{ width: `${p}%`, background: EMOTIONS[i].color }} />
-        ) : null
+      {parts.map((p) =>
+        p.pct > 0 ? <span key={p.name} title={`${p.name} ${p.pct}%`} className="h-full first:rounded-l-[4px] last:rounded-r-[4px]" style={{ width: `${p.pct}%`, background: p.color }} /> : null
       )}
     </span>
   )
+}
+
+/** One row's emotional response: the shares stacked. */
+export function EmotionBar({ shares }: { shares: number[] }) {
+  return <StackBar parts={EMOTIONS.map((e, i) => ({ name: e.name, color: e.color, pct: shares[i] }))} />
 }
 
 /** The Emotional Response key, in the column's info tooltip. */
@@ -152,16 +150,12 @@ export const APPEALS = [
   { key: "somber", name: "Somber", color: "#e34948" },
 ] as const
 
-/** One ad's appeal as eight small bars, each its emotion's rating, named with it on hover. */
-export function AppealBars({ emotions }: { emotions: Record<string, number> }) {
-  return (
-    <span className="flex h-6 items-end gap-[3px]">
-      {APPEALS.map((e) => {
-        const v = Math.max(0, Math.min(1, emotions[e.key] ?? 0))
-        return <span key={e.key} title={`${e.name} ${num(v, 2)}`} className="w-2.5 rounded-t-[2px]" style={{ height: `max(2px, ${v * 100}%)`, background: e.color, opacity: v >= 0.5 ? 1 : 0.55 }} />
-      })}
-    </span>
-  )
+/** One ad's coded appeal in the same stacked bar: each emotion's share of all its rated appeal. */
+export function AppealBar({ emotions }: { emotions: Record<string, number> }) {
+  const v = APPEALS.map((e) => Math.max(0, emotions[e.key] ?? 0))
+  const total = v.reduce((a, b) => a + b, 0) || 1
+  const pct = v.map((x) => Math.round((x / total) * 100))
+  return <StackBar parts={APPEALS.map((e, i) => ({ name: e.name, color: e.color, pct: pct[i] }))} />
 }
 
 export function AppealKey({ className }: { className?: string }) {

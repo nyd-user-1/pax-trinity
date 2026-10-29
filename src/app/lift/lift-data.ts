@@ -15,14 +15,27 @@ export function setAds(ads: Record<string, AdInfo>) {
 
 const RACE: Record<string, string> = { Presidential: "President", Congress: "Congress", Gov: "Governor", StateLeg: "State legislature", Runoff: "Runoff", Other: "Other race" }
 const MONTH = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-/** An archive ad named by its traits, as the archive records them: "AZ Congress · Apr 2018 · Contrast, candidate · Ad 1 of 4". */
-function adLabel(a: AdInfo) {
+/** Where an archive ad's test ran: a state, two, a count of states, or national. */
+export function adWhere(a: AdInfo) {
   const states = a.state.split(",").map((x) => x.trim()).filter(Boolean)
-  const where = a.state === "National" ? "National" : states.length > 2 ? `${states.length} states` : states.join(", ")
-  const when = a.date ? `${MONTH[Number(a.date.slice(5, 7)) - 1]} ${a.date.slice(0, 4)}` : String(a.cycle)
-  const what = [a.tone && a.tone[0].toUpperCase() + a.tone.slice(1), a.focus].filter(Boolean).join(", ")
-  return [[where, a.race ? RACE[a.race] ?? a.race : null].filter(Boolean).join(" "), when, what, `Ad ${a.ad} of ${a.ads}`].filter(Boolean).join(" · ")
+  return a.state === "National" ? "National" : states.length > 2 ? `${states.length} states` : states.join(", ")
 }
+export const adOffice = (a: AdInfo) => (a.race ? (RACE[a.race] ?? a.race) : "—")
+export const adWhen = (a: AdInfo) => (a.date ? `${MONTH[Number(a.date.slice(5, 7)) - 1]} ${a.date.slice(0, 4)}` : String(a.cycle))
+const cap = (x: string | null) => (x ? x[0].toUpperCase() + x.slice(1) : "—")
+/** An archive ad named on one line (Brendan's rework, 2026-10-29), its traits in their own columns: "AZ Congress · Ad 1 of 4". */
+function adLabel(a: AdInfo) {
+  return `${[adWhere(a), a.race ? (RACE[a.race] ?? a.race) : null].filter(Boolean).join(" ")} · Ad ${a.ad} of ${a.ads}`
+}
+
+/** The Archive's trait columns: each its cell's value, its sort key, and the value its filter lists. */
+export const AD_COLUMNS: { key: string; name: string; width: number; value: (a: AdInfo) => string; order: (a: AdInfo) => string }[] = [
+  { key: "@office", name: "Office", width: 124, value: adOffice, order: adOffice },
+  { key: "@state", name: "State", width: 92, value: adWhere, order: adWhere },
+  { key: "@tested", name: "Tested", width: 96, value: adWhen, order: (a) => a.date ?? String(a.cycle) },
+  { key: "@tone", name: "Tone", width: 92, value: (a) => cap(a.tone), order: (a) => cap(a.tone) },
+  { key: "@focus", name: "Focus", width: 96, value: (a) => cap(a.focus), order: (a) => cap(a.focus) },
+]
 
 /** A treatment's row label: an archive ad by its traits where the archive describes it, else its name. */
 export const treatmentName = (option: string) => {

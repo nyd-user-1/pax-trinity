@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { Combobox } from "@base-ui/react/combobox"
-import { ArrowDownUp, ChartColumn, Check, CircleDashed, Copy, Download, Folder, Funnel, GripVerticalIcon, Info, ListFilter, Loader2, PanelLeftClose, PanelLeftOpen, SeparatorVertical, Share, Spline, Users } from "lucide-react"
+import { ArrowDown, ArrowDownUp, ArrowUp, ChartColumn, Check, CircleDashed, Copy, Download, Folder, Funnel, GripVerticalIcon, Info, ListFilter, Loader2, PanelLeftClose, PanelLeftOpen, SeparatorVertical, Share, Spline } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { BankFrame, BankRail as RailState } from "@/components/bank/bank-frame"
@@ -25,8 +25,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components
 import { dimLabel, groupSources, num, type AudienceIndex, type SourceRow } from "../america-thinks/audience-data"
 import { rowDress } from "../america-thinks/segment-grid"
 import { AboutResult } from "./about-result"
-import { AD_INFO, dimOf, fielding, isPlacebo, metricShort, ordered, periodKey, segKey, segOf, setAds, signed, significance, testOf, TRAIT_GROUPS, treatmentName, valOf, type AdInfo, type Cell, type Pick } from "./lift-data"
-import { AppealBars, AppealKey, Candle, EmotionBar, EmotionKey, heat, HeatKey, sampleEmotions } from "./lift-marks"
+import { AD_COLUMNS, AD_INFO, adOffice, adWhen, adWhere, dimOf, fielding, isPlacebo, metricShort, ordered, periodKey, segKey, segOf, setAds, signed, significance, testOf, TRAIT_GROUPS, treatmentName, valOf, type AdInfo, type Cell, type Pick } from "./lift-data"
+import { AppealBar, AppealKey, axisOf, Candle, EmotionBar, EmotionKey, heat, HeatKey, sampleEmotions } from "./lift-marks"
 
 // /lift — Swayable's results view (Brendan, 2026-10-28, from the Dream Crazy
 // Campaign screen): the folders in the rail (the PAX tests, the archive of
@@ -57,8 +57,6 @@ const PLACEBO = "\u0000placebo"
 const PRIMARY = new Set(["lift_support", "lift_favorability", "lift_vote_choice"])
 /** The Emotional Response column's key in the Metrics menu and metricsOff. */
 const EMOTION = "@emotion"
-/** Every metric column's opening width, Emotional Response's too (Brendan, 2026-10-29: the three alike); each drags on its own. */
-const METRIC_WIDTH = 280
 
 /** A treatment's thumbnail: one still frame of its tested video, cut once with ffmpeg (public/lift/thumbs/). */
 const THUMB: Record<string, string> = {
@@ -73,6 +71,9 @@ const THUMB: Record<string, string> = {
   Donut: "/lift/thumbs/donut.jpg",
   "Official campaign ad": "/lift/thumbs/official-campaign-ad.jpg",
 }
+/** The metrics a folder opens with hidden: the Archive's two-way vote is a recode of its vote choice. */
+const DEFAULT_OFF: Record<string, string[]> = { LIFT_ARCHIVE: ["lift_vote_choice_dichotomized"] }
+const sameSet = (a: string[], b: string[]) => a.length === b.length && a.every((x) => b.includes(x))
 /** The treatments a folder opens on (Brendan, 2026-10-29); the Treatments menu brings back the rest. */
 const FEATURED: Record<string, string[]> = { PAX_TEST: ["DiZoglio", "Matt Wilson", "Pahlow"] }
 /** A fielding the results register knows is its wave. */
@@ -103,7 +104,12 @@ export function LiftSurface() {
   })
   const [files, setFiles] = React.useState<Record<string, SourceRow[]>>({})
   const [error, setError] = React.useState<string | null>(null)
-  const [metricsOff, setMetricsOff] = React.useState<string[]>(() => link.list("mo"))
+  const [metricsOff, setMetricsOff] = React.useState<string[]>(() => (link.has("mo") ? link.list("mo") : (DEFAULT_OFF[link.one("source") ?? ""] ?? [])))
+  // The Archive's column filters: the values a trait column hides, and per metric which ads it keeps.
+  const [colFilter, setColFilter] = React.useState<Record<string, string[]>>({})
+  const [metricFilter, setMetricFilter] = React.useState<Record<string, "measured" | "significant">>({})
+  // The Archive's ads under their tests, off until the Content column's filter turns it on.
+  const [grouped, setGrouped] = React.useState(() => link.one("g") === "1")
   // The Treatments menu's choice; null is the folder's opening set.
   const [picked, setPicked] = React.useState<string[] | null>(() => (link.has("t") ? link.list("t") : null))
   const [segsOff, setSegsOff] = React.useState<string[]>(() => link.list("so"))
@@ -120,12 +126,14 @@ export function LiftSurface() {
   const [depth, setDepth] = React.useState(PER_READ)
   const [widths, setWidths] = React.useState({ treatment: 220, segment: 170 })
   const [metricWidths, setMetricWidths] = React.useState<Record<string, number>>({})
-  const widthOf = (key: string) => metricWidths[key] ?? METRIC_WIDTH
+  // A dragged column's width; an undragged metric column shares the pane with the others.
+  const widthOf = (key: string): number | undefined => metricWidths[key]
   const resizeMetric = (key: string) => (w: number) => setMetricWidths((p) => ({ ...p, [key]: w }))
   const [shared, setShared] = React.useState(false)
-  const [display, setDisplay] = React.useState<"bars" | "heatmap" | "traits">(() => {
+  // The Archive's list view is Traits in the toggle and the link (view=traits), its pooled table Attributes.
+  const [display, setDisplay] = React.useState<"bars" | "heatmap" | "attributes">(() => {
     const v = link.one("view")
-    return v === "heatmap" || v === "traits" ? v : "bars"
+    return v === "heatmap" || v === "attributes" ? v : "bars"
   })
   // The heatmap's benchmark: every lift on file for the metric and segment, by its median.
   const [bench, setBench] = React.useState(() => link.one("bench") !== "0")
@@ -174,7 +182,10 @@ export function LiftSurface() {
   const openFolder = (key: string) => {
     if (key === source) return
     setSource(key)
-    setMetricsOff([])
+    setMetricsOff(DEFAULT_OFF[key] ?? [])
+    setColFilter({})
+    setMetricFilter({})
+    setGrouped(false)
     setPicked(null)
     setSegsOff([])
     setPeriodsOff([])
@@ -193,8 +204,8 @@ export function LiftSurface() {
 
   const rows = files[source]
   const archive = source === "LIFT_ARCHIVE"
-  // Traits is the Archive's alone; another folder shows Bars in its place.
-  const shownDisplay = display === "traits" && !archive ? "bars" : display
+  // Attributes is the Archive's alone; another folder shows Bars in its place.
+  const shownDisplay = display === "attributes" && !archive ? "bars" : display
 
   // The folder read once: its metrics (Primary first), fieldings, treatments
   // and breakdowns, and each result keyed for the table. A row is a treatment
@@ -301,15 +312,40 @@ export function LiftSurface() {
   const view = React.useMemo(() => {
     if (!read) return null
     const metrics = read.metrics.filter((m) => !metricsOff.includes(m))
-    const by = sort?.by === BY_NAME ? BY_NAME : sort && metrics.includes(sort.by) ? sort.by : (metrics[0] ?? BY_NAME)
+    const adCol = (k: string | undefined) => (archive ? AD_COLUMNS.find((c) => c.key === k) : undefined)
+    const by = sort?.by === BY_NAME || adCol(sort?.by) ? sort!.by : sort && metrics.includes(sort.by) ? sort.by : (metrics[0] ?? BY_NAME)
     const dir = sort && sort.by === by ? sort.dir : by === BY_NAME ? 1 : -1
-    const measured = (o: string) => (read.byOption.get(o) ?? []).filter((ek) => metrics.some((m) => read.cell(ek, m, "")))
+    // An entry the metrics measured, and that the Archive's column filters keep.
+    const keeps = (ek: string) => {
+      if (!metrics.some((m) => read.cell(ek, m, ""))) return false
+      for (const [m, f] of Object.entries(metricFilter)) {
+        if (!metrics.includes(m)) continue
+        const c = read.cell(ek, m, "")
+        if (!c || (f === "significant" && significance(c.lift) !== true)) return false
+      }
+      const ad = archive ? AD_INFO.get(optionOf(ek)) : undefined
+      if (ad) for (const c of AD_COLUMNS) if (colFilter[c.key]?.includes(c.value(ad))) return false
+      return true
+    }
+    const measured = (o: string) => (read.byOption.get(o) ?? []).filter(keeps)
     // A treatment sorts by its latest entry the metric measured; its entries stay together, latest first.
     const lead = (o: string) => measured(o).map((ek) => read.cell(ek, by, "")?.lift[7]).find((v) => v != null)
     const treatments = read.options
       .filter((o) => chosen.includes(o) && measured(o).length)
       .sort((a, b) => {
         if (by === BY_NAME) return dir * treatmentName(a).localeCompare(treatmentName(b))
+        const col = adCol(by)
+        if (col) {
+          const x = AD_INFO.get(a)
+          const y = AD_INFO.get(b)
+          return x && y ? dir * col.order(x).localeCompare(col.order(y)) : x ? -1 : y ? 1 : 0
+        }
+        // The Archive opens with the ads both its outcomes measured on top (Brendan, 2026-10-29).
+        if (!sort && archive) {
+          const both = (o: string) => metrics.filter((m) => measured(o).some((ek) => read.cell(ek, m, ""))).length
+          const d = both(b) - both(a)
+          if (d) return d
+        }
         const x = lead(a)
         const y = lead(b)
         // A treatment the sorting metric did not measure goes last either way.
@@ -319,28 +355,26 @@ export function LiftSurface() {
     // With more than one fielding on, each row names its own.
     const names = new Map(read.periods.map((p) => [p.key, p.name]))
     const several = read.periods.filter((p) => !periodsOff.includes(p.key)).length > 1
-    const waveOf = (ek: string) => (several ? (names.get(fieldingOf(ek)) ?? null) : null)
+    // The Archive's rows carry their date in their own column, so no chip.
+    const waveOf = (ek: string) => (several && !archive ? (names.get(fieldingOf(ek)) ?? null) : null)
     const groups = [
       { dim: null as string | null, name: "Everyone", segs: [{ key: "", name: "Everyone" }] },
       ...[...read.dims].map(([d, vs]) => ({ dim: d as string | null, name: dimLabel(d), segs: vs.map((v) => ({ key: segKey(d, v), name: v })) })),
     ]
       .map((g) => ({ ...g, segs: g.segs.filter((s) => !segsOff.includes(s.key)) }))
       .filter((g) => g.segs.length)
-    // The longest bar is the table's own largest lift; every bar scales to it.
-    let extent = 0
-    let respondents = 0
-    const placebos = new Map<string, number>()
-    for (const o of treatments) {
-      let n = 0
-      for (const m of metrics) {
-        for (const g of groups) for (const s of g.segs) extent = Math.max(extent, Math.abs(read.cell(o, m, s.key)?.lift[7] ?? 0))
-        const c = read.cell(o, m, "")
-        n = Math.max(n, c?.lift[11] ?? 0)
-        if (c?.control?.[11]) placebos.set(periodKey(c.control), Math.max(placebos.get(periodKey(c.control)) ?? 0, c.control[11]))
-      }
-      respondents += n
-    }
-    for (const n of placebos.values()) respondents += n
+    // Zero sits where the table's own lifts need it, every bar on the one scale.
+    let neg = 0
+    let pos = 0
+    for (const o of treatments)
+      for (const m of metrics)
+        for (const g of groups)
+          for (const s of g.segs) {
+            const v = read.cell(o, m, s.key)?.lift[7] ?? 0
+            neg = Math.max(neg, -v)
+            pos = Math.max(pos, v)
+          }
+    const { axis, scale } = axisOf(neg, pos)
     // The heatmap shades each lift from its center, the benchmark's median or zero.
     let spread = 0
     for (const o of treatments)
@@ -352,8 +386,8 @@ export function LiftSurface() {
           }
     const primary = metrics.filter((m) => PRIMARY.has(m)).length
     const emotion = !metricsOff.includes(EMOTION)
-    return { metrics, primary, emotion, by, dir, treatments, waveOf, groups, segCount: groups.reduce((n, g) => n + g.segs.length, 0), extent, spread, respondents }
-  }, [read, chosen, metricsOff, segsOff, periodsOff, sort, bench, median])
+    return { metrics, primary, emotion, by, dir, treatments, waveOf, groups, segCount: groups.reduce((n, g) => n + g.segs.length, 0), axis, scale, spread, segment: !archive, adCols: archive ? AD_COLUMNS : [] }
+  }, [read, chosen, metricsOff, segsOff, periodsOff, sort, bench, median, archive, colFilter, metricFilter])
 
   const shown = view ? view.treatments.slice(0, depth) : []
   const canLoad = view ? depth < view.treatments.length : false
@@ -391,20 +425,28 @@ export function LiftSurface() {
   }
 
   // The link carries the whole view: the folder, the display, the treatments where they differ from the folder's
-  // opening set, what is hidden, the benchmark off, and the open cell.
-  const share = () => {
+  // opening set, what is hidden, the benchmark off, the grouping, and the open cell. The address bar keeps it
+  // current, so the URL always says what the page shows.
+  const linkUrl = () => {
     const pairs: [string, string[]][] = [["source", [source]]]
-    if (shownDisplay !== "bars") pairs.push(["view", [shownDisplay]])
+    if (shownDisplay !== "bars" || archive) pairs.push(["view", [shownDisplay === "bars" ? "traits" : shownDisplay]])
     const featured = FEATURED[source]
     const opening = read ? (featured ? read.options.filter((o) => featured.includes(o)) : read.options) : []
     if (picked && (picked.length !== opening.length || picked.some((o) => !opening.includes(o)))) pairs.push(["t", picked])
-    if (metricsOff.length) pairs.push(["mo", metricsOff])
+    if (!sameSet(metricsOff, DEFAULT_OFF[source] ?? [])) pairs.push(["mo", metricsOff])
+    if (grouped) pairs.push(["g", ["1"]])
     if (segsOff.length) pairs.push(["so", segsOff])
     if (periodsOff.length) pairs.push(["fo", periodsOff])
     if (!bench) pairs.push(["bench", ["0"]])
     if (about) pairs.push(["at", [about.option, about.metric, about.seg, fieldingOf(about.entry)]])
-    const url = `${window.location.origin}${window.location.pathname}?${pairs.map(([k, vs]) => `${k}=${vs.map(linkPart).join(",")}`).join("&")}`
-    navigator.clipboard.writeText(url)
+    return `${window.location.origin}${window.location.pathname}?${pairs.map(([k, vs]) => `${k}=${vs.length ? vs.map(linkPart).join(",") : ""}`).join("&")}`
+  }
+  const url = read ? linkUrl() : null
+  React.useEffect(() => {
+    if (url && url !== window.location.href) window.history.replaceState(window.history.state, "", url)
+  }, [url])
+  const share = () => {
+    navigator.clipboard.writeText(linkUrl())
     setShared(true)
     window.setTimeout(() => setShared(false), 1400)
   }
@@ -547,7 +589,7 @@ export function LiftSurface() {
       <div className="ml-auto flex items-center gap-0.5">
         <span className="mr-1.5">
           <ViewToggle
-            views={[{ value: "bars" as const, label: "Bars" }, { value: "heatmap" as const, label: "Heatmap" }, ...(archive ? [{ value: "traits" as const, label: "Traits" }] : [])]}
+            views={[{ value: "bars" as const, label: archive ? "Traits" : "Bars" }, { value: "heatmap" as const, label: "Heatmap" }, ...(archive ? [{ value: "attributes" as const, label: "Attributes" }] : [])]}
             value={shownDisplay}
             onChange={setDisplay}
           />
@@ -588,40 +630,40 @@ export function LiftSurface() {
           <Download className={TOOL_ICON} />
           Download
         </button>
-        <span className="flex items-center gap-1.5 px-2 text-[13px] text-foreground/80 tabular-nums" title="Respondents">
-          <Users className={TOOL_ICON} />
-          {num(view?.respondents ?? 0, 0)}
-        </span>
       </div>
     </div>
   )
 
   const ariaSort = (by: string) => (view?.by === by ? (view.dir === 1 ? "ascending" : "descending") : undefined)
-  const sortMenu = (by: string, items: { label: string; dir: 1 | -1 }[], extra?: React.ReactNode) => (
+  // A header's label sorts its column on a click (again, the other way); its ListFilter opens its filter.
+  const defaultDir = (key: string): 1 | -1 => (key === BY_NAME || (key.startsWith("@") && key !== "@tested") ? 1 : -1)
+  const sortBy = (key: string) => setSort({ by: key, dir: view?.by === key ? (-view.dir as 1 | -1) : defaultDir(key) })
+  const sortLabel = (key: string, label: string) => (
+    <button type="button" onClick={() => sortBy(key)} className="flex min-w-0 items-center gap-1 hover:text-foreground">
+      <span className="truncate" title={label}>
+        {label}
+      </span>
+      {view?.by === key && (view.dir === 1 ? <ArrowUp aria-hidden className="size-3.5 shrink-0" /> : <ArrowDown aria-hidden className="size-3.5 shrink-0" />)}
+    </button>
+  )
+  const filterMenu = (active: boolean, items: React.ReactNode) => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button type="button" aria-label="Sort" className={cn(HEAD_ICON, view?.by === by && "text-foreground")}>
+        <button type="button" aria-label="Filter" className={cn(HEAD_ICON, active && "text-foreground")}>
           <ListFilter className="size-4" />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-max min-w-44">
-        <DropdownMenuRadioGroup value={view?.by === by ? String(view.dir) : ""} onValueChange={(d) => setSort({ by, dir: Number(d) as 1 | -1 })}>
-          {items.map((it) => (
-            <DropdownMenuRadioItem key={it.dir} value={String(it.dir)}>
-              {it.label}
-            </DropdownMenuRadioItem>
-          ))}
-        </DropdownMenuRadioGroup>
-        {extra}
+      <DropdownMenuContent align="end" className="max-h-80 w-max min-w-44 overflow-y-auto">
+        {items}
       </DropdownMenuContent>
     </DropdownMenu>
   )
 
-  const cols = view ? view.metrics.length + (view.emotion ? 1 : 0) : 0
+  const cols = view ? view.adCols.length + view.metrics.length + (view.emotion ? 1 : 0) : 0
 
-  // The Traits view (the Archive only): each coded trait's pooled lift, ads with it less ads without, per metric.
-  const traits = React.useMemo(() => {
-    if (!archive || shownDisplay !== "traits" || !rows || !view) return null
+  // The Attributes view (the Archive only): each coded trait's pooled lift, ads with it less ads without, per metric.
+  const attributes = React.useMemo(() => {
+    if (!archive || shownDisplay !== "attributes" || !rows || !view) return null
     const off = new Set(periodsOff)
     const by = new Map<string, { ad: AdInfo; x: number; v: number }[]>()
     const ads = new Map<string, AdInfo>()
@@ -648,7 +690,8 @@ export function LiftSurface() {
       const sw = sum(w)
       return { mean: sum(w.map((wi, i) => wi * xs[i].x)) / sw, se: Math.sqrt(1 / sw), n: xs.length }
     }
-    let extent = 0
+    let neg = 0
+    let pos = 0
     const groups = TRAIT_GROUPS.map((g) => ({
       name: g.name,
       rows: g.traits
@@ -664,7 +707,8 @@ export function LiftSurface() {
             const a = pool(yes, tau2.get(m) ?? 0)
             const b = pool(no, tau2.get(m) ?? 0)
             const diff = a.mean - b.mean
-            extent = Math.max(extent, Math.abs(diff))
+            neg = Math.max(neg, -diff)
+            pos = Math.max(pos, diff)
             return {
               lift: [m, "US", "", "", t.name, null, null, diff, "lift_pp", 1.645 * Math.sqrt(a.se ** 2 + b.se ** 2), null, yes.length, null],
               level: null,
@@ -674,9 +718,8 @@ export function LiftSurface() {
         }))
         .filter((r) => r.n > 0),
     })).filter((g) => g.rows.length)
-    return { groups, extent, total: ads.size }
+    return { groups, ...axisOf(neg, pos), total: ads.size }
   }, [archive, shownDisplay, rows, view, periodsOff])
-  const metricsWidth = view ? view.metrics.reduce((n, m) => n + widthOf(m), 0) + (view.emotion ? widthOf(EMOTION) : 0) : 0
   // Stable, so a pick re-renders only the rows whose selection changed (the rows are memoized).
   // The same cell again closes the panel.
   const pick = React.useCallback(
@@ -687,12 +730,15 @@ export function LiftSurface() {
   const contentHead = (first: boolean) => (
     <th aria-sort={ariaSort(BY_NAME)} className={cn(TH, !first && "border-l")}>
       <span className="flex items-center gap-2">
-        Content
+        {sortLabel(BY_NAME, "Content")}
         <span className="ml-auto flex items-center gap-2">
-          {sortMenu(BY_NAME, [
-            { label: "Name, A to Z", dir: 1 },
-            { label: "Name, Z to A", dir: -1 },
-          ])}
+          {archive &&
+            filterMenu(
+              grouped,
+              <DropdownMenuCheckboxItem checked={grouped} onSelect={(e) => e.preventDefault()} onCheckedChange={() => setGrouped((g) => !g)}>
+                Group by test
+              </DropdownMenuCheckboxItem>
+            )}
           <Resize width={widths.treatment} onWidth={(w) => setWidths((p) => ({ ...p, treatment: w }))} />
         </span>
       </span>
@@ -708,14 +754,53 @@ export function LiftSurface() {
       </span>
     </th>
   )
+  // The Archive's trait columns: each sorts on its label, filters on its values.
+  const adColHeads =
+    view &&
+    view.adCols.map((c) => {
+      const order = new Map<string, string>()
+      for (const o of read?.options ?? []) {
+        const a = AD_INFO.get(o)
+        if (a) order.set(c.value(a), c.order(a))
+      }
+      const values = [...order.keys()].sort((x, y) => order.get(x)!.localeCompare(order.get(y)!))
+      const off = colFilter[c.key] ?? []
+      return (
+        <th key={c.key} aria-sort={ariaSort(c.key)} className={cn(TH, "relative border-l")}>
+          <span className="flex items-center gap-2">
+            {sortLabel(c.key, c.name)}
+            <span className="ml-auto">
+              {filterMenu(
+                off.length > 0,
+                <>
+                  <DropdownMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault()
+                      setColFilter((p) => ({ ...p, [c.key]: [] }))
+                    }}
+                  >
+                    Show all
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  {values.map((v) => (
+                    <DropdownMenuCheckboxItem key={v} checked={!off.includes(v)} onSelect={(e) => e.preventDefault()} onCheckedChange={() => setColFilter((p) => ({ ...p, [c.key]: toggled(p[c.key] ?? [], v) }))}>
+                      {v}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </>
+              )}
+            </span>
+          </span>
+          <ColumnGrip onWidth={resizeMetric(c.key)} />
+        </th>
+      )
+    })
   const metricHeads = view && (
     <>
       {view.metrics.map((m, i) => (
         <th key={m} aria-sort={ariaSort(m)} className={cn(TH, "relative border-l")}>
           <span className="flex items-center gap-2">
-            <span className="truncate" title={metricShort(m)}>
-              {metricShort(m)}
-            </span>
+            {sortLabel(m, metricShort(m))}
             <span className="ml-auto flex items-center gap-2">
               {defs.get(m) && (
                 <Tooltip>
@@ -727,26 +812,37 @@ export function LiftSurface() {
                   <TooltipContent className="max-w-72">{defs.get(m)}</TooltipContent>
                 </Tooltip>
               )}
-              {sortMenu(
-                m,
-                [
-                  { label: "Lift, high to low", dir: -1 },
-                  { label: "Lift, low to high", dir: 1 },
-                ],
+              {filterMenu(
+                !!metricFilter[m],
                 <>
+                  <DropdownMenuRadioGroup
+                    value={metricFilter[m] ?? "all"}
+                    onValueChange={(v) =>
+                      setMetricFilter((p) => {
+                        const next = { ...p }
+                        if (v === "all") delete next[m]
+                        else next[m] = v as "measured" | "significant"
+                        return next
+                      })
+                    }
+                  >
+                    <DropdownMenuRadioItem value="all">All</DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="measured">Measured</DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="significant">Clears its test</DropdownMenuRadioItem>
+                  </DropdownMenuRadioGroup>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onSelect={() => setMetricsOff((prev) => [...prev, m])}>Hide this metric</DropdownMenuItem>
                 </>
               )}
             </span>
           </span>
-          <ColumnGrip width={widthOf(m)} onWidth={resizeMetric(m)} last={!view.emotion && i === view.metrics.length - 1} />
+          <ColumnGrip onWidth={resizeMetric(m)} last={!view.emotion && i === view.metrics.length - 1} />
         </th>
       ))}
       {view.emotion && (
         <th className={cn(TH, "relative border-l")}>
           <span className="flex items-center gap-2">
-            {archive ? "Emotional Appeal" : "Emotional Response"}
+            <span className="truncate">{archive ? "Emotional Appeal" : "Emotional Response"}</span>
             {!archive && <span className="rounded-md border px-1.5 py-px text-[10px] font-normal text-muted-foreground">Sample</span>}
             <span className="ml-auto flex items-center gap-2">
               <Tooltip>
@@ -757,7 +853,7 @@ export function LiftSurface() {
                 </TooltipTrigger>
                 {archive ? (
                   <TooltipContent className="max-w-72">
-                    <p className="mb-1.5">The archive coders&apos; ratings of the emotion each ad appeals to, 0 to 1 for each, rated apart (not shares); full strength at 0.5 and over.</p>
+                    <p className="mb-1.5">The archive coders&apos; ratings of the emotion each ad appeals to, each emotion&apos;s share of the ad&apos;s rated appeal.</p>
                     <AppealKey className="text-background/80" />
                   </TooltipContent>
                 ) : (
@@ -769,35 +865,71 @@ export function LiftSurface() {
               </Tooltip>
             </span>
           </span>
-          <ColumnGrip width={widthOf(EMOTION)} onWidth={resizeMetric(EMOTION)} last />
+          <ColumnGrip onWidth={resizeMetric(EMOTION)} last />
         </th>
       )}
     </>
   )
-  const barsTable = view && read && (
-    <table className="table-fixed border-collapse" style={{ width: widths.treatment + widths.segment + metricsWidth, minWidth: "100%" }}>
+  // Columns fill the pane (Brendan, 2026-10-29: responsive, not fixed): Content, Segment and the trait columns
+  // hold their widths, the metric and emotion columns share the rest until a drag sets one.
+  const colgroup = (lead?: number) =>
+    view && (
       <colgroup>
+        {lead != null && <col style={{ width: lead }} />}
         <col style={{ width: widths.treatment }} />
-        <col style={{ width: widths.segment }} />
+        {view.segment && <col style={{ width: widths.segment }} />}
+        {view.adCols.map((c) => (
+          <col key={c.key} style={{ width: widthOf(c.key) ?? c.width }} />
+        ))}
         {view.metrics.map((m) => (
           <col key={m} style={{ width: widthOf(m) }} />
         ))}
         {view.emotion && <col style={{ width: widthOf(EMOTION) }} />}
       </colgroup>
-      <thead className="sticky top-0 z-[1] bg-background">
-        <tr>
-          {contentHead(true)}
-          {segmentHead}
-          {metricHeads}
-        </tr>
-      </thead>
-      <tbody>
-        {view.groups.map((g) => (
+    )
+  const tableMin = (lead = 0) =>
+    view
+      ? lead +
+        widths.treatment +
+        (view.segment ? widths.segment : 0) +
+        view.adCols.reduce((n, c) => n + (widthOf(c.key) ?? c.width), 0) +
+        [...view.metrics, ...(view.emotion ? [EMOTION] : [])].reduce((n, k) => n + (widthOf(k) ?? 160), 0)
+      : 0
+  const lead = view ? 1 + (view.segment ? 1 : 0) : 1
+
+  const barsBody =
+    view &&
+    read &&
+    (grouped && archive
+      ? (() => {
+          // Each test a band, its ads under it in the table's order.
+          const tests = new Map<string, string[]>()
+          for (const ek of shown) {
+            const id = optionOf(ek).match(/\(study ([^)]+)\)/)?.[1] ?? ""
+            tests.set(id, [...(tests.get(id) ?? []), ek])
+          }
+          return [...tests].map(([id, eks]) => {
+            const a = AD_INFO.get(optionOf(eks[0]))
+            return (
+              <React.Fragment key={id}>
+                <tr>
+                  <td colSpan={lead + cols} className="border-b bg-pax2-mist px-3 py-1.5 text-xs font-semibold text-foreground">
+                    {a ? `${adWhere(a)} ${adOffice(a)} · ${adWhen(a)} · ${a.ads} ${a.ads === 1 ? "ad" : "ads"}` : id}
+                  </td>
+                </tr>
+                {eks.map((o) => (
+                  <BarsRow key={o} o={o} s={EVERYONE} first last sel={about?.entry === o && about.seg === ""} read={read} view={view} onPick={pick} />
+                ))}
+              </React.Fragment>
+            )
+          })
+        })()
+      : view.groups.map((g) => (
           <React.Fragment key={g.dim ?? ""}>
             {g.dim && (
               <tr>
                 <td className="border-b bg-pax2-mist" />
-                <td colSpan={1 + cols} className="border-b bg-pax2-mist px-3 py-1.5 text-xs font-semibold text-foreground">
+                <td colSpan={lead - 1 + cols} className="border-b bg-pax2-mist px-3 py-1.5 text-xs font-semibold text-foreground">
                   {g.name}
                 </td>
               </tr>
@@ -807,28 +939,35 @@ export function LiftSurface() {
               return segs.map((s, i) => <BarsRow key={`${o}\u0001${s.key}`} o={o} s={s} first={i === 0} last={i === segs.length - 1} sel={about?.entry === o && about.seg === s.key} read={read} view={view} onPick={pick} />)
             })}
           </React.Fragment>
-        ))}
-        {canLoad && <MoreRow span={2 + cols} onMore={more} />}
+        )))
+
+  const barsTable = view && read && (
+    <table className="w-full table-fixed border-collapse" style={{ minWidth: tableMin() }}>
+      {colgroup()}
+      <thead className="sticky top-0 z-[1] bg-background">
+        <tr>
+          {contentHead(true)}
+          {view.segment && segmentHead}
+          {adColHeads}
+          {metricHeads}
+        </tr>
+      </thead>
+      <tbody>
+        {barsBody}
+        {canLoad && <MoreRow span={lead + cols} onMore={more} />}
       </tbody>
     </table>
   )
 
   const heatTable = view && read && (
-    <table className="table-fixed border-collapse" style={{ width: 110 + widths.treatment + widths.segment + metricsWidth, minWidth: "100%" }}>
-      <colgroup>
-        <col style={{ width: 110 }} />
-        <col style={{ width: widths.treatment }} />
-        <col style={{ width: widths.segment }} />
-        {view.metrics.map((m) => (
-          <col key={m} style={{ width: widthOf(m) }} />
-        ))}
-        {view.emotion && <col style={{ width: widthOf(EMOTION) }} />}
-      </colgroup>
+    <table className="w-full table-fixed border-collapse" style={{ minWidth: tableMin(110) }}>
+      {colgroup(110)}
       <thead className="sticky top-0 z-[1] bg-background">
         <tr>
           <th className={TH}>Breakdown</th>
           {contentHead(false)}
-          {segmentHead}
+          {view.segment && segmentHead}
+          {adColHeads}
           {metricHeads}
         </tr>
       </thead>
@@ -860,12 +999,13 @@ export function LiftSurface() {
             ))
           )
         })}
-        {canLoad && <MoreRow span={3 + cols} onMore={more} />}
+        {canLoad && <MoreRow span={1 + lead + cols} onMore={more} />}
       </tbody>
     </table>
   )
-  const traitsTable = traits && view && (
-    <table className="table-fixed border-collapse" style={{ width: 260 + 110 + view.metrics.reduce((n, m) => n + widthOf(m), 0), minWidth: "100%" }}>
+
+  const attributesTable = attributes && view && (
+    <table className="w-full table-fixed border-collapse" style={{ minWidth: 260 + 110 + view.metrics.reduce((n, m) => n + (widthOf(m) ?? 200), 0) }}>
       <colgroup>
         <col style={{ width: 260 }} />
         <col style={{ width: 110 }} />
@@ -884,23 +1024,23 @@ export function LiftSurface() {
                 <span className="ml-auto flex items-center">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <button type="button" aria-label={`About the ${metricShort(m)} traits`} className={HEAD_ICON}>
+                      <button type="button" aria-label={`About the ${metricShort(m)} attributes`} className={HEAD_ICON}>
                         <Info className="size-4" />
                       </button>
                     </TooltipTrigger>
                     <TooltipContent className="max-w-72">
-                      The average lift of ads with the trait less ads without it, each side pooled across the archive&apos;s ads with random-effects weights (DerSimonian–Laird). The line is its 90% margin; the number at the axis, the average without it.
+                      The average lift of ads with the trait less ads without it, each side pooled across the archive&apos;s ads with random-effects weights (DerSimonian–Laird); gray where its 90% margin crosses zero. The number at zero is the average without it.
                     </TooltipContent>
                   </Tooltip>
                 </span>
               </span>
-              <ColumnGrip width={widthOf(m)} onWidth={resizeMetric(m)} last={i === view.metrics.length - 1} />
+              <ColumnGrip onWidth={resizeMetric(m)} last={i === view.metrics.length - 1} />
             </th>
           ))}
         </tr>
       </thead>
       <tbody>
-        {traits.groups.map((g) => (
+        {attributes.groups.map((g) => (
           <React.Fragment key={g.name}>
             <tr>
               <td colSpan={2 + view.metrics.length} className="border-b bg-pax2-mist px-3 py-1.5 text-xs font-semibold text-foreground">
@@ -911,11 +1051,11 @@ export function LiftSurface() {
               <tr key={t.key} className={rowDress(false)}>
                 <td className={cn(TD, "font-medium")}>{t.name}</td>
                 <td className={cn(TD, "border-l text-muted-foreground tabular-nums")}>
-                  {t.n.toLocaleString("en-US")} of {traits.total.toLocaleString("en-US")}
+                  {t.n.toLocaleString("en-US")} of {attributes.total.toLocaleString("en-US")}
                 </td>
                 {t.cells.map((c, i) => (
                   <td key={view.metrics[i]} className={cn(TD, "border-l")}>
-                    {c ? <Candle cell={c} extent={traits.extent} baseTitle={`Ads without it average ${signed(c.control![7])}`} /> : <span className="block text-center text-xs text-muted-foreground/40">—</span>}
+                    {c ? <Candle cell={c} axis={attributes.axis} scale={attributes.scale} baseTitle={`Ads without it average ${signed(c.control![7])}`} /> : <span className="block text-center text-xs text-muted-foreground/40">—</span>}
                   </td>
                 ))}
               </tr>
@@ -925,7 +1065,7 @@ export function LiftSurface() {
       </tbody>
     </table>
   )
-  const table = shownDisplay === "traits" ? traitsTable : shownDisplay === "heatmap" ? heatTable : barsTable
+  const table = shownDisplay === "attributes" ? attributesTable : shownDisplay === "heatmap" ? heatTable : barsTable
 
   return (
     <BankFrame rail={rail} crumb="Lift" search={NO_SEARCH} bare>
@@ -1044,7 +1184,9 @@ const testName = (lift: SourceRow) => WAVE.get(periodKey(lift)) ?? testOf(lift)
 
 type Seg = { key: string; name: string }
 type RowRead = { cell: (option: string, metric: string, sk: string) => Cell | null }
-type RowView = { metrics: string[]; emotion: boolean; extent: number; spread: number; waveOf: (ek: string) => string | null }
+type RowView = { metrics: string[]; emotion: boolean; axis: number; scale: number; spread: number; waveOf: (ek: string) => string | null; segment: boolean; adCols: typeof AD_COLUMNS }
+/** The Archive's one segment, its ads' only row each. */
+const EVERYONE: Seg = { key: "", name: "Everyone" }
 type OnPick = (o: string, m: string, s: Seg, c: Cell) => void
 
 const fmt = (v: number) => `${v < 0 ? "−" : ""}${num(Math.abs(v))}`
@@ -1067,10 +1209,24 @@ function creative(ek: string, wave: string | null) {
   )
 }
 
+/** An archive ad's trait cells, in the trait columns' order. */
+function AdCells({ o, view }: { o: string | null; view: RowView }) {
+  const ad = o ? AD_INFO.get(optionOf(o)) : undefined
+  return (
+    <>
+      {view.adCols.map((c) => (
+        <td key={c.key} className={cn(TD, "truncate border-l")}>
+          {ad ? c.value(ad) : null}
+        </td>
+      ))}
+    </>
+  )
+}
+
 /** The emotion column's cell: an archive ad's coded appeal, else the placeholder shares. */
 function EmotionCell({ o, s }: { o: string; s: Seg }) {
   const ad = AD_INFO.get(optionOf(o))
-  return <td className={cn(TD, "border-l")}>{ad ? <AppealBars emotions={ad.emotions} /> : <EmotionBar shares={sampleEmotions(`${o}\u0001${s.key}`)} />}</td>
+  return <td className={cn(TD, "border-l")}>{ad ? <AppealBar emotions={ad.emotions} /> : <EmotionBar shares={sampleEmotions(`${o}\u0001${s.key}`)} />}</td>
 }
 
 /** A bars-view row. Memoized: a pick re-renders only the rows it selects and unselects. */
@@ -1078,14 +1234,15 @@ const BarsRow = React.memo(function BarsRow({ o, s, first, last, sel, read, view
   return (
     <tr className={rowDress(sel)}>
       <td className={cn(TD, !last && "border-b-transparent")}>{first && creative(o, view.waveOf(o))}</td>
-      <td className={cn(TD, "border-l")}>{s.name}</td>
+      {view.segment && <td className={cn(TD, "border-l")}>{s.name}</td>}
+      <AdCells o={o} view={view} />
       {view.metrics.map((m) => {
         const c = read.cell(o, m, s.key)
         return (
           <td key={m} className={cn(TD, "border-l")}>
             {c ? (
               <button type="button" onClick={() => onPick(o, m, s, c)} className={FRAME}>
-                <Candle cell={c} extent={view.extent} />
+                <Candle cell={c} axis={view.axis} scale={view.scale} />
               </button>
             ) : (
               <span className="block text-center text-xs text-muted-foreground/40">—</span>
@@ -1142,7 +1299,8 @@ const HeatRow = React.memo(function HeatRow({
             </span>
           ))}
       </td>
-      <td className={cn(TD, "border-l")}>{s.name}</td>
+      {view.segment && <td className={cn(TD, "border-l")}>{s.name}</td>}
+      <AdCells o={o} view={view} />
       {view.metrics.map((m) => {
         const med = median(m, s.key)
         if (!o)
@@ -1202,10 +1360,12 @@ function Resize({ width, onWidth, min = 120, max = 480 }: { width: number; onWid
 
 /** A metric column's resize grip, America Thinks' panel handle (components/ui resizable's withHandle box) on the
  *  column's right divider: drag it to set the column's width. The last column's sits inside the table's edge. */
-function ColumnGrip({ width, onWidth, last = false }: { width: number; onWidth: (w: number) => void; last?: boolean }) {
+function ColumnGrip({ onWidth, last = false }: { onWidth: (w: number) => void; last?: boolean }) {
   const start = (e: React.PointerEvent) => {
     e.preventDefault()
     const x0 = e.clientX
+    // The column's width as drawn, so an undragged (shared) column starts where it stands.
+    const width = (e.currentTarget.parentElement as HTMLElement).getBoundingClientRect().width
     const move = (ev: PointerEvent) => onWidth(Math.min(640, Math.max(120, width + ev.clientX - x0)))
     const up = () => {
       window.removeEventListener("pointermove", move)
