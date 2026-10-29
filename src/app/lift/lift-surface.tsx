@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { Combobox } from "@base-ui/react/combobox"
-import { ArrowDownUp, ChartColumn, Check, CircleDashed, Copy, Download, Folder, Funnel, Info, ListFilter, Loader2, SeparatorVertical, Share, Spline, Users } from "lucide-react"
+import { ArrowDownUp, ChartColumn, Check, CircleDashed, Copy, Download, Folder, Funnel, Info, ListFilter, Loader2, PanelLeftClose, PanelLeftOpen, SeparatorVertical, Share, Spline, Users } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { BankFrame, BankRail as RailState } from "@/components/bank/bank-frame"
@@ -102,6 +102,11 @@ export function LiftSurface() {
   const [periodsOff, setPeriodsOff] = React.useState<string[]>([])
   const [sort, setSort] = React.useState<Sort | null>(null)
   const [about, setAbout] = React.useState<Pick | null>(null)
+  // About Result slides in and out: the last pick stays drawn while it slides shut.
+  const [sheet, setSheet] = React.useState<Pick | null>(null)
+  React.useEffect(() => {
+    if (about) setSheet(about)
+  }, [about])
   const [depth, setDepth] = React.useState(PER_READ)
   const [widths, setWidths] = React.useState({ treatment: 220, segment: 170 })
   const [shared, setShared] = React.useState(false)
@@ -341,6 +346,8 @@ export function LiftSurface() {
   const segGroups = read ? [{ dim: null as string | null, name: "Everyone", vals: [null as string | null] }, ...[...read.dims].map(([d, vs]) => ({ dim: d as string | null, name: dimLabel(d), vals: vs as (string | null)[] }))] : []
   const toolbar = (
     <div className="flex h-11 shrink-0 items-center gap-0.5 border-b px-3">
+      <SidebarToggle />
+      <span aria-hidden className="mx-1 h-4 w-px bg-border" />
       <TreatmentPicker options={read?.options ?? []} chosen={chosen} onChosen={setPicked} count={view?.treatments.length ?? 0} disabled={!read} />
 
       <DropdownMenu>
@@ -494,7 +501,6 @@ export function LiftSurface() {
             >
               Refresh
             </DropdownMenuItem>
-            <SidebarItem />
           </DropdownMenuContent>
         </DropdownMenu>
         <button type="button" className={TOOL} onClick={share}>
@@ -534,17 +540,8 @@ export function LiftSurface() {
   )
 
   const cols = view ? view.metrics.length + (view.emotion ? 1 : 0) : 0
-  const pick = (o: string, m: string, s: { key: string; name: string }, c: Cell) => setAbout({ option: o, metric: m, seg: s.key, segName: s.name, cell: c })
-  const fmt = (v: number) => `${v < 0 ? "−" : ""}${num(Math.abs(v))}`
-
-  const creative = (o: string) => (
-    <span className="flex min-h-6 items-center gap-2.5">
-      {THUMB[o] && <img src={THUMB[o]} alt="" width={36} height={24} className="h-6 w-9 shrink-0 rounded-[3px] bg-muted object-cover" />}
-      <span className="line-clamp-2 font-medium" title={o}>
-        {treatmentName(o)}
-      </span>
-    </span>
-  )
+  // Stable, so a pick re-renders only the rows whose selection changed (the rows are memoized).
+  const pick = React.useCallback((o: string, m: string, s: Seg, c: Cell) => setAbout({ option: o, metric: m, seg: s.key, segName: s.name, cell: c }), [])
 
   const contentHead = (label: string) => (
     <th rowSpan={2} className={cn(TH, "align-top", label !== "Treatment" && "border-l")}>
@@ -647,32 +644,6 @@ export function LiftSurface() {
       )}
     </>
   )
-  const emotionCell = (o: string, s: { key: string }) => view?.emotion && <td className={cn(TD, "border-l")}>{<EmotionBar shares={sampleEmotions(`${o}\u0001${s.key}`)} />}</td>
-
-  const barsRow = (o: string, s: { key: string; name: string }, first: boolean, last: boolean, sel: boolean) =>
-    read &&
-    view && (
-      <tr key={`${o}\u0001${s.key}`} className={rowDress(sel)}>
-        <td className={cn(TD, !last && "border-b-transparent")}>{first && creative(o)}</td>
-        <td className={cn(TD, "border-l")}>{s.name}</td>
-        {view.metrics.map((m) => {
-          const c = read.cell(o, m, s.key)
-          return (
-            <td key={m} className={cn(TD, "border-l")}>
-              {c ? (
-                <button type="button" onClick={() => pick(o, m, s, c)} className={FRAME}>
-                  <Candle cell={c} extent={view.extent} />
-                </button>
-              ) : (
-                <span className="block text-center text-xs text-muted-foreground/40">—</span>
-              )}
-            </td>
-          )
-        })}
-        {emotionCell(o, s)}
-      </tr>
-    )
-
   const barsTable = view && read && (
     <table className="w-full table-fixed border-collapse" style={{ minWidth: widths.treatment + widths.segment + view.metrics.length * 220 + (view.emotion ? EMOTION_WIDTH : 0) }}>
       <colgroup>
@@ -704,7 +675,7 @@ export function LiftSurface() {
             )}
             {shown.flatMap((o) => {
               const segs = g.segs.filter((s) => view.metrics.some((m) => read.cell(o, m, s.key)))
-              return segs.map((s, i) => barsRow(o, s, i === 0, i === segs.length - 1, about?.option === o && about.seg === s.key))
+              return segs.map((s, i) => <BarsRow key={`${o}\u0001${s.key}`} o={o} s={s} first={i === 0} last={i === segs.length - 1} sel={about?.option === o && about.seg === s.key} read={read} view={view} onPick={pick} />)
             })}
           </React.Fragment>
         ))}
@@ -744,61 +715,23 @@ export function LiftSurface() {
           ].filter((b) => b.segs.length)
           // Named once at the top of its run, the way the bars view names a treatment: no row spans, so a row's dress stays its own.
           return blocks.flatMap((b, bi) =>
-            b.segs.map((s, si) => {
-              const o = b.o
-              const lastOfBlock = si === b.segs.length - 1
-              return (
-                <tr key={`${g.dim ?? ""}\u0001${o ?? "@median"}\u0001${s.key}`} className={o ? rowDress(about?.option === o && about.seg === s.key) : undefined}>
-                  <td className={cn(TD, "font-medium", !(lastOfBlock && bi === blocks.length - 1) && "border-b-transparent")}>{bi === 0 && si === 0 && (g.dim ? g.name : "Overall")}</td>
-                  <td className={cn(TD, "border-l", !lastOfBlock && "border-b-transparent")}>
-                    {si === 0 &&
-                      (o ? (
-                        creative(o)
-                      ) : (
-                        <span className="flex min-h-6 items-center gap-2.5">
-                          <ChartColumn aria-hidden className="size-4 shrink-0 text-muted-foreground" />
-                          <span className="font-medium">All tests</span>
-                          <span className="rounded-md bg-muted px-1.5 py-px text-[11px] text-muted-foreground">Median</span>
-                        </span>
-                      ))}
-                  </td>
-                  <td className={cn(TD, "border-l")}>{s.name}</td>
-                  {view.metrics.map((m) => {
-                    const med = median(m, s.key)
-                    if (!o)
-                      return (
-                        <td key={m} className="border-b border-l p-0">
-                          <span className="flex h-10 items-center justify-center bg-[#f0efec] text-[13px] tabular-nums" title={med ? `Median of ${med.n.toLocaleString("en-US")} lifts on file` : undefined}>
-                            {med ? fmt(med.median) : "—"}
-                          </span>
-                        </td>
-                      )
-                    const c = read.cell(o, m, s.key)
-                    if (!c)
-                      return (
-                        <td key={m} className={cn(TD, "border-l text-center text-xs text-muted-foreground/40")}>
-                          —
-                        </td>
-                      )
-                    const center = bench ? (med?.median ?? 0) : 0
-                    return (
-                      <td key={m} className="border-b border-l p-0">
-                        <button
-                          type="button"
-                          onClick={() => pick(o, m, s, c)}
-                          title={`${treatmentName(o)} · ${s.name}: ${fmt(c.lift[7])}${bench && med ? `, median ${fmt(med.median)}` : ""}`}
-                          className={cn(HEAT, significance(c.lift) === false ? "text-foreground/55" : "font-semibold")}
-                          style={{ background: heat(c.lift[7], center, view.spread) }}
-                        >
-                          {fmt(c.lift[7])}
-                        </button>
-                      </td>
-                    )
-                  })}
-                  {o ? emotionCell(o, s) : view.emotion && <td className={cn(TD, "border-l")} />}
-                </tr>
-              )
-            })
+            b.segs.map((s, si) => (
+              <HeatRow
+                key={`${g.dim ?? ""}\u0001${b.o ?? "@median"}\u0001${s.key}`}
+                o={b.o}
+                s={s}
+                breakdown={bi === 0 && si === 0 ? (g.dim ? g.name : "Overall") : null}
+                firstOfBlock={si === 0}
+                lastOfBlock={si === b.segs.length - 1}
+                lastOfGroup={bi === blocks.length - 1 && si === b.segs.length - 1}
+                sel={b.o != null && about?.option === b.o && about.seg === s.key}
+                read={read}
+                view={view}
+                bench={bench}
+                median={median}
+                onPick={pick}
+              />
+            ))
           )
         })}
         {canLoad && <MoreRow span={3 + cols} onMore={more} />}
@@ -824,19 +757,34 @@ export function LiftSurface() {
             {table}
             {view && !shown.length && <p className="p-6 text-center text-sm text-muted-foreground">Nothing on file.</p>}
           </div>
-          {about && <AboutResult key={`${about.option}\u0001${about.metric}\u0001${about.seg}`} pick={about} rows={everyRow} complete={complete} place={place} onClose={() => setAbout(null)} />}
+          <div
+            className={cn("flex shrink-0 overflow-hidden transition-[width] duration-300 ease-out", about ? "w-[380px]" : "w-0")}
+            onTransitionEnd={(e) => e.target === e.currentTarget && !about && setSheet(null)}
+          >
+            {(about ?? sheet) && (
+              <AboutResult key={`${(about ?? sheet)!.option}\u0001${(about ?? sheet)!.metric}\u0001${(about ?? sheet)!.seg}`} pick={(about ?? sheet)!} rows={everyRow} complete={complete} place={place} onClose={() => setAbout(null)} />
+            )}
+          </div>
         </div>
       </div>
     </BankFrame>
   )
 }
 
-/** The frame is bare (Brendan, 2026-10-29): no header row, so no header search, and the rail's toggle rides Options. */
+/** The frame is bare (Brendan, 2026-10-29): no header row, so no header search; the rail's toggle leads the toolbar. */
 const NO_SEARCH = { query: "", onQuery: () => {}, placeholder: "" }
 
-function SidebarItem() {
+/** The rail's open and close, at the toolbar's head (Brendan, 2026-10-29). */
+function SidebarToggle() {
   const rail = React.useContext(RailState)
-  return rail && <DropdownMenuItem onSelect={rail.toggle}>{rail.open ? "Hide sidebar" : "Show sidebar"}</DropdownMenuItem>
+  if (!rail) return null
+  const Icon = rail.open ? PanelLeftClose : PanelLeftOpen
+  const label = rail.open ? "Hide sidebar" : "Show sidebar"
+  return (
+    <button type="button" onClick={rail.toggle} aria-label={label} title={label} className={cn(TOOL, "px-1.5")}>
+      <Icon className="size-4 text-muted-foreground" />
+    </button>
+  )
 }
 
 /** The Treatments menu as a combobox: type to narrow, arrow keys and Enter (or a click) to show or hide one. */
@@ -879,6 +827,139 @@ function TreatmentPicker({ options, chosen, onChosen, count, disabled }: { optio
     </Combobox.Root>
   )
 }
+
+type Seg = { key: string; name: string }
+type RowRead = { cell: (option: string, metric: string, sk: string) => Cell | null }
+type RowView = { metrics: string[]; emotion: boolean; extent: number; spread: number }
+type OnPick = (o: string, m: string, s: Seg, c: Cell) => void
+
+const fmt = (v: number) => `${v < 0 ? "−" : ""}${num(Math.abs(v))}`
+
+function creative(o: string) {
+  return (
+    <span className="flex min-h-6 items-center gap-2.5">
+      {THUMB[o] && <img src={THUMB[o]} alt="" width={36} height={24} className="h-6 w-9 shrink-0 rounded-[3px] bg-muted object-cover" />}
+      <span className="line-clamp-2 font-medium" title={o}>
+        {treatmentName(o)}
+      </span>
+    </span>
+  )
+}
+
+function EmotionCell({ o, s }: { o: string; s: Seg }) {
+  return (
+    <td className={cn(TD, "border-l")}>
+      <EmotionBar shares={sampleEmotions(`${o}\u0001${s.key}`)} />
+    </td>
+  )
+}
+
+/** A bars-view row. Memoized: a pick re-renders only the rows it selects and unselects. */
+const BarsRow = React.memo(function BarsRow({ o, s, first, last, sel, read, view, onPick }: { o: string; s: Seg; first: boolean; last: boolean; sel: boolean; read: RowRead; view: RowView; onPick: OnPick }) {
+  return (
+    <tr className={rowDress(sel)}>
+      <td className={cn(TD, !last && "border-b-transparent")}>{first && creative(o)}</td>
+      <td className={cn(TD, "border-l")}>{s.name}</td>
+      {view.metrics.map((m) => {
+        const c = read.cell(o, m, s.key)
+        return (
+          <td key={m} className={cn(TD, "border-l")}>
+            {c ? (
+              <button type="button" onClick={() => onPick(o, m, s, c)} className={FRAME}>
+                <Candle cell={c} extent={view.extent} />
+              </button>
+            ) : (
+              <span className="block text-center text-xs text-muted-foreground/40">—</span>
+            )}
+          </td>
+        )
+      })}
+      {view.emotion && <EmotionCell o={o} s={s} />}
+    </tr>
+  )
+})
+
+/** A heatmap row: a treatment's segment, or (o null) the benchmark's median for it. Memoized as BarsRow is. */
+const HeatRow = React.memo(function HeatRow({
+  o,
+  s,
+  breakdown,
+  firstOfBlock,
+  lastOfBlock,
+  lastOfGroup,
+  sel,
+  read,
+  view,
+  bench,
+  median,
+  onPick,
+}: {
+  o: string | null
+  s: Seg
+  breakdown: string | null
+  firstOfBlock: boolean
+  lastOfBlock: boolean
+  lastOfGroup: boolean
+  sel: boolean
+  read: RowRead
+  view: RowView
+  bench: boolean
+  median: (metric: string, seg: string) => { median: number; n: number } | null
+  onPick: OnPick
+}) {
+  // Named once at the top of its run, the way the bars view names a treatment: no row spans, so a row's dress stays its own.
+  return (
+    <tr className={o ? rowDress(sel) : undefined}>
+      <td className={cn(TD, "font-medium", !lastOfGroup && "border-b-transparent")}>{breakdown}</td>
+      <td className={cn(TD, "border-l", !lastOfBlock && "border-b-transparent")}>
+        {firstOfBlock &&
+          (o ? (
+            creative(o)
+          ) : (
+            <span className="flex min-h-6 items-center gap-2.5">
+              <ChartColumn aria-hidden className="size-4 shrink-0 text-muted-foreground" />
+              <span className="font-medium">All tests</span>
+              <span className="rounded-md bg-muted px-1.5 py-px text-[11px] text-muted-foreground">Median</span>
+            </span>
+          ))}
+      </td>
+      <td className={cn(TD, "border-l")}>{s.name}</td>
+      {view.metrics.map((m) => {
+        const med = median(m, s.key)
+        if (!o)
+          return (
+            <td key={m} className="border-b border-l p-0">
+              <span className="flex h-10 items-center justify-center bg-[#f0efec] text-[13px] tabular-nums" title={med ? `Median of ${med.n.toLocaleString("en-US")} lifts on file` : undefined}>
+                {med ? fmt(med.median) : "—"}
+              </span>
+            </td>
+          )
+        const c = read.cell(o, m, s.key)
+        if (!c)
+          return (
+            <td key={m} className={cn(TD, "border-l text-center text-xs text-muted-foreground/40")}>
+              —
+            </td>
+          )
+        const center = bench ? (med?.median ?? 0) : 0
+        return (
+          <td key={m} className="border-b border-l p-0">
+            <button
+              type="button"
+              onClick={() => onPick(o, m, s, c)}
+              title={`${treatmentName(o)} · ${s.name}: ${fmt(c.lift[7])}${bench && med ? `, median ${fmt(med.median)}` : ""}`}
+              className={cn(HEAT, significance(c.lift) === false ? "text-foreground/55" : "font-semibold")}
+              style={{ background: heat(c.lift[7], center, view.spread) }}
+            >
+              {fmt(c.lift[7])}
+            </button>
+          </td>
+        )
+      })}
+      {view.emotion && (o ? <EmotionCell o={o} s={s} /> : <td className={cn(TD, "border-l")} />)}
+    </tr>
+  )
+})
 
 /** The column-resize handle: drag it to set the column's width. */
 function Resize({ width, onWidth }: { width: number; onWidth: (w: number) => void }) {

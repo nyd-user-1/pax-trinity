@@ -2,7 +2,9 @@
 
 import * as React from "react"
 import { PanelLeftIcon, Search, X } from "lucide-react"
+import type { PanelImperativeHandle } from "react-resizable-panels"
 
+import { cn } from "@/lib/utils"
 import { PathBar } from "@/components/create/path-bar"
 import { Button } from "@govblock/ui/components/nova/button"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@govblock/ui/components/ny4/resizable"
@@ -16,7 +18,9 @@ import { TooltipProvider } from "@govblock/ui/components/ny4/tooltip"
 // then the bar's width), and the body below. /audience, /lift and /survey
 // stand in it. Bare (America Thinks, Brendan's DevTools pass of 2026-10-28),
 // the header row goes and the list's kebab carries the rail toggle, through
-// BankRail.
+// BankRail. The rail slides shut and open (Brendan, 2026-10-29): it stays
+// mounted as a collapsible panel, and only while a toggle runs do the panels
+// ease their flex-grow, so a drag on the handle stays immediate.
 
 /** The rail's state, for a control below the frame to show and hide it. */
 export const BankRail = React.createContext<{ open: boolean; toggle: () => void } | null>(null)
@@ -40,7 +44,20 @@ export function BankFrame({
   children: React.ReactNode
 }) {
   const [railOpen, setRailOpen] = React.useState(true)
-  const railCtl = React.useMemo(() => ({ open: railOpen, toggle: () => setRailOpen((v) => !v) }), [railOpen])
+  const railRef = React.useRef<PanelImperativeHandle | null>(null)
+  const [sliding, setSliding] = React.useState(false)
+  const slideEnd = React.useRef<number | undefined>(undefined)
+  const toggleRail = React.useCallback(() => {
+    const panel = railRef.current
+    if (!panel) return
+    window.clearTimeout(slideEnd.current)
+    setSliding(true)
+    // The transition is on before the size moves.
+    requestAnimationFrame(() => (panel.isCollapsed() ? panel.expand() : panel.collapse()))
+    slideEnd.current = window.setTimeout(() => setSliding(false), 340)
+  }, [])
+  React.useEffect(() => () => window.clearTimeout(slideEnd.current), [])
+  const railCtl = React.useMemo(() => ({ open: railOpen, toggle: toggleRail }), [railOpen, toggleRail])
   const [searching, setSearching] = React.useState(false)
   const close = () => {
     search.onQuery("")
@@ -49,21 +66,32 @@ export function BankFrame({
   return (
     <TooltipProvider delayDuration={0}>
       <div className="relative flex h-full min-h-0 w-full overflow-hidden bg-sidebar [--sidebar:var(--pax2-mist)] [--header-height:calc(var(--spacing)*12)]">
-        <ResizablePanelGroup orientation="horizontal" className="min-h-0 min-w-0 flex-1">
+        <ResizablePanelGroup
+          orientation="horizontal"
+          className={cn("min-h-0 min-w-0 flex-1", sliding && "[&>[data-slot=resizable-panel]]:transition-[flex-grow] [&>[data-slot=resizable-panel]]:duration-300 [&>[data-slot=resizable-panel]]:ease-out")}
+        >
           {/* react-resizable-panels v4 reads bare numbers as pixels. 240 and the
-              mist ground: the shell menu's own width (w-60) and colour. */}
-          {railOpen && (
-            <ResizablePanel defaultSize={240} minSize={192} maxSize={420} className="flex min-w-0 flex-col bg-pax2-mist **:data-[slot=sidebar-content]:no-scrollbar">
-              {rail}
-            </ResizablePanel>
-          )}
-          {railOpen && <ResizableHandle withHandle />}
+              mist ground: the shell menu's own width (w-60) and colour. The rail
+              holds its width while it slides, clipped rather than rewrapped. */}
+          <ResizablePanel
+            panelRef={railRef}
+            collapsible
+            collapsedSize={0}
+            defaultSize={240}
+            minSize={192}
+            maxSize={420}
+            onResize={(size) => setRailOpen(size.inPixels > 0)}
+            className="flex min-w-0 flex-col overflow-x-hidden! bg-pax2-mist **:data-[slot=sidebar-content]:no-scrollbar"
+          >
+            <div className="flex h-full min-h-0 min-w-48 flex-col">{rail}</div>
+          </ResizablePanel>
+          <ResizableHandle withHandle className={cn(!railOpen && "pointer-events-none opacity-0")} />
           <ResizablePanel className="min-w-0">
             <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background">
               {!bare && (
                 <header className="relative z-10 flex h-(--header-height) shrink-0 items-center gap-2 border-b">
                   <div className="flex w-full min-w-0 items-center gap-1 px-4 lg:gap-2 lg:px-6">
-                    <Button variant="ghost" size="icon-sm" aria-label="Toggle sidebar" className="-ml-1 size-7" onClick={() => setRailOpen((v) => !v)}>
+                    <Button variant="ghost" size="icon-sm" aria-label="Toggle sidebar" className="-ml-1 size-7" onClick={toggleRail}>
                       <PanelLeftIcon className="size-4" />
                     </Button>
                     <Separator orientation="vertical" className="mx-2 data-[orientation=vertical]:h-4" />
