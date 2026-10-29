@@ -100,7 +100,6 @@ export function CommentsPanel({
             {c.text}
           </Row>
         ))}
-        {comments.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">No comments yet.</p>}
         {!signedIn && (
           <p className="py-4 text-center text-sm text-muted-foreground">
             <Link href="/signin" className="font-medium text-sky-600 dark:text-sky-400">

@@ -22,6 +22,7 @@ import { Feed, type Reactions } from "./feed"
 import { Grid } from "./grid"
 import { ReportDialog } from "./report"
 import { Upload } from "./upload"
+import { testsOf } from "./clip-test"
 import { creatorOf, CREATORS, PUBLISHED, SEED_COMMENTS, deleteClip, loadFeed, takeDown, loadFollows, loadLikes, loadMyComments, loadSaves, saveClip, storeFollows, storeLikes, storeMyComments, storeSaves, updateClip, type Clip, type Comment, type Feed as FeedData, type Upload as UploadRow } from "./store"
 
 // Clips: short vertical video, recorded on a phone or a laptop, kept private
@@ -84,9 +85,11 @@ function Frame({ children, onClose }: { children: React.ReactNode; onClose: () =
 const Generate = dynamic(() => import("./generate").then((m) => m.Generate), { ssr: false })
 
 // The feed, the creators and the comments fit the page under the header, or the right rail's sheet (Brendan, 2026-09-14): the sheet is 1.2rem shorter than the page and its content sits in 0.5rem of padding. The page's feed gives back a rem so its foot is never cut.
+// The page's side panels stop 1rem above the frame's foot (Brendan, 2026-10-29): a column starts 2.25rem below the
+// frame's top (the shell's padding) and holds 1rem under its panel, so it runs 4.375rem short of the header's span.
 type Frame = "page" | "sheet"
 const FEED_HEIGHT: Record<Frame, string> = { page: "h-[calc(100svh-var(--header-height)-4.5rem)]", sheet: "h-[calc(100svh-var(--header-height)-5.2rem)]" }
-const COLUMN_HEIGHT: Record<Frame, string> = { page: "h-[calc(100svh-var(--header-height)-0.5rem)]", sheet: "h-[calc(100svh-var(--header-height)-1.7rem)]" }
+const COLUMN_HEIGHT: Record<Frame, string> = { page: "h-[calc(100svh-var(--header-height)-4.375rem)]", sheet: "h-[calc(100svh-var(--header-height)-1.7rem)]" }
 
 export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
   const { account, ready } = useAccount()
@@ -154,8 +157,9 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
   const published = React.useMemo(() => [...mine.filter((c) => c.visibility === "public" && c.status !== "processing"), ...live, ...PUBLISHED], [mine, live])
   const clips = React.useMemo(() => {
     const list = creator === "you" ? mine : creator === "all" ? published : published.filter((c) => c.creatorId === creator)
-    // Newest first, everywhere (Brendan, 2026-10-25).
-    return [...list].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
+    // Newest first, everywhere (Brendan, 2026-10-25), the tested clips ahead of the rest (Brendan, 2026-10-29).
+    const tested = (c: Clip) => (testsOf(c.id).length ? 1 : 0)
+    return [...list].sort((a, b) => tested(b) - tested(a) || Date.parse(b.createdAt) - Date.parse(a.createdAt))
   }, [creator, mine, published])
 
   // The rail lists the videos themselves (Brendan, 2026-10-25), not the desks.
