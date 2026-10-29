@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 
 import { CrossWaveLift, DualLift, LevelChart } from "./charts"
 import { Block, Box, Footnote, StoryBox, WaveChip } from "./report-bits"
-import { approx, axis, count, countOf, dateRange, listed, monthYear, signed, toplineOf, treatmentsOf, wavesLine, word, Word } from "./report-math"
+import { approx, axis, count, countOf, dateRange, listed, signed, toplineOf, treatmentsOf, word, Word } from "./report-math"
 import { armsLine, DimensionBlock, FactBoxes, LevelsKey, Methodology, PairingCard, ShareBars, VideoCard } from "./sections"
 
 // /reports/[study] — the wave readout, in three pages (Brendan, 2026-10-29):
@@ -74,24 +74,6 @@ export function studyParts(waves: ResultSet[]): ReportPart[] {
   const summary: ReportPart[] =
     waves.length > 1 ? [{ slug: "summary", kicker: "Executive summary", title: summaryHeadline(waves), headline: summaryHeadline(waves), meta: `${waves.length === 2 ? "Both waves" : "Every wave"} · ${latest.population} · separate samples` }] : []
   return [...summary, ...waves.map((rs) => ({ slug: `wave-${rs.wave}`, kicker: `Wave ${rs.wave}`, title: rs.title, headline: waveHeadline(rs), meta: waveMeta(rs) }))]
-}
-
-/** The study's cover: when it was fielded, its name, its waves and what they measured. */
-export function StudyCover({ name, waves }: { name: string; waves: ResultSet[] }) {
-  const latest = printedOf(waves)
-  const self = latest.dimensions.find((d) => d.selfSelected)
-  const tagline = listed([...latest.outcomes.map((o) => o.name), ...(self ? [self.name.replace(/\s*\(.*\)$/, "")] : [])].map((s, i) => (i === 0 ? s : lower(s))))
-  return (
-    <header className="pb-10">
-      <p className="text-[12px] font-semibold tracking-[0.18em] text-[var(--paper-strong)] uppercase">{monthYear(latest.fielded.end)}</p>
-      <h1 className="mt-3 max-w-3xl text-[56px] leading-[1.02] font-semibold tracking-tight text-[var(--paper-strong)]">{name}</h1>
-      <p className="mt-4 text-[20px]">
-        <span className="font-semibold">{wavesLine(waves.map((w) => w.wave))}</span>
-        <span className="mx-3 text-[var(--paper-muted)]">|</span>
-        <span className="text-[var(--paper-muted)]">{tagline}</span>
-      </p>
-    </header>
-  )
 }
 
 /** The executive summary's sections, across every wave. */
