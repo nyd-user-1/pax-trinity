@@ -25,7 +25,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components
 import { dimLabel, groupSources, num, type AudienceIndex, type SourceRow } from "../america-thinks/audience-data"
 import { rowDress } from "../america-thinks/segment-grid"
 import { AboutResult } from "./about-result"
-import { dimOf, fielding, isPlacebo, metricShort, ordered, periodKey, segKey, segOf, significance, treatmentName, valOf, type Cell, type Pick } from "./lift-data"
+import { dimOf, fielding, isPlacebo, metricShort, ordered, periodKey, segKey, segOf, significance, testOf, treatmentName, valOf, type Cell, type Pick } from "./lift-data"
 import { Candle, EmotionBar, EmotionKey, heat, HeatKey, sampleEmotions } from "./lift-marks"
 
 // /lift — Swayable's results view (Brendan, 2026-10-28, from the Dream Crazy
@@ -89,18 +89,22 @@ const HEAT = "flex h-10 w-full items-center justify-center text-[13px] tabular-n
 type Sort = { by: string; dir: 1 | -1 }
 
 export function LiftSurface() {
+  // A shared link's view, read once before the first render (see share).
+  const [link] = React.useState(readLink)
   const [index, setIndex] = React.useState<AudienceIndex | null>(null)
   const [source, setSource] = React.useState<string>(() => {
-    const at = new URLSearchParams(window.location.search).get("source")
+    const at = link.one("source")
     return at && at in SOURCES ? at : "PAX_TEST"
   })
   const [files, setFiles] = React.useState<Record<string, SourceRow[]>>({})
   const [error, setError] = React.useState<string | null>(null)
-  const [metricsOff, setMetricsOff] = React.useState<string[]>([])
+  const [metricsOff, setMetricsOff] = React.useState<string[]>(() => link.list("mo"))
   // The Treatments menu's choice; null is the folder's opening set.
-  const [picked, setPicked] = React.useState<string[] | null>(null)
-  const [segsOff, setSegsOff] = React.useState<string[]>([])
-  const [periodsOff, setPeriodsOff] = React.useState<string[]>([])
+  const [picked, setPicked] = React.useState<string[] | null>(() => (link.has("t") ? link.list("t") : null))
+  const [segsOff, setSegsOff] = React.useState<string[]>(() => link.list("so"))
+  const [periodsOff, setPeriodsOff] = React.useState<string[]>(() => link.list("fo"))
+  // A linked cell opens once its folder has read: [treatment, metric, segment].
+  const [linkedPick, setLinkedPick] = React.useState<string[] | null>(() => (link.list("at").length === 3 ? link.list("at") : null))
   const [sort, setSort] = React.useState<Sort | null>(null)
   const [about, setAbout] = React.useState<Pick | null>(null)
   // About Result slides in and out: the last pick stays drawn while it slides shut.
@@ -114,9 +118,9 @@ export function LiftSurface() {
   const widthOf = (key: string) => metricWidths[key] ?? METRIC_WIDTH
   const resizeMetric = (key: string) => (w: number) => setMetricWidths((p) => ({ ...p, [key]: w }))
   const [shared, setShared] = React.useState(false)
-  const [display, setDisplay] = React.useState<"bars" | "heatmap">("bars")
+  const [display, setDisplay] = React.useState<"bars" | "heatmap">(() => (link.one("view") === "heatmap" ? "heatmap" : "bars"))
   // The heatmap's benchmark: every lift on file for the metric and segment, by its median.
-  const [bench, setBench] = React.useState(true)
+  const [bench, setBench] = React.useState(() => link.one("bench") !== "0")
 
   React.useEffect(() => {
     let on = true
@@ -151,15 +155,19 @@ export function LiftSurface() {
     }
   }, [index, wanted, files])
 
-  React.useEffect(() => {
+  // Another folder opens on its own defaults.
+  const openFolder = (key: string) => {
+    if (key === source) return
+    setSource(key)
     setMetricsOff([])
     setPicked(null)
     setSegsOff([])
     setPeriodsOff([])
     setSort(null)
     setAbout(null)
+    setLinkedPick(null)
     setDepth(PER_READ)
-  }, [source])
+  }
   React.useEffect(() => setDepth(PER_READ), [sort])
 
   const labels = React.useMemo(() => new Map((index?.constructs ?? []).map((c) => [c.construct, c.label])), [index])
@@ -237,6 +245,14 @@ export function LiftSurface() {
   }, [rows])
   const median = React.useCallback((metric: string, seg: string) => medians.get(`${metric}\u0001${seg}`) ?? null, [medians])
 
+  React.useEffect(() => {
+    if (!read || !linkedPick) return
+    const [o, m, sk] = linkedPick
+    const c = read.cell(o, m, sk)
+    if (c) setAbout({ option: o, metric: m, seg: sk, segName: sk ? sk.slice(sk.indexOf("=") + 1) : "Everyone", cell: c })
+    setLinkedPick(null)
+  }, [read, linkedPick])
+
   const chosen = React.useMemo(() => {
     if (!read) return []
     const featured = FEATURED[source]
@@ -297,12 +313,11 @@ export function LiftSurface() {
   const canLoad = view ? depth < view.treatments.length : false
   const more = React.useCallback(() => setDepth((d) => d + PER_READ), [])
 
-  const everyRow = React.useMemo(() => Object.values(files).flat(), [files])
   const complete = Object.keys(SOURCES).every((s) => files[s])
 
   const download = () => {
     if (!read || !view) return
-    const head = ["Breakdown", "Segment", "Treatment", ...view.metrics.flatMap((m) => [`${metricShort(m)} control`, `${metricShort(m)} treatment`, `${metricShort(m)} lift`, `${metricShort(m)} ±`, `${metricShort(m)} significant`, `${metricShort(m)} n`])]
+    const head = ["Breakdown", "Segment", "Treatment", "Test", ...view.metrics.flatMap((m) => [`${metricShort(m)} control`, `${metricShort(m)} treatment`, `${metricShort(m)} lift`, `${metricShort(m)} ±`, `${metricShort(m)} significant`, `${metricShort(m)} n`])]
     const lines = view.groups.flatMap((g) =>
       view.treatments.flatMap((o) =>
         g.segs
@@ -311,6 +326,7 @@ export function LiftSurface() {
             g.dim ? g.name : "Total",
             s.name,
             treatmentName(o),
+            testName(view.metrics.map((m) => read.cell(o, m, s.key)).find(Boolean)!.lift),
             ...view.metrics.flatMap((m) => {
               const c = read.cell(o, m, s.key)
               const sig = c ? significance(c.lift) : null
@@ -328,10 +344,21 @@ export function LiftSurface() {
     URL.revokeObjectURL(url)
   }
 
+  // The link carries the whole view: the folder, the display, the treatments where they differ from the folder's
+  // opening set, what is hidden, the benchmark off, and the open cell.
   const share = () => {
-    const url = new URL(window.location.href)
-    url.searchParams.set("source", source)
-    navigator.clipboard.writeText(url.toString())
+    const pairs: [string, string[]][] = [["source", [source]]]
+    if (display === "heatmap") pairs.push(["view", ["heatmap"]])
+    const featured = FEATURED[source]
+    const opening = read ? (featured ? read.options.filter((o) => featured.includes(o)) : read.options) : []
+    if (picked && (picked.length !== opening.length || picked.some((o) => !opening.includes(o)))) pairs.push(["t", picked])
+    if (metricsOff.length) pairs.push(["mo", metricsOff])
+    if (segsOff.length) pairs.push(["so", segsOff])
+    if (periodsOff.length) pairs.push(["fo", periodsOff])
+    if (!bench) pairs.push(["bench", ["0"]])
+    if (about) pairs.push(["at", [about.option, about.metric, about.seg]])
+    const url = `${window.location.origin}${window.location.pathname}?${pairs.map(([k, vs]) => `${k}=${vs.map(linkPart).join(",")}`).join("&")}`
+    navigator.clipboard.writeText(url)
     setShared(true)
     window.setTimeout(() => setShared(false), 1400)
   }
@@ -340,7 +367,7 @@ export function LiftSurface() {
     <BankRail title="Lift">
       <RailGroup label="Folders">
         {Object.entries(SOURCES).map(([key, name]) => (
-          <RailRow key={key} on={source === key} onClick={() => setSource(key)} icon={Folder} label={name} count={questions.filter((q) => q.source === key).length || null} />
+          <RailRow key={key} on={source === key} onClick={() => openFolder(key)} icon={Folder} label={name} count={questions.filter((q) => q.source === key).length || null} />
         ))}
       </RailGroup>
     </BankRail>
@@ -353,6 +380,7 @@ export function LiftSurface() {
       <SidebarToggle />
       <span aria-hidden className="mx-1 h-4 w-px bg-border" />
       <TreatmentPicker options={read?.options ?? []} chosen={chosen} onChosen={setPicked} count={view?.treatments.length ?? 0} disabled={!read} />
+      <span aria-hidden className="mx-1 h-4 w-px bg-border" />
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -377,6 +405,7 @@ export function LiftSurface() {
         </DropdownMenuContent>
       </DropdownMenu>
 
+      <span aria-hidden className="mx-1 h-4 w-px bg-border" />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button type="button" className={TOOL} disabled={!read}>
@@ -431,6 +460,7 @@ export function LiftSurface() {
         </DropdownMenuContent>
       </DropdownMenu>
 
+      <span aria-hidden className="mx-1 h-4 w-px bg-border" />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button type="button" className={TOOL} disabled={!read}>
@@ -523,10 +553,11 @@ export function LiftSurface() {
     </div>
   )
 
+  const ariaSort = (by: string) => (view?.by === by ? (view.dir === 1 ? "ascending" : "descending") : undefined)
   const sortMenu = (by: string, items: { label: string; dir: 1 | -1 }[], extra?: React.ReactNode) => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button type="button" aria-label="Sort" className={HEAD_ICON}>
+        <button type="button" aria-label="Sort" className={cn(HEAD_ICON, view?.by === by && "text-foreground")}>
           <ListFilter className="size-4" />
         </button>
       </DropdownMenuTrigger>
@@ -553,7 +584,7 @@ export function LiftSurface() {
   )
 
   const contentHead = (label: string) => (
-    <th rowSpan={2} className={cn(TH, "align-top", label !== "Treatment" && "border-l")}>
+    <th rowSpan={2} aria-sort={ariaSort(BY_NAME)} className={cn(TH, "align-top", label !== "Treatment" && "border-l")}>
       <span className="flex items-center gap-2">
         {label}
         <span className="ml-auto flex items-center gap-2">
@@ -602,7 +633,7 @@ export function LiftSurface() {
   const metricHeads = view && (
     <>
       {view.metrics.map((m, i) => (
-        <th key={m} className={cn(TH, "relative border-l")}>
+        <th key={m} aria-sort={ariaSort(m)} className={cn(TH, "relative border-l")}>
           <span className="flex items-center gap-2">
             <span className="truncate" title={metricShort(m)}>
               {metricShort(m)}
@@ -766,14 +797,16 @@ export function LiftSurface() {
               </p>
             )}
             {table}
-            {view && !shown.length && <p className="p-6 text-center text-sm text-muted-foreground">Nothing on file.</p>}
+            {view && !shown.length && (
+              <p className="p-6 text-center text-sm text-muted-foreground">{read && read.options.length && !chosen.length ? "No treatments picked — choose one under Treatments." : "Nothing on file."}</p>
+            )}
           </div>
           <div
             className={cn("flex shrink-0 overflow-hidden transition-[width] duration-300 ease-out", about ? "w-[380px]" : "w-0")}
             onTransitionEnd={(e) => e.target === e.currentTarget && !about && setSheet(null)}
           >
             {(about ?? sheet) && (
-              <AboutResult key={`${(about ?? sheet)!.option}\u0001${(about ?? sheet)!.metric}\u0001${(about ?? sheet)!.seg}`} pick={(about ?? sheet)!} rows={everyRow} complete={complete} place={place} onClose={() => setAbout(null)} />
+              <AboutResult key={`${(about ?? sheet)!.option}\u0001${(about ?? sheet)!.metric}\u0001${(about ?? sheet)!.seg}`} pick={(about ?? sheet)!} files={files} folder={source} folders={SOURCES} complete={complete} place={place} onClose={() => setAbout(null)} />
             )}
           </div>
         </div>
@@ -838,6 +871,28 @@ function TreatmentPicker({ options, chosen, onChosen, count, disabled }: { optio
     </Combobox.Root>
   )
 }
+
+/** A link's parts: each percent-encoded, so a treatment's commas and parentheses survive; Everyone's empty key reads "all". */
+const linkPart = (x: string) => encodeURIComponent(x || "all")
+function readLink() {
+  const raw = new Map<string, string>()
+  for (const pair of window.location.search.slice(1).split("&")) {
+    const i = pair.indexOf("=")
+    if (i > 0) raw.set(pair.slice(0, i), pair.slice(i + 1))
+  }
+  const part = (x: string) => {
+    const v = decodeURIComponent(x)
+    return v === "all" ? "" : v
+  }
+  return {
+    has: (k: string) => raw.has(k),
+    one: (k: string) => (raw.has(k) ? part(raw.get(k)!) : null),
+    list: (k: string) => (raw.get(k) ? raw.get(k)!.split(",").map(part) : []),
+  }
+}
+
+/** A row's test in the CSV: the wave's name where the results register knows the fielding, else the study. */
+const testName = (lift: SourceRow) => WAVE.get(periodKey(lift)) ?? testOf(lift)
 
 type Seg = { key: string; name: string }
 type RowRead = { cell: (option: string, metric: string, sk: string) => Cell | null }

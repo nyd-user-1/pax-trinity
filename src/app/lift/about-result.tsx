@@ -45,27 +45,48 @@ function pOf(z: number) {
   return 1 - erf
 }
 
-export function AboutResult({ pick, rows, complete, place, onClose }: { pick: Pick; rows: SourceRow[]; complete: boolean; place: (code: string) => string; onClose: () => void }) {
+export function AboutResult({
+  pick,
+  files,
+  folder,
+  folders,
+  complete,
+  place,
+  onClose,
+}: {
+  pick: Pick
+  /** Every folder read so far, by source; the pick is in `folder`. */
+  files: Record<string, SourceRow[]>
+  folder: string
+  /** The rail's names for the folders. */
+  folders: Record<string, string>
+  complete: boolean
+  place: (code: string) => string
+  onClose: () => void
+}) {
   const [tab, setTab] = React.useState<"analytics" | "open-ends">("analytics")
   const { lift, level, control } = pick.cell
   const delta = lift[7]
   // The export's margin is 1.645 standard errors, a 90% interval.
   const z = lift[9] ? Math.abs(delta) / (lift[9] / 1.645) : null
 
+  // Three nested pools, all on the pick's metric and segment (Swayable's All Brands, Financial Services, Chime
+  // Ads): every folder, the pick's folder, its own test.
   const { pools, ranked } = React.useMemo(() => {
     const test = testOf(lift)
-    const same = rows.filter((r) => r[8] === "lift_pp" && r[4] != null && segOf(r) === pick.seg)
-    const metric = same.filter((r) => r[0] === pick.metric)
-    const inTest = metric.filter((r) => testOf(r) === test)
+    const ofPick = (rs: SourceRow[]) => rs.filter((r) => r[8] === "lift_pp" && r[4] != null && r[0] === pick.metric && segOf(r) === pick.seg)
+    const all = Object.values(files).flatMap(ofPick)
+    const own = ofPick(files[folder] ?? [])
+    const inTest = own.filter((r) => testOf(r) === test)
     return {
       pools: [
-        { name: "All ads", values: same.map((r) => r[7]) },
-        { name: metricShort(pick.metric), values: metric.map((r) => r[7]) },
+        { name: "All tests", values: all.map((r) => r[7]) },
+        { name: folders[folder] ?? folder, values: own.map((r) => r[7]) },
         { name: "This test", values: inTest.map((r) => r[7]) },
       ],
       ranked: [...inTest].sort((a, b) => b[7] - a[7]),
     }
-  }, [rows, pick, lift])
+  }, [files, folder, folders, pick, lift])
 
   return (
     <aside className="flex w-[380px] shrink-0 flex-col overflow-y-auto border-l bg-background">
