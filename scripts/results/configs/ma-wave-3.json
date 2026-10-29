@@ -1,0 +1,14 @@
+{
+  "test": "ma-wave-3",
+  "study": "Massachusetts Message Testing",
+  "wave": 3,
+  "title": "Massachusetts Wave 3: What the test found",
+  "simulated": "Simulated respondents: the seeded demo run (scripts/results/seed-demo.mjs) walked the respondent flow, not a fielded panel. Every figure on this wave exercises the pipeline; none is a measurement.",
+  "dimensions": [
+    { "key": "ideology", "name": "Political ideology", "group": "ideology-party" },
+    { "key": "party", "name": "Party ID", "group": "ideology-party" },
+    { "key": "education", "name": "Education", "group": "education-vote" },
+    { "key": "vote2024", "name": "2024 presidential vote choice", "group": "education-vote" },
+    { "key": "mediaTrust", "name": "Media trust", "group": "media-trust", "selfSelected": true }
+  ]
+}

@@ -18,14 +18,17 @@ import { creatorOf } from "./desks"
 // A clip the register does not join reads the same panel from figures drawn
 // for it (drawnTest, Brendan's order of 2026-10-29), without the links.
 
+/** The register's measured sets: a simulated one (a seeded demo run) reads in Reports, never on a clip's panel or in its Resonance. */
+const MEASURED = RESULT_SETS.filter((rs) => !rs.simulated)
+
 export type ClipTestRef = { rs: ResultSet; arm: Arm; linked?: boolean }
 
 /** Every wave that tested this clip, latest first. */
 export const testsOf = (clipId: string): ClipTestRef[] =>
-  RESULT_SETS.flatMap((rs) => rs.arms.filter((arm) => arm.role === "treatment" && arm.clipId === clipId).map((arm) => ({ rs, arm }))).sort((a, b) => b.rs.wave - a.rs.wave)
+  MEASURED.flatMap((rs) => rs.arms.filter((arm) => arm.role === "treatment" && arm.clipId === clipId).map((arm) => ({ rs, arm }))).sort((a, b) => b.rs.wave - a.rs.wave)
 
 /** The clips the register joins, read once: the tiles and the list's order ask per clip. */
-const TESTED = new Set(RESULT_SETS.flatMap((rs) => rs.arms.filter((arm) => arm.role === "treatment" && arm.clipId).map((arm) => arm.clipId as string)))
+const TESTED = new Set(MEASURED.flatMap((rs) => rs.arms.filter((arm) => arm.role === "treatment" && arm.clipId).map((arm) => arm.clipId as string)))
 export const isTested = (clipId: string) => TESTED.has(clipId)
 
 /** The mark on a tile whose clip carries the register's randomized-test results: dark green on light green. */
@@ -50,7 +53,7 @@ function seeded(key: string) {
 
 /** Each outcome's lift range across the register and the smallest lift it calls detectable. */
 const SPAN = new Map<string, { lo: number; hi: number; cut: number }>()
-for (const rs of RESULT_SETS)
+for (const rs of MEASURED)
   for (const t of rs.toplines) {
     if (t.liftPp == null) continue
     const s = SPAN.get(t.outcomeId) ?? { lo: Infinity, hi: -Infinity, cut: Infinity }
@@ -62,7 +65,7 @@ for (const rs of RESULT_SETS)
 
 /** Every measured lift on file per outcome: the Resonance pool (docs/briefs/resonance-score.md). */
 const POOL = new Map<string, number[]>()
-for (const rs of RESULT_SETS)
+for (const rs of MEASURED)
   for (const t of rs.toplines) {
     if (t.liftPp == null) continue
     POOL.set(t.outcomeId, [...(POOL.get(t.outcomeId) ?? []), t.liftPp])
@@ -86,7 +89,7 @@ export function resonance(outcomeId: string, lift: number): number | null {
  *  own ranges from a seed on the clip's id. */
 export function drawnTest(clip: Clip): ClipTestRef {
   const rand = seeded(clip.id)
-  const base = RESULT_SETS[Math.floor(rand() * RESULT_SETS.length)]
+  const base = MEASURED[Math.floor(rand() * MEASURED.length)]
   const placebo = placeboOf(base)
   const ns = base.arms.filter((a) => a.role === "treatment").map((a) => a.nWeighted)
   const id = `drawn-${clip.id}`

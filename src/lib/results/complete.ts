@@ -9,6 +9,7 @@ import { ENV, itemsFor } from "@/lib/tests/responses"
 import { getTest } from "@/lib/tests/store"
 
 import MA_GENERAL_ADULTS from "../../../scripts/results/configs/ma-general-adults.json"
+import MA_WAVE_3 from "../../../scripts/results/configs/ma-wave-3.json"
 import OPEN_PRIMARIES_1 from "../../../scripts/results/configs/open-primaries-1.json"
 import { deriveResults, EXPORT_DIMS, type Derived, type Targets } from "./derive"
 
@@ -32,9 +33,11 @@ const client = DynamoDBDocumentClient.from(new DynamoDBClient({ region: process.
   marshallOptions: { removeUndefinedValues: true },
 })
 
-/** A test's own naming and dimensions, where its config carries them. */
-const TEST_CONFIGS: Record<string, { study?: string; wave?: number; dimensions?: { key: string; name: string; group: string; selfSelected?: boolean }[] }> = {
+/** A test's own naming and dimensions, where its config carries them. `simulated` is the line a seeded
+ *  demo run's results carry first among their limitations; it marks the set simulated. */
+const TEST_CONFIGS: Record<string, { study?: string; wave?: number; title?: string; simulated?: string; dimensions?: { key: string; name: string; group: string; selfSelected?: boolean }[] }> = {
   "open-primaries-1": OPEN_PRIMARIES_1,
+  "ma-wave-3": MA_WAVE_3,
 }
 
 /** An arm's name as compute.mjs names it: the clip's title with its messenger, else its length. */
@@ -42,7 +45,7 @@ function armName(id: string) {
   if (id === "placebo") return "Placebo"
   const c = PUBLISHED.find((x) => x.id === id)
   if (!c) return id
-  return c.messenger ? `${c.title} — ${c.messenger}` : c.duration ? `${c.title} (${c.duration} s)` : c.title
+  return c.messenger && c.messenger !== c.title ? `${c.title} — ${c.messenger}` : c.messenger ? c.title : c.duration ? `${c.title} (${c.duration} s)` : c.title
 }
 
 export type ResultItem = { test: string; id: "latest"; kind: "result"; env: string; computedAt: string } & Derived
@@ -66,6 +69,7 @@ export async function completeTest(testId: string, opts: { env?: "production" | 
     id: `${testId}-computed`,
     study: cfg.study ?? test.title,
     wave: cfg.wave ?? 1,
+    title: cfg.title,
     geo: "25",
     source: `pax-trinity-test-responses:${testId}`,
     armName,
@@ -76,6 +80,10 @@ export async function completeTest(testId: string, opts: { env?: "production" | 
     dimensions: cfg.dimensions?.map((d) => ({ ...d, exportName: EXPORT_DIMS[d.key] ?? d.key })),
     now,
   })
+  if (cfg.simulated) {
+    derived.resultSet.simulated = true
+    derived.resultSet.notes.limitations.unshift(cfg.simulated)
+  }
   const item: ResultItem = { test: resultPartition(testId), id: "latest", kind: "result", env, computedAt: now.toISOString(), ...derived }
   await client.send(new PutCommand({ TableName: TABLE, Item: item }))
   return item

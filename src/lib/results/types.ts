@@ -23,6 +23,7 @@ export interface ResultSet {
   pairings: Pairing[]
   stories: Story[]                 // narrative blocks as printed (card iteration, reading a lift…)
   notes: StudyNotes
+  simulated?: boolean              // seeded demo respondents, not a fielded panel: reports show it, clips' panels and Resonance skip it
 }
 
 export interface Arm {

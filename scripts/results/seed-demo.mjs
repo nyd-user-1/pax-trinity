@@ -45,8 +45,15 @@ const catalog = fs.readFileSync(path.join(ROOT, "src/components/clips/catalog.ts
 const fileOf = (arm) => catalog.match(new RegExp(`frame\\("${arm.replace(/^px-/, "")}",\\s*"([^"]+)"`))?.[1]
 const PLACEBO_SRC = "https://assets.mixkit.co/videos/40700/40700-720.mp4"
 
-const ARMS = ["placebo", "px-gaby", "px-msnow", "px-no-newscaster", "px-locked-out"]
-const LIFT = { placebo: [0, 0], "px-gaby": [0.09, 0.07], "px-msnow": [0.05, 0.04], "px-no-newscaster": [0.01, 0.02], "px-locked-out": [-0.02, 0.0] }
+// Each seeded test's arms and the lift planted in each (ballot, comprehension), in probability.
+const PLANS = {
+  "open-primaries-1": { placebo: [0, 0], "px-gaby": [0.09, 0.07], "px-msnow": [0.05, 0.04], "px-no-newscaster": [0.01, 0.02], "px-locked-out": [-0.02, 0.0] },
+  // Massachusetts Wave 3: Wave 1's cuts again with Ajayi Harris, the six the Pollster fielded.
+  "ma-wave-3": { placebo: [0, 0], "px-danielle": [0.11, 0.03], "px-jesse": [0.08, 0.02], "px-dustin": [0.06, 0.01], "px-paul": [0.05, 0.0], "px-ajayi": [0.04, 0.06], "px-alex": [0.01, 0.01] },
+}
+if (!PLANS[test]) throw new Error(`No seeded plan for ${test}; add its arms and lifts to PLANS.`)
+const LIFT = PLANS[test]
+const ARMS = Object.keys(LIFT)
 const CHOICES = {
   ideology: [["liberal", "moderate", "conservative"], [0.38, 0.37, 0.25]],
   party: [["democrat", "independent-other", "republican"], [0.4, 0.38, 0.22]],
