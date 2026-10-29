@@ -333,7 +333,8 @@ export function AudienceInbox() {
     [pump]
   )
 
-  // A question as a card: its wording, the topic chip, the span; after the
+  // A question as a card: its wording, the topic chip (the folded card's only:
+  // the one-line row goes without, Brendan 2026-10-29), the span; after the
   // dash, the snippet where one can be read, else the scale family and wave count.
   const cardOf = (id: string): Card => {
     const c = summaries.get(id)
@@ -406,7 +407,7 @@ export function AudienceInbox() {
   const listFor = (s: Split) => (
     <CardList
       ids={ordered}
-      card={cardOf}
+      card={s === "vertical" ? cardOf : (id) => ({ ...cardOf(id), chip: null })}
       selected={tableMetric}
       onOpen={open}
       onVisible={readAhead}

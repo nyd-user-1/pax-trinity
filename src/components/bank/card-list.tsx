@@ -34,9 +34,10 @@ import { SearchField } from "./pane-bars"
 // bars on top — the search, then the chevrons and the kebab — flush with the
 // pane's two beside them. The split lives in the kebab (No split, Vertical
 // split, the Agentic Inbox's own words), before the list's menu. Compact
-// (America Thinks, Brendan's DevTools pass of 2026-10-28), one bar: the search
-// an icon until picked, then the chevrons and the kebab, which carries the
-// rail toggle too, the frame's header row being gone.
+// (America Thinks, Brendan's DevTools pass of 2026-10-28), one bar: the kebab,
+// which carries the rail toggle too, the frame's header row being gone; the
+// search an icon until the icon or the bar's empty run is pressed (Brendan,
+// 2026-10-29); the chevrons at the right.
 
 export type Split = "none" | "vertical"
 
@@ -139,53 +140,61 @@ export function CardList({
   const rail = React.useContext(BankRail)
   const railCtl = compact ? rail : null
 
-  const tools = (
-    <div className="ml-auto flex items-center gap-1">
+  const chevrons = (
+    <>
       <Button variant="ghost" size="icon-sm" aria-label="Previous" disabled={!prevId} onClick={() => prevId && onOpen(prevId)}>
         <ChevronLeftIcon className="size-4" />
       </Button>
       <Button variant="ghost" size="icon-sm" aria-label="Next" disabled={!nextId} onClick={() => nextId && onOpen(nextId)}>
         <ChevronRightIcon className="size-4" />
       </Button>
-      {(onSplit || railCtl || menu) && (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon-sm" aria-label="More">
-              <EllipsisVerticalIcon className="size-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-max min-w-48">
-            {onSplit && (
-              <DropdownMenuRadioGroup value={split} onValueChange={(v) => onSplit(v as Split)}>
-                <DropdownMenuRadioItem value="none">No split</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="vertical">Vertical split</DropdownMenuRadioItem>
-              </DropdownMenuRadioGroup>
-            )}
-            {railCtl && (
-              <>
-                {onSplit && <DropdownMenuSeparator />}
-                <DropdownMenuItem onClick={railCtl.toggle}>{railCtl.open ? "Hide sidebar" : "Show sidebar"}</DropdownMenuItem>
-              </>
-            )}
-            {menu && (
-              <>
-                {(onSplit || railCtl) && <DropdownMenuSeparator />}
-                {menu}
-              </>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
-    </div>
+    </>
+  )
+  const kebab = (onSplit || railCtl || menu) && (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon-sm" aria-label="More">
+          <EllipsisVerticalIcon className="size-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align={compact ? "start" : "end"} className="w-max min-w-48">
+        {onSplit && (
+          <DropdownMenuRadioGroup value={split} onValueChange={(v) => onSplit(v as Split)}>
+            <DropdownMenuRadioItem value="none">No split</DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="vertical">Vertical split</DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+        )}
+        {railCtl && (
+          <>
+            {onSplit && <DropdownMenuSeparator />}
+            <DropdownMenuItem onClick={railCtl.toggle}>{railCtl.open ? "Hide sidebar" : "Show sidebar"}</DropdownMenuItem>
+          </>
+        )}
+        {menu && (
+          <>
+            {(onSplit || railCtl) && <DropdownMenuSeparator />}
+            {menu}
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 
   return (
     <div ref={rootRef} className="flex h-full min-h-0 flex-col">
       {compact ? (
-        <div className="flex h-[52px] shrink-0 items-center gap-1 border-b px-3">
+        // A press on the bar's empty run opens the search; its buttons, and the kebab's menu (a portal), keep their own.
+        <div
+          className={cn("flex h-[52px] shrink-0 items-center gap-1 border-b px-3", !(searching || query) && "cursor-text")}
+          onClick={(event) => {
+            const target = event.target as HTMLElement
+            if (event.currentTarget.contains(target) && !target.closest("button")) setSearching(true)
+          }}
+        >
+          {kebab}
           {searching || query ? (
             <div className="min-w-0 flex-1">
-              {/* Focused when picked from its icon, not when the rail's search fills it. */}
+              {/* Focused when picked from the bar, not when the rail's search fills it. */}
               <SearchField query={query} onQuery={onQuery} placeholder={placeholder} autoFocus={searching} onClose={closeSearch} />
             </div>
           ) : (
@@ -193,14 +202,19 @@ export function CardList({
               <Search className="size-4" />
             </Button>
           )}
-          {tools}
+          <div className="ml-auto flex items-center gap-1">{chevrons}</div>
         </div>
       ) : (
         <>
           <div className="flex h-[52px] shrink-0 items-center border-b px-3">
             <SearchField query={query} onQuery={onQuery} placeholder={placeholder} />
           </div>
-          <div className="flex h-[52px] shrink-0 items-center gap-1 border-b px-3">{tools}</div>
+          <div className="flex h-[52px] shrink-0 items-center gap-1 border-b px-3">
+            <div className="ml-auto flex items-center gap-1">
+              {chevrons}
+              {kebab}
+            </div>
+          </div>
         </>
       )}
 
