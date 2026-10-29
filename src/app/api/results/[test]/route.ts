@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth"
+import { forbidDemo, requireAdmin } from "@/lib/auth"
 import { completeTest, latestResult } from "@/lib/results/complete"
 
 // /api/results/<test>: the completion hook's door (src/lib/results/complete.ts).
@@ -9,8 +9,9 @@ import { completeTest, latestResult } from "@/lib/results/complete"
 export const dynamic = "force-dynamic"
 
 export async function POST(req: Request, { params }: { params: Promise<{ test: string }> }) {
+  // A demo admin reads everything and rescores nothing (lib/demo.ts): the sandbox's wall.
   try {
-    await requireAdmin()
+    forbidDemo(await requireAdmin())
   } catch {
     return Response.json({ error: "admins only" }, { status: 403 })
   }
