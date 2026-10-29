@@ -1,6 +1,7 @@
 import { GLOSSARY } from "@/lib/glossary"
 
-// What chat reads to answer the Video Analytics prompts, which each teach one metric the site shows.
+// What chat reads to answer questions about the metrics the site shows (the + menu's Onboarding
+// questions read src/lib/platform-guide.ts).
 // Sources: docs/RESONANCE.md (Resonance, the profile similarity), data/generated/model/resonance-formula.json
 // (the stack's held-out AUC, the scale), src/components/video-reads.tsx (the production profile, length,
 // topic and the recommendations), the Codebook 5K and Window Q reports (agreement figures), and the

@@ -1,7 +1,7 @@
 'use client'
 
 // Ported from solar (src/components/SolarPlusMenu.tsx): the + button, its category list, and the
-// drill-down drawer with its search field. The categories: Video Analytics (prompts over the record),
+// drill-down drawer with its search field. The categories: Onboarding (questions that teach the platform),
 // Scripts (every script /scripts lists), Videos (on /chat the e2 videos and more Voter Freedom shorts;
 // the scored takes elsewhere), Shorts (the catalog's real shorts), and Voices (the studio's readers —
 // hear one, or write for it), Generate video (a script, put in the chat with its shots to generate; then
@@ -9,7 +9,7 @@
 // the chat with its Graphics card). Icons wear the sidebar's clothes: 18px, 1.75 stroke, lavender fill on hover.
 
 import { useState, useRef, useEffect } from 'react'
-import { Plus, ChevronRight, ArrowLeft, X, ChartColumn, NotebookPen, Paperclip, PlaySquare, Clapperboard, AudioLines, Volume2, Loader2, Film, Shapes } from 'lucide-react'
+import { Plus, ChevronRight, ArrowLeft, X, Compass, NotebookPen, Paperclip, PlaySquare, Clapperboard, AudioLines, Volume2, Loader2, Film, Shapes } from 'lucide-react'
 
 import { narrate } from '@/app/studio-actions'
 import { BROLL, GRAPHIC_KINDS, type FootageFocus, type GraphicKind } from '@/lib/footage'
@@ -17,28 +17,32 @@ import type { ListedScript } from '@/lib/script-list'
 import { VOICES, type VoiceId } from '@/lib/studio-style'
 
 /* ------------------------------------------------------------------ */
-/*  Video Analytics prompts                                            */
+/*  Onboarding questions                                               */
 /* ------------------------------------------------------------------ */
 
-/*  Each one teaches a metric the site shows: the video page's blocks, /metrics' tabs and the graph. */
-const ANALYTICS_PROMPTS = [
-  'What is Resonance, and how do I read its gauge: the needle, the dashed tick and the number in the center?',
-  'What is a Resonance score made of, and what moves it up or down?',
-  'What is a persuasion score, and which traits add to it or take away from it?',
-  'What does "outperformed 3x" mean, and why is it measured against the channel\'s own median?',
-  'What is the Outlier Score, and how is it different from a view count?',
-  'What does Profile similarity measure, and whose profile is it compared with?',
-  'How do I read the Production profile, axis by axis?',
-  'What do Resonant Length and Resonant Topic tell me about a video?',
-  'What do the Swayable, Wesleyan and Upworthy blocks each measure, and how far can I trust them?',
-  'What are the Recommendations based on, and why do some say there is no verdict yet?',
-  'What do Lab Tested and e² mean?',
-  'What does the Live tab on /metrics show, and why the first 72 hours?',
-  'What does the Complete tab add that the Live tab does not have?',
-  'How do I read the Patterns tab: the share at 3x and the lift?',
-  'What makes a short an outlier on the Outliers tab?',
-  'What does Feature worth show, and how was each feature\'s worth measured?',
-  'What is a neighborhood on the graph, and what does a cluster tell me?',
+/*  Each one teaches a page of the platform or the loop that joins them; chat answers them from
+    src/lib/platform-guide.ts (Brendan, through the lead, 2026-10-29). */
+const ONBOARDING_QUESTIONS = [
+  'Walk me through the loop from recording a video to its lift report.',
+  'How does a test differ from a survey?',
+  'I have a message I want to try out. Where do I start?',
+  'How do I record a video right here in the chat?',
+  'When you write me a script, where do its lines come from?',
+  'What happens to a video after I save it to clips?',
+  'What does the RCT badge on a clip mean?',
+  'How do I set up a message test?',
+  'What does a respondent see when they open a test link?',
+  'How do I get people to fill out a survey?',
+  'Where do my survey answers end up?',
+  'What do the Pollster, the Analyst and the Assistant do in the inbox?',
+  'What can I look up in America Thinks?',
+  'What is a construct?',
+  'How does Consensus turn a conversation into questions I can test?',
+  'How do I read a lift and its margin in Lift?',
+  'What are the benchmarks in About Result comparing my lift to?',
+  'What is a Resonance score?',
+  'What is the difference between Reports and Report 2?',
+  'What does "detectable" mean in a report?',
 ]
 
 /* ------------------------------------------------------------------ */
@@ -127,14 +131,14 @@ export function PlusMenu({ videos, shorts = [], onSelect, onShort, dropUp = fals
   }
 
   const q = search.toLowerCase()
-  const filteredPrompts = ANALYTICS_PROMPTS.filter(p => !search || p.toLowerCase().includes(q))
+  const filteredPrompts = ONBOARDING_QUESTIONS.filter(p => !search || p.toLowerCase().includes(q))
   const filteredScripts = (scripts ?? []).filter(s => !search || s.title.toLowerCase().includes(q) || s.framing.toLowerCase().includes(q) || s.text.toLowerCase().includes(q))
   const filteredVideos = videos.filter(v => !search || v.label.toLowerCase().includes(q))
   const filteredShorts = shorts.filter(v => !search || v.label.toLowerCase().includes(q))
   const voices = VOICES.filter(v => v.provider !== 'none').filter(v => !search || v.label.toLowerCase().includes(q))
 
   const getStepLabel = () => {
-    if (step === 'prompts') return 'Video Analytics'
+    if (step === 'prompts') return 'Onboarding'
     if (step === 'pick-script') return 'Scripts'
     if (step === 'pick-video') return 'Videos'
     if (step === 'pick-short') return 'Shorts'
@@ -148,7 +152,7 @@ export function PlusMenu({ videos, shorts = [], onSelect, onShort, dropUp = fals
   const isDrawer = step !== 'categories'
 
   const CATEGORIES: { key: Exclude<DrillStep, 'categories'>; label: string; icon: React.ReactNode }[] = [
-    { key: 'prompts', label: 'Video Analytics', icon: <ChartColumn className={ICON} strokeWidth={1.75} /> },
+    { key: 'prompts', label: 'Onboarding', icon: <Compass className={ICON} strokeWidth={1.75} /> },
     { key: 'pick-script', label: 'Scripts', icon: <NotebookPen className={ICON} strokeWidth={1.75} /> },
     ...(videos.length ? [{ key: 'pick-video' as const, label: 'Videos', icon: <PlaySquare className={ICON} strokeWidth={1.75} /> }] : []),
     ...(shorts.length ? [{ key: 'pick-short' as const, label: 'Shorts', icon: <Clapperboard className={ICON} strokeWidth={1.75} /> }] : []),
@@ -234,7 +238,7 @@ export function PlusMenu({ videos, shorts = [], onSelect, onShort, dropUp = fals
 
           <div className="max-h-[320px] overflow-y-auto no-scrollbar">
 
-            {/* Video Analytics — prompts over the record */}
+            {/* Onboarding — questions that teach the platform */}
             {step === 'prompts' && (
               <>
                 {filteredPrompts.map((p, i) => (

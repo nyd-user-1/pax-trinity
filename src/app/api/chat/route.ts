@@ -7,6 +7,7 @@ import { board, workspace } from "@/lib/review"
 import { anonSpend } from "@/lib/anon"
 import { evidencePrompt } from "@/lib/script-evidence"
 import { metricsGuide } from "@/lib/metrics-guide"
+import { platformGuide } from "@/lib/platform-guide"
 import { termById } from "@/lib/glossary"
 import { videosContext } from "@/lib/chat-videos"
 
@@ -102,7 +103,7 @@ export async function POST(req: Request) {
   const r = await client.send(
     new ConverseStreamCommand({
       modelId,
-      system: [{ text: BASE_SYSTEM_PROMPT + (await record()) + `\n\n${metricsGuide()}` + extra + addressContext(address, place) + (await videosContext(lastUser)) + `\n\n${evidencePrompt()}` }],
+      system: [{ text: BASE_SYSTEM_PROMPT + (await record()) + `\n\n${metricsGuide()}` + `\n\n${platformGuide()}` + extra + addressContext(address, place) + (await videosContext(lastUser)) + `\n\n${evidencePrompt()}` }],
       messages: messages
         .map((m, i) => ({ m, i }))
         .filter(({ m }) => m.content.trim())
