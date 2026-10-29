@@ -28,7 +28,10 @@ export async function generateMetadata({ params }: Props) {
 export default async function RespondentPage({ params, searchParams }: Props) {
   const test = await getTest((await params).id)
   if (!test) notFound()
-  if (test.status === "closed" || (test.status === "draft" && !(await currentUser())?.admin)) {
+  const raw = (await searchParams).pid
+  const pid = typeof raw === "string" && raw.trim() ? raw.trim().slice(0, 128) : null
+  const assigned = await armForPid(pid).catch(() => null)
+  if (test.status === "closed" || assigned?.closed || (test.status === "draft" && !(await currentUser())?.admin)) {
     return (
       <main className="min-h-dvh bg-white">
         <div className="mx-auto flex min-h-dvh w-full max-w-[773px] flex-col justify-center px-6 py-10">
@@ -40,9 +43,6 @@ export default async function RespondentPage({ params, searchParams }: Props) {
       </main>
     )
   }
-  const raw = (await searchParams).pid
-  const pid = typeof raw === "string" && raw.trim() ? raw.trim().slice(0, 128) : null
-  const assigned = await armForPid(pid).catch(() => null)
-  const arm = assigned && test.arms.includes(assigned) ? assigned : test.arms[Math.floor(Math.random() * test.arms.length)]
+  const arm = assigned?.arm && test.arms.includes(assigned.arm) ? assigned.arm : test.arms[Math.floor(Math.random() * test.arms.length)]
   return <Flow arm={arm} pid={pid} test={test} />
 }

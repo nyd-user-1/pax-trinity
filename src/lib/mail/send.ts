@@ -76,7 +76,19 @@ async function postWithRetry(url: string, init: RequestInit): Promise<Response> 
   return res
 }
 
-/** One message to one or more recipients, screened by the allowlist. */
+/** A signed-in person's From line: Brendan from his own nysgpt.com address; anyone else as themselves via PAX, replies to them. */
+function personFrom(from: string): { from: string; replyTo?: string } {
+  if (PERSON_FROM[from]) return { from: PERSON_FROM[from] }
+  if (from.includes("@")) {
+    const [email, name] = from.split("|")
+    if (email.toLowerCase() === "brendan@nysgpt.com") return { from: PERSON_FROM.brendan }
+    return { from: `${name || email} via PAX <pax@nysgpt.com>`, replyTo: email }
+  }
+  return { from: PERSON_FROM.you }
+}
+
+/** One message to one or more recipients, screened by the allowlist. `from` is an agent's slug, or a
+ *  signed-in person as "email|name" (the route derives it from the session, never from the client). */
 export async function sendMail({ from, to, cc = [], subject, markdown, base }: { from: string; to: string[]; cc?: string[]; subject: string; markdown: string; base: string }): Promise<Sent> {
   const a = screen(to)
   const b = screen(cc.filter((x) => !a.allowed.includes(x.toLowerCase())))
@@ -111,7 +123,7 @@ export async function sendMail({ from, to, cc = [], subject, markdown, base }: {
       const res = await postWithRetry("https://api.resend.com/emails", {
         method: "POST",
         headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ from: relay ? AGENT_RELAY[from] : (PERSON_FROM[from] ?? PERSON_FROM.you), reply_to: relay ? inbox : undefined, to: primary, cc: copied, subject, text, html: body }),
+        body: JSON.stringify({ from: relay ? AGENT_RELAY[from] : personFrom(from).from, reply_to: relay ? inbox : personFrom(from).replyTo, to: primary, cc: copied, subject, text, html: body }),
       })
       if (!res.ok) return { sent: [], held, error: `Resend ${res.status}: ${(await res.text()).slice(0, 160)}` }
     }

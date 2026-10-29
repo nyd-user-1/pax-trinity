@@ -64,7 +64,10 @@ export type Topline = { n: number; first: string | null; last: string | null; co
 export async function topline(survey: Survey): Promise<Topline | null> {
   let items: SurveyItem[]
   try {
-    items = await surveyItems(survey.slug)
+    // A respondent with a fielding's pid counts once, their last answers (a back button or a retry posts twice).
+    const all = await surveyItems(survey.slug)
+    const byPid = new Map(all.filter((x) => x.pid).map((x) => [x.pid!, x]))
+    items = [...all.filter((x) => !x.pid), ...byPid.values()]
   } catch (err) {
     console.warn(`survey responses unreachable (${(err as Error).name})`)
     return null

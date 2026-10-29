@@ -66,11 +66,15 @@ export function liveThread(f: LiveFielding): Thread {
   }
 }
 
-/** A New test or New survey to the Pollster that names a real group and its test or survey: what to field. */
-export function fieldingRequest(to: string[], cc: string[], body: string): { type: "test" | "survey"; target: string; group: string } | null {
+/** A New test or New survey to the Pollster that names a real group and its test or survey: what to field,
+ *  with the request's own Quota (a number) and Close by (a date) when it gives them. */
+export function fieldingRequest(to: string[], cc: string[], body: string): { type: "test" | "survey"; target: string; group: string; quota?: number; closeAt?: string } | null {
   if (!to.includes("tracker")) return null
   const group = [...to, ...cc].find((h) => CONTACT_GROUPS.some((g) => g.handle === h))
   const m = /\*\*(Test|Survey):\*\*\s*([a-z0-9][a-z0-9-]*)/i.exec(body)
   if (!group || !m) return null
-  return { type: m[1].toLowerCase() as "test" | "survey", target: m[2], group }
+  const quota = Number(/\*\*Quota:\*\*\s*([\d,]+)/i.exec(body)?.[1]?.replace(/,/g, ""))
+  const by = /\*\*Close by:\*\*\s*([^\n*]+)/i.exec(body)?.[1]?.trim()
+  const close = by ? Date.parse(/\d{4}/.test(by) ? by : `${by} ${new Date().getFullYear()}`) : NaN
+  return { type: m[1].toLowerCase() as "test" | "survey", target: m[2], group, quota: quota > 0 ? quota : undefined, closeAt: close > Date.now() ? new Date(close).toISOString() : undefined }
 }

@@ -90,8 +90,8 @@ export const TEMPLATES: Template[] = [
     "kind": "Tests",
     "name": "Test reminder",
     "from": "tracker",
-    "subject": "Your study closes in 48 hours",
-    "body": "Hi {{RECIPIENT_NAME}},\n\nThe study I sent on {{SENT_DATE}} closes in 48 hours. It takes about {{MINUTES}} minutes.\n\n[Start the study]({{TEST_URL}})\n\nPollster"
+    "subject": "Your study closes {{CLOSE_DATE}}",
+    "body": "Hi {{RECIPIENT_NAME}},\n\nThe study I sent on {{SENT_DATE}} closes {{CLOSE_DATE}}. It takes about {{MINUTES}} minutes.\n\n[Start the study]({{TEST_URL}})\n\nPollster"
   },
   {
     "id": "3afa6c38-97b1-4877-8b0e-59703da5bdd9",

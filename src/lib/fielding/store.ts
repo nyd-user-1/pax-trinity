@@ -81,6 +81,17 @@ export async function record(fid: string, event: Exclude<FieldingEvent, Fielding
   await put({ test: partition(fid), id: ulid(), ...event })
 }
 
+/** An event written at most once, under a fixed key: false when another tick wrote it first. */
+export async function recordOnce(fid: string, key: string, event: Exclude<FieldingEvent, FieldingDef>): Promise<boolean> {
+  try {
+    await put({ test: partition(fid), id: key, ...event }, true)
+    return true
+  } catch (error) {
+    if ((error as { name?: string }).name === "ConditionalCheckFailedException") return false
+    throw error
+  }
+}
+
 export async function fieldingIds(): Promise<string[]> {
   return (await query("fieldings")).map((x) => String(x.fid)).sort().reverse()
 }

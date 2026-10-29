@@ -5,9 +5,10 @@ import { armName } from "@/lib/fielding/arms"
 import { tick } from "@/lib/fielding/engine"
 import { origin } from "@/lib/mail/send"
 
-// POST /api/fielding/tick: one pass over the open fieldings (reminders, then the
-// close at quota or deadline). Run by a signed-in admin's Inbox when it opens, and
-// every quarter hour by the fielding-tick workflow with FIELDING_TICK_SECRET.
+// POST /api/fielding/tick: one pass over the fieldings (reminders, then the close at
+// quota or deadline). Run by a signed-in admin's Inbox when it opens and every minute
+// while it is open. No scheduler calls it yet; one that does would send
+// x-tick-secret: FIELDING_TICK_SECRET (unset today, so only admins can tick).
 
 export const dynamic = "force-dynamic"
 
