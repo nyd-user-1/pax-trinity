@@ -11,6 +11,7 @@ import { KebabMenu, MenuFoot, MenuHeader, MenuRow, MenuSeparator } from "@/compo
 import { useNavFavorites } from "@/lib/nav-favorites"
 import { RevealFx } from "@/components/reveal-fx"
 import { Wordmark } from "@/components/wordmark"
+import { CommandKHost, openCommandK } from "@/components/command/command-k-host"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/ui/components/nova/dropdown-menu"
 import { cn } from "@/ui/lib/utils"
 import { whiteButton } from "@/components/white-button"
@@ -273,7 +274,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
       </Link>
       {/* The ⌘K search sits under the wordmark, above Chat (moved from the header, 2026-10-22). */}
       <div className="mb-3">
-        <HeaderSearch items={findable} onSummon={() => setSidebarOpen(true)} />
+        <HeaderSearch items={findable} />
       </div>
       {/* A group row folds its pages open and shut; open, they hang off it on the comment thread's tree
           lines: the trunk down from the group's icon, a rounded elbow turning into each page. */}
@@ -333,6 +334,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
   if (home)
     return (
       <PanelCtx.Provider value={panel}>
+      <CommandKHost />
         <div className="min-h-dvh bg-white">{children}</div>
         {/* The sidebar slides in for everyone (PAX in the landing header calls it); the discussion is for the signed in. */}
         <div aria-hidden onClick={() => (setSidebarOpen(false), setDiscuss(false))} className={cn("fixed inset-0 z-40 bg-slate-900/20 transition-opacity duration-300", sidebarOpen || discuss ? "opacity-100" : "pointer-events-none opacity-0")} />
@@ -357,6 +359,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
   const full = path === "/" || ["/data-dictionary", "/america-thinks", "/survey", "/lift", "/chat", "/inbox"].some((p) => path.startsWith(p))
   return (
     <PanelCtx.Provider value={panel}>
+      <CommandKHost />
       <div className="flex min-h-dvh md:h-dvh md:overflow-hidden md:bg-slate-200/60 md:p-[18px]">
         <div className={cn("hidden shrink-0 overflow-hidden transition-[width,margin] duration-300 ease-in-out md:block", sidebarOpen ? "md:mr-[18px] md:w-60" : "md:w-0")}>
           {sidebar}
@@ -600,94 +603,23 @@ function PageSwitcher({ title, items }: { title: string; items: { href: string; 
   )
 }
 
-/** The ⌘K search, in the sidebar under the wordmark. `onSummon` opens a shut sidebar first, so the
- *  shortcut always lands in a box the reader can see. */
-function HeaderSearch({ items, onSummon }: { items: { href: string; label: string; icon: typeof Gauge }[]; onSummon?: () => void }) {
-  const router = useRouter()
-  const [open, setOpen] = React.useState(false)
-  const [q, setQ] = React.useState("")
-  const ref = React.useRef<HTMLDivElement>(null)
-  const inputRef = React.useRef<HTMLInputElement>(null)
-  React.useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault()
-        onSummon?.()
-        // The sidebar slides in over 300ms; focus once it is there.
-        window.setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 320)
-        setOpen(true)
-      }
-      if (e.key === "Escape") {
-        setOpen(false)
-        inputRef.current?.blur()
-      }
-    }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
-  }, [onSummon])
-  React.useEffect(() => {
-    if (!open) return
-    const onDown = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener("mousedown", onDown)
-    return () => document.removeEventListener("mousedown", onDown)
-  }, [open])
-  const go = (href: string) => {
-    setOpen(false)
-    setQ("")
-    inputRef.current?.blur()
-    router.push(href)
-  }
-  const needle = q.trim().toLowerCase()
-  const filtered = needle ? items.filter((d) => d.label.toLowerCase().includes(needle)) : items
+/** The ⌘K search, in the sidebar under the wordmark: the field opens the palette (components/command,
+ *  2026-10-29), as ⌘K does from anywhere; `items` is the palette's to search now. */
+function HeaderSearch({ items }: { items: { href: string; label: string; icon: typeof Gauge }[] }) {
   return (
-    <div ref={ref} className="relative w-full">
-      <div className="flex h-9 items-center gap-2 rounded-full border border-slate-200 bg-white px-3 shadow-e1 transition-colors focus-within:border-slate-300">
-        <Search className="size-4 shrink-0 text-slate-400" />
-        <input
-          ref={inputRef}
-          value={q}
-          onChange={(e) => {
-            setQ(e.target.value)
-            setOpen(true)
-          }}
-          onFocus={() => setOpen(true)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && filtered[0]) go(filtered[0].href)
-          }}
-          placeholder="Search…"
-          aria-label="Search everything"
-          className="w-full bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
-        />
-        <span aria-hidden className="flex shrink-0 gap-1">
-          <kbd className="rounded-md border border-slate-200 bg-pax2-mist px-1.5 py-0.5 text-[11px] text-slate-500">⌘</kbd>
-          <kbd className="rounded-md border border-slate-200 bg-pax2-mist px-1.5 py-0.5 text-[11px] text-slate-500">K</kbd>
-        </span>
-      </div>
-      {open && (
-        <div role="menu" className="absolute left-0 right-0 top-full z-50 mt-1.5 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-e3">
-          <div className="no-scrollbar max-h-72 overflow-y-auto p-1.5">
-            {filtered.length === 0 ? (
-              <p className="px-2.5 py-3 text-sm text-slate-500">No matches.</p>
-            ) : (
-              filtered.map((d) => (
-                <button
-                  key={d.href}
-                  type="button"
-                  role="menuitem"
-                  onClick={() => go(d.href)}
-                  className="group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm font-medium text-slate-600 transition-colors hover:bg-pax2-mist hover:text-pax2-blue"
-                >
-                  <d.icon className="size-4 shrink-0 text-slate-400 transition-colors group-hover:fill-pax2-lavender group-hover:text-pax2-blue" strokeWidth={1.75} />
-                  <span className="flex-1 truncate">{d.label}</span>
-                </button>
-              ))
-            )}
-          </div>
-        </div>
-      )}
-    </div>
+    <button
+      type="button"
+      onClick={openCommandK}
+      aria-label={`Search everything (${items.length} pages and more)`}
+      className="flex h-9 w-full items-center gap-2 rounded-full border border-slate-200 bg-white px-3 text-left shadow-e1 transition-colors hover:border-slate-300"
+    >
+      <Search className="size-4 shrink-0 text-slate-400" />
+      <span className="flex-1 text-sm text-slate-400">Search…</span>
+      <span aria-hidden className="flex shrink-0 gap-1">
+        <kbd className="rounded-md border border-slate-200 bg-pax2-mist px-1.5 py-0.5 text-[11px] text-slate-500">⌘</kbd>
+        <kbd className="rounded-md border border-slate-200 bg-pax2-mist px-1.5 py-0.5 text-[11px] text-slate-500">K</kbd>
+      </span>
+    </button>
   )
 }
 
