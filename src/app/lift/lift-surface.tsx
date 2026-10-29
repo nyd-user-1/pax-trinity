@@ -269,6 +269,12 @@ export function LiftSurface() {
   const chosen = React.useMemo(() => {
     if (!read) return []
     const featured = FEATURED[source]
+    // The opening set: the featured treatments, and every treatment of the fieldings on that they are not in
+    // (Brendan, through the lead, 2026-10-29), so both waves on shows both waves.
+    if (!picked && featured) {
+      const theirs = new Set(featured.flatMap((o) => (read.byOption.get(o) ?? []).map(fieldingOf)))
+      if (theirs.size) return read.options.filter((o) => featured.includes(o) || (read.byOption.get(o) ?? []).some((ek) => !theirs.has(fieldingOf(ek))))
+    }
     const on = picked ?? featured ?? read.options
     // The Filter wins: a set with no rows in the surviving fieldings gives way to those fieldings' treatments.
     return on.length && !on.some((o) => read.options.includes(o)) ? read.options : on.filter((o) => read.options.includes(o))
