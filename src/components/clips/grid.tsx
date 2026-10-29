@@ -47,6 +47,12 @@ export function Grid({ clips, onOpen, className }: { clips: Clip[]; onOpen: (cli
               <span className="font-semibold">{clip.title}</span> {clip.caption}
             </p>
           </div>
+          {/* The play button shows on hover; the tile opens the clip in the single view, playing. */}
+          <span aria-hidden className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+            <span className="flex size-14 items-center justify-center rounded-full bg-black/35">
+              <PlayIcon className="size-7 translate-x-0.5 fill-white text-white" />
+            </span>
+          </span>
           {clip.visibility === "private" && (
             <span className="absolute top-2 right-2 flex size-6 items-center justify-center rounded-full bg-black/50" title="Private">
               <LockIcon className="size-3" />

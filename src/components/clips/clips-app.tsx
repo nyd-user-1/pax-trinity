@@ -3,7 +3,7 @@
 import * as React from "react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
-import { CameraIcon, LayoutGridIcon, LockIcon, PlaySquareIcon } from "lucide-react"
+import { CameraIcon, LayoutGridIcon, LockIcon, PlaySquareIcon, RefreshCwIcon } from "lucide-react"
 
 import { Button } from "@govblock/ui/components/nova/button"
 import { Drawer, DrawerContent, DrawerTitle } from "@govblock/ui/components/nova/drawer"
@@ -13,7 +13,6 @@ import { cn } from "@govblock/ui/lib/utils"
 import { Capture } from "./capture"
 import { CommentsPanel } from "./comments"
 import { PanelBlock } from "@/components/blocks"
-import { PAX2Search, PAX2Table2 } from "@/components/pax2-table2"
 import { MenuRow } from "@/components/kebab-menu"
 import { Creators } from "./creators"
 import { DEFAULT_AVATAR } from "@/lib/auth/use-account"
@@ -298,9 +297,15 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
       />
     ) : null
 
-  const [clipQuery, setClipQuery] = React.useState("")
-  const q = clipQuery.trim().toLowerCase()
-  const shown = q ? clips.filter((c) => [c.title, c.messenger ?? "", c.author.name, c.caption].some((s) => s.toLowerCase().includes(q))) : clips
+  const shown = clips
+  // The count's refresh: the feed read again.
+  const [refreshing, setRefreshing] = React.useState(false)
+  const refresh = () => {
+    setRefreshing(true)
+    void loadFeed()
+      .then(applyFeed)
+      .finally(() => setRefreshing(false))
+  }
 
   const viewToggle = (
     <div className="flex items-center rounded-full bg-muted p-0.5">
@@ -320,12 +325,9 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
       <div className="px-2 lg:grid lg:grid-cols-[340px_minmax(0,1fr)_340px] lg:gap-6 lg:px-4">
         <aside className="hidden lg:block">
           <div className={cn("sticky top-4 pb-4", COLUMN_HEIGHT[frame])}>
-            {/* The Block dress (Brendan, 2026-10-25): toggles after the title, the search,
-                then the count grouped right before the chevron and the menu, where the
-                partners live. */}
+            {/* The Block dress (Brendan, 2026-10-25): the title, then the menu, where the partners live. */}
             <PanelBlock
               title="Partners"
-              search="Search clips…"
               name="partners"
               rows={clipRows}
               menuItems={partnerRows.map((x) => (
@@ -338,14 +340,14 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
         </aside>
 
         <main className="min-w-0">
-          {/* The row over the videos (restored 2026-10-26): the view pill and the
-              collapsed search on the left, the count on the right. */}
+          {/* The row over the videos (restored 2026-10-26): the view pill on the left, the count and its
+              refresh on the right. */}
           <div className="hidden h-14 items-center gap-2 lg:flex">
             {viewToggle}
-            <PAX2Table2 value={clipQuery} onChange={setClipQuery}>
-              <PAX2Search placeholder="Search clips…" />
-            </PAX2Table2>
             <span className="ml-auto text-xs whitespace-nowrap text-muted-foreground tabular-nums">{shown.length} clips</span>
+            <button type="button" aria-label="Refresh" title="Refresh" onClick={refresh} className="-ml-1 inline-flex size-8 items-center justify-center rounded-md text-slate-800 hover:bg-muted hover:text-foreground">
+              <RefreshCwIcon className={cn("size-3.5", refreshing && "animate-spin")} />
+            </button>
           </div>
           <div className="flex h-14 items-center gap-2 lg:hidden">
             {viewToggle}

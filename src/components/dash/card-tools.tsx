@@ -120,6 +120,7 @@ export function CardTools({
   name = "card",
   size,
   onSize,
+  sizes = true,
   menuItems,
   title,
   anchor,
@@ -138,6 +139,8 @@ export function CardTools({
   /** The block's size: collapsed (header only), half (420px) or full (840px). */
   size?: "collapsed" | "half" | "full"
   onSize?: (size: "collapsed" | "half" | "full") => void
+  /** Whether the menu offers the three sizes; a side panel, which fills its column, does not. */
+  sizes?: boolean
   /** The block's title and anchor: Favorite and Add to Blocks key on them, the foot shows the title. */
   title?: string
   anchor?: string
@@ -165,10 +168,14 @@ export function CardTools({
         <MenuRow icon={<LayoutGridIcon />} label={onShelf ? "Remove from Blocks" : "Add to Blocks"} checked={onShelf} disabled={!key || !title} onClick={() => key && title && anchor && (onShelf ? shelf.remove(key) : shelf.add({ key, title, path, anchor }))} />
         <MenuRow icon={<MessagesSquareIcon />} label="Ask PAX" onClick={ask} />
         <MenuRow icon={<RefreshCwIcon />} label="Refresh" onClick={() => router.refresh()} />
-        <MenuSeparator />
-        <MenuRow icon={<ChevronsDownUpIcon />} label="Collapse" checked={size === "collapsed"} disabled={!onSize} onClick={() => onSize?.("collapsed")} />
-        <MenuRow icon={<RectangleHorizontalIcon />} label="Half View" checked={size === "half"} disabled={!onSize} onClick={() => onSize?.("half")} />
-        <MenuRow icon={<RectangleVerticalIcon />} label="Full View" checked={size === "full"} disabled={!onSize} onClick={() => onSize?.("full")} />
+        {sizes && (
+          <>
+            <MenuSeparator />
+            <MenuRow icon={<ChevronsDownUpIcon />} label="Collapse" checked={size === "collapsed"} disabled={!onSize} onClick={() => onSize?.("collapsed")} />
+            <MenuRow icon={<RectangleHorizontalIcon />} label="Half View" checked={size === "half"} disabled={!onSize} onClick={() => onSize?.("half")} />
+            <MenuRow icon={<RectangleVerticalIcon />} label="Full View" checked={size === "full"} disabled={!onSize} onClick={() => onSize?.("full")} />
+          </>
+        )}
         {extras && <MenuSeparator />}
         {views && views.length > 1 && (
           <MenuFlyout id="view" icon={<LayoutListIcon />} label="View" hint={views.find((v) => v.value === view)?.label}>

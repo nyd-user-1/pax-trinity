@@ -33,7 +33,6 @@ export function Creators({ clips, activeId, onOpenClip }: { clips: ClipRow[]; ac
               <button
                 type="button"
                 onClick={() => onOpenClip(c.id)}
-                data-find={`${c.title} ${c.sub} ${c.partner}`}
                 className={cn(
                   "group flex w-full items-center gap-3 rounded-xl px-3 py-2 pr-12 text-left transition-[color,background-color,box-shadow]",
                   on ? "bg-accent text-pax2-blue" : "text-slate-500 hover:bg-accent/70 hover:text-pax2-blue",
@@ -41,7 +40,7 @@ export function Creators({ clips, activeId, onOpenClip }: { clips: ClipRow[]; ac
               >
                 <PlayIcon className={cn("size-[18px] shrink-0 transition-colors", on ? "fill-pax2-lavender text-pax2-blue" : "group-hover:fill-pax2-lavender group-hover:text-pax2-blue")} strokeWidth={on ? 2.25 : 1.75} />
                 <span className="flex min-w-0 flex-col">
-                  <span className={cn("truncate text-sm", on && "font-semibold")}>{c.title}</span>
+                  <span className={cn("truncate text-sm font-semibold", !on && "text-foreground group-hover:text-pax2-blue")}>{c.title}</span>
                   <span className="truncate text-xs text-muted-foreground">{c.sub}</span>
                 </span>
               </button>
