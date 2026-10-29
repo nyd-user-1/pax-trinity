@@ -1,10 +1,11 @@
 "use client"
 
 import * as React from "react"
-import { ArrowDownUp, CircleDashed, Copy, Download, Folder, Funnel, Info, ListFilter, Loader2, SeparatorVertical, Share, Spline, Users } from "lucide-react"
+import { Combobox } from "@base-ui/react/combobox"
+import { ArrowDownUp, Check, CircleDashed, Copy, Download, Folder, Funnel, Info, ListFilter, Loader2, SeparatorVertical, Share, Spline, Users } from "lucide-react"
 
 import { cn } from "@/lib/utils"
-import { BankFrame } from "@/components/bank/bank-frame"
+import { BankFrame, BankRail as RailState } from "@/components/bank/bank-frame"
 import { BankRail, RailGroup, RailRow } from "@/components/bank/bank-rail"
 import { RESULT_SETS } from "@/lib/results"
 import {
@@ -67,7 +68,7 @@ const WAVE = new Map(RESULT_SETS.map((s) => [`${s.fielded.start}|${s.fielded.end
 const plural = (n: number, noun: string) => `${n.toLocaleString("en-US")} ${noun}${n === 1 ? "" : "s"}`
 const toggled = (list: string[], x: string) => (list.includes(x) ? list.filter((y) => y !== x) : [...list, x])
 
-const TOOL = "flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[13px] text-foreground/80 transition-colors hover:bg-muted hover:text-foreground aria-expanded:bg-muted"
+const TOOL = "flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[13px] text-foreground/80 outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:bg-muted aria-expanded:bg-muted"
 const TOOL_ICON = "size-3.5 text-muted-foreground"
 const TH = "border-b px-3 py-2 text-left text-[13px] font-medium whitespace-nowrap"
 const TD = "border-b px-3 py-2 align-middle text-[13px]"
@@ -85,8 +86,6 @@ export function LiftSurface() {
   })
   const [files, setFiles] = React.useState<Record<string, SourceRow[]>>({})
   const [error, setError] = React.useState<string | null>(null)
-  const [query, setQuery] = React.useState("")
-  const [find, setFind] = React.useState("")
   const [metricsOff, setMetricsOff] = React.useState<string[]>([])
   // The Treatments menu's choice; null is the folder's opening set.
   const [picked, setPicked] = React.useState<string[] | null>(null)
@@ -140,7 +139,7 @@ export function LiftSurface() {
     setAbout(null)
     setDepth(PER_READ)
   }, [source])
-  React.useEffect(() => setDepth(PER_READ), [query, sort])
+  React.useEffect(() => setDepth(PER_READ), [sort])
 
   const labels = React.useMemo(() => new Map((index?.constructs ?? []).map((c) => [c.construct, c.label])), [index])
   const defs = React.useMemo(() => new Map((index?.constructs ?? []).map((c) => [c.construct, c.definition])), [index])
@@ -210,10 +209,9 @@ export function LiftSurface() {
     const metrics = read.metrics.filter((m) => !metricsOff.includes(m))
     const by = sort?.by === BY_NAME ? BY_NAME : sort && metrics.includes(sort.by) ? sort.by : (metrics[0] ?? BY_NAME)
     const dir = sort && sort.by === by ? sort.dir : by === BY_NAME ? 1 : -1
-    const q = query.trim().toLowerCase()
     const lead = (o: string) => read.cell(o, by, "")?.lift[7]
     const treatments = read.options
-      .filter((o) => chosen.includes(o) && (!q || o.toLowerCase().includes(q)) && metrics.some((m) => read.cell(o, m, "")))
+      .filter((o) => chosen.includes(o) && metrics.some((m) => read.cell(o, m, "")))
       .sort((a, b) => {
         if (by === BY_NAME) return dir * treatmentName(a).localeCompare(treatmentName(b))
         const x = lead(a)
@@ -244,7 +242,7 @@ export function LiftSurface() {
     for (const n of placebos.values()) respondents += n
     const primary = metrics.filter((m) => PRIMARY.has(m)).length
     return { metrics, primary, by, dir, treatments, groups, segCount: groups.reduce((n, g) => n + g.segs.length, 0), extent, respondents }
-  }, [read, chosen, metricsOff, segsOff, sort, query])
+  }, [read, chosen, metricsOff, segsOff, sort])
 
   const shown = view ? view.treatments.slice(0, depth) : []
   const canLoad = view ? depth < view.treatments.length : false
@@ -299,58 +297,11 @@ export function LiftSurface() {
     </BankRail>
   )
 
-  const findQ = find.trim().toLowerCase()
   const filterCount = periodsOff.length ? 1 : 0
   const segGroups = read ? [{ dim: null as string | null, name: "Everyone", vals: [null as string | null] }, ...[...read.dims].map(([d, vs]) => ({ dim: d as string | null, name: dimLabel(d), vals: vs as (string | null)[] }))] : []
   const toolbar = (
     <div className="flex h-11 shrink-0 items-center gap-0.5 border-b px-3">
-      <DropdownMenu onOpenChange={(o) => !o && setFind("")}>
-        <DropdownMenuTrigger asChild>
-          <button type="button" className={TOOL} disabled={!read}>
-            <Copy className={TOOL_ICON} />
-            {plural(view?.treatments.length ?? 0, "Treatment")}
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-72 p-0">
-          {read && read.options.length > 12 && (
-            <div className="border-b p-1.5">
-              <input
-                value={find}
-                onChange={(e) => setFind(e.target.value)}
-                onKeyDown={(e) => e.stopPropagation()}
-                placeholder="Find a treatment"
-                className="w-full rounded-md px-2 py-1 text-sm outline-none placeholder:text-muted-foreground"
-              />
-            </div>
-          )}
-          <div className="max-h-80 overflow-y-auto p-1">
-            <DropdownMenuItem
-              onSelect={(e) => {
-                e.preventDefault()
-                setPicked(read?.options ?? [])
-              }}
-            >
-              Show all
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onSelect={(e) => {
-                e.preventDefault()
-                setPicked([])
-              }}
-            >
-              Hide all
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            {(read?.options ?? [])
-              .filter((o) => !findQ || o.toLowerCase().includes(findQ))
-              .map((o) => (
-                <DropdownMenuCheckboxItem key={o} checked={chosen.includes(o)} onSelect={(e) => e.preventDefault()} onCheckedChange={() => setPicked(toggled(chosen, o))}>
-                  <span className="truncate">{treatmentName(o)}</span>
-                </DropdownMenuCheckboxItem>
-              ))}
-          </div>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <TreatmentPicker options={read?.options ?? []} chosen={chosen} onChosen={setPicked} count={view?.treatments.length ?? 0} disabled={!read} />
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -469,6 +420,7 @@ export function LiftSurface() {
             >
               Refresh
             </DropdownMenuItem>
+            <SidebarItem />
           </DropdownMenuContent>
         </DropdownMenu>
         <button type="button" className={TOOL} onClick={share}>
@@ -638,7 +590,7 @@ export function LiftSurface() {
   )
 
   return (
-    <BankFrame rail={rail} crumb="Lift" search={{ query, onQuery: setQuery, placeholder: "Search treatments" }}>
+    <BankFrame rail={rail} crumb="Lift" search={NO_SEARCH} bare>
       <div className="flex h-full min-h-0 flex-col">
         {toolbar}
         <div className="flex min-h-0 flex-1">
@@ -652,12 +604,61 @@ export function LiftSurface() {
               </p>
             )}
             {table}
-            {view && !shown.length && <p className="p-6 text-center text-sm text-muted-foreground">{query.trim() ? `Nothing matching “${query.trim()}”.` : "Nothing on file."}</p>}
+            {view && !shown.length && <p className="p-6 text-center text-sm text-muted-foreground">Nothing on file.</p>}
           </div>
           {about && <AboutResult key={`${about.option}\u0001${about.metric}\u0001${about.seg}`} pick={about} rows={everyRow} complete={complete} place={place} onClose={() => setAbout(null)} />}
         </div>
       </div>
     </BankFrame>
+  )
+}
+
+/** The frame is bare (Brendan, 2026-10-29): no header row, so no header search, and the rail's toggle rides Options. */
+const NO_SEARCH = { query: "", onQuery: () => {}, placeholder: "" }
+
+function SidebarItem() {
+  const rail = React.useContext(RailState)
+  return rail && <DropdownMenuItem onSelect={rail.toggle}>{rail.open ? "Hide sidebar" : "Show sidebar"}</DropdownMenuItem>
+}
+
+/** The Treatments menu as a combobox: type to narrow, arrow keys and Enter (or a click) to show or hide one. */
+function TreatmentPicker({ options, chosen, onChosen, count, disabled }: { options: string[]; chosen: string[]; onChosen: (v: string[]) => void; count: number; disabled: boolean }) {
+  const input = React.useRef<HTMLInputElement>(null)
+  return (
+    <Combobox.Root items={options} multiple autoHighlight value={chosen} onValueChange={(v) => onChosen(v as string[])} itemToStringLabel={(o: string) => treatmentName(o)}>
+      <Combobox.Trigger className={cn(TOOL, "data-[popup-open]:bg-muted")} disabled={disabled}>
+        <Copy className={TOOL_ICON} />
+        {plural(count, "Treatment")}
+      </Combobox.Trigger>
+      <Combobox.Portal>
+        <Combobox.Positioner align="start" sideOffset={4} className="z-50">
+          <Combobox.Popup initialFocus={input} className="w-72 overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md">
+            <div className="border-b p-1.5">
+              <Combobox.Input ref={input} placeholder="Find a treatment" className="w-full rounded-md px-2 py-1 text-sm outline-none placeholder:text-muted-foreground" />
+            </div>
+            <Combobox.Empty className="px-3 py-2 text-sm text-muted-foreground empty:hidden">Nothing matching.</Combobox.Empty>
+            <Combobox.List className="max-h-80 overflow-y-auto p-1 empty:hidden">
+              {(o: string) => (
+                <Combobox.Item key={o} value={o} className="relative flex cursor-default items-center rounded-sm py-1.5 pr-2 pl-8 text-sm outline-none select-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground">
+                  <Combobox.ItemIndicator className="absolute left-2 flex size-3.5 items-center justify-center">
+                    <Check className="size-4" />
+                  </Combobox.ItemIndicator>
+                  <span className="truncate">{treatmentName(o)}</span>
+                </Combobox.Item>
+              )}
+            </Combobox.List>
+            <div className="flex justify-between border-t px-2 py-1.5 text-xs">
+              <button type="button" onClick={() => onChosen(options)} className="rounded px-1.5 py-1 text-muted-foreground hover:bg-muted hover:text-foreground">
+                Show all
+              </button>
+              <button type="button" onClick={() => onChosen([])} className="rounded px-1.5 py-1 text-muted-foreground hover:bg-muted hover:text-foreground">
+                Hide all
+              </button>
+            </div>
+          </Combobox.Popup>
+        </Combobox.Positioner>
+      </Combobox.Portal>
+    </Combobox.Root>
   )
 }
 
