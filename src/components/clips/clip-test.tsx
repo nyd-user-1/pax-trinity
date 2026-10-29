@@ -9,8 +9,9 @@ import { cn } from "@/lib/utils"
 
 // The Report Panel for a tested clip: the arm the results register joins to it
 // by clipId, read as /lift reads a cell. Each outcome's lift against the wave's
-// own placebo, gray when inconclusive; the arm's printed line; the wave's
-// pairings that name it; and the cell in /lift and the study in /reports-2.
+// own placebo, gray when inconclusive, each opening its cell in /lift; the
+// arm's printed line; the wave's pairings that name it; and the study in
+// /reports-2.
 
 export type ClipTestRef = { rs: ResultSet; arm: Arm }
 
@@ -43,7 +44,6 @@ function ArmTest({ rs, arm }: ClipTestRef) {
   const placebo = placeboOf(rs)
   const line = [arm.producer, arm.durationSeconds ? `${arm.durationSeconds}s` : null, arm.note].filter(Boolean).join(" · ")
   const pairings = rs.pairings.filter((p) => p.armIds.includes(arm.id)).sort((a, b) => a.rank - b.rank)
-  const lead = rs.outcomes[0]?.id
   return (
     <section>
       <p className="text-sm font-semibold">{rs.study}</p>
@@ -61,7 +61,7 @@ function ArmTest({ rs, arm }: ClipTestRef) {
           const quiet = t.verdict !== "detectable"
           const up = t.liftPp >= 0
           return (
-            <div key={o.id} className="rounded-lg border px-3 py-2.5">
+            <Link key={o.id} href={liftHref(rs, arm, o.id)} className="block rounded-lg border px-3 py-2.5 transition-colors hover:bg-muted/50">
               <p className="text-xs text-muted-foreground">{o.name}</p>
               <div className="mt-1 flex items-baseline gap-2">
                 <span className={cn("text-xl font-semibold tabular-nums", quiet ? "font-medium text-muted-foreground" : !up && "text-pax2-red")}>
@@ -77,7 +77,7 @@ function ArmTest({ rs, arm }: ClipTestRef) {
                   {t.levelPct}% vs {pl.levelPct}% placebo
                 </p>
               )}
-            </div>
+            </Link>
           )
         })}
       </div>
@@ -104,12 +104,7 @@ function ArmTest({ rs, arm }: ClipTestRef) {
         </div>
       )}
 
-      <p className="mt-5 flex gap-4 border-t pt-3 text-xs">
-        {lead && (
-          <Link href={liftHref(rs, arm, lead)} className="text-muted-foreground underline-offset-2 hover:text-foreground hover:underline">
-            Open in Lift
-          </Link>
-        )}
+      <p className="mt-5 border-t pt-3 text-xs">
         <Link href={`/reports-2/${slugOf(rs.study)}`} className="text-muted-foreground underline-offset-2 hover:text-foreground hover:underline">
           Open the report
         </Link>
