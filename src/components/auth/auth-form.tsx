@@ -4,7 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import { ArrowRight, MailCheck } from "lucide-react"
 
-import { DEMO_ACCOUNTS } from "@/lib/demo"
+import { DEMO_ACCOUNTS, DEMO_SIGNIN_EVENT, type DemoAccount } from "@/lib/demo"
 import { cn } from "@/ui/lib/utils"
 
 type Mode = "signup" | "signin"
@@ -41,21 +41,10 @@ export function AuthForm({ mode, onStep }: { mode: Mode; onStep?: (step: AuthSte
   // The ?next= return address rides along when switching between sign in and sign up.
   const [qs, setQs] = React.useState("")
   React.useEffect(() => setQs(window.location.search), [])
-  // Arriving from the demo-access corner (?demo=<role>) fills the form, ready to send.
-  React.useEffect(() => {
-    if (mode !== "signin") return
-    const role = new URLSearchParams(window.location.search).get("demo")
-    const a = role && DEMO_ACCOUNTS.find((x) => x.role.toLowerCase() === role.toLowerCase())
-    if (a) {
-      setEmail(a.email)
-      setPassword(a.password)
-    }
-  }, [mode])
-
-  const signin = async () => {
-    const r = await post("signin", { email, password })
+  const signin = async (em = email, pw = password) => {
+    const r = await post("signin", { email: em, password: pw })
     if (r.status === 409) {
-      await post("resend", { email })
+      await post("resend", { email: em })
       setNotice("Confirm your email first. I just sent you a fresh code.")
       setStep("code")
       return false
@@ -68,6 +57,41 @@ export function AuthForm({ mode, onStep }: { mode: Mode; onStep?: (step: AuthSte
     window.location.assign(nextPath(mode))
     return true
   }
+
+  // A row in the demo-access corner fills both fields and signs in, one click. On /signin the corner
+  // sends the account as an event; from /signup it lands here as ?demo=<role>, which is read once and
+  // cleared, so a reload or a second effect run never signs in twice.
+  const demo = async (a: DemoAccount) => {
+    setStep("form")
+    setEmail(a.email)
+    setPassword(a.password)
+    setError(null)
+    setNotice(null)
+    setBusy(true)
+    try {
+      await signin(a.email, a.password)
+    } finally {
+      setBusy(false)
+    }
+  }
+  const demoRef = React.useRef(demo)
+  React.useEffect(() => {
+    demoRef.current = demo
+  })
+  React.useEffect(() => {
+    if (mode !== "signin") return
+    const url = new URL(window.location.href)
+    const role = url.searchParams.get("demo")
+    const a = role && DEMO_ACCOUNTS.find((x) => x.role.toLowerCase() === role.toLowerCase())
+    if (role) {
+      url.searchParams.delete("demo")
+      window.history.replaceState(window.history.state, "", url)
+    }
+    if (a) void demoRef.current(a)
+    const onPick = (e: Event) => void demoRef.current((e as CustomEvent<DemoAccount>).detail)
+    window.addEventListener(DEMO_SIGNIN_EVENT, onPick)
+    return () => window.removeEventListener(DEMO_SIGNIN_EVENT, onPick)
+  }, [mode])
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()

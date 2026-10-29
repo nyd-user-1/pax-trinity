@@ -1,17 +1,19 @@
 "use client"
 
 import * as React from "react"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 
 import { resetTestAccount } from "@/app/test-account-actions"
-import { DEMO_ACCOUNTS } from "@/lib/demo"
+import { DEMO_ACCOUNTS, DEMO_SIGNIN_EVENT } from "@/lib/demo"
 
 // The quiet corner of the sign-in and sign-up screens: a line that reads like boilerplate and
-// opens the three demo logins. "Use" lands on /signin with the fields filled. Below them, Reset wipes
-// the sign-up test account (app/test-account-actions.ts) so its sign-up can be run again.
+// opens the three demo logins. A row's click fills both fields and signs in (from /signup, by way of
+// /signin). Below them, Reset wipes the sign-up test account (app/test-account-actions.ts) so its
+// sign-up can be run again.
 
 export function DemoAccess() {
   const router = useRouter()
+  const pathname = usePathname()
   const [open, setOpen] = React.useState(false)
   const [reset, setReset] = React.useState<"idle" | "armed" | "busy" | "done" | string>("idle")
   const runReset = async () => {
@@ -49,22 +51,23 @@ export function DemoAccess() {
           <p className="mt-0.5 text-xs text-slate-500">Three sandboxed accounts. They see demo content only and can't publish or move a lever.</p>
           <div className="mt-3 flex flex-col divide-y divide-slate-100">
             {DEMO_ACCOUNTS.map((a) => (
-              <div key={a.email} className="flex items-center justify-between gap-3 py-2.5">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-slate-900">{a.role}</p>
-                  <p className="truncate text-xs text-slate-500">{a.line}</p>
-                  <p className="tabular mt-1 font-mono text-[11px] text-slate-600">{a.email}</p>
-                  <p className="tabular font-mono text-[11px] text-slate-600">{a.password}</p>
-                </div>
+              <div key={a.email} className="py-1">
                 <button
                   type="button"
                   onClick={() => {
                     setOpen(false)
-                    router.push(`/signin?demo=${encodeURIComponent(a.role.toLowerCase())}`)
+                    if (pathname === "/signin") window.dispatchEvent(new CustomEvent(DEMO_SIGNIN_EVENT, { detail: a }))
+                    else router.push(`/signin?demo=${encodeURIComponent(a.role.toLowerCase())}`)
                   }}
-                  className="shrink-0 rounded-full bg-pax2-blue px-3.5 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+                  className="group -mx-2 flex w-[calc(100%+1rem)] items-center justify-between gap-3 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-slate-50"
                 >
-                  Use
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium text-slate-900">{a.role}</span>
+                    <span className="block truncate text-xs text-slate-500">{a.line}</span>
+                    <span className="tabular mt-1 block font-mono text-[11px] text-slate-600">{a.email}</span>
+                    <span className="tabular block font-mono text-[11px] text-slate-600">{a.password}</span>
+                  </span>
+                  <span className="shrink-0 rounded-full bg-pax2-blue px-3.5 py-1.5 text-xs font-semibold text-white transition-opacity group-hover:opacity-90">Use</span>
                 </button>
               </div>
             ))}
