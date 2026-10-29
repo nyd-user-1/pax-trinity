@@ -48,7 +48,6 @@ export function DemoAccess() {
       {open && (
         <div className="absolute bottom-8 right-0 w-80 rounded-2xl border border-slate-200 bg-white p-4 shadow-e3">
           <p className="text-sm font-semibold text-slate-900">Demo access</p>
-          <p className="mt-0.5 text-xs text-slate-500">Three sandboxed accounts. They see demo content only and can't publish or move a lever.</p>
           <div className="mt-3 flex flex-col divide-y divide-slate-100">
             {DEMO_ACCOUNTS.map((a) => (
               <div key={a.email} className="py-1">

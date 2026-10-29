@@ -13,8 +13,9 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
   { role: "Partners", line: "Your videos, tests, lifts and reports", email: "partners@pax-demo.app", password: "Partners-demo-26!" },
 ]
 
-// Creator and Research left the card on 2026-10-29. Their accounts still sign in with the passwords the
-// card once printed, so they stay sandboxed here, and what they made stays in the demo admin's view.
+// Creator and Research left the card on 2026-10-29 and are disabled in the pool (admin-enable-user
+// brings one back). They stay listed so that, re-enabled, they come back sandboxed, and what they made
+// stays in the demo admin's view.
 const RETIRED = ["creator@pax-demo.app", "research@pax-demo.app"]
 
 export const DEMO_ADMIN = "admin@pax-demo.app"
