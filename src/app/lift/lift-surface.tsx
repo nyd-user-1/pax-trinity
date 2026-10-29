@@ -104,7 +104,7 @@ export function LiftSurface() {
   const [segsOff, setSegsOff] = React.useState<string[]>(() => link.list("so"))
   const [periodsOff, setPeriodsOff] = React.useState<string[]>(() => link.list("fo"))
   // A linked cell opens once its folder has read: [treatment, metric, segment].
-  const [linkedPick, setLinkedPick] = React.useState<string[] | null>(() => (link.list("at").length === 3 ? link.list("at") : null))
+  const [linkedPick, setLinkedPick] = React.useState<string[] | null>(() => (link.list("at").length >= 3 ? link.list("at") : null))
   const [sort, setSort] = React.useState<Sort | null>(null)
   const [about, setAbout] = React.useState<Pick | null>(null)
   // About Result slides in and out: the last pick stays drawn while it slides shut.
@@ -179,8 +179,10 @@ export function LiftSurface() {
   const rows = files[source]
 
   // The folder read once: its metrics (Primary first), fieldings, treatments
-  // and breakdowns, and each result keyed for the table. A Filter narrows the
-  // fieldings.
+  // and breakdowns, and each result keyed for the table. A row is a treatment
+  // in one fielding (an entry): a treatment tested in two waves is two rows,
+  // and the Filter's fieldings decide which survive (Brendan, 2026-10-29: the
+  // latest fielding no longer shadows the others).
   const read = React.useMemo(() => {
     if (!rows) return null
     const off = new Set(periodsOff)
@@ -188,6 +190,8 @@ export function LiftSurface() {
     const periods: { key: string; name: string; dates: string }[] = []
     const options: string[] = []
     const seen = new Set<string>()
+    const entries: string[] = []
+    const seenEntry = new Set<string>()
     const dims = new Map<string, string[]>()
     const lifts = new Map<string, SourceRow>()
     const levels = new Map<string, SourceRow>()
@@ -206,25 +210,33 @@ export function LiftSurface() {
       if (r[4] == null) continue
       const sk = segOf(r)
       if (r[8] === "lift_pp") {
-        const k = `${r[4]}\u0001${r[0]}\u0001${sk}`
-        const had = lifts.get(k)
-        if (!had || r[3] > had[3]) lifts.set(k, r)
+        const ek = entryKey(r[4], pk)
+        lifts.set(`${ek}\u0001${r[0]}\u0001${sk}`, r)
         if (!seen.has(r[4])) {
           seen.add(r[4])
           options.push(r[4])
+        }
+        if (!seenEntry.has(ek)) {
+          seenEntry.add(ek)
+          entries.push(ek)
         }
       } else if (r[8] === "pct") levels.set(`${isPlacebo(r[4]) ? PLACEBO : r[4]}\u0001${r[0]}\u0001${sk}\u0001${pk}`, r)
     }
     periods.sort((a, b) => a.key.localeCompare(b.key))
     metrics.sort((a, b) => Number(PRIMARY.has(b)) - Number(PRIMARY.has(a)))
     for (const [d, vs] of dims) dims.set(d, ordered(vs))
-    const cell = (option: string, metric: string, sk: string): Cell | null => {
-      const lift = lifts.get(`${option}\u0001${metric}\u0001${sk}`)
+    // Each treatment's entries, latest fielding first.
+    const byOption = new Map<string, string[]>()
+    for (const ek of entries) byOption.set(optionOf(ek), [...(byOption.get(optionOf(ek)) ?? []), ek])
+    for (const list of byOption.values()) list.sort((a, b) => fieldingOf(b).localeCompare(fieldingOf(a)))
+    const cell = (ek: string, metric: string, sk: string): Cell | null => {
+      const lift = lifts.get(`${ek}\u0001${metric}\u0001${sk}`)
       if (!lift) return null
-      const pk = periodKey(lift)
+      const option = optionOf(ek)
+      const pk = fieldingOf(ek)
       return { lift, level: levels.get(`${option}\u0001${metric}\u0001${sk}\u0001${pk}`) ?? null, control: levels.get(`${PLACEBO}\u0001${metric}\u0001${sk}\u0001${pk}`) ?? null }
     }
-    return { metrics, periods, options, dims, cell }
+    return { metrics, periods, options, byOption, dims, cell }
   }, [rows, periodsOff])
 
   // The benchmark's median per metric and segment: every treatment's lift on file, every fielding.
@@ -247,16 +259,19 @@ export function LiftSurface() {
 
   React.useEffect(() => {
     if (!read || !linkedPick) return
-    const [o, m, sk] = linkedPick
-    const c = read.cell(o, m, sk)
-    if (c) setAbout({ option: o, metric: m, seg: sk, segName: sk ? sk.slice(sk.indexOf("=") + 1) : "Everyone", cell: c })
+    const [o, m, sk, pk] = linkedPick
+    const ek = pk ? entryKey(o, pk) : (read.byOption.get(o) ?? []).find((e) => read.cell(e, m, sk))
+    const c = ek ? read.cell(ek, m, sk) : null
+    if (ek && c) setAbout({ option: o, entry: ek, metric: m, seg: sk, segName: sk ? sk.slice(sk.indexOf("=") + 1) : "Everyone", cell: c })
     setLinkedPick(null)
   }, [read, linkedPick])
 
   const chosen = React.useMemo(() => {
     if (!read) return []
     const featured = FEATURED[source]
-    return picked ?? (featured ? read.options.filter((o) => featured.includes(o)) : read.options)
+    const on = picked ?? featured ?? read.options
+    // The Filter wins: a set with no rows in the surviving fieldings gives way to those fieldings' treatments.
+    return on.length && !on.some((o) => read.options.includes(o)) ? read.options : on.filter((o) => read.options.includes(o))
   }, [read, picked, source])
 
   const view = React.useMemo(() => {
@@ -264,9 +279,11 @@ export function LiftSurface() {
     const metrics = read.metrics.filter((m) => !metricsOff.includes(m))
     const by = sort?.by === BY_NAME ? BY_NAME : sort && metrics.includes(sort.by) ? sort.by : (metrics[0] ?? BY_NAME)
     const dir = sort && sort.by === by ? sort.dir : by === BY_NAME ? 1 : -1
-    const lead = (o: string) => read.cell(o, by, "")?.lift[7]
+    const measured = (o: string) => (read.byOption.get(o) ?? []).filter((ek) => metrics.some((m) => read.cell(ek, m, "")))
+    // A treatment sorts by its latest entry the metric measured; its entries stay together, latest first.
+    const lead = (o: string) => measured(o).map((ek) => read.cell(ek, by, "")?.lift[7]).find((v) => v != null)
     const treatments = read.options
-      .filter((o) => chosen.includes(o) && metrics.some((m) => read.cell(o, m, "")))
+      .filter((o) => chosen.includes(o) && measured(o).length)
       .sort((a, b) => {
         if (by === BY_NAME) return dir * treatmentName(a).localeCompare(treatmentName(b))
         const x = lead(a)
@@ -274,6 +291,11 @@ export function LiftSurface() {
         // A treatment the sorting metric did not measure goes last either way.
         return x == null ? (y == null ? 0 : 1) : y == null ? -1 : dir * (x - y)
       })
+      .flatMap(measured)
+    // With more than one fielding on, each row names its own.
+    const names = new Map(read.periods.map((p) => [p.key, p.name]))
+    const several = read.periods.filter((p) => !periodsOff.includes(p.key)).length > 1
+    const waveOf = (ek: string) => (several ? (names.get(fieldingOf(ek)) ?? null) : null)
     const groups = [
       { dim: null as string | null, name: "Everyone", segs: [{ key: "", name: "Everyone" }] },
       ...[...read.dims].map(([d, vs]) => ({ dim: d as string | null, name: dimLabel(d), segs: vs.map((v) => ({ key: segKey(d, v), name: v })) })),
@@ -306,8 +328,8 @@ export function LiftSurface() {
           }
     const primary = metrics.filter((m) => PRIMARY.has(m)).length
     const emotion = !metricsOff.includes(EMOTION)
-    return { metrics, primary, emotion, by, dir, treatments, groups, segCount: groups.reduce((n, g) => n + g.segs.length, 0), extent, spread, respondents }
-  }, [read, chosen, metricsOff, segsOff, sort, bench, median])
+    return { metrics, primary, emotion, by, dir, treatments, waveOf, groups, segCount: groups.reduce((n, g) => n + g.segs.length, 0), extent, spread, respondents }
+  }, [read, chosen, metricsOff, segsOff, periodsOff, sort, bench, median])
 
   const shown = view ? view.treatments.slice(0, depth) : []
   const canLoad = view ? depth < view.treatments.length : false
@@ -325,7 +347,7 @@ export function LiftSurface() {
           .map((s) => [
             g.dim ? g.name : "Total",
             s.name,
-            treatmentName(o),
+            treatmentName(optionOf(o)),
             testName(view.metrics.map((m) => read.cell(o, m, s.key)).find(Boolean)!.lift),
             ...view.metrics.flatMap((m) => {
               const c = read.cell(o, m, s.key)
@@ -356,7 +378,7 @@ export function LiftSurface() {
     if (segsOff.length) pairs.push(["so", segsOff])
     if (periodsOff.length) pairs.push(["fo", periodsOff])
     if (!bench) pairs.push(["bench", ["0"]])
-    if (about) pairs.push(["at", [about.option, about.metric, about.seg]])
+    if (about) pairs.push(["at", [about.option, about.metric, about.seg, fieldingOf(about.entry)]])
     const url = `${window.location.origin}${window.location.pathname}?${pairs.map(([k, vs]) => `${k}=${vs.map(linkPart).join(",")}`).join("&")}`
     navigator.clipboard.writeText(url)
     setShared(true)
@@ -379,7 +401,7 @@ export function LiftSurface() {
     <div className="flex h-11 shrink-0 items-center gap-0.5 border-b px-3">
       <SidebarToggle />
       <span aria-hidden className="mx-1 h-4 w-px bg-border" />
-      <TreatmentPicker options={read?.options ?? []} chosen={chosen} onChosen={setPicked} count={view?.treatments.length ?? 0} disabled={!read} />
+      <TreatmentPicker options={read?.options ?? []} chosen={chosen} onChosen={setPicked} count={view ? new Set(view.treatments.map(optionOf)).size : 0} disabled={!read} />
       <span aria-hidden className="mx-1 h-4 w-px bg-border" />
 
       <DropdownMenu>
@@ -579,7 +601,7 @@ export function LiftSurface() {
   // Stable, so a pick re-renders only the rows whose selection changed (the rows are memoized).
   // The same cell again closes the panel.
   const pick = React.useCallback(
-    (o: string, m: string, s: Seg, c: Cell) => setAbout((prev) => (prev && prev.option === o && prev.metric === m && prev.seg === s.key ? null : { option: o, metric: m, seg: s.key, segName: s.name, cell: c })),
+    (ek: string, m: string, s: Seg, c: Cell) => setAbout((prev) => (prev && prev.entry === ek && prev.metric === m && prev.seg === s.key ? null : { option: optionOf(ek), entry: ek, metric: m, seg: s.key, segName: s.name, cell: c })),
     []
   )
 
@@ -696,7 +718,7 @@ export function LiftSurface() {
             )}
             {shown.flatMap((o) => {
               const segs = g.segs.filter((s) => view.metrics.some((m) => read.cell(o, m, s.key)))
-              return segs.map((s, i) => <BarsRow key={`${o}\u0001${s.key}`} o={o} s={s} first={i === 0} last={i === segs.length - 1} sel={about?.option === o && about.seg === s.key} read={read} view={view} onPick={pick} />)
+              return segs.map((s, i) => <BarsRow key={`${o}\u0001${s.key}`} o={o} s={s} first={i === 0} last={i === segs.length - 1} sel={about?.entry === o && about.seg === s.key} read={read} view={view} onPick={pick} />)
             })}
           </React.Fragment>
         ))}
@@ -742,7 +764,7 @@ export function LiftSurface() {
                 firstOfBlock={si === 0}
                 lastOfBlock={si === b.segs.length - 1}
                 lastOfGroup={bi === blocks.length - 1 && si === b.segs.length - 1}
-                sel={b.o != null && about?.option === b.o && about.seg === s.key}
+                sel={b.o != null && about?.entry === b.o && about.seg === s.key}
                 read={read}
                 view={view}
                 bench={bench}
@@ -782,7 +804,7 @@ export function LiftSurface() {
             onTransitionEnd={(e) => e.target === e.currentTarget && !about && setSheet(null)}
           >
             {(about ?? sheet) && (
-              <AboutResult key={`${(about ?? sheet)!.option}\u0001${(about ?? sheet)!.metric}\u0001${(about ?? sheet)!.seg}`} pick={(about ?? sheet)!} files={files} folder={source} folders={SOURCES} complete={complete} place={place} onClose={() => setAbout(null)} />
+              <AboutResult key={`${(about ?? sheet)!.entry}\u0001${(about ?? sheet)!.metric}\u0001${(about ?? sheet)!.seg}`} pick={(about ?? sheet)!} files={files} folder={source} folders={SOURCES} complete={complete} place={place} onClose={() => setAbout(null)} />
             )}
           </div>
         </div>
@@ -873,18 +895,25 @@ const testName = (lift: SourceRow) => WAVE.get(periodKey(lift)) ?? testOf(lift)
 
 type Seg = { key: string; name: string }
 type RowRead = { cell: (option: string, metric: string, sk: string) => Cell | null }
-type RowView = { metrics: string[]; emotion: boolean; extent: number; spread: number }
+type RowView = { metrics: string[]; emotion: boolean; extent: number; spread: number; waveOf: (ek: string) => string | null }
 type OnPick = (o: string, m: string, s: Seg, c: Cell) => void
 
 const fmt = (v: number) => `${v < 0 ? "−" : ""}${num(Math.abs(v))}`
 
-function creative(o: string) {
+/** A row's entry: a treatment in one fielding. */
+const entryKey = (option: string, fielding: string) => `${option}\u0002${fielding}`
+const optionOf = (ek: string) => ek.slice(0, ek.indexOf("\u0002"))
+const fieldingOf = (ek: string) => ek.slice(ek.indexOf("\u0002") + 1)
+
+function creative(ek: string, wave: string | null) {
+  const o = optionOf(ek)
   return (
     <span className="flex min-h-6 items-center gap-2.5">
       {THUMB[o] && <img src={THUMB[o]} alt="" width={36} height={24} className="h-6 w-9 shrink-0 rounded-[3px] bg-muted object-cover" />}
       <span className="line-clamp-2 font-medium" title={o}>
         {treatmentName(o)}
       </span>
+      {wave && <span className="shrink-0 rounded-md border px-1.5 py-px text-[10.5px] whitespace-nowrap text-muted-foreground">{wave}</span>}
     </span>
   )
 }
@@ -901,7 +930,7 @@ function EmotionCell({ o, s }: { o: string; s: Seg }) {
 const BarsRow = React.memo(function BarsRow({ o, s, first, last, sel, read, view, onPick }: { o: string; s: Seg; first: boolean; last: boolean; sel: boolean; read: RowRead; view: RowView; onPick: OnPick }) {
   return (
     <tr className={rowDress(sel)}>
-      <td className={cn(TD, !last && "border-b-transparent")}>{first && creative(o)}</td>
+      <td className={cn(TD, !last && "border-b-transparent")}>{first && creative(o, view.waveOf(o))}</td>
       <td className={cn(TD, "border-l")}>{s.name}</td>
       {view.metrics.map((m) => {
         const c = read.cell(o, m, s.key)
@@ -957,7 +986,7 @@ const HeatRow = React.memo(function HeatRow({
       <td className={cn(TD, "border-l", !lastOfBlock && "border-b-transparent")}>
         {firstOfBlock &&
           (o ? (
-            creative(o)
+            creative(o, view.waveOf(o))
           ) : (
             <span className="flex min-h-6 items-center gap-2.5">
               <ChartColumn aria-hidden className="size-4 shrink-0 text-muted-foreground" />
@@ -990,7 +1019,7 @@ const HeatRow = React.memo(function HeatRow({
             <button
               type="button"
               onClick={() => onPick(o, m, s, c)}
-              title={`${treatmentName(o)} · ${s.name}: ${fmt(c.lift[7])}${bench && med ? `, median ${fmt(med.median)}` : ""}`}
+              title={`${treatmentName(optionOf(o))} · ${s.name}: ${fmt(c.lift[7])}${bench && med ? `, median ${fmt(med.median)}` : ""}`}
               className={cn(HEAT, significance(c.lift) === false ? "text-foreground/55" : "font-semibold")}
               style={{ background: heat(c.lift[7], center, view.spread) }}
             >

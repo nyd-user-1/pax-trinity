@@ -28,7 +28,8 @@ export const isPlacebo = (option: string | null) => !!option && /^placebo$/i.tes
 
 /** One result: the treatment's lift, its own level where published, and its control group's level. */
 export type Cell = { lift: SourceRow; level: SourceRow | null; control: SourceRow | null }
-export type Pick = { option: string; metric: string; seg: string; segName: string; cell: Cell }
+/** entry: the row's treatment-in-a-fielding key; option: the treatment alone. */
+export type Pick = { option: string; entry: string; metric: string; seg: string; segName: string; cell: Cell }
 
 /** Whether a lift clears its test: the source's own call where it makes one,
  *  else its margin; null where there is neither. */
