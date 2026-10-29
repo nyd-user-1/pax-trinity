@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { Combobox } from "@base-ui/react/combobox"
-import { ArrowDownUp, ChartColumn, Check, CircleDashed, Copy, Download, Folder, Funnel, Info, ListFilter, Loader2, PanelLeftClose, PanelLeftOpen, SeparatorVertical, Share, Spline, Users } from "lucide-react"
+import { ArrowDownUp, ChartColumn, Check, CircleDashed, Copy, Download, Folder, Funnel, GripVerticalIcon, Info, ListFilter, Loader2, PanelLeftClose, PanelLeftOpen, SeparatorVertical, Share, Spline, Users } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { BankFrame, BankRail as RailState } from "@/components/bank/bank-frame"
@@ -601,8 +601,8 @@ export function LiftSurface() {
   )
   const metricHeads = view && (
     <>
-      {view.metrics.map((m) => (
-        <th key={m} className={cn(TH, "border-l")}>
+      {view.metrics.map((m, i) => (
+        <th key={m} className={cn(TH, "relative border-l")}>
           <span className="flex items-center gap-2">
             <span className="truncate" title={metricShort(m)}>
               {metricShort(m)}
@@ -629,13 +629,13 @@ export function LiftSurface() {
                   <DropdownMenuItem onSelect={() => setMetricsOff((prev) => [...prev, m])}>Hide this metric</DropdownMenuItem>
                 </>
               )}
-              <Resize width={widthOf(m)} onWidth={resizeMetric(m)} max={640} />
             </span>
           </span>
+          <ColumnGrip width={widthOf(m)} onWidth={resizeMetric(m)} last={!view.emotion && i === view.metrics.length - 1} />
         </th>
       ))}
       {view.emotion && (
-        <th className={cn(TH, "border-l")}>
+        <th className={cn(TH, "relative border-l")}>
           <span className="flex items-center gap-2">
             Emotional Response
             <span className="rounded-md border px-1.5 py-px text-[10px] font-normal text-muted-foreground">Sample</span>
@@ -648,9 +648,9 @@ export function LiftSurface() {
                 </TooltipTrigger>
                 <TooltipContent className="max-w-72">The share of respondents naming each feeling after the ad. No test has asked it yet: these shares are placeholders.</TooltipContent>
               </Tooltip>
-              <Resize width={widthOf(EMOTION)} onWidth={resizeMetric(EMOTION)} max={640} />
             </span>
           </span>
+          <ColumnGrip width={widthOf(EMOTION)} onWidth={resizeMetric(EMOTION)} last />
         </th>
       )}
     </>
@@ -989,6 +989,29 @@ function Resize({ width, onWidth, min = 120, max = 480 }: { width: number; onWid
     <button type="button" aria-label="Resize the column" title="Drag to resize" onPointerDown={start} className={cn(HEAD_ICON, "cursor-col-resize")}>
       <SeparatorVertical className="size-4" />
     </button>
+  )
+}
+
+/** A metric column's resize grip, America Thinks' panel handle (components/ui resizable's withHandle box) on the
+ *  column's right divider: drag it to set the column's width. The last column's sits inside the table's edge. */
+function ColumnGrip({ width, onWidth, last = false }: { width: number; onWidth: (w: number) => void; last?: boolean }) {
+  const start = (e: React.PointerEvent) => {
+    e.preventDefault()
+    const x0 = e.clientX
+    const move = (ev: PointerEvent) => onWidth(Math.min(640, Math.max(120, width + ev.clientX - x0)))
+    const up = () => {
+      window.removeEventListener("pointermove", move)
+      window.removeEventListener("pointerup", up)
+    }
+    window.addEventListener("pointermove", move)
+    window.addEventListener("pointerup", up)
+  }
+  return (
+    <span role="separator" aria-orientation="vertical" aria-label="Resize the column" onPointerDown={start} className={cn("absolute top-0 z-10 flex h-full w-3.5 cursor-col-resize touch-none items-center justify-center", last ? "right-0" : "-right-[7px]")}>
+      <span className="flex h-4 w-3 items-center justify-center rounded-xs border bg-border">
+        <GripVerticalIcon className="size-2.5" />
+      </span>
+    </span>
   )
 }
 
