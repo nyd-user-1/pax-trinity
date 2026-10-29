@@ -16,15 +16,15 @@ export const metadata: Metadata = { title: "Report 2" }
 export default function ReportsPage() {
   const all = studies()
   return (
-    <div className="nysgpt-app relative min-h-0 flex-1 overflow-y-auto" style={{ backgroundColor: "var(--paper)", ...PAPER_BRIDGE }}>
+    <div className="nysgpt-app report-pax relative min-h-0 flex-1 overflow-y-auto" style={{ backgroundColor: "var(--paper)", ...PAPER_BRIDGE }}>
       <div className="report-doc mx-auto grid w-full max-w-[1120px] gap-6 px-6 py-10 text-[var(--paper-text)] sm:px-10 md:grid-cols-2" data-reports={all.length}>
         {all.map((s) => {
           const last = s.waves[s.waves.length - 1].wave
           return (
-            <Link key={s.slug} href={`/reports-2/${s.slug}`} className="group flex flex-col rounded-2xl border border-[var(--paper-rule)] bg-[var(--paper)] p-6 transition-colors hover:bg-[var(--paper-quiet)]">
-              <h2 className="text-[28px] leading-tight font-semibold tracking-tight group-hover:underline">{s.name}</h2>
+            <Link key={s.slug} href={`/reports-2/${s.slug}`} className="group flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-e1 transition-shadow hover:shadow-e2">
+              <h2 className="text-[28px] leading-tight font-semibold tracking-tight text-pax2-blue">{s.name}</h2>
               <p className="mt-1 text-[15px] text-[var(--paper-muted)]">{wavesLine(s.waves.map((w) => w.wave))}</p>
-              <ul className="mt-6 flex flex-col gap-3 border-t border-[var(--paper-rule)]/30 pt-4">
+              <ul className="mt-6 flex flex-col gap-3 border-t border-slate-200 pt-4">
                 {s.waves.map((w) => (
                   <li key={w.id} className="flex items-start gap-3 text-[13px] leading-relaxed">
                     <WaveChip wave={w.wave} latest={w.wave === last} />

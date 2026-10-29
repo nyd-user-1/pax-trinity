@@ -12,7 +12,7 @@ export function WaveChip({ wave, latest }: { wave: number; latest?: boolean }) {
     <span
       className={cn(
         "inline-flex h-5 shrink-0 items-center rounded-full px-2 text-[10px] font-bold tracking-wide",
-        latest ? "bg-[var(--paper-text)] text-[var(--paper)]" : "border border-[var(--paper-rule)]/30 text-[var(--paper-muted)]"
+        latest ? "bg-[var(--paper-strong)] text-white" : "border border-[var(--paper-rule)]/30 text-[var(--paper-muted)]"
       )}
     >
       W{wave}
@@ -88,11 +88,12 @@ export function Part({ id, kicker, title, children }: { id: string; kicker: stri
   )
 }
 
-export function Block({ title, aside, children }: { title: React.ReactNode; aside?: React.ReactNode; children: React.ReactNode }) {
+export function Block({ title, aside, children, level = 3 }: { title: React.ReactNode; aside?: React.ReactNode; children: React.ReactNode; level?: 2 | 3 }) {
+  const Heading = level === 2 ? "h2" : "h3"
   return (
     <div className="report-block">
       <div className="report-keep mb-4 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-        <h3 className="text-[22px] leading-snug font-semibold tracking-tight text-[var(--paper-text)]">{title}</h3>
+        <Heading className="text-[22px] leading-snug font-semibold tracking-tight text-[var(--paper-text)]">{title}</Heading>
         {aside && <span className="text-[12px] text-[var(--paper-muted)]">{aside}</span>}
       </div>
       {children}

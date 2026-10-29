@@ -4,15 +4,17 @@ import type { ResultSet, Story } from "@/lib/results/types"
 import { cn } from "@/lib/utils"
 
 import { CrossWaveLift, DualLift, LevelChart } from "./charts"
-import { Block, Box, Footnote, Part, StoryBox, WaveChip } from "./report-bits"
+import { Block, Box, Footnote, StoryBox, WaveChip } from "./report-bits"
 import { approx, axis, count, countOf, dateRange, listed, monthYear, signed, toplineOf, treatmentsOf, wavesLine, word, Word } from "./report-math"
 import { armsLine, DimensionBlock, FactBoxes, LevelsKey, Methodology, PairingCard, ShareBars, VideoCard } from "./sections"
 
-// /reports/[study] — the wave readout, one long document in the PDF's order:
-// the cover, the executive summary across waves, then each wave in full.
-// Every figure comes from the ResultSets; the printed language (stories,
-// notes, pairings, the chart readings) renders verbatim. A story this page
-// does not place still renders, at the foot of its wave.
+// /reports/[study] — the wave readout, in three pages (Brendan, 2026-10-29):
+// the executive summary across waves, then each wave in full, each page its
+// sections (src/components/report/report-pages.tsx lays them out, the
+// contents at the left, the other pages under Related). Every figure comes
+// from the ResultSets; the printed language (stories, notes, pairings, the
+// chart readings) renders verbatim. A story a wave does not place still
+// renders, at the foot of its last section.
 
 const BALLOT = "ballot"
 const COMPREHENSION = "comprehension"
@@ -37,103 +39,119 @@ const sentence = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 /** A label mid-sentence: "the source's 90% criterion"; an acronym or a figure keeps its case. */
 const inline = (s: string) => (/^[A-Z][a-z]/.test(s) ? lower(s) : s)
 
-export function ReportDoc({ name, waves }: { name: string; waves: ResultSet[] }) {
+/** One page of a study's readout: the summary, or a wave. */
+export type ReportPart = { slug: string; kicker: string; title: string; headline: string; meta: string }
+/** One section of a page: its anchor, its name in the contents, and what it shows. */
+export type ReportSection = { id: string; label: string; node: React.ReactNode }
+
+/** The study's one lift scale, every wave's overview and card on it: the PDF's shared −5 to +20. */
+export const studyAxis = (waves: ResultSet[]) => axis(waves.flatMap((rs) => rs.toplines.map((t) => t.liftPp).filter((v): v is number => v != null)))
+
+const summaryHeadline = (waves: ResultSet[]) => {
   const latest = waves[waves.length - 1]
-  const lw = latest.wave
-  // One lift scale for every wave's overview and card, both outcomes: the PDF's shared −5 to +20.
-  const a = axis(waves.flatMap((rs) => rs.toplines.map((t) => t.liftPp).filter((v): v is number => v != null)))
   const treat = waves.flatMap((rs) => treatmentsOf(rs))
-  const ballotHits = waves.reduce((n, rs) => n + detectable(rs, BALLOT).length, 0)
-  const subtitle = story(latest, "study-subtitle")
+  const hits = waves.reduce((n, rs) => n + detectable(rs, BALLOT).length, 0)
+  return `${countOf(hits, treat.length)} treatment videos showed detectable ${lower(outcomeName(latest, BALLOT))} differences`
+}
+
+const waveHeadline = (rs: ResultSet) => {
+  const treat = treatmentsOf(rs)
+  const b = detectable(rs, BALLOT).length
+  const c = detectable(rs, COMPREHENSION).length
+  const hasComp = rs.outcomes.some((o) => o.id === COMPREHENSION)
+  return `${countOf(b, treat.length)} videos showed detectable ${lower(outcomeName(rs, BALLOT))} differences${hasComp ? `; ${c ? `${word(c)} showed` : "none showed"} detectable ${lower(outcomeName(rs, COMPREHENSION))} differences` : ""}`
+}
+
+const waveMeta = (rs: ResultSet) => `${dateRange(rs.fielded.start, rs.fielded.end)} · ${count(rs.sample.raw)} respondents (${count(rs.sample.weighted)} weighted) · ${armsLine(rs)}`
+
+/** The study's pages in order: the summary across waves (where there are two or more), then each wave. */
+export function studyParts(waves: ResultSet[]): ReportPart[] {
+  const latest = waves[waves.length - 1]
+  const summary: ReportPart[] =
+    waves.length > 1 ? [{ slug: "summary", kicker: "Executive summary", title: summaryHeadline(waves), headline: summaryHeadline(waves), meta: `${waves.length === 2 ? "Both waves" : "Every wave"} · ${latest.population} · separate samples` }] : []
+  return [...summary, ...waves.map((rs) => ({ slug: `wave-${rs.wave}`, kicker: `Wave ${rs.wave}`, title: rs.title, headline: waveHeadline(rs), meta: waveMeta(rs) }))]
+}
+
+/** The study's cover: when it was fielded, its name, its waves and what they measured. */
+export function StudyCover({ name, waves }: { name: string; waves: ResultSet[] }) {
+  const latest = waves[waves.length - 1]
   const self = latest.dimensions.find((d) => d.selfSelected)
   const tagline = listed([...latest.outcomes.map((o) => o.name), ...(self ? [self.name.replace(/\s*\(.*\)$/, "")] : [])].map((s, i) => (i === 0 ? s : lower(s))))
-
   return (
-    <article className="report-doc mx-auto w-full max-w-[1120px] px-6 py-10 text-[var(--paper-text)] sm:px-10" data-report={name}>
-      {/* Cover */}
-      <header className="report-cover pb-10">
-        <p className="text-[12px] font-semibold tracking-[0.18em] text-[var(--paper-strong)] uppercase">{monthYear(latest.fielded.end)}</p>
-        <h1 className="mt-3 max-w-3xl text-[56px] leading-[1.02] font-semibold tracking-tight">{name}</h1>
-        <p className="mt-4 text-[20px]">
-          <span className="font-semibold">{wavesLine(waves.map((w) => w.wave))}</span>
-          <span className="mx-3 text-[var(--paper-muted)]">|</span>
-          <span className="text-[var(--paper-muted)]">{tagline}</span>
-        </p>
-        {subtitle && <p className="mt-5 max-w-3xl text-[16px] leading-relaxed text-[var(--paper-muted)]">{subtitle.body}</p>}
-        <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 print:grid-cols-3">
-          {waves.map((rs) => (
-            <div key={rs.id} className="border-t border-[var(--paper-rule)] pt-3 text-[14px] leading-relaxed">
-              <p className="mb-1 text-[11px] font-semibold tracking-[0.14em] text-[var(--paper-strong)] uppercase">Wave {rs.wave}</p>
-              {dateRange(rs.fielded.start, rs.fielded.end)} · {count(rs.sample.raw)} respondents ({count(rs.sample.weighted)} weighted) · {armsLine(rs)}
-            </div>
-          ))}
-          {waves.length > 1 && (
-            <div className="border-t border-[var(--paper-rule)] pt-3 text-[14px] leading-relaxed">
-              <p className="mb-1 text-[11px] font-semibold tracking-[0.14em] text-[var(--paper-strong)] uppercase">{waves.length === 2 ? "Both waves" : "Every wave"}</p>
-              {latest.population} · separate samples
-            </div>
-          )}
-        </div>
-      </header>
-
-      <div className="flex flex-col gap-20">
-        <Part id="summary" kicker="Executive summary" title={`${countOf(ballotHits, treat.length)} treatment videos showed detectable ${lower(outcomeName(latest, BALLOT))} differences`}>
-          {/* (a) Ballot support across waves */}
-          <Block title={`${outcomeName(latest, BALLOT)}, every wave against its own placebo`}>
-            <CrossWaveLift waves={waves} />
-            <div className="mt-6 grid gap-4 md:grid-cols-3">
-              {stories(latest, ["caution-separate-studies", "caution-published-vs-approximate", "caution-campaign-ad"]).map((s) => (
-                <StoryBox key={s.id} story={s} />
-              ))}
-            </div>
-            <Footnote>No confidence intervals are shown: none are in the data.</Footnote>
-          </Block>
-
-          {/* (b) Comprehension */}
-          <ComprehensionSummary waves={waves} />
-
-          {/* (c) Test setup */}
-          <SetupSummary waves={waves} />
-
-          {/* (d) Pairings, where any wave carries them */}
-          {waves.some((rs) => rs.pairings.length > 0) && (
-          <Block title="Video–audience pairings to test">
-            <div className={cn("grid gap-6", waves.filter((w) => w.pairings.length).length > 1 && "lg:grid-cols-2 print:grid-cols-2")}>
-              {waves.filter((w) => w.pairings.length > 0).map((rs) => (
-                <div key={rs.id}>
-                  <div className="mb-3 flex items-center gap-3">
-                    <WaveChip wave={rs.wave} latest={rs.wave === lw} />
-                    <span className="text-[18px] font-semibold">Wave {rs.wave}</span>
-                    <span className="ml-auto text-[12px] text-[var(--paper-muted)]">
-                      {word(treatmentsOf(rs).length)} videos · {rs.dimensions.reduce((n, d) => n + d.categories.length, 0)} subgroups
-                    </span>
-                  </div>
-                  <div className="flex flex-col gap-3 print:gap-2">
-                    {[...rs.pairings]
-                      .sort((x, y) => x.rank - y.rank)
-                      .slice(0, 6)
-                      .map((p) => (
-                        <PairingCard key={p.rank} rs={rs} p={p} />
-                      ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-            {story(latest, "seen-in-both") && (
-              <div className="mt-4 print:mt-3">
-                <StoryBox story={story(latest, "seen-in-both")!} />
-              </div>
-            )}
-          </Block>
-          )}
-        </Part>
-
-        {waves.map((rs) => (
-          <WaveSection key={rs.id} rs={rs} a={a} latest={rs.wave === lw} />
-        ))}
-      </div>
-    </article>
+    <header className="pb-10">
+      <p className="text-[12px] font-semibold tracking-[0.18em] text-[var(--paper-strong)] uppercase">{monthYear(latest.fielded.end)}</p>
+      <h1 className="mt-3 max-w-3xl text-[56px] leading-[1.02] font-semibold tracking-tight text-[var(--paper-strong)]">{name}</h1>
+      <p className="mt-4 text-[20px]">
+        <span className="font-semibold">{wavesLine(waves.map((w) => w.wave))}</span>
+        <span className="mx-3 text-[var(--paper-muted)]">|</span>
+        <span className="text-[var(--paper-muted)]">{tagline}</span>
+      </p>
+    </header>
   )
+}
+
+/** The executive summary's sections, across every wave. */
+export function summarySections(waves: ResultSet[]): ReportSection[] {
+  const latest = waves[waves.length - 1]
+  const lw = latest.wave
+  const out: ReportSection[] = [
+    {
+      id: "ballot",
+      label: outcomeName(latest, BALLOT),
+      node: (
+        <Block level={2} title={`${outcomeName(latest, BALLOT)}, every wave against its own placebo`}>
+          <CrossWaveLift waves={waves} />
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
+            {stories(latest, ["caution-separate-studies", "caution-published-vs-approximate", "caution-campaign-ad"]).map((s) => (
+              <StoryBox key={s.id} story={s} />
+            ))}
+          </div>
+          <Footnote>No confidence intervals are shown: none are in the data.</Footnote>
+        </Block>
+      ),
+    },
+    { id: "comprehension", label: outcomeName(latest, COMPREHENSION), node: <ComprehensionSummary waves={waves} /> },
+  ]
+  const asked =
+    stories(latest, ["flow-1", "flow-2", "flow-3", "flow-4", "flow-5", "question-trust", "question-vote", "question-understand"]).length > 0 ||
+    waves.some((rs) => rs.dimensions.some((d) => d.selfSelected && d.categories.some((c) => c.sharePct != null)))
+  if (asked) out.push({ id: "questions", label: "The questions", node: <SetupSummary waves={waves} /> })
+  if (waves.some((rs) => rs.pairings.length > 0))
+    out.push({
+      id: "pairings",
+      label: "Pairings",
+      node: (
+        <Block level={2} title="Video–audience pairings to test">
+          <div className={cn("grid gap-6", waves.filter((w) => w.pairings.length).length > 1 && "lg:grid-cols-2 print:grid-cols-2")}>
+            {waves.filter((w) => w.pairings.length > 0).map((rs) => (
+              <div key={rs.id}>
+                <div className="mb-3 flex items-center gap-3">
+                  <WaveChip wave={rs.wave} latest={rs.wave === lw} />
+                  <span className="text-[18px] font-semibold">Wave {rs.wave}</span>
+                  <span className="ml-auto text-[12px] text-[var(--paper-muted)]">
+                    {word(treatmentsOf(rs).length)} videos · {rs.dimensions.reduce((n, d) => n + d.categories.length, 0)} subgroups
+                  </span>
+                </div>
+                <div className="flex flex-col gap-3 print:gap-2">
+                  {[...rs.pairings]
+                    .sort((x, y) => x.rank - y.rank)
+                    .slice(0, 6)
+                    .map((p) => (
+                      <PairingCard key={p.rank} rs={rs} p={p} />
+                    ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          {story(latest, "seen-in-both") && (
+            <div className="mt-4 print:mt-3">
+              <StoryBox story={story(latest, "seen-in-both")!} />
+            </div>
+          )}
+        </Block>
+      ),
+    })
+  return out
 }
 
 function ComprehensionSummary({ waves }: { waves: ResultSet[] }) {
@@ -144,7 +162,7 @@ function ComprehensionSummary({ waves }: { waves: ResultSet[] }) {
   const hits = withLevels ? detectable(withLevels, COMPREHENSION).length : 0
   const name = outcomeName(latest, COMPREHENSION)
   return (
-    <Block title={withLevels ? `Wave ${withLevels.wave}: ${countOf(hits, treatmentsOf(withLevels).length, false)} videos showed detectable ${lower(name)} differences` : name}>
+    <Block level={2} title={withLevels ? `Wave ${withLevels.wave}: ${countOf(hits, treatmentsOf(withLevels).length, false)} videos showed detectable ${lower(name)} differences` : name}>
       <ol className="mb-6 grid gap-4 md:grid-cols-3">
         {waves.map((rs, i) => {
           const hit = detectable(rs, COMPREHENSION)
@@ -213,7 +231,7 @@ function SetupSummary({ waves }: { waves: ResultSet[] }) {
   const self = waves.map((rs) => ({ rs, d: rs.dimensions.find((d) => d.selfSelected && d.categories.some((c) => c.sharePct != null)) })).filter((x): x is { rs: ResultSet; d: NonNullable<typeof x.d> } => !!x.d)
   if (!flow.length && !qs.length && !self.length) return null
   return (
-    <Block title={`${Word(qs.length || latest.outcomes.length + latest.dimensions.filter((d) => d.selfSelected && d.askedBeforeExposure).length)} questions, ${word(latest.outcomes.length)} outcomes`}>
+    <Block level={2} title={`${Word(qs.length || latest.outcomes.length + latest.dimensions.filter((d) => d.selfSelected && d.askedBeforeExposure).length)} questions, ${word(latest.outcomes.length)} outcomes`}>
       {flow.length > 0 && (
         <ol className="report-avoid grid gap-3 sm:grid-cols-3 lg:grid-cols-5 print:grid-cols-5">
           {flow.map((s, i) => {
@@ -259,12 +277,11 @@ function SetupSummary({ waves }: { waves: ResultSet[] }) {
   )
 }
 
-function WaveSection({ rs, a, latest }: { rs: ResultSet; a: ReturnType<typeof axis>; latest: boolean }) {
+/** A wave's sections, in the PDF's order: what the test found, the videos, how it worked, the outcomes,
+ *  the pairings, the subgroups, and what it can and cannot establish (any story it does not place at the foot). */
+export function waveSections(rs: ResultSet, a: ReturnType<typeof axis>, latest: boolean): ReportSection[] {
   const treat = treatmentsOf(rs)
-  const b = detectable(rs, BALLOT).length
-  const c = detectable(rs, COMPREHENSION).length
-  const hasComp = rs.outcomes.some((o) => o.id === COMPREHENSION)
-  const headline = `${countOf(b, treat.length)} videos showed detectable ${lower(outcomeName(rs, BALLOT))} differences${hasComp ? `; ${c ? `${word(c)} showed` : "none showed"} detectable ${lower(outcomeName(rs, COMPREHENSION))} differences` : ""}`
+  const headline = waveHeadline(rs)
   const steps = stories(rs, ["step-1", "step-2", "step-3", "step-4", "step-5"])
   const explanation = story(rs, "written-explanation")
   const strip = stories(rs, ["breakdowns-levels", "breakdowns-comparisons", "breakdowns-small-cells", "breakdowns-description"])
@@ -272,10 +289,12 @@ function WaveSection({ rs, a, latest }: { rs: ResultSet; a: ReturnType<typeof ax
   const groups = [...new Set(rs.dimensions.map((d) => d.group))]
   const loose = rs.stories.filter((s) => !PLACED.includes(s.id) || (!latest && s.id === "seen-in-both"))
   const comprehension = rs.outcomes.find((o) => o.id === COMPREHENSION)
-
-  return (
-    <Part id={`wave-${rs.wave}`} kicker={latest ? `Wave ${rs.wave} · detailed findings` : `Wave ${rs.wave} · the historical record`} title={rs.title}>
-      <Block title={headline}>
+  const out: ReportSection[] = [
+    {
+      id: "results",
+      label: "What the test found",
+      node: (
+      <Block level={2} title={headline}>
         <FactBoxes rs={rs} />
         <div className="mt-6 print:mt-4">
           <DualLift rs={rs} a={a} />
@@ -303,8 +322,13 @@ function WaveSection({ rs, a, latest }: { rs: ResultSet; a: ReturnType<typeof ax
           The {inline(rs.threshold.label)} is a statistical decision rule. It does not mean there is a {Math.round(rs.threshold.level <= 1 ? rs.threshold.level * 100 : rs.threshold.level)}% chance any particular person changed their mind.
         </Footnote>
       </Block>
-
-      <Block title={`The ${word(treat.length)} videos and their results`}>
+      ),
+    },
+    {
+      id: "videos",
+      label: "The videos",
+      node: (
+      <Block level={2} title={`The ${word(treat.length)} videos and their results`}>
         {/* Rows that close: three across for six, two across for four. */}
         <div className={cn("grid gap-5 sm:grid-cols-2", treat.length % 3 === 0 && "lg:grid-cols-3 print:grid-cols-3")}>
           {treat.map((arm, i) => (
@@ -318,9 +342,15 @@ function WaveSection({ rs, a, latest }: { rs: ResultSet; a: ReturnType<typeof ax
         )}
         <Footnote>Results are versus placebo. A difference between two point estimates does not establish a statistically significant head-to-head difference.</Footnote>
       </Block>
-
-      {(steps.length > 0 || explanation) && (
-        <Block title="How the test worked">
+      ),
+    },
+  ]
+  if (steps.length > 0 || explanation)
+    out.push({
+      id: "how-it-worked",
+      label: "How the test worked",
+      node: (
+        <Block level={2} title="How the test worked">
           <div className="grid gap-6 md:grid-cols-2">
             <ol className="flex flex-col gap-4">
               {steps.map((s, i) => (
@@ -340,10 +370,14 @@ function WaveSection({ rs, a, latest }: { rs: ResultSet; a: ReturnType<typeof ax
             )}
           </div>
         </Block>
-      )}
-
-      {rs.outcomes.some((o) => toplineOf(rs, rs.arms.find((x) => x.role === "placebo")?.id ?? "", o.id)?.levelPct != null) && (
-        <Block title={`${Word(rs.outcomes.length)} outcomes in detail`}>
+      ),
+    })
+  if (rs.outcomes.some((o) => toplineOf(rs, rs.arms.find((x) => x.role === "placebo")?.id ?? "", o.id)?.levelPct != null))
+    out.push({
+      id: "outcomes",
+      label: "Outcomes in detail",
+      node: (
+        <Block level={2} title={`${Word(rs.outcomes.length)} outcomes in detail`}>
           <div className="flex flex-col gap-8">
             {rs.outcomes.map((o) => (
               <div key={o.id}>
@@ -374,10 +408,14 @@ function WaveSection({ rs, a, latest }: { rs: ResultSet; a: ReturnType<typeof ax
             )}
           </div>
         </Block>
-      )}
-
-      {rs.pairings.length > 0 && (
-        <Block title={`${Word(rs.pairings.length)} video–audience pairings to test`}>
+      ),
+    })
+  if (rs.pairings.length > 0)
+    out.push({
+      id: "pairings",
+      label: "Pairings",
+      node: (
+        <Block level={2} title={`${Word(rs.pairings.length)} video–audience pairings to test`}>
           <div className="grid gap-4 md:grid-cols-2">
             {[...rs.pairings]
               .sort((x, y) => x.rank - y.rank)
@@ -389,10 +427,14 @@ function WaveSection({ rs, a, latest }: { rs: ResultSet; a: ReturnType<typeof ax
             Significant = video vs placebo inside one subgroup at the {inline(rs.threshold.label)}, not videos vs each other. {rs.dimensions.reduce((n, d) => n + d.categories.length, 0)} subgroups × {word(treat.length)} videos with no documented multiplicity adjustment, so some marks are likely chance.
           </Footnote>
         </Block>
-      )}
-
-      {groups.length > 0 && (
-        <Block title="Subgroup results">
+      ),
+    })
+  if (groups.length > 0)
+    out.push({
+      id: "subgroups",
+      label: "Subgroups",
+      node: (
+        <Block level={2} title="Subgroup results">
           <div className="flex flex-col gap-6">
             <LevelsKey rs={rs} />
             {strip.length > 0 && (
@@ -417,12 +459,16 @@ function WaveSection({ rs, a, latest }: { rs: ResultSet; a: ReturnType<typeof ax
             })}
           </div>
         </Block>
-      )}
-
-      <Block title="What the study can and cannot establish">
+      ),
+    })
+  out.push({
+    id: "establish",
+    label: "What it can and cannot establish",
+    node: (
+      <div className="flex flex-col gap-10">
+      <Block level={2} title="What the study can and cannot establish">
         <Methodology rs={rs} />
       </Block>
-
       {loose.length > 0 && (
         <div className="grid gap-4 md:grid-cols-2">
           {loose.map((s) => (
@@ -430,6 +476,8 @@ function WaveSection({ rs, a, latest }: { rs: ResultSet; a: ReturnType<typeof ax
           ))}
         </div>
       )}
-    </Part>
-  )
+      </div>
+    ),
+  })
+  return out
 }

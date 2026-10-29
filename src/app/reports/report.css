@@ -1,25 +1,48 @@
-/* The readout's chart colors, legible on the paper in both themes: a
-   detectable mark, a not-marked gray, the placebo's lavender, and the
-   campaign's own creative set apart. */
+/* PAX's palette on the readout (Brendan, 2026-10-29: the paper palette was
+   NYSgpt's). The page wears pax2.css's own colors: slate ink and rules, the
+   navy for titles and the latest wave, and the marks as /lift draws them, a
+   detectable lift in PAX's bright blue and the rest in slate gray. The
+   placebo takes PAX's pale blue, the campaign's own creative the navy. A rule
+   at full strength is a section's; at a fraction (/20 to /40) it is a hairline. */
+.nysgpt-app.report-pax {
+  --paper: #ffffff;
+  --paper-text: #0f172a;
+  --paper-muted: #64748b;
+  --paper-faint: #94a3b8;
+  --paper-rule: #64748b;
+  --paper-rule-soft: rgba(15, 23, 42, 0.06);
+  --paper-quiet: var(--pax2-mist);
+  --paper-strong: var(--pax2-blue);
+}
+.dark .nysgpt-app.report-pax {
+  --paper: #0f172a;
+  --paper-text: #f1f5f9;
+  --paper-muted: #94a3b8;
+  --paper-faint: #64748b;
+  --paper-rule: #94a3b8;
+  --paper-rule-soft: rgba(241, 245, 249, 0.06);
+  --paper-quiet: rgba(241, 245, 249, 0.04);
+  --paper-strong: #93c5fd;
+}
 .report-doc {
-  --r-detect: #4f8d6b;
-  --r-detect-edge: #1c3828;
-  --r-quiet: #b8b5c4;
-  --r-placebo: #d9cff0;
-  --r-campaign: #9a7fd4;
-  --r-track: rgba(22, 24, 29, 0.05);
-  --r-tint: #f4f1fa;
-  --r-small: #e9a3c4;
+  --r-detect: var(--pax2-light-blue);
+  --r-detect-edge: var(--pax2-blue);
+  --r-quiet: #cbd5e1;
+  --r-placebo: var(--pax2-lavender);
+  --r-campaign: var(--pax2-blue);
+  --r-track: rgba(15, 23, 42, 0.05);
+  --r-tint: var(--pax2-mist);
+  --r-small: var(--pax2-red-soft);
 }
 .dark .report-doc {
-  --r-detect: #5fa37e;
-  --r-detect-edge: #d3eedf;
-  --r-quiet: #6f6b7d;
-  --r-placebo: #54497c;
-  --r-campaign: #a98fe2;
-  --r-track: rgba(240, 233, 216, 0.06);
-  --r-tint: rgba(196, 178, 240, 0.08);
-  --r-small: #b0607f;
+  --r-detect: #60a5fa;
+  --r-detect-edge: #bfdbfe;
+  --r-quiet: #475569;
+  --r-placebo: #1e3a8a;
+  --r-campaign: #93c5fd;
+  --r-track: rgba(241, 245, 249, 0.06);
+  --r-tint: rgba(37, 99, 235, 0.1);
+  --r-small: #7f1d1d;
 }
 /* The source's small-sample flag: a hatched bar. */
 .report-hatch {
@@ -75,10 +98,20 @@
     display: none !important;
   }
   .report-doc {
+    display: block !important;
     max-width: none !important;
     padding: 0 !important;
-    --r-tint: #f4f1fa;
-    --r-track: rgba(22, 24, 29, 0.06);
+    --r-tint: #f5f7fb;
+    --r-track: rgba(15, 23, 42, 0.06);
+  }
+  /* A page of the readout prints its sections: the contents and Related step aside, and each
+     section after the first opens a fresh page. */
+  .report-2-rail,
+  .report-related {
+    display: none !important;
+  }
+  .report-section + .report-section {
+    break-before: page;
   }
   .report-doc,
   .report-doc * {

@@ -26,7 +26,7 @@ export default async function StudyReport2Page({ params }: Params) {
   if (!s) notFound()
   return (
     // No overflow of its own: the shell's main scrolls, so the contents rail can stick to it.
-    <div className="nysgpt-app relative min-h-0 flex-1" style={{ backgroundColor: "var(--paper)", ...PAPER_BRIDGE }}>
+    <div className="nysgpt-app report-pax relative min-h-0 flex-1" style={{ backgroundColor: "var(--paper)", ...PAPER_BRIDGE }}>
       <ReportDoc2 name={s.name} waves={s.waves} />
     </div>
   )

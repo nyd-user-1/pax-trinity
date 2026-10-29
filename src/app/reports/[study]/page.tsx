@@ -2,11 +2,14 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 
 import { PAPER_BRIDGE } from "@/components/editorial/PaperBridge"
-import { ReportDoc } from "@/components/report/report-doc"
+import { StudyLanding } from "@/components/report/report-pages"
 
 import { studies, studyBySlug } from "../data"
 import "../../paper.css"
 import "../report.css"
+
+// /reports/[study] — the study's cover and a card per page of its readout: the executive summary
+// and each wave (src/components/report/report-pages.tsx).
 
 type Params = { params: Promise<{ study: string }> }
 
@@ -24,8 +27,8 @@ export default async function StudyReportPage({ params }: Params) {
   const s = studyBySlug(study)
   if (!s) notFound()
   return (
-    <div className="nysgpt-app relative min-h-0 flex-1 overflow-y-auto" style={{ backgroundColor: "var(--paper)", ...PAPER_BRIDGE }}>
-      <ReportDoc name={s.name} waves={s.waves} />
+    <div className="nysgpt-app report-pax relative min-h-0 flex-1 overflow-y-auto" style={{ backgroundColor: "var(--paper)", ...PAPER_BRIDGE }}>
+      <StudyLanding study={s} />
     </div>
   )
 }
