@@ -1,0 +1,1072 @@
+{
+  "arms": [
+    {
+      "id": "placebo",
+      "nWeighted": 496.7,
+      "name": "Placebo",
+      "note": "501 actual respondents",
+      "role": "placebo",
+      "watchUrl": "https://assets.mixkit.co/videos/40700/40700-720.mp4"
+    },
+    {
+      "clipId": "px-gaby",
+      "durationSeconds": 46,
+      "id": "px-gaby",
+      "nWeighted": 484.5,
+      "name": "Why independents are locked out — Gaby",
+      "note": "501 actual respondents",
+      "role": "treatment"
+    },
+    {
+      "clipId": "px-msnow",
+      "durationSeconds": 39,
+      "id": "px-msnow",
+      "nWeighted": 518.3,
+      "name": "Why independents are locked out — MSNOW",
+      "note": "501 actual respondents",
+      "role": "treatment"
+    },
+    {
+      "clipId": "px-no-newscaster",
+      "durationSeconds": 21,
+      "id": "px-no-newscaster",
+      "nWeighted": 485.5,
+      "name": "Why independents are locked out (21 s)",
+      "note": "500 actual respondents",
+      "role": "treatment"
+    },
+    {
+      "clipId": "px-locked-out",
+      "durationSeconds": 41,
+      "id": "px-locked-out",
+      "nWeighted": 518,
+      "name": "Why independents are locked out (41 s)",
+      "note": "500 actual respondents",
+      "role": "treatment"
+    }
+  ],
+  "cells": [
+    {
+      "armId": "placebo",
+      "categoryId": "liberal",
+      "dimensionId": "ideology",
+      "levelPct": 50.5,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-gaby",
+      "categoryId": "liberal",
+      "dimensionId": "ideology",
+      "levelPct": 64.7,
+      "outcomeId": "ballot",
+      "significant": true,
+      "smallSample": false
+    },
+    {
+      "armId": "px-msnow",
+      "categoryId": "liberal",
+      "dimensionId": "ideology",
+      "levelPct": 58.7,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-no-newscaster",
+      "categoryId": "liberal",
+      "dimensionId": "ideology",
+      "levelPct": 50.4,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-locked-out",
+      "categoryId": "liberal",
+      "dimensionId": "ideology",
+      "levelPct": 51.4,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "placebo",
+      "categoryId": "moderate",
+      "dimensionId": "ideology",
+      "levelPct": 48.2,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-gaby",
+      "categoryId": "moderate",
+      "dimensionId": "ideology",
+      "levelPct": 57.9,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-msnow",
+      "categoryId": "moderate",
+      "dimensionId": "ideology",
+      "levelPct": 52.9,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-no-newscaster",
+      "categoryId": "moderate",
+      "dimensionId": "ideology",
+      "levelPct": 50.7,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-locked-out",
+      "categoryId": "moderate",
+      "dimensionId": "ideology",
+      "levelPct": 56.5,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "placebo",
+      "categoryId": "conservative",
+      "dimensionId": "ideology",
+      "levelPct": 46.5,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-gaby",
+      "categoryId": "conservative",
+      "dimensionId": "ideology",
+      "levelPct": 63,
+      "outcomeId": "ballot",
+      "significant": true,
+      "smallSample": false
+    },
+    {
+      "armId": "px-msnow",
+      "categoryId": "conservative",
+      "dimensionId": "ideology",
+      "levelPct": 47.3,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-no-newscaster",
+      "categoryId": "conservative",
+      "dimensionId": "ideology",
+      "levelPct": 56.8,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-locked-out",
+      "categoryId": "conservative",
+      "dimensionId": "ideology",
+      "levelPct": 39.6,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "placebo",
+      "categoryId": "democrat",
+      "dimensionId": "party",
+      "levelPct": 49.7,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-gaby",
+      "categoryId": "democrat",
+      "dimensionId": "party",
+      "levelPct": 55.9,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-msnow",
+      "categoryId": "democrat",
+      "dimensionId": "party",
+      "levelPct": 51.5,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-no-newscaster",
+      "categoryId": "democrat",
+      "dimensionId": "party",
+      "levelPct": 50.9,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-locked-out",
+      "categoryId": "democrat",
+      "dimensionId": "party",
+      "levelPct": 50.4,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "placebo",
+      "categoryId": "independent-other",
+      "dimensionId": "party",
+      "levelPct": 52.3,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-gaby",
+      "categoryId": "independent-other",
+      "dimensionId": "party",
+      "levelPct": 70.8,
+      "outcomeId": "ballot",
+      "significant": true,
+      "smallSample": false
+    },
+    {
+      "armId": "px-msnow",
+      "categoryId": "independent-other",
+      "dimensionId": "party",
+      "levelPct": 56,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-no-newscaster",
+      "categoryId": "independent-other",
+      "dimensionId": "party",
+      "levelPct": 56,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-locked-out",
+      "categoryId": "independent-other",
+      "dimensionId": "party",
+      "levelPct": 52.5,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "placebo",
+      "categoryId": "republican",
+      "dimensionId": "party",
+      "levelPct": 33.1,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-gaby",
+      "categoryId": "republican",
+      "dimensionId": "party",
+      "levelPct": 44.5,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-msnow",
+      "categoryId": "republican",
+      "dimensionId": "party",
+      "levelPct": 52.6,
+      "outcomeId": "ballot",
+      "significant": true,
+      "smallSample": false
+    },
+    {
+      "armId": "px-no-newscaster",
+      "categoryId": "republican",
+      "dimensionId": "party",
+      "levelPct": 40.9,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-locked-out",
+      "categoryId": "republican",
+      "dimensionId": "party",
+      "levelPct": 41.9,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "placebo",
+      "categoryId": "hs-or-less",
+      "dimensionId": "education",
+      "levelPct": 50.2,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-gaby",
+      "categoryId": "hs-or-less",
+      "dimensionId": "education",
+      "levelPct": 59.9,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-msnow",
+      "categoryId": "hs-or-less",
+      "dimensionId": "education",
+      "levelPct": 57.1,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-no-newscaster",
+      "categoryId": "hs-or-less",
+      "dimensionId": "education",
+      "levelPct": 49.3,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-locked-out",
+      "categoryId": "hs-or-less",
+      "dimensionId": "education",
+      "levelPct": 52.1,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "placebo",
+      "categoryId": "some-college",
+      "dimensionId": "education",
+      "levelPct": 45.4,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-gaby",
+      "categoryId": "some-college",
+      "dimensionId": "education",
+      "levelPct": 60.1,
+      "outcomeId": "ballot",
+      "significant": true,
+      "smallSample": false
+    },
+    {
+      "armId": "px-msnow",
+      "categoryId": "some-college",
+      "dimensionId": "education",
+      "levelPct": 54.1,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-no-newscaster",
+      "categoryId": "some-college",
+      "dimensionId": "education",
+      "levelPct": 53.5,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-locked-out",
+      "categoryId": "some-college",
+      "dimensionId": "education",
+      "levelPct": 43.4,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "placebo",
+      "categoryId": "bachelors-plus",
+      "dimensionId": "education",
+      "levelPct": 49.2,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-gaby",
+      "categoryId": "bachelors-plus",
+      "dimensionId": "education",
+      "levelPct": 63,
+      "outcomeId": "ballot",
+      "significant": true,
+      "smallSample": false
+    },
+    {
+      "armId": "px-msnow",
+      "categoryId": "bachelors-plus",
+      "dimensionId": "education",
+      "levelPct": 51.5,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-no-newscaster",
+      "categoryId": "bachelors-plus",
+      "dimensionId": "education",
+      "levelPct": 52.8,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-locked-out",
+      "categoryId": "bachelors-plus",
+      "dimensionId": "education",
+      "levelPct": 51.7,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "placebo",
+      "categoryId": "democrat",
+      "dimensionId": "vote2024",
+      "levelPct": 46.3,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-gaby",
+      "categoryId": "democrat",
+      "dimensionId": "vote2024",
+      "levelPct": 57.5,
+      "outcomeId": "ballot",
+      "significant": true,
+      "smallSample": false
+    },
+    {
+      "armId": "px-msnow",
+      "categoryId": "democrat",
+      "dimensionId": "vote2024",
+      "levelPct": 55.6,
+      "outcomeId": "ballot",
+      "significant": true,
+      "smallSample": false
+    },
+    {
+      "armId": "px-no-newscaster",
+      "categoryId": "democrat",
+      "dimensionId": "vote2024",
+      "levelPct": 57.7,
+      "outcomeId": "ballot",
+      "significant": true,
+      "smallSample": false
+    },
+    {
+      "armId": "px-locked-out",
+      "categoryId": "democrat",
+      "dimensionId": "vote2024",
+      "levelPct": 47.2,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "placebo",
+      "categoryId": "republican",
+      "dimensionId": "vote2024",
+      "levelPct": 47.2,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-gaby",
+      "categoryId": "republican",
+      "dimensionId": "vote2024",
+      "levelPct": 62.2,
+      "outcomeId": "ballot",
+      "significant": true,
+      "smallSample": false
+    },
+    {
+      "armId": "px-msnow",
+      "categoryId": "republican",
+      "dimensionId": "vote2024",
+      "levelPct": 51.7,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-no-newscaster",
+      "categoryId": "republican",
+      "dimensionId": "vote2024",
+      "levelPct": 53.2,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-locked-out",
+      "categoryId": "republican",
+      "dimensionId": "vote2024",
+      "levelPct": 45.3,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "placebo",
+      "categoryId": "other",
+      "dimensionId": "vote2024",
+      "levelPct": 56.7,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": true
+    },
+    {
+      "armId": "px-gaby",
+      "categoryId": "other",
+      "dimensionId": "vote2024",
+      "levelPct": 62.4,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": true
+    },
+    {
+      "armId": "px-msnow",
+      "categoryId": "other",
+      "dimensionId": "vote2024",
+      "levelPct": 47.4,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": true
+    },
+    {
+      "armId": "px-no-newscaster",
+      "categoryId": "other",
+      "dimensionId": "vote2024",
+      "levelPct": 49.2,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": true
+    },
+    {
+      "armId": "px-locked-out",
+      "categoryId": "other",
+      "dimensionId": "vote2024",
+      "levelPct": 48.8,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": true
+    },
+    {
+      "armId": "placebo",
+      "categoryId": "did-not-vote",
+      "dimensionId": "vote2024",
+      "levelPct": 51.7,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-gaby",
+      "categoryId": "did-not-vote",
+      "dimensionId": "vote2024",
+      "levelPct": 64.9,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-msnow",
+      "categoryId": "did-not-vote",
+      "dimensionId": "vote2024",
+      "levelPct": 54,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-no-newscaster",
+      "categoryId": "did-not-vote",
+      "dimensionId": "vote2024",
+      "levelPct": 44.6,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-locked-out",
+      "categoryId": "did-not-vote",
+      "dimensionId": "vote2024",
+      "levelPct": 55.6,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "placebo",
+      "categoryId": "tv-broadcast",
+      "dimensionId": "mediaTrust",
+      "levelPct": 48.2,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-gaby",
+      "categoryId": "tv-broadcast",
+      "dimensionId": "mediaTrust",
+      "levelPct": 64.8,
+      "outcomeId": "ballot",
+      "significant": true,
+      "smallSample": false
+    },
+    {
+      "armId": "px-msnow",
+      "categoryId": "tv-broadcast",
+      "dimensionId": "mediaTrust",
+      "levelPct": 54.7,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-no-newscaster",
+      "categoryId": "tv-broadcast",
+      "dimensionId": "mediaTrust",
+      "levelPct": 52.5,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-locked-out",
+      "categoryId": "tv-broadcast",
+      "dimensionId": "mediaTrust",
+      "levelPct": 47.2,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "placebo",
+      "categoryId": "direct-to-camera",
+      "dimensionId": "mediaTrust",
+      "levelPct": 47.6,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-gaby",
+      "categoryId": "direct-to-camera",
+      "dimensionId": "mediaTrust",
+      "levelPct": 62.1,
+      "outcomeId": "ballot",
+      "significant": true,
+      "smallSample": false
+    },
+    {
+      "armId": "px-msnow",
+      "categoryId": "direct-to-camera",
+      "dimensionId": "mediaTrust",
+      "levelPct": 56.3,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-no-newscaster",
+      "categoryId": "direct-to-camera",
+      "dimensionId": "mediaTrust",
+      "levelPct": 47.6,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-locked-out",
+      "categoryId": "direct-to-camera",
+      "dimensionId": "mediaTrust",
+      "levelPct": 51.9,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "placebo",
+      "categoryId": "podcast-clip",
+      "dimensionId": "mediaTrust",
+      "levelPct": 51.4,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-gaby",
+      "categoryId": "podcast-clip",
+      "dimensionId": "mediaTrust",
+      "levelPct": 53.3,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-msnow",
+      "categoryId": "podcast-clip",
+      "dimensionId": "mediaTrust",
+      "levelPct": 50.1,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-no-newscaster",
+      "categoryId": "podcast-clip",
+      "dimensionId": "mediaTrust",
+      "levelPct": 56.2,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    },
+    {
+      "armId": "px-locked-out",
+      "categoryId": "podcast-clip",
+      "dimensionId": "mediaTrust",
+      "levelPct": 53.8,
+      "outcomeId": "ballot",
+      "significant": false,
+      "smallSample": false
+    }
+  ],
+  "dimensions": [
+    {
+      "askedBeforeExposure": true,
+      "categories": [
+        {
+          "id": "liberal",
+          "nWeighted": 969.9,
+          "name": "Liberal"
+        },
+        {
+          "id": "moderate",
+          "nWeighted": 955,
+          "name": "Moderate"
+        },
+        {
+          "id": "conservative",
+          "nWeighted": 578.1,
+          "name": "Conservative"
+        }
+      ],
+      "group": "ideology-party",
+      "id": "ideology",
+      "markedOfCells": {
+        "marked": 2,
+        "of": 12
+      },
+      "name": "Political ideology"
+    },
+    {
+      "askedBeforeExposure": true,
+      "categories": [
+        {
+          "id": "democrat",
+          "nWeighted": 932.7,
+          "name": "Democrat"
+        },
+        {
+          "id": "independent-other",
+          "nWeighted": 1205.2,
+          "name": "Independent or other"
+        },
+        {
+          "id": "republican",
+          "nWeighted": 365.1,
+          "name": "Republican"
+        }
+      ],
+      "group": "ideology-party",
+      "id": "party",
+      "markedOfCells": {
+        "marked": 2,
+        "of": 12
+      },
+      "name": "Party ID"
+    },
+    {
+      "askedBeforeExposure": true,
+      "categories": [
+        {
+          "id": "hs-or-less",
+          "nWeighted": 781.2,
+          "name": "High school or less"
+        },
+        {
+          "id": "some-college",
+          "nWeighted": 538.4,
+          "name": "Some college"
+        },
+        {
+          "id": "bachelors-plus",
+          "nWeighted": 1183.4,
+          "name": "Bachelor's degree or higher"
+        }
+      ],
+      "group": "education-vote",
+      "id": "education",
+      "markedOfCells": {
+        "marked": 2,
+        "of": 12
+      },
+      "name": "Education"
+    },
+    {
+      "askedBeforeExposure": true,
+      "categories": [
+        {
+          "id": "democrat",
+          "nWeighted": 937.1,
+          "name": "The Democratic candidate"
+        },
+        {
+          "id": "republican",
+          "nWeighted": 551.4,
+          "name": "The Republican candidate"
+        },
+        {
+          "id": "other",
+          "nWeighted": 59.5,
+          "name": "Another candidate",
+          "smallSampleAllCells": true
+        },
+        {
+          "id": "did-not-vote",
+          "nWeighted": 954.9,
+          "name": "I did not vote"
+        }
+      ],
+      "group": "education-vote",
+      "id": "vote2024",
+      "markedOfCells": {
+        "marked": 4,
+        "of": 16
+      },
+      "name": "2024 presidential vote choice"
+    },
+    {
+      "askedBeforeExposure": true,
+      "categories": [
+        {
+          "id": "tv-broadcast",
+          "nWeighted": 1147,
+          "name": "A traditional TV or broadcast ad",
+          "sharePct": 45.8
+        },
+        {
+          "id": "direct-to-camera",
+          "nWeighted": 769.6,
+          "name": "A short social video with a person speaking directly to camera",
+          "sharePct": 30.7
+        },
+        {
+          "id": "podcast-clip",
+          "nWeighted": 586.3,
+          "name": "A clip of a podcast or interview",
+          "sharePct": 23.4
+        }
+      ],
+      "group": "media-trust",
+      "id": "mediaTrust",
+      "markedOfCells": {
+        "marked": 2,
+        "of": 12
+      },
+      "name": "Media trust",
+      "selfSelected": true,
+      "shareDerivation": "computed"
+    }
+  ],
+  "fielded": {
+    "end": "2026-10-29",
+    "start": "2026-10-26"
+  },
+  "id": "open-primaries-1-computed",
+  "notes": {
+    "debriefQuestions": [],
+    "limitations": [
+      "No multiplicity adjustment is applied across subgroups."
+    ],
+    "methodology": [
+      "Counted: 2503 complete records, the latest per panel id, env development. Not counted: 0 complete(s) from another env, 600 earlier duplicate(s), 0 with an arm outside the test, 0 screenout(s); 3 start record(s) seen.",
+      "Raked to education, party, vote2024 in 3 iterations (largest remaining gap 7.1e-7); weights normalized to mean 1, range 0.306 to 4.627, capped at 5 (0 capped). Targets: Massachusetts general adults (18+), derived from the audience store by scripts/results/targets.mjs.",
+      "Weighting target, education (as raked): hs-or-less 31.2%, some-college 21.5%, bachelors-plus 47.3%. American Community Survey 5-year estimates (U.S. Census Bureau); education_4 @25, count; period 2020-01-01 to 2024-12-31; universe population 25+; proxy: population 25+; derivation audience-store. B15003 covers ages 25 and over; the store has no 18–24 education for the state, so the 25+ distribution stands in for adults 18+ and likely overstates bachelor's-or-higher for them.",
+      "Weighting target, party (as raked): democrat 37.3%, republican 14.6%, independent-other 48.2%. Cooperative Election Study common content 2020, 2022, 2024 (Harvard University); pid3 @25, 2024, pct (commonweight); period 2024-01-01 to 2024-12-31; universe adults 18+ (CES state respondents, commonweight); derivation audience-store. Party identification, a survey estimate: n 1119, margin of error up to ±4 points. The printed shares sum to 100.1 and are renormalized to 100. Identification, not enrollment: the state's party enrollment measures registration, a different construct on a different universe. 2024 is used to match the 2024 vote target (--party-year picks another); the store also holds 2023 (n 383, ±5) and 2025 (n 272, ±6.3).",
+      "Weighting target, vote2024 (as raked): democrat 37.4%, republican 22.0%, did-not-vote 38.2%, other 2.4%. Official ballot-measure results (state election offices); American Community Survey 5-year estimates (U.S. Census Bureau); presidential_vote @25, 2024, count; ACS age_bucket @25 (adults 18+); period 2024-11-05 to 2024-11-05; universe adults 18+; derivation audience-store. 3,512,930 ballots cast ÷ 5,679,875 adults 18+; \"Did not vote\" is the adults who cast no ballot (38.15%), non-citizen adults included. Blank presidential lines (a ballot cast, no presidential choice) count with \"other\" under the pax-entry map. Respondents over-report voting, so raking to the true non-vote share up-weights the non-voters a panel yields.",
+      "Declared but not asked by this test, so not raked: age, gender, race.",
+      "Levels are weighted percentages. Lifts are arm level minus placebo level, in points, with a margin of 1.645 standard errors. Each comparison is a two-sided two-proportion z-test with Kish effective sample sizes; detectable means p < 0.1 and at least 50 actual respondents in both groups."
+    ],
+    "noEffectMeaning": "Inconclusive means the comparison did not meet the criterion; it is not evidence of zero effect.",
+    "notSupported": [
+      "Comparisons between video arms: each arm is tested only against the placebo.",
+      "A verdict from any arm or subgroup with fewer than 50 actual respondents: those comparisons are inconclusive by rule."
+    ],
+    "supported": [
+      "Randomized comparison of each video arm with the placebo arm on stated ballot choice and comprehension."
+    ]
+  },
+  "outcomes": [
+    {
+      "definition": "The weighted percentage selecting Yes, compared with the placebo arm.",
+      "id": "ballot",
+      "name": "Ballot support",
+      "options": [
+        "Yes",
+        "No",
+        "Would not vote"
+      ],
+      "question": "If the election were held today, how would you vote on the measure?"
+    },
+    {
+      "correct": "All candidates would run in one primary, and the two with the most votes overall would advance",
+      "definition": "The weighted percentage choosing the correct description, compared with the placebo arm.",
+      "id": "comprehension",
+      "name": "Comprehension",
+      "options": [
+        "Each party would keep its own primary, but independent voters could choose one to vote in",
+        "All candidates would run in one primary, and the two with the most votes overall would advance",
+        "Primaries would be eliminated, and every candidate would go straight to the general election",
+        "General elections would be decided by ranked choice voting"
+      ],
+      "question": "Which of the following best describes the main change the measure would make?"
+    }
+  ],
+  "pairings": [],
+  "population": "Respondents who completed the test, weighted to Massachusetts general adults (18+)",
+  "sample": {
+    "raw": 2503,
+    "weighted": 2503
+  },
+  "sources": [
+    "pax-trinity-test-responses:open-primaries-1, computed 2026-10-29 (env development)."
+  ],
+  "stories": [],
+  "study": "Open Primaries Message Test",
+  "threshold": {
+    "label": "90% criterion (two-sided two-proportion test)",
+    "level": 0.9
+  },
+  "title": "Open Primaries Message Test: what the test found",
+  "toplines": [
+    {
+      "armId": "placebo",
+      "derivation": "computed",
+      "levelPct": 48.7,
+      "outcomeId": "ballot"
+    },
+    {
+      "armId": "placebo",
+      "derivation": "computed",
+      "levelPct": 43.7,
+      "outcomeId": "comprehension"
+    },
+    {
+      "armId": "px-gaby",
+      "derivation": "computed",
+      "levelPct": 61.4,
+      "liftPp": 12.7,
+      "outcomeId": "ballot",
+      "verdict": "detectable"
+    },
+    {
+      "armId": "px-gaby",
+      "derivation": "computed",
+      "levelPct": 56.3,
+      "liftPp": 12.6,
+      "outcomeId": "comprehension",
+      "verdict": "detectable"
+    },
+    {
+      "armId": "px-msnow",
+      "derivation": "computed",
+      "levelPct": 53.9,
+      "liftPp": 5.2,
+      "outcomeId": "ballot",
+      "verdict": "inconclusive"
+    },
+    {
+      "armId": "px-msnow",
+      "derivation": "computed",
+      "levelPct": 48.3,
+      "liftPp": 4.6,
+      "outcomeId": "comprehension",
+      "verdict": "inconclusive"
+    },
+    {
+      "armId": "px-no-newscaster",
+      "derivation": "computed",
+      "levelPct": 51.9,
+      "liftPp": 3.1,
+      "outcomeId": "ballot",
+      "verdict": "inconclusive"
+    },
+    {
+      "armId": "px-no-newscaster",
+      "derivation": "computed",
+      "levelPct": 55.2,
+      "liftPp": 11.4,
+      "outcomeId": "comprehension",
+      "verdict": "detectable"
+    },
+    {
+      "armId": "px-locked-out",
+      "derivation": "computed",
+      "levelPct": 50.2,
+      "liftPp": 1.4,
+      "outcomeId": "ballot",
+      "verdict": "inconclusive"
+    },
+    {
+      "armId": "px-locked-out",
+      "derivation": "computed",
+      "levelPct": 50.7,
+      "liftPp": 7,
+      "outcomeId": "comprehension",
+      "verdict": "detectable"
+    }
+  ],
+  "wave": 1,
+  "weightingFactors": [
+    "education",
+    "party",
+    "vote2024"
+  ]
+}

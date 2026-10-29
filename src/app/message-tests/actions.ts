@@ -5,6 +5,7 @@ import { redirect } from "next/navigation"
 
 import { PUBLISHED } from "@/components/clips/catalog"
 import { currentUser, forbidDemo } from "@/lib/auth"
+import { completeTest } from "@/lib/results/complete"
 import { getTest, saveTest } from "@/lib/tests/store"
 import { parseEntry, parseSingle } from "@/lib/tests/text"
 import { PLACEBO, problems, STATUSES, type Status, type TestRecord } from "@/lib/tests/types"
@@ -79,6 +80,14 @@ export async function setStatusAction(id: string, status: Status): Promise<SaveS
     await saveTest({ ...test, status }, { create: false })
   } catch (err) {
     return { errors: [`The tests table could not be written (${(err as Error).name}).`] }
+  }
+  // A test closed here writes its own results (the completion hook, src/lib/results/complete.ts).
+  if (status === "closed" && test.status !== "closed") {
+    try {
+      await completeTest(id)
+    } catch (err) {
+      console.error("completeTest failed on close", (err as Error).message)
+    }
   }
   revalidatePath("/message-tests")
   revalidatePath(`/message-tests/${id}`)
