@@ -848,7 +848,7 @@ export function Chat({ scripts = [], videos = [], shorts = [], compact = false, 
         }}
         onFocus={() => setIsFocused(true)}
         onBlur={(e) => !e.currentTarget.contains(e.relatedTarget as Node | null) && setIsFocused(false)}
-        className={`relative flex flex-col rounded-2xl border ${searchMode ? 'border-pax2-red/60' : addressMode || recordMode || (isEmpty && isFocused) ? 'border-pax2-light-blue' : recordingState !== 'idle' ? 'border-blue-500' : 'border-[var(--border)]'} bg-[var(--inp-bg)] px-4 pt-3 pb-3 transition-all gap-1 shadow-[0_1px_3px_rgba(0,0,0,0.04)] ${isFocused ? 'shadow-[0_8px_24px_rgba(0,0,0,0.08)]' : ''}`}>
+        className={`relative flex flex-col rounded-2xl border ${searchMode ? 'border-pax2-red/60' : addressMode || recordMode || (isEmpty && isFocused) ? 'border-pax2-light-blue' : recordingState !== 'idle' ? 'border-blue-500' : 'border-[var(--border)]'} bg-[var(--inp-bg)] px-4 pt-3 pb-3 transition-all gap-1 shadow-e1 ${isFocused ? 'shadow-[0_8px_24px_rgba(0,0,0,0.08)]' : ''}`}>
         {/* Record mode's light, and before a chat starts the same light while the cursor is in the box (Brendan, 2026-10-29). */}
         {!searchMode && (recordMode || (isEmpty && isFocused)) && <BorderLight />}
 
@@ -1055,8 +1055,10 @@ export function Chat({ scripts = [], videos = [], shorts = [], compact = false, 
   )
 
   return (
+    // The rail's dress (Brendan, 2026-10-29, after America Thinks): the mist ground, the box and my
+    // own turns white and raised on it.
     <div
-      className="relative flex h-full flex-1 flex-col overflow-hidden"
+      className="relative flex h-full flex-1 flex-col overflow-hidden bg-pax2-mist"
       style={SKIN}
       onDragOver={(e) => {
         if (!isShelfDrag(e.dataTransfer)) return
@@ -1183,7 +1185,7 @@ export function Chat({ scripts = [], videos = [], shorts = [], compact = false, 
               return (
               <div key={msg.id} data-turn={msg.role} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {msg.role === 'user' ? (
-                  <div className="max-w-[80%] whitespace-pre-wrap rounded-2xl rounded-br-sm px-4 py-3 text-[17px] leading-relaxed bg-[var(--inp-bg)] text-[var(--txt)]">
+                  <div className="max-w-[80%] whitespace-pre-wrap rounded-2xl rounded-br-sm px-4 py-3 text-[17px] leading-relaxed bg-[var(--inp-bg)] text-[var(--txt)] shadow-e1">
                     {msg.content}
                   </div>
                 ) : (

@@ -17,7 +17,8 @@ import { whiteButton } from "@/components/white-button"
 // Discord. Blocks is the shelf after Cloudflare's chat canvas: a handful of shorts, and any block added
 // from a page's block menu. A welcome list of rows; each opens its view in the same panel, with Back to the
 // list, except Record, which opens /recording. Slack and Discord are admins' alone (components/connect-view.tsx).
-// It sits in the shell's right slot in the take panel's frame, so the two read as one panel.
+// It sits in the shell's right slot in the take panel's frame, so the two read as one panel. It wears the
+// rail's dress (Brendan, 2026-10-29, after America Thinks): the mist ground, its rows the rail's rows.
 
 type View = "welcome" | "blocks" | "chat" | "slack" | "discord"
 
@@ -31,11 +32,15 @@ const TITLE: Record<View, string> = { welcome: "Discussion", blocks: "Blocks", c
 
 function Row({ icon, label, sub, onClick }: { icon: React.ReactNode; label: string; sub?: string; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} className="group flex w-full items-center gap-3 border-b border-slate-200/70 px-6 py-4 text-left transition-colors hover:bg-white/70">
-      <span className="flex size-4 shrink-0 items-center justify-center text-slate-400 group-hover:text-pax2-blue">{icon}</span>
+    <button
+      type="button"
+      onClick={onClick}
+      className="group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-[color,background-color,box-shadow] hover:bg-white/70 hover:shadow-e1"
+    >
+      <span className="flex size-4 shrink-0 items-center justify-center text-slate-500 transition-colors group-hover:text-pax2-blue [&_svg]:transition-colors group-hover:[&_svg]:fill-pax2-lavender">{icon}</span>
       <span className="flex-1">
-        <span className="block text-[15px] font-medium text-slate-900 group-hover:text-pax2-blue">{label}</span>
-        {sub && <span className="block text-xs text-slate-500">{sub}</span>}
+        <span className="block text-[15px] font-medium text-slate-600 group-hover:text-pax2-blue">{label}</span>
+        {sub && <span className="block text-xs text-slate-400">{sub}</span>}
       </span>
       <ChevronRight className="size-4 text-slate-400 group-hover:text-pax2-blue" />
     </button>
@@ -234,8 +239,8 @@ export function DiscussionPanel({ onClose: close, admin = false }: { onClose: ()
     close()
   }
   return (
-    <section className="fixed inset-0 z-50 flex flex-col bg-white md:static md:z-auto md:h-full md:overflow-hidden md:rounded-2xl md:border md:border-slate-500 md:shadow-e2">
-      <div className="relative z-10 flex min-h-[73px] shrink-0 items-center justify-between gap-3 bg-white px-6 py-4">
+    <section className="fixed inset-0 z-50 flex flex-col bg-pax2-mist md:static md:z-auto md:h-full md:overflow-hidden md:rounded-2xl md:border md:border-slate-500 md:shadow-e2">
+      <div className="relative z-10 flex min-h-[73px] shrink-0 items-center justify-between gap-3 bg-pax2-mist px-6 py-4">
         <div className="flex min-w-0 items-center gap-2">
           {view !== "welcome" && (
             <button type="button" onClick={() => (sub ? sub.back() : setView("welcome"))} aria-label="Back" className="-ml-2 flex size-9 shrink-0 items-center justify-center rounded-full text-slate-600 hover:bg-white hover:text-pax2-blue">
@@ -259,7 +264,7 @@ export function DiscussionPanel({ onClose: close, admin = false }: { onClose: ()
       </div>
       <div className={cn("flex min-h-0 flex-1 flex-col", view === "welcome" && "overflow-y-auto", view === "chat" && "border-t border-slate-200/70")}>
         {view === "welcome" && (
-          <div className="border-t border-slate-200/70">
+          <div className="flex flex-col gap-0.5 px-3 pt-1">
             <Row icon={<LayoutGrid className="size-4" />} label="Blocks" sub="Shorts and blocks you've saved" onClick={() => setView("blocks")} />
             <Row icon={<MessagesSquare className="size-4" />} label="Chat" sub="Ask about the scores, scripts and results" onClick={() => setView("chat")} />
             <Row icon={<Video className="size-4" />} label="Record" sub="Write a script, record it or upload a video" onClick={() => router.push("/recording")} />

@@ -95,15 +95,21 @@ function List({ source, forum, onOpen }: { source: Source; forum?: Item; onOpen:
   if (!state.ok) return <Line>{state.error}</Line>
   if (!state.data.length) return <Line>{forum ? "No posts in this forum yet." : "No channels PAX can see yet."}</Line>
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto border-t border-slate-200/70">
+    // The discussion panel's rows, in the rail's dress (Brendan, 2026-10-29).
+    <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-3 pt-1">
       {state.data.map((it) => {
         const Icon = ICON[it.icon]
         return (
-          <button key={it.id} type="button" onClick={() => onOpen(it)} className="group flex w-full items-center gap-3 border-b border-slate-200/70 px-6 py-3 text-left transition-colors hover:bg-white/70">
-            <Icon className="size-4 shrink-0 text-slate-400 group-hover:text-pax2-blue" />
+          <button
+            key={it.id}
+            type="button"
+            onClick={() => onOpen(it)}
+            className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-[color,background-color,box-shadow] hover:bg-white/70 hover:shadow-e1"
+          >
+            <Icon className="size-4 shrink-0 text-slate-500 transition-colors group-hover:fill-pax2-lavender group-hover:text-pax2-blue" />
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-[15px] font-medium text-slate-900 group-hover:text-pax2-blue">{it.name}</span>
-              {it.sub && <span className="block text-xs text-slate-500">{it.sub}</span>}
+              <span className="block truncate text-[15px] font-medium text-slate-600 group-hover:text-pax2-blue">{it.name}</span>
+              {it.sub && <span className="block text-xs text-slate-400">{it.sub}</span>}
             </span>
             <ChevronRight className="size-4 shrink-0 text-slate-400 group-hover:text-pax2-blue" />
           </button>
