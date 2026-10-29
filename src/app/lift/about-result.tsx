@@ -18,6 +18,7 @@ import { fielding, levelOf, metricShort, POINT_LEFT, POINT_RIGHT, segOf, signed,
 
 const ORDINAL = ["1st", "2nd", "3rd", "4th", "5th"]
 const QUINTILE = ["bg-red-500", "bg-orange-400", "bg-yellow-400", "bg-green-500", "bg-green-700"]
+const QUINTILE_HEX = ["#ef4444", "#fb923c", "#facc15", "#22c55e", "#15803d"]
 
 /** Where x falls among values: the percent below it, ties counted half (audience/api.py's place_lift). */
 function percentile(values: number[], x: number) {
@@ -142,7 +143,7 @@ export function AboutResult({ pick, rows, complete, place, onClose }: { pick: Pi
             {complete ? (
               <div className="flex flex-col gap-2">
                 {pools.map((p) => (
-                  <Benchmark key={p.name} name={p.name} values={p.values} x={delta} />
+                  <Benchmark key={p.name} name={p.name} values={p.values} x={delta} moe={lift[9]} context={{ metric: metricShort(pick.metric), segment: pick.segName, geography: place(lift[1]) }} />
                 ))}
               </div>
             ) : (
@@ -239,7 +240,9 @@ function Strength({ z }: { z: number }) {
   )
 }
 
-function Benchmark({ name, values, x }: { name: string; values: number[]; x: number }) {
+type Context = { metric: string; segment: string; geography: string }
+
+function Benchmark({ name, values, x, moe, context }: { name: string; values: number[]; x: number; moe: number | null; context: Context }) {
   const [open, setOpen] = React.useState(false)
   // Five quintiles need five ads to place among.
   const pct = values.length >= 5 ? percentile(values, x) : null
@@ -251,7 +254,7 @@ function Benchmark({ name, values, x }: { name: string; values: number[]; x: num
         <span className="min-w-0 flex-1 text-[13px] font-medium">{name}</span>
         {q != null ? (
           <span className="flex shrink-0 flex-col items-end gap-0.5">
-            <span className="text-[13px]">{ORDINAL[q - 1]} Quintile</span>
+            <span className="text-[13px]">{q === 5 ? "Top" : ORDINAL[q - 1]} Quintile</span>
             <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground tabular-nums">
               {(q - 1) * 20} – {q * 20}%
               <span className="flex gap-[1.5px]">
@@ -267,20 +270,108 @@ function Benchmark({ name, values, x }: { name: string; values: number[]; x: num
         <ChevronDown aria-hidden className={cn("size-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")} />
       </button>
       {open && values.length > 0 && (
-        <dl className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 border-t px-3 py-2.5 text-xs">
-          {pct != null && (
-            <>
-              <dt className="text-muted-foreground">Percentile</dt>
-              <dd className="text-right font-semibold tabular-nums">{Math.round(pct)}</dd>
-            </>
-          )}
-          <dt className="text-muted-foreground">Median impact</dt>
-          <dd className="text-right font-semibold tabular-nums">{signed(median(values))}</dd>
-          <dt className="text-muted-foreground">Ads</dt>
-          <dd className="text-right font-semibold tabular-nums">{values.length.toLocaleString("en-US")}</dd>
-        </dl>
+        <div className="border-t px-3 pt-3 pb-2.5">
+          {pct != null && <Density values={values} x={x} moe={moe} />}
+          <dl className="mt-2 grid grid-cols-[1fr_auto] gap-x-3 text-[13px]">
+            <dt className="border-b py-2">Impact from Treatment</dt>
+            <dd className="border-b py-2 text-right tabular-nums">
+              {signed(x)} pts
+              {moe != null && <span className="block text-[11px] text-muted-foreground">±{num(moe)}</span>}
+            </dd>
+            <dt className="py-2">Median Impact in Benchmark</dt>
+            <dd className="py-2 text-right tabular-nums">{signed(median(values))} pts</dd>
+          </dl>
+          <p className="mt-2 mb-1 text-xs text-muted-foreground">About Comparable Set</p>
+          <dl className="grid grid-cols-[auto_1fr] gap-x-4 text-xs">
+            {(
+              [
+                ["Set", name],
+                ["Geography", context.geography],
+                ["Metric", context.metric],
+                ["Segment", context.segment],
+                ["Ads", values.length.toLocaleString("en-US")],
+              ] as const
+            ).map(([k, v]) => (
+              <React.Fragment key={k}>
+                <dt className="border-t py-1.5 text-muted-foreground">{k}</dt>
+                <dd className="border-t py-1.5">{v}</dd>
+              </React.Fragment>
+            ))}
+          </dl>
+        </div>
       )}
     </div>
+  )
+}
+
+/** The benchmark's lifts as a smoothed distribution (a Gaussian kernel, Silverman's bandwidth), its baseline
+ *  colored by quintile and ticked at the four cuts, the result marked on it with its margin. */
+function Density({ values, x, moe }: { values: number[]; x: number; moe: number | null }) {
+  const W = 300
+  const BASE = 56
+  const shape = React.useMemo(() => {
+    const s = [...values].sort((a, b) => a - b)
+    const at = (p: number) => {
+      const i = p * (s.length - 1)
+      const lo = Math.floor(i)
+      return s[lo] + (s[Math.min(lo + 1, s.length - 1)] - s[lo]) * (i - lo)
+    }
+    const mean = s.reduce((a, b) => a + b, 0) / s.length
+    const sd = Math.sqrt(s.reduce((a, b) => a + (b - mean) ** 2, 0) / s.length)
+    const lo = Math.min(s[0], x - (moe ?? 0))
+    const hi = Math.max(s[s.length - 1], x + (moe ?? 0))
+    const pad = (hi - lo || 1) * 0.06
+    const min = lo - pad
+    const max = hi + pad
+    const bw = sd > 0 ? 1.06 * sd * s.length ** -0.2 : (max - min) / 12
+    const N = 72
+    const ys = Array.from({ length: N + 1 }, (_, i) => {
+      const v = min + ((max - min) * i) / N
+      let d = 0
+      for (const t of s) d += Math.exp(-0.5 * ((v - t) / bw) ** 2)
+      return d
+    })
+    const top = Math.max(...ys) || 1
+    const xOf = (v: number) => ((v - min) / (max - min)) * W
+    const path = `M0,${BASE} ` + ys.map((d, i) => `L${((i / N) * W).toFixed(1)},${(BASE - (d / top) * (BASE - 16)).toFixed(1)}`).join(" ") + ` L${W},${BASE} Z`
+    return { path, xOf, cuts: [0.2, 0.4, 0.6, 0.8].map(at), min, max }
+  }, [values, x, moe])
+  const X = Math.min(W - 4, Math.max(4, shape.xOf(x)))
+  // A cut's label stands only where it clears the last one drawn; a small pool's cuts crowd.
+  const labeled: number[] = []
+  for (let i = 0; i < shape.cuts.length; i++) {
+    const last = labeled.at(-1)
+    if (last == null || shape.xOf(shape.cuts[i]) - shape.xOf(shape.cuts[last]) >= 26) labeled.push(i)
+  }
+  const edges = [shape.min, ...shape.cuts, shape.max]
+  return (
+    <svg viewBox={`0 0 ${W} ${BASE + 16}`} className="w-full" role="img" aria-label={`The result, ${signed(x)}, among the benchmark's lifts`}>
+      <path d={shape.path} fill="#e7e6e2" />
+      {edges.slice(0, -1).map((e, i) => (
+        <rect key={i} x={shape.xOf(e)} y={BASE - 1} width={Math.max(0, shape.xOf(edges[i + 1]) - shape.xOf(e))} height={2.5} fill={QUINTILE_HEX[i]} />
+      ))}
+      {shape.cuts.map((c, i) => (
+        <g key={i}>
+          <line x1={shape.xOf(c)} x2={shape.xOf(c)} y1={BASE - 3} y2={BASE + 3} stroke="#52514e" strokeWidth={1} />
+          {labeled.includes(i) && (
+            <text x={shape.xOf(c)} y={BASE + 14} textAnchor="middle" fontSize={10} fill="#52514e">
+              {num(c)}
+            </text>
+          )}
+        </g>
+      ))}
+      {moe != null && <line x1={shape.xOf(x - moe)} x2={shape.xOf(x + moe)} y1={BASE - 5} y2={BASE - 5} stroke="#0f172a" strokeWidth={1.5} />}
+      <path d={`M${X - 5},${BASE - 11} L${X + 5},${BASE - 11} L${X},${BASE - 4} Z`} fill="#0f172a" />
+      <text x={Math.min(W - 30, Math.max(30, X))} y={10} textAnchor="middle" fontSize={12} fontWeight={600} fill="#0b0b0b">
+        {signed(x)}
+        {moe != null && (
+          <tspan fontSize={10} fontWeight={400} fill="#52514e">
+            {" "}
+            ±{num(moe)}
+          </tspan>
+        )}
+      </text>
+    </svg>
   )
 }
 

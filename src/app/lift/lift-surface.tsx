@@ -2,11 +2,12 @@
 
 import * as React from "react"
 import { Combobox } from "@base-ui/react/combobox"
-import { ArrowDownUp, Check, CircleDashed, Copy, Download, Folder, Funnel, Info, ListFilter, Loader2, SeparatorVertical, Share, Spline, Users } from "lucide-react"
+import { ArrowDownUp, ChartColumn, Check, CircleDashed, Copy, Download, Folder, Funnel, Info, ListFilter, Loader2, SeparatorVertical, Share, Spline, Users } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { BankFrame, BankRail as RailState } from "@/components/bank/bank-frame"
 import { BankRail, RailGroup, RailRow } from "@/components/bank/bank-rail"
+import { ViewToggle } from "@/components/bank/pane-bars"
 import { RESULT_SETS } from "@/lib/results"
 import {
   DropdownMenu,
@@ -24,7 +25,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components
 import { dimLabel, groupSources, num, type AudienceIndex, type SourceRow } from "../america-thinks/audience-data"
 import { rowDress } from "../america-thinks/segment-grid"
 import { AboutResult } from "./about-result"
-import { dimOf, fielding, isPlacebo, levelOf, metricShort, ordered, periodKey, POINT_LEFT, POINT_RIGHT, segKey, segOf, signed, significance, treatmentName, valOf, type Cell, type Pick } from "./lift-data"
+import { dimOf, fielding, isPlacebo, metricShort, ordered, periodKey, segKey, segOf, significance, treatmentName, valOf, type Cell, type Pick } from "./lift-data"
+import { Candle, EmotionBar, EmotionKey, heat, HeatKey, sampleEmotions } from "./lift-marks"
 
 // /lift — Swayable's results view (Brendan, 2026-10-28, from the Dream Crazy
 // Campaign screen): the folders in the rail (the PAX tests, the archive of
@@ -39,6 +41,10 @@ import { dimOf, fielding, isPlacebo, levelOf, metricShort, ordered, periodKey, P
 // A clicked cell's row takes the rows' selected dress and About Result comes
 // in at the right. The archive's five hundred treatments read twenty-five at
 // a time. ?source=PAX_TEST or ?source=LIFT_ARCHIVE opens on that folder.
+// Heatmap (the Chime Demo screen, Brendan, 2026-10-29) is the second view:
+// Breakdown, Content and Segment down the left, each lift a number in a cell
+// shaded from the benchmark's median, the median's own row leading each
+// breakdown. Emotional Response stands in both views on placeholder shares.
 
 const SOURCES: Record<string, string> = { PAX_TEST: "Tests", LIFT_ARCHIVE: "Archive" }
 const PER_READ = 25
@@ -46,8 +52,9 @@ const BY_NAME = "@name"
 const PLACEBO = "\u0000placebo"
 /** The outcome each test was built to move: the MA tests' ballot support, the archive's two indices. The rest are Secondary. */
 const PRIMARY = new Set(["lift_support", "lift_favorability", "lift_vote_choice"])
-/** The share of a cell the table's largest lift spans from the axis. */
-const REACH = 40
+/** The Emotional Response column's key in the Metrics menu and metricsOff. */
+const EMOTION = "@emotion"
+const EMOTION_WIDTH = 300
 
 /** A treatment's thumbnail: one still frame of its tested video, cut once with ffmpeg (public/lift/thumbs/). */
 const THUMB: Record<string, string> = {
@@ -75,6 +82,8 @@ const TD = "border-b px-3 py-2 align-middle text-[13px]"
 const HEAD_ICON = "shrink-0 text-muted-foreground hover:text-foreground aria-expanded:text-foreground"
 /** A cell's button: the grid's focus frame, no pressed state; the row carries the selection. */
 const FRAME = "block w-full rounded-[3px] text-left tabular-nums focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pax2-light-blue"
+/** A heatmap cell's button: the fill is the cell, the focus frame inside it. */
+const HEAT = "flex h-10 w-full items-center justify-center text-[13px] tabular-nums focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-pax2-light-blue"
 
 type Sort = { by: string; dir: 1 | -1 }
 
@@ -96,6 +105,9 @@ export function LiftSurface() {
   const [depth, setDepth] = React.useState(PER_READ)
   const [widths, setWidths] = React.useState({ treatment: 220, segment: 170 })
   const [shared, setShared] = React.useState(false)
+  const [display, setDisplay] = React.useState<"bars" | "heatmap">("bars")
+  // The heatmap's benchmark: every lift on file for the metric and segment, by its median.
+  const [bench, setBench] = React.useState(true)
 
   React.useEffect(() => {
     let on = true
@@ -198,6 +210,24 @@ export function LiftSurface() {
     return { metrics, periods, options, dims, cell }
   }, [rows, periodsOff])
 
+  // The benchmark's median per metric and segment: every treatment's lift on file, every fielding.
+  const medians = React.useMemo(() => {
+    const by = new Map<string, number[]>()
+    for (const r of rows ?? []) {
+      if (r[8] !== "lift_pp") continue
+      const k = `${r[0]}\u0001${segOf(r)}`
+      by.set(k, [...(by.get(k) ?? []), r[7]])
+    }
+    const out = new Map<string, { median: number; n: number }>()
+    for (const [k, vs] of by) {
+      const s = [...vs].sort((a, b) => a - b)
+      const m = s.length >> 1
+      out.set(k, { median: s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2, n: s.length })
+    }
+    return out
+  }, [rows])
+  const median = React.useCallback((metric: string, seg: string) => medians.get(`${metric}\u0001${seg}`) ?? null, [medians])
+
   const chosen = React.useMemo(() => {
     if (!read) return []
     const featured = FEATURED[source]
@@ -240,9 +270,19 @@ export function LiftSurface() {
       respondents += n
     }
     for (const n of placebos.values()) respondents += n
+    // The heatmap shades each lift from its center, the benchmark's median or zero.
+    let spread = 0
+    for (const o of treatments)
+      for (const m of metrics)
+        for (const g of groups)
+          for (const s of g.segs) {
+            const c = read.cell(o, m, s.key)
+            if (c) spread = Math.max(spread, Math.abs(c.lift[7] - (bench ? (median(m, s.key)?.median ?? 0) : 0)))
+          }
     const primary = metrics.filter((m) => PRIMARY.has(m)).length
-    return { metrics, primary, by, dir, treatments, groups, segCount: groups.reduce((n, g) => n + g.segs.length, 0), extent, respondents }
-  }, [read, chosen, metricsOff, segsOff, sort])
+    const emotion = !metricsOff.includes(EMOTION)
+    return { metrics, primary, emotion, by, dir, treatments, groups, segCount: groups.reduce((n, g) => n + g.segs.length, 0), extent, spread, respondents }
+  }, [read, chosen, metricsOff, segsOff, sort, bench, median])
 
   const shown = view ? view.treatments.slice(0, depth) : []
   const canLoad = view ? depth < view.treatments.length : false
@@ -307,7 +347,7 @@ export function LiftSurface() {
         <DropdownMenuTrigger asChild>
           <button type="button" className={TOOL} disabled={!read}>
             <Spline className={TOOL_ICON} />
-            {plural(view?.metrics.length ?? 0, "Metric")}
+            {plural((view?.metrics.length ?? 0) + (view?.emotion ? 1 : 0), "Metric")}
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-max min-w-48">
@@ -319,6 +359,10 @@ export function LiftSurface() {
               </DropdownMenuCheckboxItem>
             </React.Fragment>
           ))}
+          <DropdownMenuLabel className="text-xs text-muted-foreground">Emotion</DropdownMenuLabel>
+          <DropdownMenuCheckboxItem checked={!metricsOff.includes(EMOTION)} onSelect={(e) => e.preventDefault()} onCheckedChange={() => setMetricsOff((prev) => toggled(prev, EMOTION))}>
+            Emotional response
+          </DropdownMenuCheckboxItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -393,7 +437,37 @@ export function LiftSurface() {
         </DropdownMenuContent>
       </DropdownMenu>
 
+      {display === "heatmap" && (
+        <>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button type="button" className={TOOL} disabled={!read}>
+                <ChartColumn className={TOOL_ICON} />
+                {bench ? "All tests (Median)" : "No benchmark"}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-max min-w-52">
+              <DropdownMenuRadioGroup value={bench ? "median" : "none"} onValueChange={(v) => setBench(v === "median")}>
+                <DropdownMenuRadioItem value="median">All tests (Median)</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="none">No benchmark</DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <HeatKey center={bench ? "median" : "zero"} />
+        </>
+      )}
+
       <div className="ml-auto flex items-center gap-0.5">
+        <span className="mr-1.5">
+          <ViewToggle
+            views={[
+              { value: "bars", label: "Bars" },
+              { value: "heatmap", label: "Heatmap" },
+            ]}
+            value={display}
+            onChange={setDisplay}
+          />
+        </span>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button type="button" className={TOOL} disabled={!view}>
@@ -459,28 +533,134 @@ export function LiftSurface() {
     </DropdownMenu>
   )
 
-  const width = view ? 2 + view.metrics.length : 2
-  const row = (o: string, s: { key: string; name: string }, first: boolean, last: boolean, sel: boolean) =>
+  const cols = view ? view.metrics.length + (view.emotion ? 1 : 0) : 0
+  const pick = (o: string, m: string, s: { key: string; name: string }, c: Cell) => setAbout({ option: o, metric: m, seg: s.key, segName: s.name, cell: c })
+  const fmt = (v: number) => `${v < 0 ? "−" : ""}${num(Math.abs(v))}`
+
+  const creative = (o: string) => (
+    <span className="flex min-h-6 items-center gap-2.5">
+      {THUMB[o] && <img src={THUMB[o]} alt="" width={36} height={24} className="h-6 w-9 shrink-0 rounded-[3px] bg-muted object-cover" />}
+      <span className="line-clamp-2 font-medium" title={o}>
+        {treatmentName(o)}
+      </span>
+    </span>
+  )
+
+  const contentHead = (label: string) => (
+    <th rowSpan={2} className={cn(TH, "align-top", label !== "Treatment" && "border-l")}>
+      <span className="flex items-center gap-2">
+        {label}
+        <span className="ml-auto flex items-center gap-2">
+          {sortMenu(BY_NAME, [
+            { label: "Name, A to Z", dir: 1 },
+            { label: "Name, Z to A", dir: -1 },
+          ])}
+          <Resize width={widths.treatment} onWidth={(w) => setWidths((p) => ({ ...p, treatment: w }))} />
+        </span>
+      </span>
+    </th>
+  )
+  const segmentHead = (
+    <th rowSpan={2} className={cn(TH, "border-l align-top")}>
+      <span className="flex items-center gap-2">
+        Segment
+        <span className="ml-auto">
+          <Resize width={widths.segment} onWidth={(w) => setWidths((p) => ({ ...p, segment: w }))} />
+        </span>
+      </span>
+    </th>
+  )
+  const GROUP_TH = "border-b border-l px-3 pt-2 pb-1 text-left align-top text-xs font-normal text-muted-foreground"
+  const groupHeads = view && (
+    <>
+      {view.primary > 0 && (
+        <th colSpan={view.primary} className={GROUP_TH}>
+          Primary
+        </th>
+      )}
+      {view.metrics.length > view.primary && (
+        <th colSpan={view.metrics.length - view.primary} className={GROUP_TH}>
+          Secondary
+        </th>
+      )}
+      {view.emotion && (
+        <th className={GROUP_TH}>
+          <span className="flex items-start gap-3">
+            Emotion
+            <EmotionKey />
+          </span>
+        </th>
+      )}
+    </>
+  )
+  const metricHeads = view && (
+    <>
+      {view.metrics.map((m) => (
+        <th key={m} className={cn(TH, "border-l")}>
+          <span className="flex items-center gap-2">
+            <span className="truncate" title={metricShort(m)}>
+              {metricShort(m)}
+            </span>
+            <span className="ml-auto flex items-center gap-2">
+              {defs.get(m) && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button type="button" aria-label={`About ${labels.get(m) ?? metricShort(m)}`} className={HEAD_ICON}>
+                      <Info className="size-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-72">{defs.get(m)}</TooltipContent>
+                </Tooltip>
+              )}
+              {sortMenu(
+                m,
+                [
+                  { label: "Lift, high to low", dir: -1 },
+                  { label: "Lift, low to high", dir: 1 },
+                ],
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={() => setMetricsOff((prev) => [...prev, m])}>Hide this metric</DropdownMenuItem>
+                </>
+              )}
+            </span>
+          </span>
+        </th>
+      ))}
+      {view.emotion && (
+        <th className={cn(TH, "border-l")}>
+          <span className="flex items-center gap-2">
+            Emotional Response
+            <span className="rounded-md border px-1.5 py-px text-[10px] font-normal text-muted-foreground">Sample</span>
+            <span className="ml-auto flex items-center">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button type="button" aria-label="About Emotional Response" className={HEAD_ICON}>
+                    <Info className="size-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-72">The share of respondents naming each feeling after the ad. No test has asked it yet: these shares are placeholders.</TooltipContent>
+              </Tooltip>
+            </span>
+          </span>
+        </th>
+      )}
+    </>
+  )
+  const emotionCell = (o: string, s: { key: string }) => view?.emotion && <td className={cn(TD, "border-l")}>{<EmotionBar shares={sampleEmotions(`${o}\u0001${s.key}`)} />}</td>
+
+  const barsRow = (o: string, s: { key: string; name: string }, first: boolean, last: boolean, sel: boolean) =>
     read &&
     view && (
       <tr key={`${o}\u0001${s.key}`} className={rowDress(sel)}>
-        <td className={cn(TD, !last && "border-b-transparent")}>
-          {first && (
-            <span className="flex min-h-6 items-center gap-2.5">
-              {THUMB[o] && <img src={THUMB[o]} alt="" width={36} height={24} className="h-6 w-9 shrink-0 rounded-[3px] bg-muted object-cover" />}
-              <span className="line-clamp-2 font-medium" title={o}>
-                {treatmentName(o)}
-              </span>
-            </span>
-          )}
-        </td>
+        <td className={cn(TD, !last && "border-b-transparent")}>{first && creative(o)}</td>
         <td className={cn(TD, "border-l")}>{s.name}</td>
         {view.metrics.map((m) => {
           const c = read.cell(o, m, s.key)
           return (
             <td key={m} className={cn(TD, "border-l")}>
               {c ? (
-                <button type="button" onClick={() => setAbout({ option: o, metric: m, seg: s.key, segName: s.name, cell: c })} className={FRAME}>
+                <button type="button" onClick={() => pick(o, m, s, c)} className={FRAME}>
                   <Candle cell={c} extent={view.extent} />
                 </button>
               ) : (
@@ -489,83 +669,27 @@ export function LiftSurface() {
             </td>
           )
         })}
+        {emotionCell(o, s)}
       </tr>
     )
 
-  const table = view && read && (
-    <table className="w-full table-fixed border-collapse" style={{ minWidth: widths.treatment + widths.segment + view.metrics.length * 220 }}>
+  const barsTable = view && read && (
+    <table className="w-full table-fixed border-collapse" style={{ minWidth: widths.treatment + widths.segment + view.metrics.length * 220 + (view.emotion ? EMOTION_WIDTH : 0) }}>
       <colgroup>
         <col style={{ width: widths.treatment }} />
         <col style={{ width: widths.segment }} />
         {view.metrics.map((m) => (
           <col key={m} />
         ))}
+        {view.emotion && <col style={{ width: EMOTION_WIDTH }} />}
       </colgroup>
       <thead className="sticky top-0 z-[1] bg-background">
         <tr>
-          <th rowSpan={2} className={cn(TH, "align-top")}>
-            <span className="flex items-center gap-2">
-              Treatment
-              <span className="ml-auto flex items-center gap-2">
-                {sortMenu(BY_NAME, [
-                  { label: "Name, A to Z", dir: 1 },
-                  { label: "Name, Z to A", dir: -1 },
-                ])}
-                <Resize width={widths.treatment} onWidth={(w) => setWidths((p) => ({ ...p, treatment: w }))} />
-              </span>
-            </span>
-          </th>
-          <th rowSpan={2} className={cn(TH, "border-l align-top")}>
-            <span className="flex items-center gap-2">
-              Segment
-              <span className="ml-auto">
-                <Resize width={widths.segment} onWidth={(w) => setWidths((p) => ({ ...p, segment: w }))} />
-              </span>
-            </span>
-          </th>
-          {view.primary > 0 && (
-            <th colSpan={view.primary} className="border-b border-l px-3 pt-2 pb-1 text-left text-xs font-normal text-muted-foreground">
-              Primary
-            </th>
-          )}
-          {view.metrics.length > view.primary && (
-            <th colSpan={view.metrics.length - view.primary} className="border-b border-l px-3 pt-2 pb-1 text-left text-xs font-normal text-muted-foreground">
-              Secondary
-            </th>
-          )}
+          {contentHead("Treatment")}
+          {segmentHead}
+          {groupHeads}
         </tr>
-        <tr>
-          {view.metrics.map((m) => (
-            <th key={m} className={cn(TH, "border-l")}>
-              <span className="flex items-center gap-2">
-                <span className="truncate">{metricShort(m)}</span>
-                <span className="ml-auto flex items-center gap-2">
-                  {defs.get(m) && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button type="button" aria-label={`About ${labels.get(m) ?? metricShort(m)}`} className={HEAD_ICON}>
-                          <Info className="size-4" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-72">{defs.get(m)}</TooltipContent>
-                    </Tooltip>
-                  )}
-                  {sortMenu(
-                    m,
-                    [
-                      { label: "Lift, high to low", dir: -1 },
-                      { label: "Lift, low to high", dir: 1 },
-                    ],
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onSelect={() => setMetricsOff((prev) => [...prev, m])}>Hide this metric</DropdownMenuItem>
-                    </>
-                  )}
-                </span>
-              </span>
-            </th>
-          ))}
-        </tr>
+        <tr>{metricHeads}</tr>
       </thead>
       <tbody>
         {view.groups.map((g) => (
@@ -573,21 +697,115 @@ export function LiftSurface() {
             {g.dim && (
               <tr>
                 <td className="border-b bg-pax2-mist" />
-                <td colSpan={width - 1} className="border-b bg-pax2-mist px-3 py-1.5 text-xs font-semibold text-muted-foreground">
+                <td colSpan={1 + cols} className="border-b bg-pax2-mist px-3 py-1.5 text-xs font-semibold text-muted-foreground">
                   {g.name}
                 </td>
               </tr>
             )}
             {shown.flatMap((o) => {
               const segs = g.segs.filter((s) => view.metrics.some((m) => read.cell(o, m, s.key)))
-              return segs.map((s, i) => row(o, s, i === 0, i === segs.length - 1, about?.option === o && about.seg === s.key))
+              return segs.map((s, i) => barsRow(o, s, i === 0, i === segs.length - 1, about?.option === o && about.seg === s.key))
             })}
           </React.Fragment>
         ))}
-        {canLoad && <MoreRow span={width} onMore={more} />}
+        {canLoad && <MoreRow span={2 + cols} onMore={more} />}
       </tbody>
     </table>
   )
+
+  const heatTable = view && read && (
+    <table className="w-full table-fixed border-collapse" style={{ minWidth: 110 + widths.treatment + widths.segment + view.metrics.length * 130 + (view.emotion ? EMOTION_WIDTH : 0) }}>
+      <colgroup>
+        <col style={{ width: 110 }} />
+        <col style={{ width: widths.treatment }} />
+        <col style={{ width: widths.segment }} />
+        {view.metrics.map((m) => (
+          <col key={m} />
+        ))}
+        {view.emotion && <col style={{ width: EMOTION_WIDTH }} />}
+      </colgroup>
+      <thead className="sticky top-0 z-[1] bg-background">
+        <tr>
+          <th rowSpan={2} className={cn(TH, "align-top")}>
+            Breakdown
+          </th>
+          {contentHead("Content")}
+          {segmentHead}
+          {groupHeads}
+        </tr>
+        <tr>{metricHeads}</tr>
+      </thead>
+      <tbody>
+        {view.groups.map((g) => {
+          // The benchmark's median rows lead each breakdown, then each treatment's segments.
+          const blocks = [
+            ...(bench ? [{ o: null as string | null, segs: g.segs.filter((s) => view.metrics.some((m) => median(m, s.key))) }] : []),
+            ...shown.map((o) => ({ o: o as string | null, segs: g.segs.filter((s) => view.metrics.some((m) => read.cell(o, m, s.key))) })),
+          ].filter((b) => b.segs.length)
+          // Named once at the top of its run, the way the bars view names a treatment: no row spans, so a row's dress stays its own.
+          return blocks.flatMap((b, bi) =>
+            b.segs.map((s, si) => {
+              const o = b.o
+              const lastOfBlock = si === b.segs.length - 1
+              return (
+                <tr key={`${g.dim ?? ""}\u0001${o ?? "@median"}\u0001${s.key}`} className={o ? rowDress(about?.option === o && about.seg === s.key) : undefined}>
+                  <td className={cn(TD, "font-medium", !(lastOfBlock && bi === blocks.length - 1) && "border-b-transparent")}>{bi === 0 && si === 0 && (g.dim ? g.name : "Overall")}</td>
+                  <td className={cn(TD, "border-l", !lastOfBlock && "border-b-transparent")}>
+                    {si === 0 &&
+                      (o ? (
+                        creative(o)
+                      ) : (
+                        <span className="flex min-h-6 items-center gap-2.5">
+                          <ChartColumn aria-hidden className="size-4 shrink-0 text-muted-foreground" />
+                          <span className="font-medium">All tests</span>
+                          <span className="rounded-md bg-muted px-1.5 py-px text-[11px] text-muted-foreground">Median</span>
+                        </span>
+                      ))}
+                  </td>
+                  <td className={cn(TD, "border-l")}>{s.name}</td>
+                  {view.metrics.map((m) => {
+                    const med = median(m, s.key)
+                    if (!o)
+                      return (
+                        <td key={m} className="border-b border-l p-0">
+                          <span className="flex h-10 items-center justify-center bg-[#f0efec] text-[13px] tabular-nums" title={med ? `Median of ${med.n.toLocaleString("en-US")} lifts on file` : undefined}>
+                            {med ? fmt(med.median) : "—"}
+                          </span>
+                        </td>
+                      )
+                    const c = read.cell(o, m, s.key)
+                    if (!c)
+                      return (
+                        <td key={m} className={cn(TD, "border-l text-center text-xs text-muted-foreground/40")}>
+                          —
+                        </td>
+                      )
+                    const center = bench ? (med?.median ?? 0) : 0
+                    return (
+                      <td key={m} className="border-b border-l p-0">
+                        <button
+                          type="button"
+                          onClick={() => pick(o, m, s, c)}
+                          title={`${treatmentName(o)} · ${s.name}: ${fmt(c.lift[7])}${bench && med ? `, median ${fmt(med.median)}` : ""}`}
+                          className={cn(HEAT, significance(c.lift) === false ? "text-foreground/55" : "font-semibold")}
+                          style={{ background: heat(c.lift[7], center, view.spread) }}
+                        >
+                          {fmt(c.lift[7])}
+                        </button>
+                      </td>
+                    )
+                  })}
+                  {o ? emotionCell(o, s) : view.emotion && <td className={cn(TD, "border-l")} />}
+                </tr>
+              )
+            })
+          )
+        })}
+        {canLoad && <MoreRow span={3 + cols} onMore={more} />}
+      </tbody>
+    </table>
+  )
+  const table = display === "heatmap" ? heatTable : barsTable
 
   return (
     <BankFrame rail={rail} crumb="Lift" search={NO_SEARCH} bare>
@@ -659,42 +877,6 @@ function TreatmentPicker({ options, chosen, onChosen, count, disabled }: { optio
         </Combobox.Positioner>
       </Combobox.Portal>
     </Combobox.Root>
-  )
-}
-
-/** A result as Swayable draws it: the control group's level at the axis, a
- *  bar of the lift from it (its tip pointing the way the treatment moved), the
- *  lift at the tip, and the margin as a line through the bar where there is
- *  one. A lift that does not clear its test is gray. */
-function Candle({ cell, extent }: { cell: Cell; extent: number }) {
-  const d = cell.lift[7]
-  const moe = cell.lift[9]
-  const quiet = significance(cell.lift) === false
-  const up = d >= 0
-  const at = (x: number) => Math.min(100, Math.max(0, 50 + (extent > 0 ? (x / extent) * REACH : 0)))
-  const tip = at(d)
-  return (
-    <span className="relative block h-6 w-full text-[13px]">
-      {cell.control && (
-        <span className="absolute top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground" style={up ? { right: "calc(50% + 5px)" } : { left: "calc(50% + 5px)" }} title={`Control group ${levelOf(cell.control)}`}>
-          {num(cell.control[7])}
-        </span>
-      )}
-      <span
-        aria-hidden
-        className={cn("absolute top-1/2 h-3.5 -translate-y-1/2", quiet ? "bg-muted-foreground/25" : up ? "bg-linear-to-r from-pax2-light-blue/45 to-pax2-light-blue" : "bg-linear-to-l from-pax2-red/45 to-pax2-red")}
-        style={{ left: `${Math.min(50, tip)}%`, width: `max(6px, ${Math.abs(tip - 50)}%)`, clipPath: up ? POINT_RIGHT : POINT_LEFT }}
-      />
-      {moe != null && (
-        <span aria-hidden className={cn("absolute top-1/2 h-[1.5px] -translate-y-1/2", quiet ? "bg-muted-foreground/45" : "bg-foreground/40")} style={{ left: `${at(d - moe)}%`, width: `${at(d + moe) - at(d - moe)}%` }} />
-      )}
-      <span
-        className={cn("absolute top-1/2 -translate-y-1/2 font-semibold", quiet ? "font-medium text-muted-foreground" : !up && "text-pax2-red")}
-        style={up ? { left: `calc(${tip}% + ${tip - 50 < 1 ? 8 : 3}px)` } : { right: `calc(${100 - tip}% + ${50 - tip < 1 ? 8 : 3}px)` }}
-      >
-        {signed(d)}
-      </span>
-    </span>
   )
 }
 
