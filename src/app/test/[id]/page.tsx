@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation"
 
 import { currentUser } from "@/lib/auth"
+import { recordedSrcs } from "@/lib/clips/recorded"
 import { armForPid } from "@/lib/fielding/engine"
 import { getTest } from "@/lib/tests/store"
 
@@ -44,5 +45,7 @@ export default async function RespondentPage({ params, searchParams }: Props) {
     )
   }
   const arm = assigned?.arm && test.arms.includes(assigned.arm) ? assigned.arm : test.arms[Math.floor(Math.random() * test.arms.length)]
-  return <Flow arm={arm} pid={pid} test={test} />
+  // A recording kept in Clips plays from its own row; a catalog clip's video is the catalog's.
+  const kept = (await recordedSrcs([arm]).catch(() => new Map<string, string>())).get(arm)
+  return <Flow arm={arm} pid={pid} test={test} armSrc={kept} />
 }

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation"
 
 import { PUBLISHED } from "@/components/clips/catalog"
 import { currentUser, forbidDemo } from "@/lib/auth"
+import { armRecordings } from "@/lib/clips/recorded"
 import { completeTest } from "@/lib/results/complete"
 import { getTest, saveTest } from "@/lib/tests/store"
 import { parseEntry, parseSingle } from "@/lib/tests/text"
@@ -12,7 +13,7 @@ import { PLACEBO, problems, STATUSES, type Status, type TestRecord } from "@/lib
 
 export type SaveState = { errors: string[] }
 
-// An arm must be a published clip with a video file: the survey's <video> can't play a YouTube-only clip.
+// An arm must be a published clip with a video file (the survey's <video> can't play a YouTube-only clip), or a recording kept in Clips.
 const CLIP_IDS = new Set(PUBLISHED.filter((c) => c.src).map((c) => c.id))
 const UNPLAYABLE = new Set(PUBLISHED.filter((c) => !c.src).map((c) => c.id))
 
@@ -55,7 +56,9 @@ export async function saveTestAction(_prev: SaveState, form: FormData): Promise<
     status: STATUSES.includes(status) ? status : "draft",
     panel: hasPanel ? { vendor, ...urls } : null,
   }
-  const errors = [...entry.errors, ...ballot.errors, ...comprehension.errors, ...problems(record, CLIP_IDS, UNPLAYABLE)]
+  // The recordings kept in Clips are arms too, read at save time.
+  const kept = (await armRecordings(await currentUser()).catch(() => [])).map((c) => c.id)
+  const errors = [...entry.errors, ...ballot.errors, ...comprehension.errors, ...problems(record, new Set([...CLIP_IDS, ...kept]), UNPLAYABLE)]
   if (!record.explanationTitle) errors.push("The explanation needs a title.")
   if (!create && !(await getTest(record.id))) errors.push(`No test has the id ${record.id}.`)
   if (errors.length) return { errors }

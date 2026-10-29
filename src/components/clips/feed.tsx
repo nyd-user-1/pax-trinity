@@ -12,7 +12,7 @@ import { Skeleton } from "@/ui/components/nova/skeleton"
 
 import { isTested, RctBadge } from "./clip-test"
 import { ClipMenu } from "./menu"
-import { fmtCount, type Clip } from "./store"
+import { fmtCount, isKeptRecording, type Clip } from "./store"
 
 // The feed: one clip after another down the page, each the height of the
 // viewport, snapping. The clip in view plays; the rest wait. Beside the
@@ -200,7 +200,7 @@ function FeedItem({ clip, active, near, muted, onMuted, reactions }: { clip: Cli
       <ClipMenu
         clip={clip}
         onGoToPost={() => reactions.onGoToPost(clip)}
-        onDelete={clip.mine && reactions.onDelete ? () => reactions.onDelete!(clip) : undefined}
+        onDelete={clip.mine && !isKeptRecording(clip.id) && reactions.onDelete ? () => reactions.onDelete!(clip) : undefined}
         onReport={!clip.mine && reactions.onReport ? () => reactions.onReport!(clip) : undefined}
         onTakeDown={clip.origin && reactions.onTakeDown ? () => reactions.onTakeDown!(clip) : undefined}
       >

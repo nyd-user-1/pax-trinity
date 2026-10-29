@@ -2,6 +2,7 @@ import Link from "next/link"
 import { headers } from "next/headers"
 import { notFound } from "next/navigation"
 
+import { armRecordings } from "@/lib/clips/recorded"
 import { getTest } from "@/lib/tests/store"
 import { buttonVariants } from "@/ui/components/nova/button"
 
@@ -19,9 +20,11 @@ const BALANCE = ["party", "vote2024"]
 
 export default async function TestPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  await adminOrSignin(`/message-tests/${id}`)
+  const user = await adminOrSignin(`/message-tests/${id}`)
   const test = await getTest(id)
   if (!test) notFound()
+  // A recording kept in Clips names its own arm on the monitor.
+  const kept = Object.fromEntries((await armRecordings(user).catch(() => [])).filter((c) => test.arms.includes(c.id)).map((c) => [c.id, c.title]))
   const h = await headers()
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000"
   const proto = h.get("x-forwarded-proto") ?? (/^(localhost|127\.)/.test(host) ? "http" : "https")
@@ -42,6 +45,7 @@ export default async function TestPage({ params }: { params: Promise<{ id: strin
       <Monitor
         id={test.id}
         arms={test.arms}
+        titles={kept}
         targetPerArm={test.targetPerArm}
         balance={test.entry.filter((q) => BALANCE.includes(q.key)).map((q) => ({ key: q.key, choices: q.choices }))}
       />

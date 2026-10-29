@@ -16,13 +16,14 @@ import { PanelBlock } from "@/components/blocks"
 import { MenuRow } from "@/components/kebab-menu"
 import { Creators } from "./creators"
 import { DEFAULT_AVATAR } from "@/lib/auth/use-account"
+import { viewer } from "@/app/original-actions"
 import { LoadingFlag } from "@/components/loading-flag"
 import { Feed, type Reactions } from "./feed"
 import { Grid } from "./grid"
 import { ReportDialog } from "./report"
 import { Upload } from "./upload"
 import { isTested } from "./clip-test"
-import { creatorOf, CREATORS, PUBLISHED, SEED_COMMENTS, deleteClip, loadFeed, takeDown, loadFollows, loadLikes, loadMyComments, loadSaves, saveClip, storeFollows, storeLikes, storeMyComments, storeSaves, updateClip, type Clip, type Comment, type Feed as FeedData, type Upload as UploadRow } from "./store"
+import { creatorOf, CREATORS, isKeptRecording, PUBLISHED, SEED_COMMENTS, deleteClip, loadFeed, takeDown, loadFollows, loadLikes, loadMyComments, loadSaves, saveClip, storeFollows, storeLikes, storeMyComments, storeSaves, updateClip, type Clip, type Comment, type Feed as FeedData, type Upload as UploadRow } from "./store"
 
 // Clips: short vertical video, recorded on a phone or a laptop, kept private
 // until its owner says otherwise. A mock of the whole experience (Brendan,
@@ -47,11 +48,11 @@ function useAccount(): { account: Account; ready: boolean } {
       const raw = sessionStorage.getItem("govblock:account")
       if (raw) setAccount(JSON.parse(raw) as Account)
     } catch {}
-    fetch("/api/auth/session", { credentials: "same-origin" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((s: { user?: NonNullable<Account> } | null) => {
+    // The server's own answer (lib/auth's currentUser, the Cognito session), the one keeping a recording checks.
+    viewer()
+      .then((u) => {
         if (!live) return
-        setAccount(s?.user?.email || s?.user?.name ? s.user : null)
+        setAccount(u ? { email: u.email, name: u.email.split("@")[0], admin: u.admin } : null)
         setReady(true)
       })
       .catch(() => live && setReady(true))
@@ -167,6 +168,12 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
 
   // The first clip plays on arrival, or the one the address names.
   React.useEffect(() => {
+    // A link to one of the reader's own private clips (Chat's kept recording) opens Your library on it.
+    if (pendingId.current && creator !== "you" && !clips.some((c) => c.id === pendingId.current) && mine.some((c) => c.id === pendingId.current)) {
+      setCreator("you")
+      setView("feed")
+      return
+    }
     if (!clips.length) return
     const want = pendingId.current && clips.find((c) => c.id === pendingId.current) ? pendingId.current : null
     if (want) {
@@ -176,7 +183,7 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
     } else if (!activeId || !clips.some((c) => c.id === activeId)) {
       setActiveId(clips[0].id)
     }
-  }, [clips, activeId])
+  }, [clips, activeId, creator, mine])
 
   const active = clips.find((c) => c.id === activeId) ?? null
   const commentsFor = React.useCallback((id: string) => [...SEED_COMMENTS.filter((c) => c.clipId === id), ...myComments.filter((c) => c.clipId === id)], [myComments])
@@ -284,7 +291,7 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
         signedIn={signedIn}
         onLike={() => reactions.onLike(active)}
         onSave={() => reactions.onSave(active)}
-        onDelete={active.mine ? () => void remove(active) : undefined}
+        onDelete={active.mine && !isKeptRecording(active.id) ? () => void remove(active) : undefined}
         onReport={!active.mine ? () => setReporting(active) : undefined}
         onTakeDown={admin && active.origin ? () => void takeDownClip(active) : undefined}
         onFollow={() => reactions.onFollow?.(active.creatorId)}
@@ -418,12 +425,16 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
           {creator === "you" && active?.mine && view === "feed" && (
             <div className="flex items-center gap-2 py-3 text-sm lg:pr-16">
               <span className="text-muted-foreground">{active.visibility === "public" ? "Everyone can see this." : "Only you can see this."}</span>
-              <Button variant="outline" size="sm" className="ml-auto" onClick={() => void publish(active)}>
-                {active.visibility === "public" ? "Make private" : "Publish"}
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => void remove(active)}>
-                Delete
-              </Button>
+              {!isKeptRecording(active.id) && (
+                <>
+                  <Button variant="outline" size="sm" className="ml-auto" onClick={() => void publish(active)}>
+                    {active.visibility === "public" ? "Make private" : "Publish"}
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => void remove(active)}>
+                    Delete
+                  </Button>
+                </>
+              )}
             </div>
           )}
         </main>

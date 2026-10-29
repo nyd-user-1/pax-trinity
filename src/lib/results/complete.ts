@@ -4,6 +4,7 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb"
 import { DynamoDBDocumentClient, PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb"
 
 import { PUBLISHED } from "@/components/clips/catalog"
+import { recordedClip } from "@/lib/clips/recorded"
 import { ENV, itemsFor } from "@/lib/tests/responses"
 import { getTest } from "@/lib/tests/store"
 
@@ -56,6 +57,10 @@ export async function completeTest(testId: string, opts: { env?: "production" | 
   const cfg = TEST_CONFIGS[testId] ?? {}
   const env = opts.env ?? (ENV as "production" | "development")
   const now = new Date()
+  // The test's arms that are recordings kept in Clips, read from their rows.
+  const kept = await Promise.all(test.arms.filter((a) => a.startsWith("rec-")).map((a) => recordedClip(a).catch(() => null))).then((rows) =>
+    rows.flatMap((r) => (r ? [{ id: r.id, duration: r.duration }] : [])),
+  )
   const derived = deriveResults(test, items, MA_GENERAL_ADULTS as Targets, {
     env,
     id: `${testId}-computed`,
@@ -65,8 +70,8 @@ export async function completeTest(testId: string, opts: { env?: "production" | 
     source: `pax-trinity-test-responses:${testId}`,
     armName,
     clipOf: (id) => {
-      const c = PUBLISHED.find((x) => x.id === id)
-      return c ? { clipId: c.id, durationSeconds: c.duration } : null
+      const c = PUBLISHED.find((x) => x.id === id) ?? kept.find((x) => x.id === id)
+      return c ? { clipId: c.id, durationSeconds: c.duration ?? undefined } : null
     },
     dimensions: cfg.dimensions?.map((d) => ({ ...d, exportName: EXPORT_DIMS[d.key] ?? d.key })),
     now,

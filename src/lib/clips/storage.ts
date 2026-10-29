@@ -10,10 +10,12 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 // lapses and the clip does not. Signed by the server's role: the Amplify
 // compute role on the site, the instance role on a box.
 
-export const CLIPS_BUCKET = process.env.CLIPS_BUCKET || "govblock-clips-638175140432"
+// Trinity's is the bucket behind the clips CDN; recordings go under recorded/ (the roles may put there alone).
+export const CLIPS_BUCKET = process.env.CLIPS_BUCKET || "pax-trinity-clips-613473203863"
 
 let client: S3Client | null = null
-const s3 = () => (client ??= new S3Client({ region: process.env.AWS_REGION || "us-east-1" }))
+// The bucket's own region, not the compute's: the new account keeps its buckets in us-east-2.
+const s3 = () => (client ??= new S3Client({ region: process.env.CLIPS_BUCKET_REGION || "us-east-2" }))
 
 /** A one-time address the browser PUTs the file to, good for an hour. The Content-Type sent must match. */
 export function uploadUrl(key: string, contentType: string) {

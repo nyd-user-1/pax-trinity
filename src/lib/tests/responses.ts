@@ -86,13 +86,16 @@ function pidOf(v: unknown): { ok: true; pid: string | null } | Invalid {
   return { ok: true, pid: v }
 }
 
-/** The video an arm plays: the test's placebo source, or the published clip's own src. Null when
+const NONE: ReadonlyMap<string, string> = new Map()
+
+/** The video an arm plays: the test's placebo source, the published clip's own src, or a recording kept
+ *  in Clips (`kept`, the route reads it from src/lib/clips/recorded.ts). Null when
  *  the arm is not in the test, or its clip is missing from the catalog or has no playable file
  *  (a YouTube-only clip cannot play in the flow's video element). */
-export function armSrc(test: TestRecord, arm: unknown): string | null {
+export function armSrc(test: TestRecord, arm: unknown, kept: ReadonlyMap<string, string> = NONE): string | null {
   if (typeof arm !== "string" || !test.arms.includes(arm)) return null
   if (arm === PLACEBO) return test.placeboSrc
-  return PUBLISHED.find((c) => c.id === arm)?.src || null
+  return PUBLISHED.find((c) => c.id === arm)?.src || kept.get(arm) || null
 }
 
 /** Every question the test asks, key -> the values its choices allow. */
@@ -104,13 +107,13 @@ function questionValues(test: TestRecord): Map<string, Set<string>> {
   return out
 }
 
-export function validateStart(test: TestRecord, body: Record<string, unknown>, now = Date.now()): Valid<Pick<StartItem, "arm" | "pid" | "startedAt">> | Invalid {
+export function validateStart(test: TestRecord, body: Record<string, unknown>, now = Date.now(), kept: ReadonlyMap<string, string> = NONE): Valid<Pick<StartItem, "arm" | "pid" | "startedAt">> | Invalid {
   const allowed = new Set(["kind", "test", "arm", "pid", "startedAt"])
   const extra = Object.keys(body).filter((k) => !allowed.has(k))
   if (extra.length) return fail(`unknown fields: ${extra.join(", ")}`)
   if (body.test !== test.id) return fail("test does not match the URL")
   if (typeof body.arm !== "string" || !test.arms.includes(body.arm)) return fail("arm is not one of the test's arms")
-  if (!armSrc(test, body.arm)) return fail("the arm's clip is not a playable clip in the published catalog")
+  if (!armSrc(test, body.arm, kept)) return fail("the arm's clip is not a playable clip in the published catalog")
   if (isoTime(body.startedAt, now) === null) return fail("startedAt must be an ISO UTC time, not in the future")
   const pid = pidOf(body.pid)
   if (!pid.ok) return pid
@@ -129,6 +132,7 @@ export function validateRecord(
   test: TestRecord,
   body: Record<string, unknown>,
   now = Date.now(),
+  kept: ReadonlyMap<string, string> = NONE,
 ): Valid<Omit<RecordItem, "test" | "id" | "receivedAt" | "env" | "schema">> | Invalid {
   const extra = Object.keys(body).filter((k) => !RECORD_FIELDS.includes(k))
   if (extra.length) return fail(`unknown fields: ${extra.join(", ")}`)
@@ -140,7 +144,7 @@ export function validateRecord(
   if (!pid.ok) return pid
   if (body.test !== test.id) return fail("test does not match the URL")
   if (typeof body.arm !== "string" || !test.arms.includes(body.arm)) return fail("arm is not one of the test's arms")
-  const expectedSrc = armSrc(test, body.arm)
+  const expectedSrc = armSrc(test, body.arm, kept)
   if (!expectedSrc) return fail("the arm's clip is not a playable clip in the published catalog")
   if (body.src !== undefined && body.src !== expectedSrc) return fail("src is not the video this arm plays")
   const started = isoTime(body.startedAt, now)

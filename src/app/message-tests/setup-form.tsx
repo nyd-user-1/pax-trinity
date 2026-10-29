@@ -13,10 +13,12 @@ import { cn } from "@/ui/lib/utils"
 
 import { saveTestAction, type SaveState } from "./actions"
 
-// The clips an arm can be: the clips store's PUBLISHED with a video file, by id. A YouTube-only clip
-// (empty src) can't play in the survey, so it isn't offered; the server refuses it too.
-const CLIPS = PUBLISHED.filter((c) => c.src).map((c) => ({ id: c.id, title: c.title, duration: c.duration ?? null }))
-const CLIP_IDS = new Set(CLIPS.map((c) => c.id))
+// The clips an arm can be: the clips store's PUBLISHED with a video file, by id, then the recordings
+// kept in Clips (the page reads them on the server). A YouTube-only clip (empty src) can't play in the
+// survey, so it isn't offered; the server refuses it too.
+const CATALOG = PUBLISHED.filter((c) => c.src).map((c) => ({ id: c.id, title: c.title, duration: c.duration ?? null }))
+export type ArmClip = { id: string; title: string; duration: number | null }
+const NONE: ArmClip[] = []
 
 const mmss = (s: number | null) => (s == null ? "" : `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`)
 const input = "h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-pax2-blue"
@@ -30,7 +32,9 @@ function Field({ label, children, wide }: { label: string; children: React.React
   )
 }
 
-export function SetupForm({ mode, initial }: { mode: "create" | "edit"; initial: TestRecord }) {
+export function SetupForm({ mode, initial, recorded = NONE }: { mode: "create" | "edit"; initial: TestRecord; recorded?: ArmClip[] }) {
+  const CLIPS = React.useMemo(() => [...recorded, ...CATALOG], [recorded])
+  const CLIP_IDS = React.useMemo(() => new Set(CLIPS.map((c) => c.id)), [CLIPS])
   const [state, formAction, pending] = React.useActionState<SaveState, FormData>(saveTestAction, { errors: [] })
   const [v, setV] = React.useState({
     id: initial.id,

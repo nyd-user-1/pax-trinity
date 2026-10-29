@@ -3,24 +3,24 @@
 // The recording, inside the chat column: /record/camera's stages dressed as the chat's blocks
 // (nova Card with the title header; camera-flow.tsx keeps the page version). Record on the script
 // card opens the full-screen Teleprompter at once — closing it without a take leaves this card as
-// the way back in, with the upload fallback. Watch-back and send happen in the card; while PAX2
-// scores, the card says the link is on its way and the Consensus card asks about the experience;
-// when the scoring lands, onDone carries the video id up (the camera button's dot, the analysis offer).
+// the way back in, with the upload fallback. Watch-back and send happen in the card. Send keeps the
+// take in Clips (Brendan's order, through the lead, 2026-10-29): the browser sends it to the clips
+// bucket on a signed address, then its row joins the recorded catalog (src/app/recording-actions.ts),
+// so it plays in Your library on /clips and an admin can make it a message test's arm. Keeping it
+// needs an account; the sign-in opens in a new tab so the take stays here.
 
 import * as React from 'react'
-import { Check, CheckCircle2, ChevronRight, Loader2, RotateCcw, Upload, Video } from 'lucide-react'
+import { Check, CheckCircle2, Loader2, RotateCcw, Upload, Video } from 'lucide-react'
+import Link from 'next/link'
 
-import { uploadUrl } from '@/app/actions'
-import { myAnalysis, submitOriginal, viewer } from '@/app/original-actions'
-import dynamic from 'next/dynamic'
+import { myAnalysis, viewer } from '@/app/original-actions'
+import { keepRecording, recordingUpload } from '@/app/recording-actions'
+import { putSigned } from '@/components/clips/store'
 import { ConsensusVote } from '@/components/consensus-vote'
 import { Teleprompter } from '@/components/record/teleprompter'
 import { useDraft } from '@/components/record/draft'
 import { type VideoProvider } from '@/lib/video-model-options'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/ui/components/nova/card'
-
-// The enhance step brings the Remotion player; it loads when a recording reaches it.
-const EnhanceFlow = dynamic(() => import('@/components/chat/enhance-flow').then((m) => m.EnhanceFlow), { ssr: false })
 
 type Clip = { blob: Blob; url: string; seconds: number; mime: string }
 export type Analysis = NonNullable<Awaited<ReturnType<typeof myAnalysis>>>
@@ -39,22 +39,34 @@ const FEEDBACK = [
 const CARD = 'my-3 animate-in fade-in slide-in-from-bottom-1 duration-300'
 const FIELD = 'w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-[15px] text-[var(--txt)] outline-none transition-colors placeholder:text-[var(--muted2)] focus:border-pax2-light-blue disabled:text-slate-500'
 
-export function RecordFlow({ script, videoModel, onDone, onAnalysis }: { script: string; videoModel: VideoProvider; onDone: (id: string) => void; onAnalysis: (a: Analysis) => void }) {
+/** The script's first sentence, as the clip's title until the recorder names it. */
+const titleOf = (script: string) => {
+  const first = script.trim().split(/(?<=[.!?])\s+/)[0] ?? ''
+  return first.length > 80 ? `${first.slice(0, 77).trimEnd()}…` : first
+}
+
+type Props = { script: string; onDone: (id: string) => void; videoModel?: VideoProvider; onAnalysis?: (a: Analysis) => void }
+
+export function RecordFlow({ script, onDone }: Props) {
   const { draft } = useDraft()
   // Record on the script card means record: the teleprompter opens at once.
   const [prompter, setPrompter] = React.useState(true)
   const [clip, setClip] = React.useState<Clip | null>(null)
   const [stage, setStage] = React.useState<'ready' | 'sending' | 'done' | 'error'>('ready')
   const [err, setErr] = React.useState<string | null>(null)
+  const [progress, setProgress] = React.useState(0)
   const [me, setMe] = React.useState<string | null | undefined>(undefined)
-  const [email, setEmail] = React.useState('')
+  const [title, setTitle] = React.useState(() => titleOf(script))
   const [name, setName] = React.useState('')
   const [lastName, setLastName] = React.useState('')
-  const [analysis, setAnalysis] = React.useState<Analysis | null>(null)
-  const [sent, setSent] = React.useState<{ id: string; key: string } | null>(null)
+  const [kept, setKept] = React.useState<{ id: string; href: string } | null>(null)
   const file = React.useRef<HTMLInputElement>(null)
+  // Who is signed in, read again when the tab comes back (a sign-in finished in the other tab).
   React.useEffect(() => {
-    viewer().then((v) => setMe(v?.email ?? null))
+    const read = () => void viewer().then((v) => setMe(v?.email ?? null))
+    read()
+    window.addEventListener('focus', read)
+    return () => window.removeEventListener('focus', read)
   }, [])
   React.useEffect(() => {
     setName((n) => n || draft.name || '')
@@ -69,78 +81,56 @@ export function RecordFlow({ script, videoModel, onDone, onAnalysis }: { script:
     v.src = url
   }
 
-  const emailOk = !!me || /^\S+@\S+\.\S+$/.test(email)
+  const ready = !!me && !!title.trim()
 
   const send = async () => {
-    if (!clip || !emailOk) return
+    if (!clip || !ready) return
     setStage('sending')
     setErr(null)
+    setProgress(0)
     try {
-      const u = await uploadUrl(clip.mime.split(';')[0])
-      const r = await fetch(u.url, { method: 'PUT', body: clip.blob, headers: { 'Content-Type': clip.mime.split(';')[0] } })
-      if (!r.ok) throw new Error(`Upload failed (${r.status})`)
-      const fullName = [name, lastName].map((x) => x.trim()).filter(Boolean).join(' ') || undefined
-      await submitOriginal({ id: u.id, key: u.key, email: me ? undefined : email, text: script, name: fullName, seconds: Math.round(clip.seconds), consent: true })
-      setSent({ id: u.id, key: u.key })
+      const u = await recordingUpload(clip.mime)
+      await putSigned(u.url, clip.blob, u.type, setProgress)
+      const messenger = [name, lastName].map((x) => x.trim()).filter(Boolean).join(' ') || undefined
+      const k = await keepRecording({ id: u.id, key: u.key, title, messenger, seconds: clip.seconds, script })
+      setKept(k)
       setStage('done')
-      onDone(u.id)
-      const a = await myAnalysis(u.id)
-      if (a) setAnalysis(a)
+      onDone(k.id)
     } catch (e) {
       setErr((e as Error).message)
       setStage('error')
     }
   }
 
-  if (stage === 'done')
+  if (stage === 'done' && kept)
     return (
-      <>
-        <Card size="sm" className={CARD}>
-          <CardHeader className="border-b [.border-b]:pb-2">
-            <CardTitle>Your video is in</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3 text-sm text-slate-800">
-            {analysis ? (
-              <>
-                <p>The scoring is done. The free analysis reads it several ways — the forecast, the persuasion traits in your words, the title.</p>
-                <button type="button" onClick={() => onAnalysis(analysis)} className="flex w-fit items-center gap-1.5 rounded-full bg-pax2-blue px-5 py-2.5 font-medium text-white transition-opacity hover:opacity-85">
-                  Walk me through it <ChevronRight className="size-4" />
-                </button>
-              </>
-            ) : (
-              <p>The link to your video and its analysis is on its way to your email.</p>
-            )}
-          </CardContent>
-        </Card>
-        {clip && sent && (
-          <EnhanceFlow
-            clipUrl={clip.url}
-            clipKey={sent.key}
-            seconds={Math.round(clip.seconds)}
-            script={script}
-            parentId={sent.id}
-            email={me ? null : email}
-            defaultProvider={videoModel}
-            onScored={(id) => {
-              onDone(id)
-              myAnalysis(id).then((a) => a && setAnalysis(a))
-            }}
-          />
-        )}
-      </>
+      <Card size="sm" className={CARD}>
+        <CardHeader className="border-b [.border-b]:pb-2">
+          <CardTitle>Your video is in Clips</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3 text-sm text-slate-800">
+          <p>It plays in your library, and only you can see it there. An admin can make it an arm of a message test.</p>
+          <Link href={kept.href} className="flex w-fit items-center gap-1.5 rounded-full bg-pax2-blue px-5 py-2.5 font-medium text-white transition-opacity hover:opacity-85">
+            Open it in Clips
+          </Link>
+        </CardContent>
+      </Card>
     )
 
   if (stage === 'sending')
     return (
       <Card size="sm" className={CARD}>
         <CardHeader className="border-b [.border-b]:pb-2">
-          <CardTitle>Processing</CardTitle>
+          <CardTitle>Sending</CardTitle>
           <CardAction>
             <Loader2 className="size-4 animate-spin text-pax2-blue" />
           </CardAction>
         </CardHeader>
         <CardContent className="flex flex-col gap-3 text-sm text-slate-800">
-          <p>Your video is uploading and being scored — a few minutes, and the link lands in your email either way. While it works, a few quick judgments would help make this better:</p>
+          <div className="h-1 w-full overflow-hidden rounded-full bg-slate-100">
+            <div className="h-full rounded-full bg-pax2-blue transition-[width]" style={{ width: `${Math.round(progress * 100)}%` }} />
+          </div>
+          <p>While it sends, a few quick judgments would help make this better:</p>
           <ConsensusVote slug="record-experience" statements={FEEDBACK} voted={{}} finished="All five judged — thank you." />
         </CardContent>
       </Card>
@@ -172,11 +162,19 @@ export function RecordFlow({ script, videoModel, onDone, onAnalysis }: { script:
               </label>
             </div>
             <label className="flex flex-col gap-1">
-              <span className="text-xs text-slate-800">Email</span>
-              <input type="email" value={me ?? email} disabled={!!me} onChange={(e) => setEmail(e.target.value)} className={FIELD} />
+              <span className="text-xs text-slate-800">Title</span>
+              <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={150} className={FIELD} />
             </label>
+            {me === null && (
+              <p className="text-slate-800">
+                <a href="/signin" target="_blank" rel="noopener" className="font-medium text-pax2-blue underline underline-offset-2">
+                  Sign in
+                </a>{' '}
+                to keep it in Clips; your take stays here.
+              </p>
+            )}
             <div className="flex items-center gap-3">
-              <button type="button" disabled={!emailOk} onClick={send} className="flex items-center gap-2 rounded-full bg-pax2-blue px-6 py-2.5 font-medium text-white transition-opacity hover:opacity-85 disabled:opacity-40">
+              <button type="button" disabled={!ready} onClick={send} className="flex items-center gap-2 rounded-full bg-pax2-blue px-6 py-2.5 font-medium text-white transition-opacity hover:opacity-85 disabled:opacity-40">
                 <Check className="size-4" /> Send it
               </button>
               {err && <p className="text-destructive">{err}</p>}

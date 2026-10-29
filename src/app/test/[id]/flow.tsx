@@ -31,7 +31,7 @@ async function send(url: string, body: object): Promise<boolean> {
 
 const COUNT: Record<number, string> = { 1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight", 9: "nine", 10: "ten" }
 
-export function Flow({ arm, pid, test }: { arm: string; pid: string | null; test: TestRecord }) {
+export function Flow({ arm, pid, test, armSrc }: { arm: string; pid: string | null; test: TestRecord; armSrc?: string }) {
   // The entry questions, then the video, the explanation, the ballot and the comprehension question.
   const STEPS = test.entry.length + 4
   const VIDEO = test.entry.length
@@ -39,7 +39,7 @@ export function Flow({ arm, pid, test }: { arm: string; pid: string | null; test
   const BALLOT = EXPLANATION + 1
   const COMPREHENSION = BALLOT + 1
   const collector = `/api/tests/${test.id}/responses`
-  const src = arm === PLACEBO ? test.placeboSrc : (PUBLISHED.find((c) => c.id === arm)?.src ?? test.placeboSrc)
+  const src = arm === PLACEBO ? test.placeboSrc : (armSrc ?? PUBLISHED.find((c) => c.id === arm)?.src ?? test.placeboSrc)
   const [entered, setEntered] = React.useState(false)
   const [at, setAt] = React.useState(0)
   const [answers, setAnswers] = React.useState<Record<string, string>>({})

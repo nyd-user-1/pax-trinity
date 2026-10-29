@@ -1,5 +1,6 @@
 "use client"
 
+import { keepRecording, recordingUpload } from "@/app/recording-actions"
 import { DEFAULT_AVATAR } from "@/lib/auth/use-account"
 
 // The clips a reader can see, who made them, and what was said under them.
@@ -77,11 +78,20 @@ async function send<T>(url: string, method: string, body?: unknown): Promise<T> 
 }
 
 /**
- * A take, to the clips bucket. The row is written first and hands back the
- * signed addresses; the video and its poster go from the browser to S3
- * directly; then the server checks the video arrived and publishes the row.
+ * A take, to the clips bucket and the recorded catalog (src/app/recording-actions.ts, 2026-10-29): a
+ * signed address for the take, the browser's PUT, then the row, written once the take has arrived.
+ * The Aurora path below it (saveClipAurora) waits for a database this deploy does not have.
  */
 export async function saveClip(clip: Clip, onProgress?: (fraction: number) => void): Promise<Clip> {
+  if (!clip.blob) throw new Error("Nothing was recorded.")
+  const u = await recordingUpload(clip.blob.type || "video/webm")
+  await putSigned(u.url, clip.blob, u.type, onProgress)
+  const kept = await keepRecording({ id: u.id, key: u.key, title: clip.title, caption: clip.caption, visibility: clip.visibility, seconds: clip.duration ?? 0 })
+  return { ...kept.clip, author: clip.author, poster: clip.poster, mine: true }
+}
+
+/** The Aurora path: the row first, its signed addresses, the take and its poster to S3, then the publish. */
+export async function saveClipAurora(clip: Clip, onProgress?: (fraction: number) => void): Promise<Clip> {
   if (!clip.blob) throw new Error("Nothing was recorded.")
   const contentType = bareType(clip.blob.type, "video/webm")
   const made = await send<{ clip: Clip; uploadUrl: string; posterUrl: string | null }>("/api/clips", "POST", { title: clip.title, caption: clip.caption, visibility: clip.visibility, bytes: clip.blob.size, contentType, duration: clip.duration, poster: Boolean(clip.poster) })

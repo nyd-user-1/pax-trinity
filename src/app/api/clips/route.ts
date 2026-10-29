@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 
+import { currentUser } from "@/lib/auth"
 import { getClip, listClips, newId, viewerOf } from "@/lib/clips/server"
+import { myRecordings, publicRecordings } from "@/lib/clips/recorded"
 import { extensionOf, uploadUrl } from "@/lib/clips/storage"
 import { q } from "@/lib/policy/db"
 
@@ -16,12 +18,17 @@ export const dynamic = "force-dynamic"
 const MAX_RECORDING_BYTES = 1024 * 1024 * 1024
 const VIDEO_TYPES = /^video\/(webm|mp4|quicktime)(;.*)?$/
 
+// The reader's recordings from the recorded catalog (src/lib/clips/recorded.ts) join their own clips,
+// whether or not an Aurora database is configured.
 export async function GET() {
-  const viewer = await viewerOf()
+  const [viewer, user] = await Promise.all([viewerOf(), currentUser()])
+  const [recorded, shared] = await Promise.all([user ? myRecordings(user).catch(() => []) : [], publicRecordings(user).catch(() => [])])
+  const headers = { "cache-control": "private, no-store" }
   try {
-    return NextResponse.json(await listClips(viewer?.id ?? null), { headers: { "cache-control": "private, no-store" } })
+    const feed = await listClips(viewer?.id ?? null)
+    return NextResponse.json({ ...feed, published: [...shared, ...feed.published], mine: [...recorded, ...feed.mine] }, { headers })
   } catch (error) {
-    return NextResponse.json({ published: [], mine: [], uploads: [], error: error instanceof Error ? error.message : String(error) }, { status: 200 })
+    return NextResponse.json({ published: shared, mine: recorded, uploads: [], error: error instanceof Error ? error.message : String(error) }, { status: 200, headers })
   }
 }
 

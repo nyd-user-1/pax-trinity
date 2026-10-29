@@ -48,9 +48,9 @@ function useField(id: string): [State, () => void] {
 
 const TITLES = new Map(PUBLISHED.map((c) => [c.id, c.title]))
 
-export function Monitor({ id, arms: armIds, targetPerArm, balance }: { id: string; arms: string[]; targetPerArm: number; balance: { key: string; choices: Choice[] }[] }) {
+export function Monitor({ id, arms: armIds, titles, targetPerArm, balance }: { id: string; arms: string[]; titles?: Record<string, string>; targetPerArm: number; balance: { key: string; choices: Choice[] }[] }) {
   const [state, reload] = useField(id)
-  const arms = armIds.map((a) => ({ id: a, label: a === PLACEBO ? "Placebo" : (TITLES.get(a) ?? a) }))
+  const arms = armIds.map((a) => ({ id: a, label: a === PLACEBO ? "Placebo" : (TITLES.get(a) ?? titles?.[a] ?? a) }))
   const label = new Map(arms.map((a) => [a.id, a.label]))
   const refresh = (
     <button type="button" onClick={reload} aria-label="Refresh" className="flex size-7 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-pax2-blue">

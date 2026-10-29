@@ -1,3 +1,4 @@
+import { recordedSrcs } from "@/lib/clips/recorded"
 import { getTest } from "@/lib/tests/store"
 import { ENV, MAX_BYTES, putItem, ulid, validateRecord, validateStart, type ResponseItem } from "@/lib/tests/responses"
 
@@ -35,14 +36,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const record = body as Record<string, unknown>
 
   const now = Date.now()
+  // A recording kept in Clips is an arm like a catalog clip; its video is read from its row.
+  const kept = await recordedSrcs(test.arms).catch(() => new Map<string, string>())
   const base = { test: test.id, id: ulid(now), receivedAt: new Date(now).toISOString(), env: ENV, schema: 1 as const }
   let item: ResponseItem
   if (record.kind === "start") {
-    const v = validateStart(test, record, now)
+    const v = validateStart(test, record, now, kept)
     if (!v.ok) return json({ error: v.error }, 400)
     item = { ...base, kind: "start", ...v.value }
   } else {
-    const v = validateRecord(test, record, now)
+    const v = validateRecord(test, record, now, kept)
     if (!v.ok) return json({ error: v.error }, 400)
     item = { ...base, ...v.value }
   }
