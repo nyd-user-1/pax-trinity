@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@govblock/ui/components/nov
 import { cn } from "@govblock/ui/lib/utils"
 
 
+import { RctBadge, testsOf } from "./clip-test"
 import { ClipMenu } from "./menu"
 import { fmtCount, type Clip } from "./store"
 
@@ -250,6 +251,7 @@ function FeedItem({ clip, active, muted, onMuted, reactions }: { clip: Clip; act
             {clip.status === "processing" && <span className="rounded-full bg-black/50 px-2 py-1 text-[11px] font-medium text-white">Processing</span>}
           </div>
         )}
+        {testsOf(clip.id).length > 0 && <RctBadge className="absolute top-3 right-3" />}
         {!clip.youtube && !clip.composition && (
           <button type="button" onClick={() => onMuted(!muted)} className="absolute right-3 bottom-4 z-10 flex size-8 items-center justify-center rounded-full bg-black/50 text-white" aria-label={muted ? "Unmute" : "Mute"}>
             {muted ? <VolumeXIcon className="size-4" /> : <Volume2Icon className="size-4" />}

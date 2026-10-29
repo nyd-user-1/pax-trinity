@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@govblock/ui/components/nov
 import { cn } from "@govblock/ui/lib/utils"
 
 
+import { RctBadge, testsOf } from "./clip-test"
 import { fmtCount, type Clip } from "./store"
 
 const CompositionThumb = dynamic(() => import("./composition-player").then((m) => m.CompositionThumb), { ssr: false })
@@ -36,6 +37,7 @@ export function Grid({ clips, onOpen, className }: { clips: Clip[]; onOpen: (cli
               <AvatarFallback className="bg-white/20 text-[10px] text-white">{clip.author.name.slice(0, 1)}</AvatarFallback>
             </Avatar>
             <span className="truncate text-xs font-semibold max-sm:text-[11px]">{clip.messenger ?? clip.author.name}</span>
+            {testsOf(clip.id).length > 0 && <RctBadge className="ml-auto" />}
           </div>
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent p-2 pt-8">
             {!clip.mine && (

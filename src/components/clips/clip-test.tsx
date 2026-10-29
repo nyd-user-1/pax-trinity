@@ -1,5 +1,6 @@
 import * as React from "react"
 import Link from "next/link"
+import { CheckIcon } from "lucide-react"
 
 import { fielding, signed } from "@/app/lift/lift-data"
 import { approx, placeboOf, slugOf, toplineOf, verdictWord } from "@/components/report/report-math"
@@ -18,6 +19,15 @@ export type ClipTestRef = { rs: ResultSet; arm: Arm }
 /** Every wave that tested this clip, latest first. */
 export const testsOf = (clipId: string): ClipTestRef[] =>
   RESULT_SETS.flatMap((rs) => rs.arms.filter((arm) => arm.role === "treatment" && arm.clipId === clipId).map((arm) => ({ rs, arm }))).sort((a, b) => b.rs.wave - a.rs.wave)
+
+/** The mark on a tile whose clip carries the register's randomized-test results, in the tiles' chip dress. */
+export function RctBadge({ className }: { className?: string }) {
+  return (
+    <span className={cn("flex shrink-0 items-center gap-1 rounded-full bg-black/50 px-2 py-1 text-[11px] leading-none font-medium text-white", className)}>
+      <CheckIcon className="size-3" strokeWidth={3} /> RCT
+    </span>
+  )
+}
 
 /** The register's outcomes under /lift's Tests metric names. */
 const METRIC: Record<string, string> = { ballot: "lift_support", comprehension: "lift_comprehension" }
