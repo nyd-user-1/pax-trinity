@@ -2,15 +2,14 @@ import { GLOSSARY } from "@/lib/glossary"
 
 // What chat reads to answer questions about the metrics the site shows (the + menu's Onboarding
 // questions read src/lib/platform-guide.ts).
-// Sources: docs/RESONANCE.md (Resonance, the profile similarity), data/generated/model/resonance-formula.json
-// (the stack's held-out AUC, the scale), src/components/video-reads.tsx (the production profile, length,
-// topic and the recommendations), the Codebook 5K and Window Q reports (agreement figures), and the
-// glossary's current entries. The glossary's Engage, Interest, Act, Formula and old Resonance entries
-// describe the retired paid score and stay out.
+// Sources: docs/briefs/resonance-score.md (Resonance), docs/RESONANCE.md (the profile similarity),
+// src/components/video-reads.tsx (the production profile, length, topic and the recommendations), the
+// Codebook 5K and Window Q reports (agreement figures), and the glossary's current entries. The glossary's
+// Engage, Interest, Act and Formula entries describe the paid score and stay out.
 
 const FROM_GLOSSARY = ["share-3x", "lift", "neighborhood", "lab-tested", "e2", "swayable", "wesleyan", "upworthy"]
 
-const WRITTEN = `Resonance: a prediction made before a short publishes: the probability it outperforms 3x its channel's median, from one logistic fit over three pre-publish measures (the outlier classifier's calibrated probability, the craft rank, which is the share of the channel's measured shorts it beats under the composition pair picker, and the headline percentile). Held out by channel, the fit's AUC is 0.598; the best single measure alone reaches 0.584. The gauge shows it from 0 to 100 as the prediction's percentile among the 5,379 baseline shorts, in credit-score bands: Poor below 51, Fair 51 to 66, Good 67 to 79, Very good 80 to 90, Exceptional 91 and up. Once the short completes its 72-hour window, the needle moves to the measured outcome's percentile on the same scale, the prediction stays on the arc as a dashed tick, and the center shows the signed difference between them.
+const WRITTEN = `Resonance: the percentile, 0 to 100, of a video's primary-outcome lift against the placebo among every measured lift on file for that outcome, ties counted half. 50 is the middle lift on file; 90 beats nine in ten. A tested video's Resonance comes from its own randomized test in the results register, and the score shows once the pool holds at least five lifts. Resonance reads as the word and the number at the head of a clip's test panel. A clip with the RCT badge carries the Resonance its own test measured; a clip without it carries a predicted Resonance, which the completion hook replaces with the measurement the moment the clip's test closes.
 
 Persuasion score: the sum of the measured effects of the Swayable traits a script carries, in percentage points of vote choice against the control group. Each trait's effect is the difference between the tested ads that had it and those that did not, across 617 political ads tested against control groups; a trait with a negative effect subtracts. The sum adds associations measured across ads, not a randomized test of this script, and no interval is stored for it.
 
