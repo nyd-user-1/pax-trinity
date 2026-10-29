@@ -25,8 +25,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components
 import { dimLabel, groupSources, num, type AudienceIndex, type SourceRow } from "../america-thinks/audience-data"
 import { rowDress } from "../america-thinks/segment-grid"
 import { AboutResult } from "./about-result"
-import { dimOf, fielding, isPlacebo, metricShort, ordered, periodKey, segKey, segOf, significance, testOf, treatmentName, valOf, type Cell, type Pick } from "./lift-data"
-import { Candle, EmotionBar, EmotionKey, heat, HeatKey, sampleEmotions } from "./lift-marks"
+import { AD_INFO, dimOf, fielding, isPlacebo, metricShort, ordered, periodKey, segKey, segOf, setAds, signed, significance, testOf, TRAIT_GROUPS, treatmentName, valOf, type AdInfo, type Cell, type Pick } from "./lift-data"
+import { AppealBars, AppealKey, Candle, EmotionBar, EmotionKey, heat, HeatKey, sampleEmotions } from "./lift-marks"
 
 // /lift — Swayable's results view (Brendan, 2026-10-28, from the Dream Crazy
 // Campaign screen): the folders in the rail (the PAX tests, the archive of
@@ -44,7 +44,10 @@ import { Candle, EmotionBar, EmotionKey, heat, HeatKey, sampleEmotions } from ".
 // Heatmap (the Chime Demo screen, Brendan, 2026-10-29) is the second view:
 // Breakdown, Content and Segment down the left, each lift a number in a cell
 // shaded from the benchmark's median, the median's own row leading each
-// breakdown. Emotional Response stands in both views on placeholder shares.
+// breakdown. Emotional Response stands in both views on placeholder shares;
+// the Archive's ads carry their coded Emotional appeal instead, are named by
+// their traits, and add a Traits view (Brendan, 2026-10-29): each trait's
+// pooled lift, ads with it against ads without.
 
 const SOURCES: Record<string, string> = { PAX_TEST: "Tests", LIFT_ARCHIVE: "Archive" }
 const PER_READ = 25
@@ -118,7 +121,10 @@ export function LiftSurface() {
   const widthOf = (key: string) => metricWidths[key] ?? METRIC_WIDTH
   const resizeMetric = (key: string) => (w: number) => setMetricWidths((p) => ({ ...p, [key]: w }))
   const [shared, setShared] = React.useState(false)
-  const [display, setDisplay] = React.useState<"bars" | "heatmap">(() => (link.one("view") === "heatmap" ? "heatmap" : "bars"))
+  const [display, setDisplay] = React.useState<"bars" | "heatmap" | "traits">(() => {
+    const v = link.one("view")
+    return v === "heatmap" || v === "traits" ? v : "bars"
+  })
   // The heatmap's benchmark: every lift on file for the metric and segment, by its median.
   const [bench, setBench] = React.useState(() => link.one("bench") !== "0")
 
@@ -145,7 +151,14 @@ export function LiftSurface() {
       missing.map((s) =>
         Promise.all(
           (groups.find((g) => g.source === s)?.files ?? []).map((f) => fetch(`/audience-data/${f}`).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`${f} answered ${r.status}`)))))
-        ).then((parts: SourceRow[][]) => [s, parts.flat()] as const)
+        ).then(async (parts: SourceRow[][]) => {
+          // The Archive's ads arrive described, before its table draws; without the file they keep their ids.
+          if (s === "LIFT_ARCHIVE") {
+            const r = await fetch("/lift/archive-ads.json").catch(() => null)
+            if (r?.ok) setAds((await r.json()) as Record<string, AdInfo>)
+          }
+          return [s, parts.flat()] as const
+        })
       )
     )
       .then((got) => on && setFiles((prev) => ({ ...prev, ...Object.fromEntries(got) })))
@@ -177,6 +190,9 @@ export function LiftSurface() {
   const questions = React.useMemo(() => (index?.questions ?? []).filter((q) => q.source in SOURCES), [index])
 
   const rows = files[source]
+  const archive = source === "LIFT_ARCHIVE"
+  // Traits is the Archive's alone; another folder shows Bars in its place.
+  const shownDisplay = display === "traits" && !archive ? "bars" : display
 
   // The folder read once: its metrics (Primary first), fieldings, treatments
   // and breakdowns, and each result keyed for the table. A row is a treatment
@@ -376,7 +392,7 @@ export function LiftSurface() {
   // opening set, what is hidden, the benchmark off, and the open cell.
   const share = () => {
     const pairs: [string, string[]][] = [["source", [source]]]
-    if (display === "heatmap") pairs.push(["view", ["heatmap"]])
+    if (shownDisplay !== "bars") pairs.push(["view", [shownDisplay]])
     const featured = FEATURED[source]
     const opening = read ? (featured ? read.options.filter((o) => featured.includes(o)) : read.options) : []
     if (picked && (picked.length !== opening.length || picked.some((o) => !opening.includes(o)))) pairs.push(["t", picked])
@@ -428,7 +444,7 @@ export function LiftSurface() {
           ))}
           <DropdownMenuLabel className="text-xs text-muted-foreground">Emotion</DropdownMenuLabel>
           <DropdownMenuCheckboxItem checked={!metricsOff.includes(EMOTION)} onSelect={(e) => e.preventDefault()} onCheckedChange={() => setMetricsOff((prev) => toggled(prev, EMOTION))}>
-            Emotional response
+            {archive ? "Emotional appeal" : "Emotional response"}
           </DropdownMenuCheckboxItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -506,7 +522,7 @@ export function LiftSurface() {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {display === "heatmap" && (
+      {shownDisplay === "heatmap" && (
         <>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -529,11 +545,8 @@ export function LiftSurface() {
       <div className="ml-auto flex items-center gap-0.5">
         <span className="mr-1.5">
           <ViewToggle
-            views={[
-              { value: "bars", label: "Bars" },
-              { value: "heatmap", label: "Heatmap" },
-            ]}
-            value={display}
+            views={[{ value: "bars" as const, label: "Bars" }, { value: "heatmap" as const, label: "Heatmap" }, ...(archive ? [{ value: "traits" as const, label: "Traits" }] : [])]}
+            value={shownDisplay}
             onChange={setDisplay}
           />
         </span>
@@ -603,6 +616,64 @@ export function LiftSurface() {
   )
 
   const cols = view ? view.metrics.length + (view.emotion ? 1 : 0) : 0
+
+  // The Traits view (the Archive only): each coded trait's pooled lift, ads with it less ads without, per metric.
+  const traits = React.useMemo(() => {
+    if (!archive || shownDisplay !== "traits" || !rows || !view) return null
+    const off = new Set(periodsOff)
+    const by = new Map<string, { ad: AdInfo; x: number; v: number }[]>()
+    const ads = new Map<string, AdInfo>()
+    for (const r of rows) {
+      if (r[8] !== "lift_pp" || segOf(r) !== "" || r[9] == null || off.has(periodKey(r)) || !view.metrics.includes(r[0])) continue
+      const ad = AD_INFO.get(r[4] ?? "")
+      if (!ad) continue
+      ads.set(r[4]!, ad)
+      const se = r[9] / 1.645
+      by.set(r[0], [...(by.get(r[0]) ?? []), { ad, x: r[7], v: se * se }])
+    }
+    const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0)
+    // The between-ad variance per metric (DerSimonian–Laird), so a pooled margin owns how much ads differ.
+    const tau2 = new Map<string, number>()
+    for (const [m, xs] of by) {
+      const w = xs.map((p) => 1 / p.v)
+      const sw = sum(w)
+      const mean = sum(w.map((wi, i) => wi * xs[i].x)) / sw
+      const q = sum(w.map((wi, i) => wi * (xs[i].x - mean) ** 2))
+      tau2.set(m, Math.max(0, (q - (xs.length - 1)) / (sw - sum(w.map((wi) => wi * wi)) / sw)))
+    }
+    const pool = (xs: { x: number; v: number }[], t2: number) => {
+      const w = xs.map((p) => 1 / (p.v + t2))
+      const sw = sum(w)
+      return { mean: sum(w.map((wi, i) => wi * xs[i].x)) / sw, se: Math.sqrt(1 / sw), n: xs.length }
+    }
+    let extent = 0
+    const groups = TRAIT_GROUPS.map((g) => ({
+      name: g.name,
+      rows: g.traits
+        .map((t) => ({
+          key: t.key,
+          name: t.name,
+          n: [...ads.values()].filter(t.has).length,
+          cells: view.metrics.map((m): Cell | null => {
+            const xs = by.get(m) ?? []
+            const yes = xs.filter((p) => t.has(p.ad))
+            const no = xs.filter((p) => !t.has(p.ad))
+            if (yes.length < 3 || no.length < 3) return null
+            const a = pool(yes, tau2.get(m) ?? 0)
+            const b = pool(no, tau2.get(m) ?? 0)
+            const diff = a.mean - b.mean
+            extent = Math.max(extent, Math.abs(diff))
+            return {
+              lift: [m, "US", "", "", t.name, null, null, diff, "lift_pp", 1.645 * Math.sqrt(a.se ** 2 + b.se ** 2), null, yes.length, null],
+              level: null,
+              control: [m, "US", "", "", t.name, null, null, b.mean, "lift_pp", null, null, no.length, null],
+            }
+          }),
+        }))
+        .filter((r) => r.n > 0),
+    })).filter((g) => g.rows.length)
+    return { groups, extent, total: ads.size }
+  }, [archive, shownDisplay, rows, view, periodsOff])
   const metricsWidth = view ? view.metrics.reduce((n, m) => n + widthOf(m), 0) + (view.emotion ? widthOf(EMOTION) : 0) : 0
   // Stable, so a pick re-renders only the rows whose selection changed (the rows are memoized).
   // The same cell again closes the panel.
@@ -673,19 +744,26 @@ export function LiftSurface() {
       {view.emotion && (
         <th className={cn(TH, "relative border-l")}>
           <span className="flex items-center gap-2">
-            Emotional Response
-            <span className="rounded-md border px-1.5 py-px text-[10px] font-normal text-muted-foreground">Sample</span>
+            {archive ? "Emotional Appeal" : "Emotional Response"}
+            {!archive && <span className="rounded-md border px-1.5 py-px text-[10px] font-normal text-muted-foreground">Sample</span>}
             <span className="ml-auto flex items-center gap-2">
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <button type="button" aria-label="About Emotional Response" className={HEAD_ICON}>
+                  <button type="button" aria-label={archive ? "About Emotional Appeal" : "About Emotional Response"} className={HEAD_ICON}>
                     <Info className="size-4" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent className="max-w-72">
-                  <p className="mb-1.5">The share of respondents naming each feeling after the ad. No test has asked it yet: these shares are placeholders.</p>
-                  <EmotionKey className="text-background/80" />
-                </TooltipContent>
+                {archive ? (
+                  <TooltipContent className="max-w-72">
+                    <p className="mb-1.5">The archive coders&apos; ratings of the emotion each ad appeals to, 0 to 1 for each, rated apart (not shares); full strength at 0.5 and over.</p>
+                    <AppealKey className="text-background/80" />
+                  </TooltipContent>
+                ) : (
+                  <TooltipContent className="max-w-72">
+                    <p className="mb-1.5">The share of respondents naming each feeling after the ad. No test has asked it yet: these shares are placeholders.</p>
+                    <EmotionKey className="text-background/80" />
+                  </TooltipContent>
+                )}
               </Tooltip>
             </span>
           </span>
@@ -784,7 +862,68 @@ export function LiftSurface() {
       </tbody>
     </table>
   )
-  const table = display === "heatmap" ? heatTable : barsTable
+  const traitsTable = traits && view && (
+    <table className="table-fixed border-collapse" style={{ width: 260 + 110 + view.metrics.reduce((n, m) => n + widthOf(m), 0), minWidth: "100%" }}>
+      <colgroup>
+        <col style={{ width: 260 }} />
+        <col style={{ width: 110 }} />
+        {view.metrics.map((m) => (
+          <col key={m} style={{ width: widthOf(m) }} />
+        ))}
+      </colgroup>
+      <thead className="sticky top-0 z-[1] bg-background">
+        <tr>
+          <th className={TH}>Trait</th>
+          <th className={cn(TH, "border-l")}>Ads</th>
+          {view.metrics.map((m, i) => (
+            <th key={m} className={cn(TH, "relative border-l")}>
+              <span className="flex items-center gap-2">
+                <span className="truncate">{metricShort(m)}</span>
+                <span className="ml-auto flex items-center">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" aria-label={`About the ${metricShort(m)} traits`} className={HEAD_ICON}>
+                        <Info className="size-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-72">
+                      The average lift of ads with the trait less ads without it, each side pooled across the archive&apos;s ads with random-effects weights (DerSimonian–Laird). The line is its 90% margin; the number at the axis, the average without it.
+                    </TooltipContent>
+                  </Tooltip>
+                </span>
+              </span>
+              <ColumnGrip width={widthOf(m)} onWidth={resizeMetric(m)} last={i === view.metrics.length - 1} />
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {traits.groups.map((g) => (
+          <React.Fragment key={g.name}>
+            <tr>
+              <td colSpan={2 + view.metrics.length} className="border-b bg-pax2-mist px-3 py-1.5 text-xs font-semibold text-foreground">
+                {g.name}
+              </td>
+            </tr>
+            {g.rows.map((t) => (
+              <tr key={t.key} className={rowDress(false)}>
+                <td className={cn(TD, "font-medium")}>{t.name}</td>
+                <td className={cn(TD, "border-l text-muted-foreground tabular-nums")}>
+                  {t.n.toLocaleString("en-US")} of {traits.total.toLocaleString("en-US")}
+                </td>
+                {t.cells.map((c, i) => (
+                  <td key={view.metrics[i]} className={cn(TD, "border-l")}>
+                    {c ? <Candle cell={c} extent={traits.extent} baseTitle={`Ads without it average ${signed(c.control![7])}`} /> : <span className="block text-center text-xs text-muted-foreground/40">—</span>}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </React.Fragment>
+        ))}
+      </tbody>
+    </table>
+  )
+  const table = shownDisplay === "traits" ? traitsTable : shownDisplay === "heatmap" ? heatTable : barsTable
 
   return (
     <BankFrame rail={rail} crumb="Lift" search={NO_SEARCH} bare>
@@ -926,12 +1065,10 @@ function creative(ek: string, wave: string | null) {
   )
 }
 
+/** The emotion column's cell: an archive ad's coded appeal, else the placeholder shares. */
 function EmotionCell({ o, s }: { o: string; s: Seg }) {
-  return (
-    <td className={cn(TD, "border-l")}>
-      <EmotionBar shares={sampleEmotions(`${o}\u0001${s.key}`)} />
-    </td>
-  )
+  const ad = AD_INFO.get(optionOf(o))
+  return <td className={cn(TD, "border-l")}>{ad ? <AppealBars emotions={ad.emotions} /> : <EmotionBar shares={sampleEmotions(`${o}\u0001${s.key}`)} />}</td>
 }
 
 /** A bars-view row. Memoized: a pick re-renders only the rows it selects and unselects. */

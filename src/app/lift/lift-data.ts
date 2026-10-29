@@ -4,8 +4,78 @@ import { num, type SourceRow } from "../america-thinks/audience-data"
 // keyed (treatment, metric, segment, fielding), the control group it stands
 // against, and the arrow both draw.
 
-/** An archive treatment's row label; the study id stays for the About panel. */
-export const treatmentName = (option: string) => option.replace(/\s*\(study[^)]*\)/, "")
+/** What the archive records about one of its ads (public/lift/archive-ads.json, written by
+ *  audience/audience/lift_ads.py). The campaigns are anonymized and stay so. */
+export type AdInfo = { state: string; race: string | null; date: string | null; cycle: number; ad: number; ads: number; tone: string | null; focus: string | null; traits: string[]; emotions: Record<string, number> }
+export const AD_INFO = new Map<string, AdInfo>()
+/** The ads' descriptions arrive with the Archive's rows, before its table draws. */
+export function setAds(ads: Record<string, AdInfo>) {
+  for (const [k, v] of Object.entries(ads)) AD_INFO.set(k, v)
+}
+
+const RACE: Record<string, string> = { Presidential: "President", Congress: "Congress", Gov: "Governor", StateLeg: "State legislature", Runoff: "Runoff", Other: "Other race" }
+const MONTH = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+/** An archive ad named by its traits, as the archive records them: "AZ Congress · Apr 2018 · Contrast, candidate · Ad 1 of 4". */
+function adLabel(a: AdInfo) {
+  const states = a.state.split(",").map((x) => x.trim()).filter(Boolean)
+  const where = a.state === "National" ? "National" : states.length > 2 ? `${states.length} states` : states.join(", ")
+  const when = a.date ? `${MONTH[Number(a.date.slice(5, 7)) - 1]} ${a.date.slice(0, 4)}` : String(a.cycle)
+  const what = [a.tone && a.tone[0].toUpperCase() + a.tone.slice(1), a.focus].filter(Boolean).join(", ")
+  return [[where, a.race ? RACE[a.race] ?? a.race : null].filter(Boolean).join(" "), when, what, `Ad ${a.ad} of ${a.ads}`].filter(Boolean).join(" · ")
+}
+
+/** A treatment's row label: an archive ad by its traits where the archive describes it, else its name. */
+export const treatmentName = (option: string) => {
+  const ad = AD_INFO.get(option)
+  return ad ? adLabel(ad) : option.replace(/\s*\(study[^)]*\)/, "")
+}
+
+/** The Traits view's rows: each a test an ad passes, grouped as the archive's coders grouped them. */
+export const TRAIT_GROUPS: { name: string; traits: { key: string; name: string; has: (a: AdInfo) => boolean }[] }[] = [
+  { name: "Tone", traits: ["positive", "negative", "contrast"].map((t) => ({ key: `tone:${t}`, name: t[0].toUpperCase() + t.slice(1), has: (a) => a.tone === t })) },
+  { name: "Focus", traits: ["candidate", "issues"].map((t) => ({ key: `focus:${t}`, name: t[0].toUpperCase() + t.slice(1), has: (a) => a.focus === t })) },
+  { name: "Race", traits: Object.entries(RACE).filter(([k]) => k !== "Other").map(([k, n]) => ({ key: `race:${k}`, name: n, has: (a) => a.race === k })) },
+  { name: "Cycle", traits: [2018, 2020].map((y) => ({ key: `cycle:${y}`, name: String(y), has: (a) => a.cycle === y })) },
+  {
+    name: "Content",
+    traits: (
+      [
+        ["policy_facts", "Policy facts"],
+        ["candidate_facts", "Candidate facts"],
+        ["mentions_party", "Mentions a party"],
+        ["mentions_trump", "Mentions Trump"],
+        ["cites_source", "Cites a source"],
+      ] as const
+    ).map(([k, n]) => ({ key: k, name: n, has: (a) => a.traits.includes(k) })),
+  },
+  {
+    name: "Technique",
+    traits: (
+      [
+        ["name_calling", "Name-calling"],
+        ["testimonial", "Testimonial"],
+        ["plain_folks", "Plain folks"],
+      ] as const
+    ).map(([k, n]) => ({ key: k, name: n, has: (a) => a.traits.includes(k) })),
+  },
+  {
+    name: "Emotional appeal",
+    traits: ["anger", "disgust", "enthusiasm", "fear", "humor", "pride", "sadness", "somber"].map((e) => ({ key: `emotion:${e}`, name: e[0].toUpperCase() + e.slice(1), has: (a) => (a.emotions[e] ?? 0) >= 0.5 })),
+  },
+  {
+    name: "Messenger",
+    traits: (
+      [
+        ["messenger_female", "Woman"],
+        ["messenger_male", "Man"],
+        ["messenger_black", "Black"],
+        ["messenger_white", "White"],
+        ["messenger_elderly", "Older adult"],
+        ["messenger_children", "Children"],
+      ] as const
+    ).map(([k, n]) => ({ key: k, name: n, has: (a) => a.traits.includes(k) })),
+  },
+]
 
 const METRIC_SHORT: Record<string, string> = {
   lift_comprehension: "Comprehension",

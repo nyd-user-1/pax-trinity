@@ -18,7 +18,7 @@ const REACH = 40
  *  lift at the tip, and the margin through it as the resonant-topic chart
  *  draws its range (components/record/resonance-topic.tsx): an ink line with
  *  a cap at each end. A lift that does not clear its test is gray. */
-export function Candle({ cell, extent }: { cell: Cell; extent: number }) {
+export function Candle({ cell, extent, baseTitle }: { cell: Cell; extent: number; baseTitle?: string }) {
   const d = cell.lift[7]
   const moe = cell.lift[9]
   const quiet = significance(cell.lift) === false
@@ -29,7 +29,7 @@ export function Candle({ cell, extent }: { cell: Cell; extent: number }) {
   return (
     <span className="relative block h-6 w-full text-[13px]">
       {cell.control && (
-        <span className="absolute top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground" style={up ? { right: "calc(50% + 5px)" } : { left: "calc(50% + 5px)" }} title={`Control group ${levelOf(cell.control)}`}>
+        <span className="absolute top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground" style={up ? { right: "calc(50% + 5px)" } : { left: "calc(50% + 5px)" }} title={baseTitle ?? `Control group ${levelOf(cell.control)}`}>
           {num(cell.control[7])}
         </span>
       )}
@@ -131,6 +131,44 @@ export function EmotionKey({ className }: { className?: string }) {
     <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
       {EMOTIONS.map((e) => (
         <span key={e.name} className={cn("flex items-center gap-1 text-[10.5px] whitespace-nowrap", className ?? "text-muted-foreground")}>
+          <span className="size-2 rounded-[2px]" style={{ background: e.color }} />
+          {e.name}
+        </span>
+      ))}
+    </span>
+  )
+}
+
+/** The archive's coded emotional appeal: what each ad's coders rated it as appealing to, 0 to 1 per emotion
+ *  (independent ratings, so not shares), the dataviz reference palette's eight slots in order. */
+export const APPEALS = [
+  { key: "anger", name: "Anger", color: "#2a78d6" },
+  { key: "disgust", name: "Disgust", color: "#eb6834" },
+  { key: "enthusiasm", name: "Enthusiasm", color: "#1baf7a" },
+  { key: "fear", name: "Fear", color: "#eda100" },
+  { key: "humor", name: "Humor", color: "#e87ba4" },
+  { key: "pride", name: "Pride", color: "#008300" },
+  { key: "sadness", name: "Sadness", color: "#6250d6" },
+  { key: "somber", name: "Somber", color: "#e34948" },
+] as const
+
+/** One ad's appeal as eight small bars, each its emotion's rating, named with it on hover. */
+export function AppealBars({ emotions }: { emotions: Record<string, number> }) {
+  return (
+    <span className="flex h-6 items-end gap-[3px]">
+      {APPEALS.map((e) => {
+        const v = Math.max(0, Math.min(1, emotions[e.key] ?? 0))
+        return <span key={e.key} title={`${e.name} ${num(v, 2)}`} className="w-2.5 rounded-t-[2px]" style={{ height: `max(2px, ${v * 100}%)`, background: e.color, opacity: v >= 0.5 ? 1 : 0.55 }} />
+      })}
+    </span>
+  )
+}
+
+export function AppealKey({ className }: { className?: string }) {
+  return (
+    <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+      {APPEALS.map((e) => (
+        <span key={e.key} className={cn("flex items-center gap-1 text-[10.5px] whitespace-nowrap", className ?? "text-muted-foreground")}>
           <span className="size-2 rounded-[2px]" style={{ background: e.color }} />
           {e.name}
         </span>
