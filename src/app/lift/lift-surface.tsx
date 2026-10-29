@@ -70,6 +70,8 @@ const THUMB: Record<string, string> = {
   Littlewood: "/lift/thumbs/littlewood.jpg",
   Dustin: "/lift/thumbs/dustin.jpg",
   Rodriguez: "/lift/thumbs/rodriguez.jpg",
+  Donut: "/lift/thumbs/donut.jpg",
+  "Official campaign ad": "/lift/thumbs/official-campaign-ad.jpg",
 }
 /** The treatments a folder opens on (Brendan, 2026-10-29); the Treatments menu brings back the rest. */
 const FEATURED: Record<string, string[]> = { PAX_TEST: ["DiZoglio", "Matt Wilson", "Pahlow"] }
