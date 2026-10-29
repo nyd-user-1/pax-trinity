@@ -60,6 +60,27 @@ for (const rs of RESULT_SETS)
     SPAN.set(t.outcomeId, s)
   }
 
+/** Every measured lift on file per outcome: the Resonance pool (docs/briefs/resonance-score.md). */
+const POOL = new Map<string, number[]>()
+for (const rs of RESULT_SETS)
+  for (const t of rs.toplines) {
+    if (t.liftPp == null) continue
+    POOL.set(t.outcomeId, [...(POOL.get(t.outcomeId) ?? []), t.liftPp])
+  }
+
+/** Resonance: where a lift falls among every lift on file for its outcome, 0–100, ties counted half. */
+export function resonance(outcomeId: string, lift: number): number | null {
+  const pool = POOL.get(outcomeId)
+  if (!pool || pool.length < 5) return null
+  let below = 0
+  let tie = 0
+  for (const v of pool) {
+    if (v < lift) below++
+    else if (v === lift) tie++
+  }
+  return Math.round((100 * (below + tie / 2)) / pool.length)
+}
+
 /** The panel's figures for a clip the register does not join: a wave of the register, its placebo and
  *  threshold as they are, and the arm's lifts, counts and subgroup pairings drawn inside the register's
  *  own ranges from a seed on the clip's id. */
@@ -137,9 +158,19 @@ function ArmTest({ rs, arm, linked = true }: ClipTestRef) {
   const placebo = placeboOf(rs)
   const line = [arm.producer, arm.durationSeconds ? `${arm.durationSeconds}s` : null, arm.note].filter(Boolean).join(" · ")
   const pairings = rs.pairings.filter((p) => p.armIds.includes(arm.id)).sort((a, b) => a.rank - b.rank)
+  const primary = rs.outcomes[0]
+  const lead = primary ? toplineOf(rs, arm.id, primary.id)?.liftPp : null
+  const score = primary && lead != null ? resonance(primary.id, lead) : null
   return (
     <section>
-      <p className="text-sm font-semibold">{rs.study}</p>
+      <p className="flex items-baseline gap-2 text-sm font-semibold">
+        <span className="min-w-0 flex-1">{rs.study}</span>
+        {score != null && (
+          <span className="shrink-0 text-xs font-medium text-muted-foreground">
+            Resonance <span className="text-base font-semibold text-foreground tabular-nums">{score}</span>
+          </span>
+        )}
+      </p>
       <p className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
         <span className="shrink-0 rounded-md border px-1.5 py-px text-[10.5px] whitespace-nowrap">Wave {rs.wave}</span>
         {fielding(rs.fielded.start, rs.fielded.end)}
