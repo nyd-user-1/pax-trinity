@@ -6,6 +6,8 @@ import type { z } from "zod"
 export type TemplateSpec<S extends z.ZodType = z.ZodType> = {
   /** Letters, digits and hyphens: Remotion's rule for a composition id. */
   id: string
+  /** Its name for people: "Lift card". */
+  name: string
   /** One line for the agent: what the template shows and when to reach for it. */
   description: string
   propsSchema: S

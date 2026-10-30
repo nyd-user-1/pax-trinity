@@ -4,6 +4,7 @@ import { ExampleProps } from "./schema"
 
 export const exampleSpec = defineSpec({
   id: "example",
+  name: "Example",
   description: "The pattern's example: a title, one bar drawn to a value from 0 to 100, and an optional caption.",
   propsSchema: ExampleProps,
   fps: FPS,

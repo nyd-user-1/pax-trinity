@@ -3,6 +3,10 @@ import type * as React from "react"
 import { allSpecs, getSpec, type AnySpec } from "./specs"
 import type { Template } from "./template"
 import { ExampleComposition } from "./templates/_example/Composition"
+import { LiftCardComposition } from "./templates/lift-card/Composition"
+import { LiftLeaderboardComposition } from "./templates/lift-leaderboard/Composition"
+import { MetricTrendComposition } from "./templates/metric-trend/Composition"
+import { SurveySplitComposition } from "./templates/survey-split/Composition"
 
 // Each spec (specs.ts) with the Remotion component that draws it: what
 // TemplatePlayer plays in the page and Root.tsx registers for Studio and the
@@ -12,6 +16,10 @@ import { ExampleComposition } from "./templates/_example/Composition"
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const COMPONENTS: Record<string, React.ComponentType<any>> = {
   example: ExampleComposition,
+  "lift-card": LiftCardComposition,
+  "lift-leaderboard": LiftLeaderboardComposition,
+  "survey-split": SurveySplitComposition,
+  "metric-trend": MetricTrendComposition,
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

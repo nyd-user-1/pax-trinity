@@ -2,6 +2,10 @@ import { z } from "zod"
 
 import type { TemplateSpec } from "./template"
 import { exampleSpec } from "./templates/_example/spec"
+import { liftCardSpec } from "./templates/lift-card/spec"
+import { liftLeaderboardSpec } from "./templates/lift-leaderboard/spec"
+import { metricTrendSpec } from "./templates/metric-trend/spec"
+import { surveySplitSpec } from "./templates/survey-split/spec"
 
 // Every template's spec by id: its schema, frame, length and fixture, without
 // its component. Server-safe, so /api/video/render and the chat agent validate
@@ -14,7 +18,7 @@ import { exampleSpec } from "./templates/_example/spec"
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnySpec = TemplateSpec<any>
 
-const SPECS: AnySpec[] = [exampleSpec]
+const SPECS: AnySpec[] = [exampleSpec, liftCardSpec, liftLeaderboardSpec, surveySplitSpec, metricTrendSpec]
 
 const BY_ID: Readonly<Record<string, AnySpec>> = Object.fromEntries(SPECS.map((s) => [s.id, s]))
 
@@ -35,6 +39,7 @@ export function durationOf(spec: AnySpec, props: unknown): number {
 export function listTemplates() {
   return SPECS.map((s) => ({
     id: s.id,
+    name: s.name,
     description: s.description,
     width: s.width,
     height: s.height,

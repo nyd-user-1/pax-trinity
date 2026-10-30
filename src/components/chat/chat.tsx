@@ -52,6 +52,27 @@ function pieces(content: string): ({ text: string } | { path: string; anchor: st
   if (at < content.length) out.push({ text: content.slice(at) })
   return out
 }
+// A filled video template in a reply: a ```pax-video block holding { templateId, props } as JSON
+// (src/video/gallery.ts writes them). Each draws as a TemplatePlayer where it stands in the prose; a
+// block still streaming in shows nothing until it closes.
+const VIDEO_BLOCK = /```pax-video\s*\n([\s\S]*?)```/g
+function videoSplit(text: string): ({ text: string } | { video: { templateId: string; props: unknown } | null })[] {
+  const out: ({ text: string } | { video: { templateId: string; props: unknown } | null })[] = []
+  let at = 0
+  for (const m of text.matchAll(VIDEO_BLOCK)) {
+    if (m.index! > at) out.push({ text: text.slice(at, m.index) })
+    let video: { templateId: string; props: unknown } | null = null
+    try {
+      const v = JSON.parse(m[1]) as { templateId?: unknown; props?: unknown }
+      if (typeof v.templateId === 'string') video = { templateId: v.templateId, props: v.props }
+    } catch {}
+    out.push({ video })
+    at = m.index! + m[0].length
+  }
+  const rest = text.slice(at).replace(/```pax-video[\s\S]*$/, '')
+  if (rest) out.push({ text: rest })
+  return out
+}
 type Suggestion = { place_id: string; description: string }
 type SelectedAddress = { description: string; lat: number; lng: number }
 type PlaceRace = { election: string; candidates: { name: string; party: string; votes: number; won: boolean }[]; contested: boolean }
@@ -70,6 +91,8 @@ const BrollBlock = dynamic(() => import('@/components/chat/footage-block').then(
 const footageShow = (model?: string): FootageShow | undefined => (model === 'library-shots' ? 'shots' : model === 'library-graphics' ? 'graphics' : undefined)
 const brollOf = (m: { model?: string; content: string }) => (m.model === 'library-broll' ? m.content.replace(/```(pax-broll)?/g, '').trim() : null)
 const TextType = dynamic(() => import('@/components/text-type'), { loading: () => <span className="block h-[65px]" /> })
+// Remotion's Player and the templates load the first time a reply carries a video.
+const TemplatePlayer = dynamic(() => import('@/components/video/TemplatePlayer').then((m) => m.TemplatePlayer), { ssr: false, loading: () => <div className="aspect-video w-full animate-pulse rounded-xl bg-white/70" /> })
 const READY = ['Ready to make change?', 'Ready to make a video?', 'Ready to make a storyboard?', 'Ready to make a script?', 'Ready to make a difference?', 'Ready. Set. Go.']
 
 const RECORD_OPENER = "I'm ready to make my first video — where do we start?"
@@ -939,6 +962,9 @@ export function Chat({ scripts = [], videos = [], shorts = [], compact = false, 
             hasScript={messages.some((m) => m.role === 'assistant' && !!scriptText(m.content))}
             onFootage={(text, focus) => { setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: 'assistant', content: '```pax-script\n' + text.trim() + '\n```', model: focus === 'shots' ? 'library-shots' : 'library-graphics' }]); setFootageFocus({ script: text.trim(), focus }) }}
             onBroll={(id) => setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: 'assistant', content: '```pax-broll\n' + id + '\n```', model: 'library-broll' }])}
+            onTemplates={() => {
+              void import('@/video/gallery').then(({ galleryMessage }) => setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: 'assistant', content: galleryMessage(), model: 'library-video' }]))
+            }}
             onGraphic={(kind) => {
               const last = [...messages].reverse().find((m) => m.role === 'assistant' && !!scriptText(m.content))
               const text = last ? scriptText(last.content) : null
@@ -1177,7 +1203,15 @@ export function Chat({ scripts = [], videos = [], shorts = [], compact = false, 
               const prose = (content: string) =>
                 pieces(content).map((p, i) =>
                   'text' in p ? (
-                    <MarkdownContent key={i} content={p.text} isStreaming={msgStreaming} />
+                    videoSplit(p.text).map((v, k) =>
+                      'text' in v ? (
+                        <MarkdownContent key={`${i}-${k}`} content={v.text} isStreaming={msgStreaming} />
+                      ) : v.video ? (
+                        <div key={`${i}-${k}`} className="my-3">
+                          <TemplatePlayer templateId={v.video.templateId} props={v.video.props} />
+                        </div>
+                      ) : null,
+                    )
                   ) : (
                     <ChatBlock key={`${p.path}#${p.anchor}-${i}`} path={p.path} anchor={p.anchor} />
                   ),

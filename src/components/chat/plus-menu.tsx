@@ -10,7 +10,7 @@
 // the chat with its Graphics card). Icons wear the sidebar's clothes: 18px, 1.75 stroke, lavender fill on hover.
 
 import { useState, useRef, useEffect } from 'react'
-import { Plus, ChevronRight, ArrowLeft, X, Compass, NotebookPen, Paperclip, PlaySquare, Clapperboard, AudioLines, Volume2, Loader2, Film, Shapes, Sparkles } from 'lucide-react'
+import { Plus, ChevronRight, ArrowLeft, X, Compass, NotebookPen, Paperclip, PlaySquare, Clapperboard, AudioLines, Volume2, Loader2, Film, Shapes, Sparkles, MonitorPlay } from 'lucide-react'
 
 import { narrate } from '@/app/studio-actions'
 import { CHAT_SKILLS, type ChatSkill } from '@/lib/chat-skills'
@@ -75,6 +75,8 @@ interface Props {
   hasScript?: boolean
   /** Attach: the chat's file upload, housed in the menu rather than beside it (Brendan, 2026-10-24). */
   onAttach?: () => void
+  /** Video templates: every template, filled with sample data, placed in the chat. */
+  onTemplates?: () => void
   /** A skill picked from the top of the menu: the chat carries it as a chip and in every message after. */
   onSkill?: (skill: ChatSkill) => void
 }
@@ -90,7 +92,7 @@ const outlier = (x: number) => `${x >= 10 ? x.toFixed(0) : x.toFixed(1)}×`
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
 
-export function PlusMenu({ videos, shorts = [], onSelect, onShort, onFootage, onBroll, onGraphic, hasScript = false, onAttach, onSkill }: Props) {
+export function PlusMenu({ videos, shorts = [], onSelect, onShort, onFootage, onBroll, onGraphic, hasScript = false, onAttach, onTemplates, onSkill }: Props) {
   const [scripts, setScripts] = useState<ListedScript[] | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [step, setStep] = useState<DrillStep>('categories')
@@ -225,6 +227,13 @@ export function PlusMenu({ videos, shorts = [], onSelect, onShort, onFootage, on
                 <ChevronRight className="h-4 w-4 ml-auto text-[var(--muted)]" />
               </button>
             ))}
+            {/* A leaf: every video template, filled with sample data, placed in the chat. */}
+            {onTemplates && (
+              <button onClick={() => { onTemplates(); closeMenu() }} className={row(CATEGORIES.length) + ' text-sm font-medium'}>
+                <MonitorPlay className={ICON} strokeWidth={1.75} />
+                <span className="text-[var(--txt)]">Video templates</span>
+              </button>
+            )}
             {/* A leaf, not a drill-down: picking it opens the file dialog. */}
             {onAttach && (
               <button onClick={() => { onAttach(); closeMenu() }} className={row(CATEGORIES.length) + ' text-sm font-medium'}>
