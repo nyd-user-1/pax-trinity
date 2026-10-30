@@ -15,6 +15,7 @@ import { CommandKHost, openCommandK } from "@/components/command/command-k-host"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/ui/components/nova/dropdown-menu"
 import { cn } from "@/ui/lib/utils"
 import { whiteButton } from "@/components/white-button"
+import { HousekeepingTool } from "@/components/housekeeping/tool"
 import type { ChipOffer } from "@/lib/question-resolver"
 
 // The discussion panel carries the whole chat (markdown, the Remotion player): it loads the first time it opens,
@@ -397,6 +398,8 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
               <div className="flex-1" />
               {/* A page's own header controls (the dashboard's poller switch and pipeline run) portal in here. */}
               <div id="page-actions" className="flex items-center gap-3" />
+              {/* Housekeeping's pointer (Brendan, 2026-10-30): admins comment on any element for the super admin. */}
+              {admin && <HousekeepingTool />}
               {/* 44b's DiscussionHeaderButton: the discussion panel opens from every page. */}
               <button type="button" onClick={() => (setAside(null), setDiscuss((v) => !v))} aria-pressed={discuss} aria-label="Open the discussion" className={whiteButton("circle")}>
                 <MessagesSquare className="size-4" style={{ color: "#033882", fill: "#dbe7fa" }} />

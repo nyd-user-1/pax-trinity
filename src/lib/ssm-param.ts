@@ -4,7 +4,9 @@ import "server-only"
 // costs one read, short enough that a script writing a new token takes effect without a deploy
 // (after govblock's lib/agents/connections/secret.ts). A missing or unreadable parameter reads as null.
 
-const REGION = process.env.PAX2_REGION ?? "us-east-1"
+// PAX Trinity's parameters sit in the new account's us-east-2 (copied from pax2's us-east-1,
+// Brendan 2026-10-30: Trinity works in us-east-2 only); the tables' region names it.
+const REGION = process.env.PAX_TRINITY_TABLES_REGION ?? "us-east-2"
 const TTL = 5 * 60_000
 const cache = new Map<string, { at: number; value: string | null }>()
 

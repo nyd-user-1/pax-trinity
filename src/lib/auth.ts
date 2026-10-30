@@ -4,22 +4,27 @@ import { CognitoJwtVerifier } from "aws-jwt-verify"
 import { cookies } from "next/headers"
 
 import { DEMO_ADMIN, DEMO_EMAILS } from "@/lib/demo"
+import { isSuperAdmin } from "@/lib/roles"
 
 // The signed-in user, from the Cognito ID token in the pax2_session cookie — verified against the
 // pool's signing keys, so this one can authorize. Admins are the pool's "admins" group plus anyone
-// listed in ADMIN_EMAILS (so a new admin is one the moment they confirm their account).
+// listed in ADMIN_EMAILS (so a new admin is one the moment they confirm their account). The super
+// admin is lib/roles.ts's superadmin (Brendan, by either address), and is always an admin too.
 
 const POOL = process.env.PAX2_COGNITO_POOL_ID
 const CLIENT = process.env.PAX2_COGNITO_CLIENT_ID
 const verifier = POOL && CLIENT ? CognitoJwtVerifier.create({ userPoolId: POOL, tokenUse: "id", clientId: CLIENT }) : null
 const ADMINS = (process.env.ADMIN_EMAILS ?? "").split(",").map((e) => e.trim().toLowerCase()).filter(Boolean)
 
-export type SessionUser = { email: string; admin: boolean; demo: boolean }
+export type SessionUser = { email: string; admin: boolean; superAdmin: boolean; demo: boolean }
 
 export async function currentUser(): Promise<SessionUser | null> {
   // Local development skips sign-in entirely: the dev server acts as the first admin.
   // `next build` sets NODE_ENV=production, so no deployed build can take this branch.
-  if (process.env.NODE_ENV === "development") return { email: ADMINS[0] ?? "brendan@nysgpt.com", admin: true, demo: false }
+  if (process.env.NODE_ENV === "development") {
+    const email = ADMINS[0] ?? "brendan@nysgpt.com"
+    return { email, admin: true, superAdmin: isSuperAdmin(email), demo: false }
+  }
   const token = (await cookies()).get("pax2_session")?.value
   if (!token || !verifier) return null
   try {
@@ -28,7 +33,8 @@ export async function currentUser(): Promise<SessionUser | null> {
     const groups = (claims["cognito:groups"] as string[] | undefined) ?? []
     // The demo admin gets the admin surfaces by email alone, never the pool's admins group,
     // so removing the account removes the role with it.
-    return { email, admin: groups.includes("admins") || ADMINS.includes(email) || email === DEMO_ADMIN, demo: DEMO_EMAILS.has(email) }
+    const superAdmin = isSuperAdmin(email)
+    return { email, admin: superAdmin || groups.includes("admins") || ADMINS.includes(email) || email === DEMO_ADMIN, superAdmin, demo: DEMO_EMAILS.has(email) }
   } catch {
     return null
   }
@@ -37,6 +43,12 @@ export async function currentUser(): Promise<SessionUser | null> {
 export async function requireAdmin(): Promise<SessionUser> {
   const user = await currentUser()
   if (!user?.admin) throw new Error("Admins only.")
+  return user
+}
+
+export async function requireSuperAdmin(): Promise<SessionUser> {
+  const user = await currentUser()
+  if (!user?.superAdmin) throw new Error("The super admin only.")
   return user
 }
 

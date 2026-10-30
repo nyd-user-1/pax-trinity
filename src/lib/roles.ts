@@ -5,10 +5,11 @@
 
 export type Role = "superadmin" | "admin" | "staff" | "partner"
 
-export type Member = { name: string; email?: string; role: Role }
+/** A member's sign-in address, and any others that are the same person (Brendan's Gmail). */
+export type Member = { name: string; email?: string; aliases?: string[]; role: Role }
 
 export const MEMBERS: Member[] = [
-  { name: "Brendan Stanton", email: "brendan@nysgpt.com", role: "superadmin" },
+  { name: "Brendan Stanton", email: "brendan@nysgpt.com", aliases: ["brendan.stanton@gmail.com"], role: "superadmin" },
   { name: "Sajeela Padder", email: "sajeela@parallaxinnovations.com", role: "admin" },
   { name: "Garrett Hernandez Rimer", email: "garrett@parallaxinnovations.com", role: "admin" },
   { name: "Ted Delicath", email: "ted@parallaxinnovations.com", role: "admin" },
@@ -26,4 +27,10 @@ export const PARTNERS: Partner[] = [
   { id: "yeson3", name: "Yes on 3", youtube: "https://www.youtube.com/@yeson3ma" },
 ]
 
-export const memberByEmail = (email: string) => MEMBERS.find((m) => m.email?.toLowerCase() === email.toLowerCase())
+export const memberByEmail = (email: string) => {
+  const e = email.toLowerCase()
+  return MEMBERS.find((m) => m.email?.toLowerCase() === e || m.aliases?.some((a) => a.toLowerCase() === e))
+}
+
+/** The super admin, the developer: the one role that edits and resolves (Brendan, 2026-10-30). */
+export const isSuperAdmin = (email: string) => memberByEmail(email)?.role === "superadmin"

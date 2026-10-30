@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { ArrowLeft, ChevronRight, Loader2, Columns2, Columns3, LayoutGrid, MessagesSquare, Video, X } from "lucide-react"
+import { ArrowLeft, ChevronRight, Loader2, Columns2, Columns3, LayoutGrid, MessagesSquare, Video, Wrench, X } from "lucide-react"
+import dynamic from "next/dynamic"
 import { usePathname, useRouter } from "next/navigation"
 
 import { connections } from "@/app/connect-actions"
@@ -20,7 +21,13 @@ import { whiteButton } from "@/components/white-button"
 // It sits in the shell's right slot in the take panel's frame, so the two read as one panel. It wears the
 // rail's dress (Brendan, 2026-10-29, after America Thinks): the mist ground, its rows the rail's rows.
 
-type View = "welcome" | "blocks" | "chat" | "slack" | "discord"
+type View = "welcome" | "blocks" | "chat" | "housekeeping" | "slack" | "discord"
+
+// Housekeeping's stream loads when it is opened (components/housekeeping).
+const HousekeepingView = dynamic(() => import("@/components/housekeeping/view").then((m) => m.HousekeepingView), {
+  ssr: false,
+  loading: () => <Loader2 className="mx-6 my-6 size-5 animate-spin text-pax2-blue" />,
+})
 
 // The panel moves to its own column when a video's drawer opens beside it (the shell), which remounts
 // it; these keep its place through the move: the view it's on and the shelf tile last opened.
@@ -28,7 +35,7 @@ let keptView: View = "welcome"
 let keptSelected: string | null = null
 // The service a Slack or Discord view talks to, named by its logo in the header at every level.
 const LOGO: Partial<Record<View, string>> = { slack: "/logos/slack.png", discord: "/logos/discord-icon.svg" }
-const TITLE: Record<View, string> = { welcome: "Discussion", blocks: "Blocks", chat: "Chat", slack: "Slack", discord: "Discord" }
+const TITLE: Record<View, string> = { welcome: "Discussion", blocks: "Blocks", chat: "Chat", housekeeping: "Housekeeping", slack: "Slack", discord: "Discord" }
 
 function Row({ icon, label, sub, onClick }: { icon: React.ReactNode; label: string; sub?: string; onClick: () => void }) {
   return (
@@ -267,6 +274,7 @@ export function DiscussionPanel({ onClose: close, admin = false }: { onClose: ()
           <div className="flex flex-col gap-0.5 px-3 pt-1">
             <Row icon={<LayoutGrid className="size-4" />} label="Blocks" sub="Shorts and blocks you've saved" onClick={() => setView("blocks")} />
             <Row icon={<MessagesSquare className="size-4" />} label="Chat" sub="Ask about the scores, scripts and results" onClick={() => setView("chat")} />
+            {admin && <Row icon={<Wrench className="size-4" />} label="Housekeeping" sub="Comments on the app, and direct messages" onClick={() => setView("housekeeping")} />}
             <Row icon={<Video className="size-4" />} label="Record" sub="Write a script, record it or upload a video" onClick={() => router.push("/recording")} />
             {admin && (
               <>
@@ -279,6 +287,7 @@ export function DiscussionPanel({ onClose: close, admin = false }: { onClose: ()
           </div>
         )}
         {view === "blocks" && <BlocksShelf />}
+        {view === "housekeeping" && <HousekeepingView />}
         {view === "chat" && <Chat compact context={discussSeed?.context} chipVideo={discussSeed?.chipVideo} surface={discussSeed?.chipVideo ? "video-panel" : "chat"} explore={!discussSeed?.chipVideo} seedChip={discussSeed?.ask ?? null} seedNonce={discussSeed?.nonce} />}
         {(view === "slack" || view === "discord") && (linked ? <ConnectView key={view} service={view} mock={!linked[view]} onNav={setSub} /> : <Loader2 className="mx-6 my-6 size-5 animate-spin text-pax2-blue" />)}
       </div>
