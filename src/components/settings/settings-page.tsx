@@ -313,10 +313,9 @@ const AREAS = [
 ]
 
 function roster(user: User | null): Person[] {
-  // The staff as lib/roles.ts names them, Unite America's contact as the inbox does. The admins' accounts were
+  // The members as lib/roles.ts names them, Ted's Unite America partner account among them. The accounts were
   // made on 2026-10-29 and wait on a first sign-in; the two staff without an address can't be invited yet.
   const people = MEMBERS.map((m): Person => ({ ...m, status: !m.email ? "No email" : m.role === "superadmin" ? "Active" : "Invited" }))
-  people.push({ name: "Unite America", email: "ted@uniteamerica.org", role: "partner", status: "Invited" })
   if (!user) return people
   const me = people.find((p) => p.email?.toLowerCase() === user.email.toLowerCase())
   if (me) Object.assign(me, { you: true, status: "Active" })

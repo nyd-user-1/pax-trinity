@@ -6,13 +6,16 @@
 export type Role = "superadmin" | "admin" | "staff" | "partner"
 
 /** A member's sign-in address, and any others that are the same person (Brendan's Gmail). */
-export type Member = { name: string; email?: string; aliases?: string[]; role: Role; /** The headshot in public/. */ photo?: string }
+export type Member = { name: string; email?: string; aliases?: string[]; role: Role; /** The headshot in public/. */ photo?: string; /** A partner account's organization (PARTNERS' id). */ partner?: string }
 
 export const MEMBERS: Member[] = [
   { name: "Brendan Stanton", email: "brendan@nysgpt.com", aliases: ["brendan.stanton@gmail.com"], role: "superadmin", photo: "/brendan.jpg" },
   { name: "Sajeela Padder", email: "sajeela@parallaxinnovations.com", role: "admin", photo: "/sajeela.jpeg" },
   { name: "Garrett Hernandez Rimer", email: "garrett@parallaxinnovations.com", role: "admin", photo: "/garrett.jpeg" },
   { name: "Ted Delicath", email: "ted@parallaxinnovations.com", role: "admin", photo: "/ted.jpeg" },
+  // Ted's second account (Brendan, 2026-10-30): the Parallax address is his admin account, this one his
+  // Unite America partner account. Two people to the app, never aliases of each other.
+  { name: "Ted Delicath", email: "ted@uniteamerica.org", role: "partner", partner: "unite-america", photo: "/ted.jpeg" },
   { name: "Errin M Vasquez", role: "staff" },
   { name: "Sergio Gutierrez", role: "staff" },
 ]
