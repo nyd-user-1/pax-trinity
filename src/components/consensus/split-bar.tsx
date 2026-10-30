@@ -1,3 +1,4 @@
+import { Reveal } from "@/components/reveal"
 import { share, type Tally } from "@/lib/consensus/data"
 
 // One statement's split, as a bar rather than a ring.
@@ -14,6 +15,8 @@ import { share, type Tally } from "@/lib/consensus/data"
 // a conversation about primaries reads as a party. Both steps were checked
 // with the dataviz validator against the light and dark surfaces: ΔE 15.6
 // under protanopia, 23.0 under normal vision, contrast over 3:1 on both.
+// The bar grows in from the left the first time it comes into view
+// (components/reveal.tsx).
 
 const AGREE = "var(--consensus-agree)"
 const DISAGREE = "var(--consensus-disagree)"
@@ -37,8 +40,8 @@ export function SplitBar({
           {label}
         </span>
       )}
-      <div
-        className={`flex ${compact ? "h-2" : "h-3"} min-w-0 flex-1 gap-0.5 overflow-hidden`}
+      <Reveal
+        className={`grow-x flex ${compact ? "h-2" : "h-3"} min-w-0 flex-1 gap-0.5 overflow-hidden`}
         role="img"
         aria-label={`${pct(s.agree)} agree, ${pct(s.pass)} pass, ${pct(s.disagree)} disagree, of ${votes.seen} who saw it`}
       >
@@ -53,7 +56,7 @@ export function SplitBar({
           className="rounded-r-[4px]"
           style={{ width: `${s.disagree}%`, background: DISAGREE }}
         />
-      </div>
+      </Reveal>
       <span className="w-28 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
         <span className="font-medium text-foreground">{pct(s.agree)}</span>
         {" agree · "}

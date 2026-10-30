@@ -2,13 +2,15 @@
 
 import * as React from "react"
 
+import { Reveal } from "@/components/reveal"
 import { cn } from "@/lib/utils"
 
 import { num } from "../america-thinks/audience-data"
 import { levelOf, POINT_LEFT, POINT_RIGHT, signed, significance, type Cell } from "./lift-data"
 
 // The marks /lift draws in its cells: the bar view's candle, the heatmap's
-// fill, and the emotion column's stacked bar.
+// fill, and the emotion column's stacked bar. The candle and the stacked bar
+// grow in the first time they come into view (components/reveal.tsx).
 
 /** Where zero sits and how far a point reaches, for a table whose lifts run from -neg to +pos (Brendan,
  *  2026-10-29: no half-empty cells): zero only as far in as the largest negative needs, the bars the rest of the
@@ -29,7 +31,7 @@ export function Candle({ cell, axis, scale, baseTitle }: { cell: Cell; axis: num
   const up = d >= 0
   const tip = Math.min(100, Math.max(0, axis + d * scale))
   return (
-    <span className="relative block h-6 w-full text-[13px]">
+    <Reveal as="span" className="relative block h-6 w-full text-[13px]">
       {cell.control && (
         <span className="absolute top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground" style={up ? { right: `calc(${100 - axis}% + 5px)` } : { left: `calc(${axis}% + 5px)` }} title={baseTitle ?? `Control group ${levelOf(cell.control)}`}>
           {num(cell.control[7])}
@@ -37,16 +39,16 @@ export function Candle({ cell, axis, scale, baseTitle }: { cell: Cell; axis: num
       )}
       <span
         aria-hidden
-        className={cn("absolute top-1/2 h-3.5 -translate-y-1/2", quiet ? "bg-muted-foreground/25" : up ? "bg-linear-to-r from-pax2-light-blue/45 to-pax2-light-blue" : "bg-linear-to-l from-pax2-red/45 to-pax2-red")}
+        className={cn("absolute top-1/2 h-3.5 -translate-y-1/2", up ? "grow-x" : "grow-x-neg", quiet ? "bg-muted-foreground/25" : up ? "bg-linear-to-r from-pax2-light-blue/45 to-pax2-light-blue" : "bg-linear-to-l from-pax2-red/45 to-pax2-red")}
         style={{ left: `${Math.min(axis, tip)}%`, width: `max(6px, ${Math.abs(tip - axis)}%)`, clipPath: up ? POINT_RIGHT : POINT_LEFT }}
       />
       <span
-        className={cn("absolute top-1/2 -translate-y-1/2 font-semibold whitespace-nowrap", quiet ? "font-medium text-muted-foreground" : !up && "text-pax2-red")}
+        className={cn("grow-in absolute top-1/2 -translate-y-1/2 font-semibold whitespace-nowrap", quiet ? "font-medium text-muted-foreground" : !up && "text-pax2-red")}
         style={up ? { left: `calc(${tip}% + ${tip - axis < 1 ? 8 : 3}px)` } : { right: `calc(${100 - tip}% + ${axis - tip < 1 ? 8 : 3}px)` }}
       >
         {signed(d)}
       </span>
-    </span>
+    </Reveal>
   )
 }
 
@@ -107,20 +109,25 @@ export function sampleEmotions(key: string) {
   return pct
 }
 
-/** A stacked bar of parts that add to 100: a 2px gap between, each named with its share on hover. */
-function StackBar({ parts }: { parts: { name: string; color: string; pct: number }[] }) {
-  return (
-    <span className="flex h-5 w-full gap-[2px]">
-      {parts.map((p) =>
-        p.pct > 0 ? <span key={p.name} title={`${p.name} ${p.pct}%`} className="h-full first:rounded-l-[4px] last:rounded-r-[4px]" style={{ width: `${p.pct}%`, background: p.color }} /> : null
-      )}
-    </span>
+/** A stacked bar of parts that add to 100: a 2px gap between, each named with its share on hover. It grows
+ *  in on its own unless `inChart`, where it rides the reveal of the row around it. */
+function StackBar({ parts, inChart }: { parts: { name: string; color: string; pct: number }[]; inChart?: boolean }) {
+  const segments = parts.map((p) =>
+    p.pct > 0 ? <span key={p.name} title={`${p.name} ${p.pct}%`} className="h-full first:rounded-l-[4px] last:rounded-r-[4px]" style={{ width: `${p.pct}%`, background: p.color }} /> : null
+  )
+  const frame = "grow-x flex h-5 w-full gap-[2px]"
+  return inChart ? (
+    <span className={frame}>{segments}</span>
+  ) : (
+    <Reveal as="span" className={frame}>
+      {segments}
+    </Reveal>
   )
 }
 
 /** One row's emotional response: the shares stacked. */
-export function EmotionBar({ shares }: { shares: number[] }) {
-  return <StackBar parts={EMOTIONS.map((e, i) => ({ name: e.name, color: e.color, pct: shares[i] }))} />
+export function EmotionBar({ shares, inChart }: { shares: number[]; inChart?: boolean }) {
+  return <StackBar inChart={inChart} parts={EMOTIONS.map((e, i) => ({ name: e.name, color: e.color, pct: shares[i] }))} />
 }
 
 /** The Emotional Response key, in the column's info tooltip. */
@@ -151,11 +158,11 @@ export const APPEALS = [
 ] as const
 
 /** One ad's coded appeal in the same stacked bar: each emotion's share of all its rated appeal. */
-export function AppealBar({ emotions }: { emotions: Record<string, number> }) {
+export function AppealBar({ emotions, inChart }: { emotions: Record<string, number>; inChart?: boolean }) {
   const v = APPEALS.map((e) => Math.max(0, emotions[e.key] ?? 0))
   const total = v.reduce((a, b) => a + b, 0) || 1
   const pct = v.map((x) => Math.round((x / total) * 100))
-  return <StackBar parts={APPEALS.map((e, i) => ({ name: e.name, color: e.color, pct: pct[i] }))} />
+  return <StackBar inChart={inChart} parts={APPEALS.map((e, i) => ({ name: e.name, color: e.color, pct: pct[i] }))} />
 }
 
 export function AppealKey({ className }: { className?: string }) {

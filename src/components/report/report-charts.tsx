@@ -6,6 +6,8 @@ import { BarChart, LineChart, ScatterChart } from "echarts/charts"
 import { DataZoomInsideComponent, DataZoomSliderComponent, GridComponent, LegendComponent, MarkAreaComponent, MarkLineComponent, TooltipComponent } from "echarts/components"
 import { CanvasRenderer } from "echarts/renderers"
 
+import { reducedMotion } from "@/components/reveal"
+
 // The readout's charts on ECharts canvas (Brendan, 2026-10-29), each sized to its block's width and
 // to its rows' height, so none scrolls. Three shapes. SubgroupLines: pax2's Multi-Modal Viometric Line
 // Chart (CompositeChart in pax2's viometrics/charts.tsx) made a wave's: every subgroup along the axis,
@@ -16,7 +18,9 @@ import { CanvasRenderer } from "echarts/renderers"
 // Fingerprint: pax2's viometric heat bar (src/components/viometrics/charts.tsx in pax2) made a wave's
 // signature, one cell per subgroup per video, each band in its own hue and a cell's strength in its
 // depth, the whole column read out under the chart on hover. Specs arrive built on the server
-// (report-doc.tsx), so no result set crosses the wire.
+// (report-doc.tsx), so no result set crosses the wire. Each chart draws when it comes into view and
+// animates that first draw (Brendan, 2026-10-29): bars grow from zero down the rows, the fingerprint
+// fills column by column, the lines draw left to right; a redraw after that (a resize) is instant.
 
 use([BarChart, LineChart, ScatterChart, GridComponent, LegendComponent, MarkAreaComponent, MarkLineComponent, TooltipComponent, DataZoomInsideComponent, DataZoomSliderComponent, CanvasRenderer])
 
@@ -62,20 +66,49 @@ const TIP = {
 }
 const signedTick = (v: number) => (v > 0 ? `+${v}` : v < 0 ? `−${Math.abs(v)}` : "0")
 
-/** An ECharts canvas drawn when it nears the screen (or the page prints), resized with its block. */
+/** The longest entrance: the subgroup lines' sweep and the marks that land after it. */
+const SETTLE = 1400
+
+/** An ECharts canvas drawn when it comes into view (or the page prints), resized with its block. Its
+ *  first draw animates; while that plays, a redraw or a resize waits for it to finish, so a width that
+ *  settles a pixel late never cuts it short. A redraw after that, and a print's, are instant. */
 function Canvas({ option, height, label }: { option: EChartsCoreOption | null; height: number; label: string }) {
   const ref = React.useRef<HTMLDivElement>(null)
   const chart = React.useRef<EChartsType | null>(null)
   const seen = React.useRef(false)
+  const drawn = React.useRef(false)
+  const busyUntil = React.useRef(0)
+  const held = React.useRef<number | null>(null)
   const latest = React.useRef(option)
   latest.current = option
-  // Draws once the canvas has been near the screen and its option is ready, whichever comes last.
-  const draw = React.useCallback(() => {
-    const el = ref.current
-    if (!el || !seen.current || !latest.current) return
-    chart.current ??= init(el, undefined, { renderer: "canvas" })
-    chart.current.setOption(latest.current, true)
+  // Runs now, or once the entrance has played; the latest held call wins.
+  const settle = React.useCallback((fn: () => void, now = false) => {
+    if (held.current != null) window.clearTimeout(held.current)
+    held.current = null
+    const wait = busyUntil.current - performance.now()
+    if (now || wait <= 0) return fn()
+    held.current = window.setTimeout(() => {
+      held.current = null
+      fn()
+    }, wait)
   }, [])
+  // Draws once the canvas has been on screen and its option is ready, whichever comes last.
+  const draw = React.useCallback(
+    (still = false) => {
+      const el = ref.current
+      if (!el || !seen.current || !latest.current) return
+      chart.current ??= init(el, undefined, { renderer: "canvas" })
+      if (!drawn.current) {
+        drawn.current = true
+        const animate = !still && !reducedMotion()
+        if (animate) busyUntil.current = performance.now() + SETTLE
+        chart.current.setOption({ ...latest.current, animation: animate }, true)
+        return
+      }
+      settle(() => latest.current && chart.current?.setOption({ ...latest.current, animation: false }, true), still)
+    },
+    [settle]
+  )
   React.useEffect(() => {
     const el = ref.current
     if (!el) return
@@ -85,23 +118,32 @@ function Canvas({ option, height, label }: { option: EChartsCoreOption | null; h
         draw()
         near.disconnect()
       }
-    }, { rootMargin: "400px" })
+    }, { rootMargin: "0px 0px -8% 0px" })
     near.observe(el)
-    const sized = new ResizeObserver(() => chart.current?.resize())
+    // Only a real change of size.
+    const sized = new ResizeObserver(() =>
+      settle(() => {
+        const c = chart.current
+        if (c && (el.clientWidth !== c.getWidth() || el.clientHeight !== c.getHeight())) c.resize()
+      })
+    )
     sized.observe(el)
     const print = () => {
       seen.current = true
-      draw()
+      busyUntil.current = 0
+      draw(true)
+      chart.current?.resize()
     }
     window.addEventListener("beforeprint", print)
     return () => {
       near.disconnect()
       sized.disconnect()
       window.removeEventListener("beforeprint", print)
+      if (held.current != null) window.clearTimeout(held.current)
       chart.current?.dispose()
       chart.current = null
     }
-  }, [draw])
+  }, [draw, settle])
   React.useEffect(() => draw(), [option, draw])
   return <div ref={ref} role="img" aria-label={label} style={{ height }} className="w-full" />
 }
@@ -145,7 +187,8 @@ export function PanelBars({ spec, label }: { spec: BarSpec; label: string }) {
     // ECharts lays a category axis bottom up; the rows read top down.
     const rows = [...spec.rows].reverse()
     return {
-      animation: false,
+      animationDuration: 700,
+      animationEasing: "cubicOut",
       textStyle: { fontFamily: "inherit" },
       grid: spec.panels.map((_, i) => ({ left: leftOf(i), width: w, top, bottom })),
       xAxis: spec.panels.map((_, i) => ({
@@ -173,6 +216,8 @@ export function PanelBars({ spec, label }: { spec: BarSpec; label: string }) {
         xAxisIndex: i,
         yAxisIndex: i,
         barWidth: Math.min(18, Math.round(rowH * 0.55)),
+        // Down the rows as they read (the data runs bottom up), each panel a beat behind the one before.
+        animationDelay: (k: number) => Math.min((rows.length - 1 - k) * 45, 450) + i * 90,
         data: rows.map((r) => {
           const c = r.cells[i]
           if (!c) return { value: null }
@@ -239,7 +284,8 @@ export function Fingerprint({ spec, label }: { spec: FingerprintSpec; label: str
       }
     })
     return {
-      animation: false,
+      animationDuration: 450,
+      animationEasing: "cubicOut",
       textStyle: { fontFamily: "inherit" },
       grid: { left: nameW + 14, right: 8, top: 6, bottom },
       xAxis: [
@@ -282,6 +328,8 @@ export function Fingerprint({ spec, label }: { spec: FingerprintSpec; label: str
           stack: "fingerprint",
           barCategoryGap: "12%",
           emphasis: { disabled: true },
+          // Column by column across, each column filling from its top row down.
+          animationDelay: (ci: number) => Math.min(ci * 28 + row * 40, 900),
           data: spec.cells[row].map((v, ci) => ({
             value: 1,
             itemStyle: {
@@ -321,7 +369,8 @@ export function SubgroupLines({ spec, label }: { spec: LinesSpec; label: string 
     const yMin = Math.max(0, Math.floor((Math.min(...all) - 4) / 10) * 10)
     const yMax = Math.min(100, Math.ceil((Math.max(...all) + 4) / 10) * 10)
     return {
-      animation: false,
+      animationDuration: 1100,
+      animationEasing: "cubicOut",
       textStyle: { fontFamily: "inherit" },
       grid: { left: 44, right: 16, top: 30, bottom: 92 },
       legend: { bottom: 0, icon: "roundRect", itemWidth: 14, itemHeight: 5, textStyle: { color: "#475569", fontSize: 11 } },
@@ -389,6 +438,8 @@ export function SubgroupLines({ spec, label }: { spec: LinesSpec; label: string 
           data: x.values.map((v, i) => (v != null && x.marks[i] ? [String(i), v] : null)).filter(Boolean),
           symbol: "diamond",
           symbolSize: 9,
+          animationDelay: 900,
+          animationDuration: 400,
           itemStyle: { color: colorOf(x.name), borderColor: "#fff", borderWidth: 1 },
           tooltip: { show: false },
           z: 4,

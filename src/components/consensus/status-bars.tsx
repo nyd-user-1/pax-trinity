@@ -1,3 +1,6 @@
+import type * as React from "react"
+
+import { Reveal } from "@/components/reveal"
 import { share, type Conversation, type Statement, type Tally } from "@/lib/consensus/data"
 import { fmtNumber } from "@/lib/format"
 
@@ -8,7 +11,8 @@ import { fmtNumber } from "@/lib/format"
 // to right, so the row still reads as one measure. A pill grows under the
 // pointer and names its share. The colours are the report's own validated pair
 // (components/consensus/split-bar.tsx says why teal and amber, not green and
-// red), with pass in the neutral middle.
+// red), with pass in the neutral middle. The pills rise in left to right the
+// first time the row comes into view (components/reveal.tsx).
 
 const AGREE = "var(--consensus-agree)"
 const DISAGREE = "var(--consensus-disagree)"
@@ -64,7 +68,7 @@ export function StatusBars({
   }
   const figure = "shrink-0 text-2xl font-semibold tracking-tight tabular-nums"
   return (
-    <div
+    <Reveal
       className={`flex w-full items-end ${size === "md" ? "h-9 gap-[3px]" : "h-4 gap-[2px]"}`}
       role="img"
       aria-label={`${pct(s.agree)} agree, ${pct(s.pass)} pass, ${pct(s.disagree)} disagree, of ${fmtNumber(votes.seen)} who saw it`}
@@ -78,8 +82,8 @@ export function StatusBars({
         <span
           key={i}
           title={title[kind]}
-          className={`min-w-0 flex-1 origin-bottom rounded-full transition-transform duration-150 hover:scale-y-125 ${size === "md" ? "h-8" : "h-3"}`}
-          style={{ background: fill[kind] }}
+          className={`grow-y min-w-0 flex-1 origin-bottom rounded-full transition-[scale] duration-150 hover:scale-y-125 ${size === "md" ? "h-8" : "h-3"}`}
+          style={{ background: fill[kind], "--i": i / 4 } as React.CSSProperties}
         />
       ))}
       {figures && (
@@ -87,7 +91,7 @@ export function StatusBars({
           {pct(s.disagree)}
         </span>
       )}
-    </div>
+    </Reveal>
   )
 }
 

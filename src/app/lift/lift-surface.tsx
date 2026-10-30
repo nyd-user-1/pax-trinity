@@ -6,6 +6,7 @@ import { ArrowDown, ArrowDownUp, ArrowUp, ChartColumn, Check, CircleDashed, Copy
 
 import { cn } from "@/lib/utils"
 import { BankFrame, BankRail as RailState } from "@/components/bank/bank-frame"
+import { Reveal } from "@/components/reveal"
 import { BankRail, RailGroup, RailRow } from "@/components/bank/bank-rail"
 import { ViewToggle } from "@/components/bank/pane-bars"
 import { RESULT_SETS } from "@/lib/results"
@@ -1255,9 +1256,9 @@ function AdCells({ o, view }: { o: string | null; view: RowView }) {
 }
 
 /** The emotion column's cell: an archive ad's coded appeal, else the placeholder shares. */
-function EmotionCell({ o, s }: { o: string; s: Seg }) {
+function EmotionCell({ o, s, inChart }: { o: string; s: Seg; inChart?: boolean }) {
   const ad = AD_INFO.get(optionOf(o))
-  return <td className={cn(TD, "border-l")}>{ad ? <AppealBar emotions={ad.emotions} /> : <EmotionBar shares={sampleEmotions(`${o}\u0001${s.key}`)} />}</td>
+  return <td className={cn(TD, "border-l")}>{ad ? <AppealBar emotions={ad.emotions} inChart={inChart} /> : <EmotionBar shares={sampleEmotions(`${o}\u0001${s.key}`)} inChart={inChart} />}</td>
 }
 
 /** A bars-view row. Memoized: a pick re-renders only the rows it selects and unselects. */
@@ -1315,8 +1316,9 @@ const HeatRow = React.memo(function HeatRow({
   onPick: OnPick
 }) {
   // Named once at the top of its run, the way the bars view names a treatment: no row spans, so a row's dress stays its own.
+  // The row's cells fade in the first time it comes into view (components/reveal.tsx).
   return (
-    <tr className={o ? rowDress(sel) : undefined}>
+    <Reveal as="tr" className={o ? rowDress(sel) : undefined}>
       <td className={cn(TD, "font-medium", !lastOfGroup && "border-b-transparent")}>{breakdown}</td>
       <td className={cn(TD, "border-l", !lastOfBlock && "border-b-transparent")}>
         {firstOfBlock &&
@@ -1337,7 +1339,7 @@ const HeatRow = React.memo(function HeatRow({
         if (!o)
           return (
             <td key={m} className="border-b border-l p-0">
-              <span className="flex h-10 items-center justify-center bg-[#f0efec] text-[13px] tabular-nums" title={med ? `Median of ${med.n.toLocaleString("en-US")} lifts on file` : undefined}>
+              <span className="grow-in flex h-10 items-center justify-center bg-[#f0efec] text-[13px] tabular-nums" title={med ? `Median of ${med.n.toLocaleString("en-US")} lifts on file` : undefined}>
                 {med ? fmt(med.median) : "—"}
               </span>
             </td>
@@ -1356,7 +1358,7 @@ const HeatRow = React.memo(function HeatRow({
               type="button"
               onClick={() => onPick(o, m, s, c)}
               title={`${treatmentName(optionOf(o))} · ${s.name}: ${fmt(c.lift[7])}${bench && med ? `, median ${fmt(med.median)}` : ""}`}
-              className={cn(HEAT, significance(c.lift) === false ? "text-foreground/55" : "font-semibold")}
+              className={cn(HEAT, "grow-in", significance(c.lift) === false ? "text-foreground/55" : "font-semibold")}
               style={{ background: heat(c.lift[7], center, view.spread) }}
             >
               {fmt(c.lift[7])}
@@ -1364,8 +1366,8 @@ const HeatRow = React.memo(function HeatRow({
           </td>
         )
       })}
-      {view.emotion && (o ? <EmotionCell o={o} s={s} /> : <td className={cn(TD, "border-l")} />)}
-    </tr>
+      {view.emotion && (o ? <EmotionCell o={o} s={s} inChart /> : <td className={cn(TD, "border-l")} />)}
+    </Reveal>
   )
 })
 

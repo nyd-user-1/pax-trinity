@@ -1,6 +1,7 @@
 import * as React from "react"
 
 import { PUBLISHED } from "@/components/clips/catalog"
+import { Reveal } from "@/components/reveal"
 import type { Arm, Pairing, ResultSet, Story, SubgroupDimension } from "@/lib/results/types"
 import { cn } from "@/lib/utils"
 
@@ -163,8 +164,8 @@ export function ShareBars({ waves, latest }: { waves: { rs: ResultSet; d: Subgro
   const cats = waves[waves.length - 1]?.d.categories ?? []
   return (
     <div className="flex flex-col gap-4">
-      {cats.map((cat) => (
-        <div key={cat.id} className="grid grid-cols-[minmax(140px,220px)_minmax(0,1fr)] items-center gap-x-4">
+      {cats.map((cat, k) => (
+        <div key={cat.id} className="grid grid-cols-[minmax(140px,220px)_minmax(0,1fr)] items-center gap-x-4" style={{ "--i": k } as React.CSSProperties}>
           <span className="text-[14px] font-semibold">{cat.name}</span>
           <div className="flex flex-col gap-1.5">
             {waves.map(({ rs, d }) => {
@@ -173,9 +174,9 @@ export function ShareBars({ waves, latest }: { waves: { rs: ResultSet; d: Subgro
               return (
                 <div key={rs.id} className="flex items-center gap-3">
                   <WaveChip wave={rs.wave} latest={rs.wave === latest} />
-                  <span className="relative h-3 min-w-0 flex-1 rounded-full bg-[var(--r-track)]">
-                    <span className={cn("absolute inset-y-0 left-0 rounded-full", rs.wave === latest ? "bg-[var(--paper-strong)]" : "bg-[var(--paper-strong)]/45")} style={{ width: `${c.sharePct}%` }} />
-                  </span>
+                  <Reveal as="span" className="relative h-3 min-w-0 flex-1 rounded-full bg-[var(--r-track)]">
+                    <span className={cn("grow-x absolute inset-y-0 left-0 rounded-full", rs.wave === latest ? "bg-[var(--paper-strong)]" : "bg-[var(--paper-strong)]/45")} style={{ width: `${c.sharePct}%` }} />
+                  </Reveal>
                   <span className="w-24 shrink-0 text-right text-[14px] font-semibold tabular-nums">
                     {approx(d.shareDerivation)}
                     {pct(c.sharePct)}

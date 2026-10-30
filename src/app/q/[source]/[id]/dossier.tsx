@@ -4,6 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
+import { Reveal } from "@/components/reveal"
 import { cn } from "@/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
 
@@ -165,12 +166,13 @@ function TrendBars({ points }: { points: Point[] }) {
   if ([...marks].every((m) => Math.abs(m - iMid) > 2)) marks.add(iMid)
   return (
     <div>
-      <div className="flex items-end gap-[3px] border-b border-foreground/40" style={{ height: BAR_H }}>
+      {/* The waves rise in left to right the first time the chart comes into view. */}
+      <Reveal className="flex items-end gap-[3px] border-b border-foreground/40" style={{ height: BAR_H }}>
         {points.map((p, i) => (
           <div
             key={p.year}
-            className="relative flex-1"
-            style={{ height: `${(p.v / top) * 100}%` }}
+            className="grow-y relative flex-1"
+            style={{ height: `${(p.v / top) * 100}%`, "--i": i } as React.CSSProperties}
             title={`${p.year}: ${fmtPct(p.v, p.type)}${p.moe != null ? ` ±${one(p.moe)}` : ""}${p.n != null ? `, n ${num(p.n, 0)}` : ""}`}
           >
             <div className={cn("absolute inset-0 rounded-t-[2px]", i === last ? "bg-zinc-800" : "bg-zinc-400")} />
@@ -182,7 +184,7 @@ function TrendBars({ points }: { points: Point[] }) {
             )}
           </div>
         ))}
-      </div>
+      </Reveal>
       <div className="relative mt-1.5 h-4 text-[11px] text-muted-foreground tabular-nums">
         {[...marks].map((i) => (
           <span

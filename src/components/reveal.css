@@ -1,0 +1,63 @@
+/* Charts grow in the first time they come into view (components/reveal.tsx), on pax2.css's .grow timing:
+   700ms on the house curve, staggered down a list by --i, or else by the order the charts came into
+   view. A mark in a [data-chart], or the [data-chart] itself, says how it arrives: .grow-x grows from its
+   left edge, .grow-x-neg from its right, .grow-y from its foot, .grow-in fades in. Printing, and a reader
+   who asks for less motion, get the chart as it is. */
+
+@keyframes reveal-grow-x {
+  from {
+    transform: scaleX(0);
+  }
+}
+@keyframes reveal-grow-y {
+  from {
+    transform: scaleY(0);
+  }
+}
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.grow-x {
+  transform-origin: left center;
+}
+.grow-x-neg {
+  transform-origin: right center;
+}
+.grow-y {
+  transform-origin: center bottom;
+}
+
+@media screen and (prefers-reduced-motion: no-preference) {
+  [data-chart]:not([data-shown]):is(.grow-x, .grow-x-neg),
+  [data-chart]:not([data-shown]) :is(.grow-x, .grow-x-neg) {
+    transform: scaleX(0);
+  }
+  [data-chart]:not([data-shown]).grow-y,
+  [data-chart]:not([data-shown]) .grow-y {
+    transform: scaleY(0);
+  }
+  [data-chart]:not([data-shown]).grow-in,
+  [data-chart]:not([data-shown]) .grow-in {
+    opacity: 0;
+  }
+
+  [data-chart][data-shown]:is(.grow-x, .grow-x-neg),
+  [data-chart][data-shown] :is(.grow-x, .grow-x-neg) {
+    animation: reveal-grow-x 700ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  [data-chart][data-shown].grow-y,
+  [data-chart][data-shown] .grow-y {
+    animation: reveal-grow-y 700ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  [data-chart][data-shown].grow-in,
+  [data-chart][data-shown] .grow-in {
+    animation: reveal-in 500ms ease-out both;
+  }
+  [data-chart][data-shown]:is(.grow-x, .grow-x-neg, .grow-y, .grow-in),
+  [data-chart][data-shown] :is(.grow-x, .grow-x-neg, .grow-y, .grow-in) {
+    animation-delay: min(calc(var(--i, var(--reveal-order, 0)) * 45ms), 450ms);
+  }
+}

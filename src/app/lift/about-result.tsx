@@ -4,6 +4,7 @@ import * as React from "react"
 import dynamic from "next/dynamic"
 import { Check, ChartColumn, ChevronDown, CircleHelp, Loader2, X } from "lucide-react"
 
+import { Reveal } from "@/components/reveal"
 import { cn } from "@/lib/utils"
 import { RESULT_SETS } from "@/lib/results"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/ny4/tooltip"
@@ -256,19 +257,20 @@ function Scale({ control, delta, quiet }: { control: number; delta: number; quie
   const up = delta >= 0
   return (
     <div>
-      <div className="relative h-5 text-xs tabular-nums">
+      {/* Keyed by the result, so a new pick grows in again. */}
+      <Reveal key={`${control}:${delta}`} className="relative h-5 text-xs tabular-nums">
         <span
           aria-hidden
-          className={cn("absolute bottom-1 h-[11px]", quiet ? "bg-muted-foreground/25" : up ? "bg-pax2-light-blue" : "bg-pax2-red")}
+          className={cn("absolute bottom-1 h-[11px]", up ? "grow-x" : "grow-x-neg", quiet ? "bg-muted-foreground/25" : up ? "bg-pax2-light-blue" : "bg-pax2-red")}
           style={{ left: `${Math.min(c, t)}%`, width: `max(5px, ${Math.abs(t - c)}%)`, clipPath: up ? POINT_RIGHT : POINT_LEFT }}
         />
-        <span className={cn("absolute bottom-0.5 font-semibold", quiet ? "text-muted-foreground" : !up && "text-pax2-red")} style={up ? { left: `calc(${t}% + 4px)` } : { right: `calc(${100 - t}% + 4px)` }}>
+        <span className={cn("grow-in absolute bottom-0.5 font-semibold", quiet ? "text-muted-foreground" : !up && "text-pax2-red")} style={up ? { left: `calc(${t}% + 4px)` } : { right: `calc(${100 - t}% + 4px)` }}>
           {signed(delta)}
         </span>
         <span className="absolute bottom-0.5 text-muted-foreground" style={up ? { right: `calc(${100 - c}% + 4px)` } : { left: `calc(${c}% + 4px)` }}>
           {num(control)}
         </span>
-      </div>
+      </Reveal>
       <div className="h-0.5 rounded-full bg-linear-to-r from-pax2-red/70 to-pax2-light-blue" />
       <div className="mt-1 flex justify-between text-[10px] text-muted-foreground tabular-nums">
         {Array.from({ length: 11 }, (_, i) => (
@@ -409,14 +411,14 @@ function AdTraits({ ad }: { ad: AdInfo }) {
       ))}
       <section className="mt-3">
         <h4 className="mb-1 text-xs font-semibold">Emotional appeal</h4>
-        {APPEALS.map((e) => {
+        {APPEALS.map((e, k) => {
           const v = Math.max(0, Math.min(1, ad.emotions[e.key] ?? 0))
           return (
-            <div key={e.key} className="flex items-center gap-2 py-0.5">
+            <div key={e.key} className="flex items-center gap-2 py-0.5" style={{ "--i": k } as React.CSSProperties}>
               <span className={cn("w-20 shrink-0", v < 0.5 && "text-muted-foreground")}>{e.name}</span>
-              <span className="h-2 flex-1 rounded-full bg-muted">
-                <span className="block h-full rounded-full" style={{ width: `${v * 100}%`, background: e.color }} />
-              </span>
+              <Reveal key={v} as="span" className="h-2 flex-1 rounded-full bg-muted">
+                <span className="grow-x block h-full rounded-full" style={{ width: `${v * 100}%`, background: e.color }} />
+              </Reveal>
               <span className="w-8 shrink-0 text-right text-xs text-muted-foreground tabular-nums">{num(v, 2)}</span>
             </div>
           )

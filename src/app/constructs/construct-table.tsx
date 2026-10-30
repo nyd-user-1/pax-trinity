@@ -4,6 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
+import { Reveal } from "@/components/reveal"
 import { cn } from "@/lib/utils"
 
 import { shortSource, topicOf, type QuestionSummary } from "../america-thinks/audience-data"
@@ -258,16 +259,16 @@ function Row({ item, read, onNear, onOpen }: { item: Item; read: Read | "error" 
   )
 }
 
-/** The trend in a cell: one bar a wave, the latest dark. */
+/** The trend in a cell: one bar a wave, the latest dark, rising in left to right when it comes into view. */
 function Spark({ points }: { points: Point[] }) {
   const recent = points.slice(-18)
   const top = Math.max(...recent.map((p) => p.v)) || 1
   return (
-    <span className="flex h-[18px] w-[72px] items-end gap-px" role="img" aria-label={`${recent[0].year}–${recent[recent.length - 1].year}`}>
+    <Reveal as="span" className="flex h-[18px] w-[72px] items-end gap-px" role="img" aria-label={`${recent[0].year}–${recent[recent.length - 1].year}`}>
       {recent.map((p, i) => (
-        <span key={p.year} className={cn("w-[3px] shrink-0 rounded-[1px]", i === recent.length - 1 ? "bg-zinc-800" : "bg-zinc-400")} style={{ height: `${Math.max(8, (p.v / top) * 100)}%` }} />
+        <span key={p.year} className={cn("grow-y w-[3px] shrink-0 rounded-[1px]", i === recent.length - 1 ? "bg-zinc-800" : "bg-zinc-400")} style={{ height: `${Math.max(8, (p.v / top) * 100)}%`, "--i": i } as React.CSSProperties} />
       ))}
-    </span>
+    </Reveal>
   )
 }
 

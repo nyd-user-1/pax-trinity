@@ -6,6 +6,8 @@ import { LineChart, type LineSeriesOption } from "echarts/charts"
 import { GridComponent, LegendComponent, TooltipComponent, type GridComponentOption, type LegendComponentOption, type TooltipComponentOption } from "echarts/components"
 import { CanvasRenderer } from "echarts/renderers"
 
+import { reducedMotion } from "@/components/reveal"
+
 import { num, year, type MetricInfo, type SourceRow } from "./audience-data"
 
 // A question's trend as the line chart a pollster puts in a report: one line
@@ -143,7 +145,11 @@ function optionFor(t: Trend): Option {
   const last = t.lines.map((l) => l.points.get(Math.max(...l.points.keys()))![7])
   const labeled = t.lines.map((_, i) => t.lines.length <= 4 && last.every((v, j) => j === i || (Math.abs(v - last[i]) / span) * plot >= 14))
   return {
-    animation: false,
+    // Each question's lines draw left to right as it opens (Brendan, 2026-10-29); a legend pick eases.
+    animation: !reducedMotion(),
+    animationDuration: 900,
+    animationEasing: "cubicOut",
+    animationDurationUpdate: 300,
     color: colors,
     grid: { ...GRID, right: labeled.some(Boolean) ? 56 : 16 },
     legend: t.lines.length > 1
@@ -250,7 +256,8 @@ function Canvas({ option, label }: { option: Option; label: string }) {
       const alone = Object.entries(before).every(([k, on]) => on === (k === name))
       c.setOption({ legend: { selected: Object.fromEntries(Object.keys(before).map((k) => [k, alone || k === name])) } })
     })
-    const ro = new ResizeObserver(() => c.resize())
+    // Only a real change of size: the observer's first call, at once, would cut the entrance animation short.
+    const ro = new ResizeObserver(() => (el.clientWidth !== c.getWidth() || el.clientHeight !== c.getHeight()) && c.resize())
     ro.observe(el)
     return () => {
       ro.disconnect()

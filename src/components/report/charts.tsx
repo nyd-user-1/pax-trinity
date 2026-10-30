@@ -1,5 +1,6 @@
 import * as React from "react"
 
+import { Reveal } from "@/components/reveal"
 import type { Arm, ResultSet, SubgroupDimension, Topline } from "@/lib/results/types"
 import { cn } from "@/lib/utils"
 
@@ -8,6 +9,11 @@ import { approx, axis, cellOf, isCampaign, marksOf, pct, placeboOf, signed, topl
 
 // The readout's charts: flex bars on a stated scale, no chart library. A
 // lift bar is always against its own wave's placebo; a level bar is a level.
+// Each bar grows from zero the first time it comes into view (components/reveal.tsx), staggered down
+// its chart by the row's --i.
+
+/** A row's place in its chart, for the bars' stagger. */
+const nth = (i: number) => ({ "--i": i }) as React.CSSProperties
 
 type Axis = ReturnType<typeof axis>
 
@@ -20,16 +26,16 @@ export function LiftBar({ value, a, tone, height = 18 }: { value: number; a: Axi
   const end = at(a, value)
   const fill = tone === "detect" ? "var(--r-detect)" : tone === "campaign" ? "var(--r-campaign)" : "var(--r-quiet)"
   return (
-    <div className="relative w-full" style={{ height }}>
+    <Reveal className="relative w-full" style={{ height }}>
       {a.ticks.map((t) => (
         <span key={t} className={cn("absolute inset-y-0 w-px", t === 0 ? "bg-[var(--paper-text)]/70" : "bg-[var(--paper-rule)]/10")} style={{ left: `${at(a, t)}%` }} />
       ))}
       {value === 0 ? (
-        <span className="absolute top-1/2 size-2 -translate-x-1/2 -translate-y-1/2 rounded-full" style={{ left: `${zero}%`, background: fill }} />
+        <span className="grow-in absolute top-1/2 size-2 -translate-x-1/2 -translate-y-1/2 rounded-full" style={{ left: `${zero}%`, background: fill }} />
       ) : (
-        <span className="absolute inset-y-0 rounded-[2px]" style={{ left: `${Math.min(zero, end)}%`, width: `${Math.abs(end - zero)}%`, background: fill }} />
+        <span className={cn("absolute inset-y-0 rounded-[2px]", value < 0 ? "grow-x-neg" : "grow-x")} style={{ left: `${Math.min(zero, end)}%`, width: `${Math.abs(end - zero)}%`, background: fill }} />
       )}
-    </div>
+    </Reveal>
   )
 }
 
@@ -82,11 +88,11 @@ export function CrossWaveLift({ waves, ballot = "ballot", comprehension = "compr
           <span>Ballot status</span>
           <span>{cName} lift</span>
         </div>
-        {rows.map((r) => {
+        {rows.map((r, k) => {
           const lift = r.b?.liftPp
           const band = lift != null && shared.includes(Math.round(lift))
           return (
-            <div key={`${r.rs.id}:${r.arm.id}`} className={cn(grid, "border-t border-[var(--paper-rule)]/10 py-2", band && "bg-[var(--r-tint)]")}>
+            <div key={`${r.rs.id}:${r.arm.id}`} style={nth(k)} className={cn(grid, "border-t border-[var(--paper-rule)]/10 py-2", band && "bg-[var(--r-tint)]")}>
               <WaveChip wave={r.rs.wave} latest={r.rs.wave === latest} />
               <span className="line-clamp-2 font-semibold" title={r.arm.name}>
                 {r.arm.watchUrl ? (
@@ -179,10 +185,10 @@ export function LevelChart({ rs, outcomeId }: { rs: ResultSet; outcomeId: string
     <div className="report-avoid overflow-x-auto">
       <div className="min-w-[620px]">
         <ChartHead left={`Wave ${rs.wave} · ${outcome?.name ?? outcomeId}, % level`} right={`0–100% scale · dashed line = placebo level (${pct(p.levelPct)})`} />
-        {rows.map(({ arm, t }) => {
+        {rows.map(({ arm, t }, k) => {
           const isP = arm.role === "placebo"
           return (
-            <div key={arm.id} className={cn(grid, "border-t border-[var(--paper-rule)]/10 py-2")}>
+            <div key={arm.id} style={nth(k)} className={cn(grid, "border-t border-[var(--paper-rule)]/10 py-2")}>
               <span className={cn("line-clamp-3", isP ? "text-[var(--paper-muted)]" : "font-semibold")} title={arm.name}>
                 {isP ? `${arm.name.replace(/\s*\(.*\)$/, "")} (reference)` : arm.name}
               </span>
@@ -250,13 +256,13 @@ export function LevelTrack({
 }) {
   const fill = tone === "detect" ? "var(--r-detect)" : tone === "placebo" ? "var(--r-placebo)" : tone === "campaign" ? "var(--r-campaign)" : "var(--r-quiet)"
   return (
-    <span className="relative block min-w-0 flex-1 rounded-[2px] bg-[var(--r-track)]" style={{ height }}>
+    <Reveal as="span" className="relative block min-w-0 flex-1 rounded-[2px] bg-[var(--r-track)]" style={{ height }}>
       <span
-        className={cn("absolute inset-y-0 left-0 rounded-[2px]", small && "report-hatch", edge && "ring-[1.5px] ring-[var(--r-detect-edge)] ring-inset")}
+        className={cn("grow-x absolute inset-y-0 left-0 rounded-[2px]", small && "report-hatch", edge && "ring-[1.5px] ring-[var(--r-detect-edge)] ring-inset")}
         style={{ width: `${Math.max(0, Math.min(100, level))}%`, backgroundColor: fill }}
       />
       {placebo != null && <span className="absolute -inset-y-1 border-l border-dashed border-[var(--paper-text)]" style={{ left: `${placebo}%` }} />}
-    </span>
+    </Reveal>
   )
 }
 
@@ -279,8 +285,8 @@ export function DualLift({ rs, a }: { rs: ResultSet; a: Axis }) {
             </React.Fragment>
           ))}
         </div>
-        {treatmentsOf(rs).map((arm) => (
-          <div key={arm.id} className="grid items-center gap-x-3 border-t border-[var(--paper-rule)]/10 py-2.5 print:py-1.5" style={{ gridTemplateColumns: cols }}>
+        {treatmentsOf(rs).map((arm, k) => (
+          <div key={arm.id} className="grid items-center gap-x-3 border-t border-[var(--paper-rule)]/10 py-2.5 print:py-1.5" style={{ gridTemplateColumns: cols, ...nth(k) }}>
             <span className="line-clamp-3 font-semibold" title={arm.name}>
               {arm.name}
             </span>
@@ -347,7 +353,7 @@ export function SubgroupPanels({ rs, d, outcomeId = "ballot" }: { rs: ResultSet;
             </div>
           )
         })}
-        {arms.map((arm) => (
+        {arms.map((arm, k) => (
           <React.Fragment key={arm.id}>
             <span className={cn("line-clamp-2 py-[3px] text-[12px] leading-tight", arm.role === "placebo" ? "text-[var(--paper-muted)]" : "")} title={arm.name}>
               {arm.role === "placebo" ? arm.name.replace(/\s*\(.*\)$/, "") : arm.name}
@@ -359,7 +365,7 @@ export function SubgroupPanels({ rs, d, outcomeId = "ballot" }: { rs: ResultSet;
               const small = c.smallSample || !!cat.smallSampleAllCells
               const isP = arm.role === "placebo"
               return (
-                <span key={cat.id} className="flex items-center gap-2 py-[3px]">
+                <span key={cat.id} className="flex items-center gap-2 py-[3px]" style={nth(k)}>
                   <LevelTrack level={c.levelPct} placebo={pc?.levelPct} tone={isP ? "placebo" : c.significant ? "detect" : "quiet"} edge={c.significant} small={small} height={13} />
                   <span className={cn("w-9 shrink-0 text-right text-[12px] tabular-nums", c.significant && "font-semibold", small && "italic")}>{pct(c.levelPct)}</span>
                 </span>

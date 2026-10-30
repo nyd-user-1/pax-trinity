@@ -28,6 +28,7 @@ import {
   Zap,
 } from "lucide-react"
 
+import { Reveal } from "@/components/reveal"
 import { cn } from "@/lib/utils"
 
 // The Delivery Board, laid out from Brendan's reference (2026-10-29): a
@@ -388,9 +389,9 @@ function Worklogs() {
                       {p.days.map((x, i) => (
                         <td key={i} className={cn("border-l px-2 py-3 text-center transition-opacity", !kept(x) && "opacity-30")}>
                           <p className={cn("text-[15px]", x.h ? "font-medium" : "text-muted-foreground")}>{x.h ? hours(x.h) : "-"}</p>
-                          <div className="mx-auto mt-1.5 h-1 w-[75px] overflow-hidden rounded-full bg-muted">
-                            <div className={cn("h-full rounded-full", BAR[x.kind])} style={{ width: `${Math.min(100, (x.h / 8) * 100)}%` }} />
-                          </div>
+                          <Reveal className="mx-auto mt-1.5 h-1 w-[75px] overflow-hidden rounded-full bg-muted" style={{ "--i": i } as React.CSSProperties}>
+                            <div className={cn("grow-x h-full rounded-full", BAR[x.kind])} style={{ width: `${Math.min(100, (x.h / 8) * 100)}%` }} />
+                          </Reveal>
                           <p className="mt-1.5 text-xs text-muted-foreground">{x.kind}</p>
                         </td>
                       ))}

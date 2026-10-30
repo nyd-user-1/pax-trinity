@@ -5,6 +5,7 @@ import { RefreshCw } from "lucide-react"
 
 import { CardBlock, TableBlock } from "@/components/blocks"
 import { PUBLISHED } from "@/components/clips/store"
+import { Reveal } from "@/components/reveal"
 import { PLACEBO, type Choice } from "@/lib/tests/types"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/ui/components/nova/table"
 
@@ -103,14 +104,15 @@ export function Monitor({ id, arms: armIds, titles, targetPerArm, balance }: { i
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rows.map((r) => (
-              <TableRow key={r.arm}>
+            {rows.map((r, k) => (
+              <TableRow key={r.arm} style={{ "--i": k } as React.CSSProperties}>
                 <TableCell className="truncate py-2.5 font-medium text-slate-900">{label.get(r.arm) ?? r.arm}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-3">
-                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
-                      <div className="h-full rounded-full bg-pax2-blue" style={{ width: `${Math.min(100, (100 * r.finished) / targetPerArm)}%` }} />
-                    </div>
+                    {/* Grows in on arrival; a new count after that eases to its width. */}
+                    <Reveal className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
+                      <div className="grow-x h-full rounded-full bg-pax2-blue transition-[width] duration-500" style={{ width: `${Math.min(100, (100 * r.finished) / targetPerArm)}%` }} />
+                    </Reveal>
                     <span className="w-24 text-right text-sm tabular-nums text-slate-600">
                       {r.finished.toLocaleString("en-US")} / {targetPerArm.toLocaleString("en-US")}
                     </span>
