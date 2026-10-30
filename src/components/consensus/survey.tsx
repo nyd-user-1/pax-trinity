@@ -29,7 +29,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components
 // pressing another. Each card is /models' block, as Brendan drew it
 // (2026-10-30): Question and its number on the frame; inside, the statement,
 // the three answers and the mark that it matters, then the question's code
-// (question-code.ts). The card in focus wears a blue rule. A row whose cards
+// (question-code.ts). The card in focus wears a blue rule, and an answer
+// moves it on to the next question still unanswered. A row whose cards
 // are both answered closes with the slide run backwards (lib/motion.ts): it
 // dissolves as its height eases shut, and the next row rises into its place,
 // so the survey visibly moves on (Brendan, 2026-10-30). Voting is local here,
@@ -56,8 +57,15 @@ export function Survey({ conversation, survey }: { conversation: Conversation; s
   const [written, setWritten] = React.useState("")
   const [submitted, setSubmitted] = React.useState<string[]>([])
   const voted = queue.filter((s) => answers[s.tid]).length
-  // The card in focus, by statement: the last one pressed or tabbed into.
+  // The card in focus, by statement: the one tabbed into or pressed, until an answer moves it on.
   const [active, setActive] = React.useState<number | null>(null)
+  // An answer, then the blue rule on the earliest question still unanswered: the next one when they are
+  // taken in order, and one skipped in the row when they are not.
+  const answer = (tid: number, a: Answer) => {
+    const next = { ...answers, [tid]: a }
+    setAnswers(next)
+    setActive(queue.find((st) => !next[st.tid])?.tid ?? null)
+  }
   // Two cards a row; a finished row closes a beat after its last answer, so the pick is seen first.
   const rows = React.useMemo(() => Array.from({ length: Math.ceil(queue.length / 2) }, (_, r) => queue.slice(r * 2, r * 2 + 2)), [queue])
   const [closed, setClosed] = React.useState<Set<number>>(new Set())
@@ -73,9 +81,6 @@ export function Survey({ conversation, survey }: { conversation: Conversation; s
         window.setTimeout(() => {
           timers.current.delete(r)
           setClosed((prev) => new Set(prev).add(r))
-          // The next open row's first card takes the focus rule.
-          const next = rows.findIndex((x, k) => k > r && !closed.has(k))
-          setActive(next >= 0 ? rows[next]![0]!.tid : null)
         }, 450)
       )
     })
@@ -121,7 +126,7 @@ export function Survey({ conversation, survey }: { conversation: Conversation; s
                           statement={statement}
                           selected={active === statement.tid}
                           answer={answers[statement.tid]}
-                          onAnswer={(a) => setAnswers((prev) => ({ ...prev, [statement.tid]: a }))}
+                          onAnswer={(a) => answer(statement.tid, a)}
                           salient={salient.has(statement.tid)}
                           onSalient={() =>
                             setSalient((prev) => {
