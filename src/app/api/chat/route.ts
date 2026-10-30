@@ -9,12 +9,15 @@ import { metricsGuide } from "@/lib/metrics-guide"
 import { platformGuide } from "@/lib/platform-guide"
 import { termById } from "@/lib/glossary"
 import { videosContext } from "@/lib/chat-videos"
+import { videoGuide } from "@/lib/video-guide"
 
 // The /chat answer, after solar's /api/chat: a system prompt carrying the record (here, every take
 // and its reach, and the scripts), then the reply streamed back as plain text.
 
 const client = new BedrockRuntimeClient({ region: process.env.PAX2_BEDROCK_REGION ?? process.env.PAX2_REGION ?? "us-east-1" })
 const MODEL = process.env.PAX2_CHAT_MODEL ?? process.env.PAX2_MODEL ?? "us.anthropic.claude-sonnet-4-6"
+// The templates the chat fills and the lift results it fills them from (lib/video-guide.ts); the same for every request.
+const VIDEO_GUIDE = videoGuide()
 
 const BASE_SYSTEM_PROMPT = `You are the analyst inside PAX2, a tool that scores advocacy videos for the Question 3 campaign (Massachusetts' top-two primary initiative).
 
@@ -101,7 +104,7 @@ export async function POST(req: Request) {
   const r = await client.send(
     new ConverseStreamCommand({
       modelId,
-      system: [{ text: BASE_SYSTEM_PROMPT + (await record()) + `\n\n${metricsGuide()}` + `\n\n${platformGuide()}` + extra + addressContext(address, place) + (await videosContext(lastUser)) + `\n\n${evidencePrompt()}` }],
+      system: [{ text: BASE_SYSTEM_PROMPT + (await record()) + `\n\n${metricsGuide()}` + `\n\n${platformGuide()}` + extra + addressContext(address, place) + (await videosContext(lastUser)) + `\n\n${evidencePrompt()}` + `\n\n${VIDEO_GUIDE}` }],
       messages: messages
         .map((m, i) => ({ m, i }))
         .filter(({ m }) => m.content.trim())

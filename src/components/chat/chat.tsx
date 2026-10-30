@@ -18,6 +18,7 @@ import { ChatFields } from '@/components/chat/chat-fields'
 import { MarkdownContent } from '@/components/chat/markdown'
 import { RecordFlow, type Analysis } from '@/components/chat/record-flow'
 import { ScriptCard } from '@/components/chat/script-card'
+import { blockKey, withVersions } from '@/lib/studio'
 import { useDraft } from '@/components/record/draft'
 import { answersText, parseCiteBlock, parseFieldBlock, stripFieldBlock, stripOpenBlock } from '@/lib/chat-fields'
 import { PlusMenu, type ScriptChip, type VideoChip } from '@/components/chat/plus-menu'
@@ -57,8 +58,8 @@ function pieces(content: string): ({ text: string } | { path: string; anchor: st
 // draws as a VideoBlock where it stands in the prose; a block still streaming in shows nothing until it closes.
 const VIDEO_BLOCK = /```pax-video\s*\n([\s\S]*?)```/g
 type VideoSpec = { templateId: string; props: unknown; parent?: string; title?: string }
-function videoSplit(text: string): ({ text: string } | { video: VideoSpec | null })[] {
-  const out: ({ text: string } | { video: VideoSpec | null })[] = []
+function videoSplit(text: string): ({ text: string } | { video: VideoSpec | null; raw: string })[] {
+  const out: ({ text: string } | { video: VideoSpec | null; raw: string })[] = []
   let at = 0
   for (const m of text.matchAll(VIDEO_BLOCK)) {
     if (m.index! > at) out.push({ text: text.slice(at, m.index) })
@@ -68,7 +69,7 @@ function videoSplit(text: string): ({ text: string } | { video: VideoSpec | null
       if (typeof v.templateId === 'string')
         video = { templateId: v.templateId, props: v.props, parent: typeof v.parent === 'string' ? v.parent : undefined, title: typeof v.title === 'string' ? v.title : undefined }
     } catch {}
-    out.push({ video })
+    out.push({ video, raw: m[1] })
     at = m.index! + m[0].length
   }
   const rest = text.slice(at).replace(/```pax-video[\s\S]*$/, '')
@@ -500,7 +501,8 @@ export function Chat({ scripts = [], videos = [], shorts = [], compact = false, 
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: allMessages.map(m => ({ role: m.role, content: m.content })), ...(pdf ? { document: { name: pdf.name, data: pdf.data } } : {}), ...(selectedAddress ? { address: selectedAddress.description, place: placeInsight } : {}), ...((context || attached?.context || recordMode || analysisRef.current || skill) ? { systemContext: [context?.(), attached?.context, recordMode ? RECORD_GUIDE : null, analysisRef.current, skill?.instructions].filter(Boolean).join('\n\n') } : {}), ...(recordMode ? { record: true } : {}), model }),
+        // The model reads its own video blocks back with the versions they were saved as (lib/studio.ts withVersions).
+        body: JSON.stringify({ messages: allMessages.map(m => ({ role: m.role, content: m.role === 'assistant' ? withVersions(m.content, (json) => blockKey(chatId, m.id, json)) : m.content })), ...(pdf ? { document: { name: pdf.name, data: pdf.data } } : {}), ...(selectedAddress ? { address: selectedAddress.description, place: placeInsight } : {}), ...((context || attached?.context || recordMode || analysisRef.current || skill) ? { systemContext: [context?.(), attached?.context, recordMode ? RECORD_GUIDE : null, analysisRef.current, skill?.instructions].filter(Boolean).join('\n\n') } : {}), ...(recordMode ? { record: true } : {}), model }),
         signal: controller.signal,
       })
       if (!res.ok || !res.body) {
@@ -960,7 +962,7 @@ export function Chat({ scripts = [], videos = [], shorts = [], compact = false, 
         <div className="flex items-center pt-1">
           <PlusMenu videos={videos} shorts={shorts} dropUp={!isEmpty || compact} onSelect={(text) => { setInput(text); textareaRef.current?.focus() }} onShort={(v) => { if (!chipVideo && v.youtube) { setChipTarget(v.id); setTapped([]) } attachVideo(v) }}
             onAttach={() => pdfInput.current?.click()}
-            onSkill={(k) => { setSkill(k); textareaRef.current?.focus() }}
+            onSkill={(k) => { setSkill(k); if (k.prompt) setInput(k.prompt); textareaRef.current?.focus() }}
             hasScript={messages.some((m) => m.role === 'assistant' && !!scriptText(m.content))}
             onFootage={(text, focus) => { setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: 'assistant', content: '```pax-script\n' + text.trim() + '\n```', model: focus === 'shots' ? 'library-shots' : 'library-graphics' }]); setFootageFocus({ script: text.trim(), focus }) }}
             onBroll={(id) => setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: 'assistant', content: '```pax-broll\n' + id + '\n```', model: 'library-broll' }])}
@@ -1214,7 +1216,7 @@ export function Chat({ scripts = [], videos = [], shorts = [], compact = false, 
                             {...v.video}
                             chatId={chatId}
                             // A finished reply's block is saved as a version; the + menu's gallery of samples is not.
-                            saveKey={msg.role === 'assistant' && !msgStreaming && !msg.model?.startsWith('library-') ? `${chatId ?? 'chat'}#${msg.id}#${i}-${k}` : null}
+                            saveKey={msg.role === 'assistant' && !msgStreaming && !msg.model?.startsWith('library-') ? blockKey(chatId, msg.id, v.raw) : null}
                           />
                         </div>
                       ) : null,

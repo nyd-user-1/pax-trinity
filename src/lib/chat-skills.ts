@@ -1,8 +1,9 @@
 // The chat's skills (Brendan, 2026-10-29): picked from the top of the + menu, a skill rides the
 // conversation as a chip in the composer, and its instructions go out with every message after it, in
-// the system context beside the record and the platform guide. Each is one job done the house's way.
+// the system context beside the record and the platform guide. Each is one job done the house's way. A
+// skill with a prompt also puts that request in the composer, ready to send or to edit first.
 
-export type ChatSkill = { id: string; name: string; about: string; instructions: string }
+export type ChatSkill = { id: string; name: string; about: string; instructions: string; prompt?: string }
 
 export const CHAT_SKILLS: ChatSkill[] = [
   {
@@ -39,5 +40,14 @@ export const CHAT_SKILLS: ChatSkill[] = [
     about: "Turn findings into a short partner update",
     instructions:
       "SKILL — BRIEF A PARTNER. Write a short update for a partner organization from what this chat has established: a subject line, then four to six sentences in the first person singular. Lead with the one finding that matters, give the single number that carries it, say what it does not show, and end with the next step and who takes it. Plain words, no jargon the partner would need explained, no figure not in your context.",
+  },
+  {
+    // Chat makes videos (Brendan, 2026-10-30): src/video's templates, saved as versions, opened in the Studio.
+    id: "make-a-video",
+    name: "Make a video",
+    about: "Turn a result into a video from a template",
+    prompt: "Make a lift card for the best-tested video.",
+    instructions:
+      'SKILL — MAKE A VIDEO. Answer with one video made from a template, as VIDEO TEMPLATES says: one sentence naming what it shows and where its figures come from, then one ```pax-video block whose props fit the template\'s schema, every figure taken as written from your context (LIFT RESULTS for a lift card or a leaderboard). Where a figure the template needs is missing, say which one and ask for it; write no block. When the user asks for a change, write the whole block again with only that change and "parent" set to the version it revises.',
   },
 ]
