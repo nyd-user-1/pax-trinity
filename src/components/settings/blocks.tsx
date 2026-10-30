@@ -48,11 +48,42 @@ export function PageTabs({ tabs, active, trailing }: { tabs: { key: string; labe
   )
 }
 
-/** The reference block: a title on the slate-50 frame, the rows in a white card inside it. `stretch` fills
- *  its grid cell, the white card taking the slack, so blocks in one row end level whatever they hold. */
-export function Block({ title, sub, lead, badge, action, children, className, stretch }: { title: React.ReactNode; sub?: React.ReactNode; lead?: React.ReactNode; badge?: React.ReactNode; action?: React.ReactNode; children: React.ReactNode; className?: string; stretch?: boolean }) {
+/** A page's tabs as a rail beside its content, in the reports' contents dress (components/report-2/
+ *  contents-rail.tsx): a left rule, the open tab marked by its own 2px edge and set semibold. Under lg it
+ *  lies above the content as a row. Links, so a tab survives a reload and a shared link. */
+export function PageRail({ tabs, active, label }: { tabs: { key: string; label: string; href: string }[]; active: string; label: string }) {
   return (
-    <section className={cn("rounded-[18px] border border-slate-200 bg-slate-50 p-1 shadow-e1", stretch && "flex h-full flex-col", className)}>
+    <nav aria-label={label} className="lg:sticky lg:top-10 lg:self-start">
+      <ol className="flex gap-5 border-b border-slate-200 text-[13px] leading-snug lg:flex-col lg:gap-0 lg:border-b-0 lg:border-l">
+        {tabs.map((t) => {
+          const on = t.key === active
+          return (
+            <li key={t.key}>
+              <Link
+                href={t.href}
+                scroll={false}
+                aria-current={on ? "page" : undefined}
+                className={cn(
+                  "-mb-px block border-b-2 py-1.5 transition-colors lg:mb-0 lg:-ml-px lg:border-b-0 lg:border-l-2 lg:pl-4",
+                  on ? "border-slate-900 font-semibold text-slate-900" : "border-transparent text-slate-500 hover:text-slate-900"
+                )}
+              >
+                {t.label}
+              </Link>
+            </li>
+          )
+        })}
+      </ol>
+    </nav>
+  )
+}
+
+/** The reference block: a title on the slate-50 frame, the rows in a white card inside it. `stretch` fills
+ *  its grid cell, the white card taking the slack, so blocks in one row end level whatever they hold.
+ *  `selected` draws the frame's 1px rule in blue, for the block in focus. */
+export function Block({ title, sub, lead, badge, action, children, className, stretch, selected }: { title: React.ReactNode; sub?: React.ReactNode; lead?: React.ReactNode; badge?: React.ReactNode; action?: React.ReactNode; children: React.ReactNode; className?: string; stretch?: boolean; selected?: boolean }) {
+  return (
+    <section className={cn("rounded-[18px] border bg-slate-50 p-1 shadow-e1 transition-colors", selected ? "border-pax2-light-blue" : "border-slate-200", stretch && "flex h-full flex-col", className)}>
       <div className="flex items-center gap-3 px-4 pt-2.5 pb-3 sm:px-5">
         {lead}
         <div className="min-w-0 flex-1">

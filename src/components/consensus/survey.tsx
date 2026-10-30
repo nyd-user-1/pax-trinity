@@ -4,10 +4,11 @@ import * as React from "react"
 
 import { Check, Info, Minus, X } from "lucide-react"
 
-import { Block, FIELD, SMALL_PRIMARY } from "@/components/settings/blocks"
+import { Block, FIELD, SMALL, SMALL_PRIMARY } from "@/components/settings/blocks"
 import { Toggle } from "@/components/settings/controls"
 import type { Conversation, Statement } from "@/lib/consensus/data"
 import { questionCode } from "@/components/consensus/question-code"
+import { SLIDE } from "@/lib/motion"
 import { cn } from "@/lib/utils"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/nova/tooltip"
 
@@ -28,8 +29,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components
 // pressing another. Each card is /models' block, as Brendan drew it
 // (2026-10-30): Question and its number on the frame; inside, the statement,
 // the three answers and the mark that it matters, then the question's code
-// (question-code.ts). Voting is local here, against the published
-// conversations.
+// (question-code.ts). The card in focus wears a blue rule. A row whose cards
+// are both answered closes with the slide run backwards (lib/motion.ts): it
+// dissolves as its height eases shut, and the next row rises into its place,
+// so the survey visibly moves on (Brendan, 2026-10-30). Voting is local here,
+// against the published conversations.
 
 type Answer = "agree" | "disagree" | "pass"
 
@@ -52,6 +56,35 @@ export function Survey({ conversation, survey }: { conversation: Conversation; s
   const [written, setWritten] = React.useState("")
   const [submitted, setSubmitted] = React.useState<string[]>([])
   const voted = queue.filter((s) => answers[s.tid]).length
+  // The card in focus, by statement: the last one pressed or tabbed into.
+  const [active, setActive] = React.useState<number | null>(null)
+  // Two cards a row; a finished row closes a beat after its last answer, so the pick is seen first.
+  const rows = React.useMemo(() => Array.from({ length: Math.ceil(queue.length / 2) }, (_, r) => queue.slice(r * 2, r * 2 + 2)), [queue])
+  const [closed, setClosed] = React.useState<Set<number>>(new Set())
+  // Reviewing, every row stays open to change an answer.
+  const [review, setReview] = React.useState(false)
+  const timers = React.useRef(new Map<number, number>())
+  React.useEffect(() => {
+    if (review) return
+    rows.forEach((row, r) => {
+      if (closed.has(r) || timers.current.has(r) || !row.every((st) => answers[st.tid])) return
+      timers.current.set(
+        r,
+        window.setTimeout(() => {
+          timers.current.delete(r)
+          setClosed((prev) => new Set(prev).add(r))
+          // The next open row's first card takes the focus rule.
+          const next = rows.findIndex((x, k) => k > r && !closed.has(k))
+          setActive(next >= 0 ? rows[next]![0]!.tid : null)
+        }, 450)
+      )
+    })
+  }, [answers, rows, closed, review])
+  React.useEffect(() => {
+    const t = timers.current
+    return () => t.forEach((id) => window.clearTimeout(id))
+  }, [])
+  const done = !review && rows.length > 0 && closed.size === rows.length
 
   return (
     <div className="space-y-6">
@@ -70,27 +103,62 @@ export function Survey({ conversation, survey }: { conversation: Conversation; s
         </div>
       </div>
 
-      <div className="grid items-stretch gap-5 md:grid-cols-2">
-        {queue.map((statement, i) => (
-          <Card
-            key={statement.tid}
-            n={i + 1}
-            code={questionCode(survey, i + 1)}
-            statement={statement}
-            answer={answers[statement.tid]}
-            onAnswer={(a) => setAnswers((prev) => ({ ...prev, [statement.tid]: a }))}
-            salient={salient.has(statement.tid)}
-            onSalient={() =>
-              setSalient((prev) => {
-                const next = new Set(prev)
-                if (next.has(statement.tid)) next.delete(statement.tid)
-                else next.add(statement.tid)
-                return next
-              })
-            }
-          />
-        ))}
+      {/* Each row in a clip that eases from its height to none while the row fades: the slide, backwards. */}
+      <div>
+        {rows.map((row, r) => {
+          const shut = closed.has(r)
+          return (
+            <div key={row[0]!.tid} inert={shut} aria-hidden={shut || undefined} className={cn("grid transition-[grid-template-rows,opacity]", SLIDE, shut ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100")}>
+              <div className="-mx-2 min-h-0 overflow-hidden px-2">
+                <div className="grid items-stretch gap-5 pb-5 md:grid-cols-2">
+                  {row.map((statement) => {
+                    const n = queue.indexOf(statement) + 1
+                    return (
+                      <div key={statement.tid} className="h-full" onPointerDownCapture={() => setActive(statement.tid)} onFocusCapture={() => setActive(statement.tid)}>
+                        <Card
+                          n={n}
+                          code={questionCode(survey, n)}
+                          statement={statement}
+                          selected={active === statement.tid}
+                          answer={answers[statement.tid]}
+                          onAnswer={(a) => setAnswers((prev) => ({ ...prev, [statement.tid]: a }))}
+                          salient={salient.has(statement.tid)}
+                          onSalient={() =>
+                            setSalient((prev) => {
+                              const next = new Set(prev)
+                              if (next.has(statement.tid)) next.delete(statement.tid)
+                              else next.add(statement.tid)
+                              return next
+                            })
+                          }
+                        />
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          )
+        })}
       </div>
+
+      {done && (
+        <Block title={`All ${queue.length} answered`}>
+          <div className="flex items-center justify-between gap-4 px-4 py-3.5 sm:px-5">
+            <span className="text-sm text-slate-700">Every question in this survey has your answer.</span>
+            <button
+              type="button"
+              onClick={() => {
+                setReview(true)
+                setClosed(new Set())
+              }}
+              className={SMALL}
+            >
+              Review my answers
+            </button>
+          </div>
+        </Block>
+      )}
 
       {/* Writing a statement is available throughout, not only at the end. */}
       <Block title="Add a statement of your own">
@@ -128,9 +196,9 @@ export function Survey({ conversation, survey }: { conversation: Conversation; s
 
 /** One question as a block: Question and its number on the frame; inside, the statement, the three
  *  answers (the picked one filled) and the mark that it matters, then the question's code. */
-function Card({ n, code, statement, answer, onAnswer, salient, onSalient }: { n: number; code: string; statement: Statement; answer?: Answer; onAnswer: (a: Answer) => void; salient: boolean; onSalient: () => void }) {
+function Card({ n, code, statement, selected, answer, onAnswer, salient, onSalient }: { n: number; code: string; statement: Statement; selected: boolean; answer?: Answer; onAnswer: (a: Answer) => void; salient: boolean; onSalient: () => void }) {
   return (
-    <Block stretch title={<span className="font-medium">Question {n}</span>}>
+    <Block stretch selected={selected} title={<span className="font-medium">Question {n}</span>}>
       <div className="flex flex-1 flex-col gap-6 px-4 py-5 sm:px-5">
         <p className="text-[17px] leading-snug text-balance text-slate-900">{statement.text}</p>
         <div className="mt-auto grid grid-cols-3 gap-2">

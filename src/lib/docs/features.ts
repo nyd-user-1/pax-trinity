@@ -152,7 +152,7 @@ These are the benchmarks a new survey's or test's numbers read against.`,
     section: "Features",
     body: `The loudest voice in the room is rarely its majority. People agree, disagree or pass on short statements one at a time, and I find the opinion groups in the votes, so you see where a coalition already agrees and where it splits before you take a position.
 
-- **Questions**, the page [Consensus](/consensus) opens on, is where one is voted on: every statement at once, two cards to a row.
+- **Questions**, the page [Consensus](/consensus) opens on, is where one is voted on: two cards to a row, and a row closes once both are answered, so the next comes up. **Review my answers** at the end opens them all again.
 - **Surveys** lists the conversations, each with its numbers and links to vote on it or read its results.
 - **Results** shows where the groups agree, where they split, and every statement's shares.
 - **Admin**, for staff, holds the conversation's numbers.

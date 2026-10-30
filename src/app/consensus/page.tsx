@@ -1,6 +1,4 @@
-import { ChartColumn, MessagesSquare, ShieldCheck, Vote } from "lucide-react"
-
-import { PageTabs } from "@/components/settings/blocks"
+import { PageRail } from "@/components/settings/blocks"
 import { currentUser } from "@/lib/auth"
 import { conversation, conversations } from "@/lib/consensus/store"
 
@@ -15,18 +13,18 @@ import { SurveysPanel } from "./_panels/surveys"
 // admins only. ?tab= picks the panel and ?c= the conversation; the old
 // sub-routes (/consensus/survey, /report, /admin) answer a redirect into
 // their tab. Since 2026-10-30 (Brendan) Questions comes first, on the bare
-// address, and the page wears /models' layout: its tab row and its 920px
-// column, every card a block.
+// address, every card is a block, and the tabs are a rail beside the 920px
+// column, in the reports' contents dress.
 export const metadata = {
   title: "Consensus",
   description: "Opinion gathered at scale: people vote on each other's statements, and the groups emerge from the votes rather than from who spoke loudest.",
 }
 
 const TABS = [
-  { key: "questions", label: "Questions", icon: Vote },
-  { key: "surveys", label: "Surveys", icon: MessagesSquare },
-  { key: "results", label: "Results", icon: ChartColumn },
-  { key: "admin", label: "Admin", icon: ShieldCheck, admin: true },
+  { key: "questions", label: "Questions" },
+  { key: "surveys", label: "Surveys" },
+  { key: "results", label: "Results" },
+  { key: "admin", label: "Admin", admin: true },
 ] as const
 type Tab = (typeof TABS)[number]["key"]
 
@@ -43,12 +41,15 @@ export default async function ConsensusPage({ searchParams }: { searchParams: Pr
   const hrefOf = (key: Tab) => (key === "questions" ? `/consensus${keep ? `?${keep}` : ""}` : `/consensus?tab=${key}${keep ? `&${keep}` : ""}`)
 
   return (
-    <div className="mx-auto w-full max-w-[920px] space-y-8 pb-10">
-      <PageTabs tabs={open.map((t) => ({ key: t.key, label: t.label, icon: t.icon, href: hrefOf(t.key) }))} active={current} />
-      {current === "questions" && <QuestionsPanel conversation={c} survey={survey} />}
-      {current === "surveys" && <SurveysPanel all={all} admin={admin} />}
-      {current === "results" && <ResultsPanel conversation={c} survey={survey} />}
-      {current === "admin" && <AdminPanel conversation={c} survey={survey} />}
+    // The reports' grid: the 200px rail, a 48px gap, then the 920px column.
+    <div className="mx-auto w-full max-w-[1168px] space-y-8 pb-10 lg:grid lg:grid-cols-[200px_minmax(0,1fr)] lg:gap-x-12 lg:space-y-0">
+      <PageRail label="Consensus" tabs={open.map((t) => ({ key: t.key, label: t.label, href: hrefOf(t.key) }))} active={current} />
+      <div className="min-w-0">
+        {current === "questions" && <QuestionsPanel conversation={c} survey={survey} />}
+        {current === "surveys" && <SurveysPanel all={all} admin={admin} />}
+        {current === "results" && <ResultsPanel conversation={c} survey={survey} />}
+        {current === "admin" && <AdminPanel conversation={c} survey={survey} />}
+      </div>
     </div>
   )
 }
