@@ -2,6 +2,7 @@ import Link from "next/link"
 
 import { DraftCard } from "@/components/consensus/draft-card"
 import { SplitBar } from "@/components/consensus/split-bar"
+import { surveyCode } from "@/components/consensus/question-code"
 import { Block } from "@/components/settings/blocks"
 import { share, type Conversation } from "@/lib/consensus/data"
 import { fmtNumber } from "@/lib/format"
@@ -24,7 +25,7 @@ function Stat({ value, label }: { value: string; label: string }) {
   )
 }
 
-export function AdminPanel({ conversation: c }: { conversation: Conversation }) {
+export function AdminPanel({ conversation: c, survey }: { conversation: Conversation; survey: number }) {
   // 1 is accepted, -1 is pulled, 0 is not yet looked at — the flag reads
   // backwards, so it is named rather than tested for truthiness.
   const moderated = c.statements.filter((s) => s.moderated === -1)
@@ -48,6 +49,7 @@ export function AdminPanel({ conversation: c }: { conversation: Conversation }) 
               label="votes per voter"
             />
           </div>
+          <p className="px-4 py-3 text-[13px] text-slate-500 tabular-nums sm:px-5">{surveyCode(survey)}</p>
         </Block>
         <p className="text-sm text-muted-foreground">
           Voting happens on the{" "}

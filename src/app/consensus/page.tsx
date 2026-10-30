@@ -37,16 +37,18 @@ export default async function ConsensusPage({ searchParams }: { searchParams: Pr
   const current: Tab = open.find((t) => t.key === tab)?.key ?? "questions"
   const all = await conversations()
   const c = (await conversation(slug ?? "")) ?? all[0]!
+  // The survey's number, the first part of every card's code (components/consensus/question-code.ts).
+  const survey = Math.max(0, all.findIndex((x) => x.slug === c.slug)) + 1
   const keep = slug ? `c=${encodeURIComponent(slug)}` : ""
   const hrefOf = (key: Tab) => (key === "questions" ? `/consensus${keep ? `?${keep}` : ""}` : `/consensus?tab=${key}${keep ? `&${keep}` : ""}`)
 
   return (
     <div className="mx-auto w-full max-w-[920px] space-y-8 pb-10">
       <PageTabs tabs={open.map((t) => ({ key: t.key, label: t.label, icon: t.icon, href: hrefOf(t.key) }))} active={current} />
-      {current === "questions" && <QuestionsPanel conversation={c} />}
+      {current === "questions" && <QuestionsPanel conversation={c} survey={survey} />}
       {current === "surveys" && <SurveysPanel all={all} admin={admin} />}
-      {current === "results" && <ResultsPanel conversation={c} />}
-      {current === "admin" && <AdminPanel conversation={c} />}
+      {current === "results" && <ResultsPanel conversation={c} survey={survey} />}
+      {current === "admin" && <AdminPanel conversation={c} survey={survey} />}
     </div>
   )
 }

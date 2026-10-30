@@ -7,6 +7,7 @@ import { Check, Info, Minus, X } from "lucide-react"
 import { Block, FIELD, SMALL_PRIMARY } from "@/components/settings/blocks"
 import { Toggle } from "@/components/settings/controls"
 import type { Conversation, Statement } from "@/lib/consensus/data"
+import { questionCode } from "@/components/consensus/question-code"
 import { cn } from "@/lib/utils"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/nova/tooltip"
 
@@ -24,9 +25,10 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components
 //
 // Every statement is on screen at once, two columns of cards, with no framing
 // card to get past first (Brendan, 2026-10-29); an answer can be changed by
-// pressing another. Each card is /models' block (Brendan, 2026-10-30): the
-// statement on the frame, numbered, and inside it the three answers and the
-// mark that it matters. Voting is local here, against the published
+// pressing another. Each card is /models' block, as Brendan drew it
+// (2026-10-30): Question and its number on the frame; inside, the statement,
+// the three answers and the mark that it matters, then the question's code
+// (question-code.ts). Voting is local here, against the published
 // conversations.
 
 type Answer = "agree" | "disagree" | "pass"
@@ -37,7 +39,8 @@ const CHOICES: { value: Answer; label: string; icon: React.ReactNode }[] = [
   { value: "pass", label: "Pass", icon: <Minus className="size-4" /> },
 ]
 
-export function Survey({ conversation }: { conversation: Conversation }) {
+/** `survey` is the conversation's place in the directory, 1 up: the first part of every card's code. */
+export function Survey({ conversation, survey }: { conversation: Conversation; survey: number }) {
   const queue = React.useMemo(
     () =>
       // 1 accepted, 0 unreviewed, -1 pulled.
@@ -72,6 +75,7 @@ export function Survey({ conversation }: { conversation: Conversation }) {
           <Card
             key={statement.tid}
             n={i + 1}
+            code={questionCode(survey, i + 1)}
             statement={statement}
             answer={answers[statement.tid]}
             onAnswer={(a) => setAnswers((prev) => ({ ...prev, [statement.tid]: a }))}
@@ -122,62 +126,62 @@ export function Survey({ conversation }: { conversation: Conversation }) {
   )
 }
 
-/** One statement as a block: its number and text on the frame; inside, the three answers (the picked one
- *  filled) and the mark that it matters. */
-function Card({ n, statement, answer, onAnswer, salient, onSalient }: { n: number; statement: Statement; answer?: Answer; onAnswer: (a: Answer) => void; salient: boolean; onSalient: () => void }) {
+/** One question as a block: Question and its number on the frame; inside, the statement, the three
+ *  answers (the picked one filled) and the mark that it matters, then the question's code. */
+function Card({ n, code, statement, answer, onAnswer, salient, onSalient }: { n: number; code: string; statement: Statement; answer?: Answer; onAnswer: (a: Answer) => void; salient: boolean; onSalient: () => void }) {
   return (
-    <Block
-      stretch
-      lead={<span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-[12px] font-semibold text-slate-500 tabular-nums">{n}</span>}
-      title={<span className="leading-snug font-medium text-balance">{statement.text}</span>}
-    >
-      <div className="grid grid-cols-3 gap-2 px-4 py-3 sm:px-5">
-        {CHOICES.map((choice) => {
-          const on = answer === choice.value
-          return (
-            <button
-              key={choice.value}
-              type="button"
-              aria-pressed={on}
-              onClick={() => onAnswer(choice.value)}
-              className={cn(
-                "inline-flex h-9 items-center justify-center gap-1.5 rounded-full border text-[13px] font-medium transition-colors outline-none focus-visible:ring-3 focus-visible:ring-pax2-light-blue/30",
-                on ? "border-pax2-blue bg-pax2-blue text-white" : "border-slate-300 bg-white text-slate-700 hover:border-pax2-blue hover:text-pax2-blue"
-              )}
-            >
-              {choice.icon}
-              {choice.label}
-            </button>
-          )
-        })}
+    <Block stretch title={<span className="font-medium">Question {n}</span>}>
+      <div className="flex flex-1 flex-col gap-6 px-4 py-5 sm:px-5">
+        <p className="text-[17px] leading-snug text-balance text-slate-900">{statement.text}</p>
+        <div className="mt-auto grid grid-cols-3 gap-2">
+          {CHOICES.map((choice) => {
+            const on = answer === choice.value
+            return (
+              <button
+                key={choice.value}
+                type="button"
+                aria-pressed={on}
+                onClick={() => onAnswer(choice.value)}
+                className={cn(
+                  "inline-flex h-9 items-center justify-center gap-1.5 rounded-full border text-sm font-medium transition-colors outline-none focus-visible:ring-3 focus-visible:ring-pax2-light-blue/30",
+                  on ? "border-pax2-blue bg-pax2-blue text-white" : "border-slate-300 bg-white text-slate-700 hover:border-pax2-blue hover:text-pax2-blue"
+                )}
+              >
+                {choice.icon}
+                {choice.label}
+              </button>
+            )
+          })}
+        </div>
+        {/* Salience, after the answer rather than in front of it. */}
+        <div className="flex items-center justify-between gap-4">
+          <span className="flex items-center gap-1 text-sm font-medium text-slate-900">
+            Matters more than most
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <button
+                    type="button"
+                    aria-label="What marking a statement does"
+                    className="inline-flex size-5 items-center justify-center rounded-full text-slate-400 hover:text-slate-700"
+                  />
+                }
+              >
+                <Info className="size-3.5" />
+              </TooltipTrigger>
+              <TooltipContent side="right" sideOffset={8} className="max-w-xs text-xs leading-5">
+                Turn this on if you believe this statement is especially
+                important to you or is highly relevant to the conversation,
+                irrespective of your vote. It will give this statement higher
+                priority compared to your other votes in the conversation
+                analysis.
+              </TooltipContent>
+            </Tooltip>
+          </span>
+          <Toggle label="Matters more than most" on={salient} onChange={onSalient} />
+        </div>
       </div>
-      {/* Salience, after the answer rather than in front of it. */}
-      <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-5">
-        <span className="flex items-center gap-1 text-sm font-medium text-slate-900">
-          Matters more than most
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <button
-                  type="button"
-                  aria-label="What marking a statement does"
-                  className="inline-flex size-5 items-center justify-center rounded-full text-slate-400 hover:text-slate-700"
-                />
-              }
-            >
-              <Info className="size-3.5" />
-            </TooltipTrigger>
-            <TooltipContent side="right" sideOffset={8} className="max-w-xs text-xs leading-5">
-              Turn this on if you believe this statement is especially
-              important to you or is highly relevant to the conversation,
-              irrespective of your vote. It will give this statement higher
-              priority compared to your other votes in the conversation
-              analysis.
-            </TooltipContent>
-          </Tooltip>
-        </span>
-        <Toggle label="Matters more than most" on={salient} onChange={onSalient} />
-      </div>
+      <p className="px-4 py-3 text-[13px] text-slate-500 tabular-nums sm:px-5">{code}</p>
     </Block>
   )
 }

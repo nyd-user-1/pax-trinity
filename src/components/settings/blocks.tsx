@@ -49,11 +49,11 @@ export function PageTabs({ tabs, active, trailing }: { tabs: { key: string; labe
 }
 
 /** The reference block: a title on the slate-50 frame, the rows in a white card inside it. `stretch` fills
- *  its grid cell, the title taking the slack, so blocks in one row end level whatever their titles' length. */
+ *  its grid cell, the white card taking the slack, so blocks in one row end level whatever they hold. */
 export function Block({ title, sub, lead, badge, action, children, className, stretch }: { title: React.ReactNode; sub?: React.ReactNode; lead?: React.ReactNode; badge?: React.ReactNode; action?: React.ReactNode; children: React.ReactNode; className?: string; stretch?: boolean }) {
   return (
     <section className={cn("rounded-[18px] border border-slate-200 bg-slate-50 p-1 shadow-e1", stretch && "flex h-full flex-col", className)}>
-      <div className={cn("flex gap-3 px-4 pt-2.5 pb-3 sm:px-5", stretch ? "flex-1 items-start" : "items-center")}>
+      <div className="flex items-center gap-3 px-4 pt-2.5 pb-3 sm:px-5">
         {lead}
         <div className="min-w-0 flex-1">
           <h3 className="flex flex-wrap items-center gap-2 text-[15px] font-semibold text-slate-900">
@@ -64,7 +64,7 @@ export function Block({ title, sub, lead, badge, action, children, className, st
         </div>
         {action}
       </div>
-      <div className="divide-y divide-slate-200 overflow-visible rounded-[14px] border border-slate-200 bg-white shadow-e1">{children}</div>
+      <div className={cn("divide-y divide-slate-200 overflow-visible rounded-[14px] border border-slate-200 bg-white shadow-e1", stretch && "flex flex-1 flex-col")}>{children}</div>
     </section>
   )
 }

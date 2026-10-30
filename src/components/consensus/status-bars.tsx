@@ -98,14 +98,17 @@ export function StatusBars({
 
 // The card as Brendan arranged it in devtools (2026-09-11): the statement,
 // then one row — the agree share, the pills, the disagree share. The note,
-// the group rows and the foot came off. Since 2026-10-30 it is /models'
-// block: the statement on the frame, the row in the white card inside it.
-export function StatementCard({ statement }: { statement: Statement; conversation?: Conversation; note?: string }) {
+// the group rows and the foot came off. Since 2026-10-30 it is the Questions
+// card's block, as Brendan drew it: Question and its number on the frame;
+// inside, the statement and the row, then the question's code.
+export function StatementCard({ statement, number, code }: { statement: Statement; number?: number; code?: string; conversation?: Conversation; note?: string }) {
   return (
-    <Block title={<span className="leading-snug font-medium">{statement.text}</span>}>
-      <div className="px-4 py-3.5 sm:px-5">
+    <Block title={<span className="font-medium">{number != null ? `Question ${number}` : "Statement"}</span>}>
+      <div className="flex flex-col gap-5 px-4 py-5 sm:px-5">
+        <p className="text-[17px] leading-snug text-balance text-slate-900">{statement.text}</p>
         <StatusBars votes={statement.votes} figures />
       </div>
+      {code && <p className="px-4 py-3 text-[13px] text-slate-500 tabular-nums sm:px-5">{code}</p>}
     </Block>
   )
 }

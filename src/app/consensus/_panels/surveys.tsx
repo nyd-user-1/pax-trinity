@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { MessagesSquare } from "lucide-react"
 
+import { surveyCode } from "@/components/consensus/question-code"
 import { Block, Fact, SMALL, Tile } from "@/components/settings/blocks"
 import { type Conversation } from "@/lib/consensus/data"
 import { fmtNumber } from "@/lib/format"
@@ -11,12 +12,12 @@ import { fmtNumber } from "@/lib/format"
 // a wall of monospace. A conversation is a thing with a shape — how many
 // people, how many statements, how many groups it found — so it gets a card
 // with that shape on it: /models' block (Brendan, 2026-10-30), its numbers
-// as the rows, Vote and Results at its head.
+// as the rows, Vote and Results at its head, its code at its foot.
 export function SurveysPanel({ all, admin }: { all: Conversation[]; admin: boolean }) {
   return (
     <div data-not-typeset="true" className="space-y-6">
       <div className="grid items-stretch gap-5 md:grid-cols-2">
-        {all.map((c) => (
+        {all.map((c, i) => (
           <Block
             key={c.slug}
             stretch
@@ -38,6 +39,7 @@ export function SurveysPanel({ all, admin }: { all: Conversation[]; admin: boole
             <Fact label="Statements">{fmtNumber(c.stats.statements)}</Fact>
             <Fact label="Votes cast">{fmtNumber(c.stats.votes)}</Fact>
             <Fact label="Opinion groups">{String(c.stats.groups)}</Fact>
+            <p className="px-4 py-3 text-[13px] text-slate-500 tabular-nums sm:px-5">{surveyCode(i + 1)}</p>
           </Block>
         ))}
       </div>

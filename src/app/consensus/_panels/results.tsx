@@ -1,5 +1,6 @@
 import { H3 } from "@/components/typeset"
 import { SplitLegend } from "@/components/consensus/split-bar"
+import { questionCode, questionNumbers, surveyCode } from "@/components/consensus/question-code"
 import { StatementCard } from "@/components/consensus/status-bars"
 import { Block } from "@/components/settings/blocks"
 import {
@@ -34,12 +35,18 @@ function Stat({ value, label }: { value: string; label: string }) {
   )
 }
 
-export function ResultsPanel({ conversation: c }: { conversation: Conversation }) {
+export function ResultsPanel({ conversation: c, survey }: { conversation: Conversation; survey: number }) {
   const agreed = consensusStatements(c)
   const split = divisiveStatements(c)
   // The table shows the statements that stood: not the ones a moderator
   // pulled, and not the ones one person saw and nobody answered.
   const listed = c.statements.filter(standing)
+  // Each statement carries its Questions card's number and code.
+  const numbers = questionNumbers(c)
+  const card = (s: Statement) => {
+    const n = numbers.get(s.tid)
+    return <StatementCard key={s.tid} statement={s} conversation={c} number={n} code={n != null ? questionCode(survey, n) : undefined} />
+  }
 
   return (
     <div data-not-typeset="true" className="flex flex-col gap-10">
@@ -55,6 +62,7 @@ export function ResultsPanel({ conversation: c }: { conversation: Conversation }
             <Stat value={fmtNumber(c.stats.votes)} label="votes cast" />
             <Stat value={String(c.stats.groups)} label="opinion groups" />
           </div>
+          <p className="px-4 py-3 text-[13px] text-slate-500 tabular-nums sm:px-5">{surveyCode(survey)}</p>
         </Block>
         <SplitLegend />
       </header>
@@ -65,14 +73,7 @@ export function ResultsPanel({ conversation: c }: { conversation: Conversation }
           Statements no group dissented from — scored on the least agreeable
           group, not on the majority, so a big group cannot carry a small one.
         </p>
-        {agreed.map((s) => (
-          <StatementCard
-            key={s.tid}
-            statement={s}
-            conversation={c}
-            note={`${Math.round(agreement(s))}% in the least agreeable group`}
-          />
-        ))}
+        {agreed.map(card)}
       </section>
 
       <section className="flex flex-col gap-4">
@@ -82,14 +83,7 @@ export function ResultsPanel({ conversation: c }: { conversation: Conversation }
           widest gap between two groups, not the closest overall vote — a
           statement everyone half-agrees with is uncertain, not divisive.
         </p>
-        {split.map((s) => (
-          <StatementCard
-            key={s.tid}
-            statement={s}
-            conversation={c}
-            note={`${Math.round(divisiveness(s))} points between the furthest groups`}
-          />
-        ))}
+        {split.map(card)}
       </section>
 
       <section className="flex flex-col gap-3">
