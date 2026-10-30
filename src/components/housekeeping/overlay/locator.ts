@@ -15,6 +15,35 @@ export function selPart(el: Element, maxClasses = 3): string {
   return s + classes.map((c) => `.${c}`).join("");
 }
 
+/**
+ * A CSS path that finds this element and no other (PAX, 2026-10-30). Each step is the tag, and its
+ * place among same-tag siblings when it has any; it climbs until the path matches one element, or
+ * stops at an id that is the page's only one. cssPath's class paths matched every card in a row, so
+ * a comment's location chip opened the first card, whichever card the comment was on.
+ */
+export function uniquePath(el: Element): string {
+  const doc = el.ownerDocument;
+  const parts: string[] = [];
+  let n: Element | null = el;
+  while (n && n !== doc.documentElement) {
+    if (n.id && PLAIN.test(n.id) && doc.querySelectorAll(`#${n.id}`).length === 1) {
+      parts.unshift(`#${n.id}`);
+      break;
+    }
+    const tag = n.localName;
+    const parent: Element | null = n.parentElement;
+    const same = parent ? Array.from(parent.children).filter((c) => c.localName === tag) : [];
+    parts.unshift(same.length > 1 ? `${tag}:nth-of-type(${same.indexOf(n) + 1})` : tag);
+    try {
+      if (doc.querySelectorAll(parts.join(" > ")).length === 1) break;
+    } catch {
+      /* a tag name a selector can't hold: keep climbing */
+    }
+    n = parent;
+  }
+  return parts.join(" > ");
+}
+
 /** Short CSS path: up to 6 ancestors, ids and up to 3 classes per node. */
 export function cssPath(el: Element, maxAncestors = 6): string {
   const doc = el.ownerDocument;
@@ -100,7 +129,7 @@ export function locatorBundle({ target, comment, screenshot }: BundleInput): str
     "[sonar comment]",
     `page: ${loc.href}  (route: ${route})`,
     `target: ${describe(target)}`,
-    `path: ${cssPath(target)}`,
+    `path: ${uniquePath(target)}`,
   ];
   const classes = target.getAttribute("class")?.replace(/\s+/g, " ").trim();
   if (classes) lines.push(`classes: ${classes}`);

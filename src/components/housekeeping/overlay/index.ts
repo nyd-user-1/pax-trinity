@@ -8,7 +8,7 @@ import { adopt, h, isEditable, outsideBy } from "./dom";
 import { Box } from "./box";
 import { Cursor } from "./cursor";
 import { breadcrumb, shortSel } from "./describe";
-import { cssPath, locatorBundle } from "./locator";
+import { locatorBundle, uniquePath } from "./locator";
 import { describe } from "./describe";
 import { DebugPanel, StatusPill } from "./panels";
 import { Pin, type PinState } from "./pin";
@@ -48,6 +48,8 @@ export interface MountOptions {
   copy?: (text: string) => Promise<boolean>;
   /** Initial shown on the pin avatar (default "B"). */
   initial?: string;
+  /** The commenter's headshot, shown on the pin in place of the initial. */
+  photo?: string;
   /** Show the debug panel (breadcrumb + promotion chain). */
   debug?: boolean;
   /** Called after the overlay removes itself (Esc). */
@@ -247,7 +249,7 @@ export function mount(opts: MountOptions = {}): Sonar {
     if (!current) return;
     manual = null;
     pending = null;
-    const pin = new Pin(doc, root, initial, current, px, py);
+    const pin = new Pin(doc, root, initial, current, px, py, opts.photo);
     pin.el.addEventListener("click", () => popover.textarea.focus({ preventScroll: true }));
     draft = pin;
     box.lock(true);
@@ -267,34 +269,41 @@ export function mount(opts: MountOptions = {}): Sonar {
     dirty = true;
   }
 
+  // PAX (2026-10-30): one destination, so a comment always sends, and the box stays open until
+  // Housekeeping has it. A failed send says so under the box; a sent pin ticks, then gives way to
+  // the page's own marker (components/housekeeping/tool.tsx), which stays while the comment is open.
+  let busy = false;
   async function submit(): Promise<void> {
     const pin = draft;
-    if (!pin) return;
+    if (!pin || busy) return;
     const comment = popover.value.trim();
-    const sending = popover.sendToClaude && !!opts.send && !!popover.sessionId;
-    const copying = popover.sendToClaude && !sending;
-    if (!comment && !copying) return popover.nudge();
-
-    const content = locatorBundle({ target: pin.target, comment });
-    let state: PinState = "saved";
-    if (sending) {
-      state = "sent";
-      const loc = win.location;
-      void opts.send!({
-        session: popover.sessionId!,
-        content,
+    const images = popover.images;
+    if (!comment && !images.length) return popover.nudge();
+    if (!opts.send) {
+      if (await copyText(locatorBundle({ target: pin.target, comment }))) popover.flashCopied();
+      return;
+    }
+    busy = true;
+    const loc = win.location;
+    const ok = await opts
+      .send({
+        session: "housekeeping",
+        content: locatorBundle({ target: pin.target, comment }),
         comment,
         page: loc.href,
         route: loc.pathname,
         target: describe(pin.target),
-        path: cssPath(pin.target),
-        images: popover.images,
-      });
-    } else if (copying) {
-      state = "copied";
-      void copyText(content);
-    }
-    pin.setState(state);
+        path: uniquePath(pin.target),
+        images,
+      })
+      .then(
+        (r) => r !== false,
+        () => false,
+      );
+    busy = false;
+    if (draft !== pin) return;
+    if (!ok) return popover.fail("That did not send. Try again.");
+    pin.setState("sent");
     const record: PinRecord = { pin, comment };
     pin.el.addEventListener("click", () => view(record));
     pins.push(record);
@@ -302,6 +311,12 @@ export function mount(opts: MountOptions = {}): Sonar {
     box.lock(false);
     popover.close();
     dirty = true;
+    win.setTimeout(() => {
+      if (viewing === record) closeView();
+      pin.remove();
+      const i = pins.indexOf(record);
+      if (i >= 0) pins.splice(i, 1);
+    }, 1600);
   }
 
   async function copyPrompt(): Promise<void> {

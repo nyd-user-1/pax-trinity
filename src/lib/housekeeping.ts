@@ -3,7 +3,8 @@ import "server-only"
 import { randomUUID } from "node:crypto"
 
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb"
-import { DynamoDBDocumentClient, PutCommand, QueryCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb"
+import { DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb"
+import { BedrockRuntimeClient, ConverseCommand } from "@aws-sdk/client-bedrock-runtime"
 import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 
@@ -52,10 +53,16 @@ export type Message = {
   resolvedAt?: string
   editedAt?: string
   createdAt: string
+  /** A prompt that would address the comment, for the super admin to use as he sees fit, or
+   *  PROMPT_UNAVAILABLE when no change could be read from it (Brendan, 2026-10-30). */
+  prompt?: string
+  promptAt?: string
 }
 
+export const PROMPT_UNAVAILABLE = "Prompt unavailable"
+
 /** Who can be in Housekeeping: the super admin and the admins, by lib/roles.ts. */
-export const PEOPLE = MEMBERS.filter((m) => m.email && (m.role === "superadmin" || m.role === "admin")).map((m) => ({ email: m.email!.toLowerCase(), name: m.name, role: m.role }))
+export const PEOPLE = MEMBERS.filter((m) => m.email && (m.role === "superadmin" || m.role === "admin")).map((m) => ({ email: m.email!.toLowerCase(), name: m.name, role: m.role, photo: m.photo }))
 
 export const nameOf = (email: string) => memberByEmail(email)?.name ?? email
 /** A member's main address, so either of Brendan's addresses lands in the same thread. */
@@ -124,8 +131,22 @@ export async function post(input: {
   return item
 }
 
-/** The super admin's two levers: resolve or reopen, and edit the text. */
-export async function update(key: { pk: string; sk: string }, change: { status?: "open" | "resolved"; text?: string }, by: string): Promise<void> {
+export async function getMessage(key: { pk: string; sk: string }): Promise<Message | null> {
+  const out = await db.send(new GetCommand({ TableName: TABLE, Key: key }))
+  return (out.Item as Message | undefined) ?? null
+}
+
+/** The open pointed comments on one page that this person can read: the stream's and their own
+ *  direct messages'. The page marks each one's element (components/housekeeping/tool.tsx). */
+export async function openOnRoute(route: string, viewer: string): Promise<Message[]> {
+  const me = canonical(viewer)
+  const keys = ["STREAM", ...PEOPLE.filter((p) => p.email !== me).map((p) => dmKey(me, p.email))]
+  const threads = await Promise.all(keys.map((pk) => listThread(pk)))
+  return threads.flat().filter((m) => m.kind === "comment" && m.status === "open" && m.route === route && m.path)
+}
+
+/** The super admin's levers: resolve or reopen, edit the text, and edit the prompt. */
+export async function update(key: { pk: string; sk: string }, change: { status?: "open" | "resolved"; text?: string; prompt?: string }, by: string): Promise<void> {
   const now = new Date().toISOString()
   if (change.status) {
     await db.send(
@@ -151,6 +172,66 @@ export async function update(key: { pk: string; sk: string }, change: { status?:
       }),
     )
   }
+  if (change.prompt != null) await savePrompt(key, change.prompt)
+}
+
+async function savePrompt(key: { pk: string; sk: string }, prompt: string): Promise<void> {
+  await db.send(
+    new UpdateCommand({
+      TableName: TABLE,
+      Key: key,
+      ConditionExpression: "attribute_exists(pk)",
+      UpdateExpression: "SET #p = :p, promptAt = :at",
+      ExpressionAttributeNames: { "#p": "prompt" },
+      ExpressionAttributeValues: { ":p": prompt.trim().slice(0, 8000) || PROMPT_UNAVAILABLE, ":at": new Date().toISOString() },
+    }),
+  )
+}
+
+// The prompt (Brendan, 2026-10-30): Housekeeping does not send comments to a coding session; it keeps,
+// beside each comment, a prompt that would address it, which the super admin reads, edits or ignores.
+// Claude on Bedrock writes it from the comment and its locator bundle, in us-east-2.
+const bedrock = new BedrockRuntimeClient({ region: REGION })
+const PROMPT_MODEL = process.env.PAX_TRINITY_HOUSEKEEPING_MODEL ?? "us.anthropic.claude-sonnet-4-6"
+
+const PROMPT_SYSTEM = `You turn a reviewer's comment on the PAX web app (a Next.js App Router codebase, pax-trinity: pages in src/app/<route>/page.tsx, components in src/components, copy and data in src/lib) into one prompt for a coding agent working in that repository.
+
+The prompt you write:
+- names the page (its route, and the likely page file), and the element: its visible text, its kind, its classes and its neighbours, as given, so the agent can grep for it;
+- says exactly what to change, in the reviewer's terms; when the reviewer supplies replacement wording, quote it exactly;
+- keeps the app's voice where it writes copy: first person singular ("I", "me", "my"), never "we" or "our";
+- ends by asking the agent to check the change on the page.
+
+A loose request is still a request: "shorten this", "make it bigger", "this reads wrong" each get a prompt that names the element and the direction, leaving the exact wording to the agent's judgment within it. Only when the comment asks for no change at all (a greeting, a note, a question with no request in it), write exactly: ${PROMPT_UNAVAILABLE}
+
+Write only the prompt, in plain text, no preamble and no heading.`
+
+/** Writes and stores the prompt for one message; returns it. */
+export async function writePrompt(key: { pk: string; sk: string }): Promise<string> {
+  const m = await getMessage(key)
+  if (!m) throw new Error("No such message.")
+  const file = m.route ? `src/app${m.route === "/" ? "" : m.route}/page.tsx` : null
+  const facts = [
+    m.page && `Page: ${m.page}`,
+    m.route && `Route: ${m.route}${file ? ` (likely ${file})` : ""}`,
+    m.target && `Element: ${m.target}`,
+    m.path && `CSS path: ${m.path}`,
+    m.bundle && `Locator bundle:\n${m.bundle}`,
+    m.images?.length ? `The reviewer attached ${m.images.length} screenshot${m.images.length === 1 ? "" : "s"} (not shown here).` : null,
+    `Comment from ${m.authorName}: ${m.text || "(no text)"}`,
+  ].filter(Boolean)
+  const out = await bedrock.send(
+    new ConverseCommand({
+      modelId: PROMPT_MODEL,
+      system: [{ text: PROMPT_SYSTEM }],
+      messages: [{ role: "user", content: [{ text: facts.join("\n\n") }] }],
+      inferenceConfig: { maxTokens: 900, temperature: 0 },
+    }),
+  )
+  const text = (out.output?.message?.content ?? []).map((c) => ("text" in c ? c.text : "")).join("").trim()
+  const prompt = text || PROMPT_UNAVAILABLE
+  await savePrompt(key, prompt)
+  return prompt
 }
 
 /** A screenshot's short-lived link. */

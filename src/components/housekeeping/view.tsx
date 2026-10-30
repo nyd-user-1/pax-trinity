@@ -2,17 +2,22 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { Check, Crosshair, ImagePlus, Loader2, MapPin, Pencil, RotateCcw, SendHorizontal, X } from "lucide-react"
+import { Archive, Check, Copy, Crosshair, ImagePlus, Loader2, MapPin, Pencil, RotateCcw, SendHorizontal, SquareTerminal, X } from "lucide-react"
 
 import { cn } from "@/ui/lib/utils"
-import { goToComment, HOUSEKEEPING_CHANGED, shrink, togglePointer } from "./tool"
+import { goToComment, HOUSEKEEPING_CHANGED, HOUSEKEEPING_OPEN, shrink, takeFocus, togglePointer } from "./tool"
 
 // Housekeeping in the right panel (Brendan, 2026-10-30): a chat stream. "Everyone" is the stream
 // every admin reads and writes, pointed comments included; each other person opens a one-to-one
-// thread. A pointed comment shows its page and element, and opens them. Only the super admin
-// resolves, reopens or edits. Screenshots attach by paste, drop or the image button.
+// thread. The list holds what is open; resolving moves a message to the archive (the box icon),
+// where reopening brings it back. A pointed comment's pin opens its page with its element outlined.
+// The super admin alone resolves, reopens and edits, and sees beside each message the prompt that
+// would address it (the terminal icon), or "Prompt unavailable" where no change could be read.
+// Screenshots attach by paste, drop or the image button.
 
-type Person = { email: string; name: string; role: string }
+const PROMPT_UNAVAILABLE = "Prompt unavailable"
+
+type Person = { email: string; name: string; role: string; photo?: string }
 type Message = {
   pk: string
   sk: string
@@ -29,6 +34,7 @@ type Message = {
   resolvedBy?: string
   editedAt?: string
   createdAt: string
+  prompt?: string
 }
 type Thread = { me: { email: string; superAdmin: boolean }; people: Person[]; messages: Message[] }
 
@@ -41,15 +47,27 @@ const initials = (name: string) =>
     .join("")
     .toUpperCase()
 
+/** A textarea as tall as its text. */
+function grow(el: HTMLTextAreaElement | null) {
+  if (!el) return
+  el.style.height = "auto"
+  el.style.height = `${el.scrollHeight + 2}px`
+}
+
 export function HousekeepingView() {
   const router = useRouter()
   const [withEmail, setWith] = React.useState<string | null>(null)
+  const [archive, setArchive] = React.useState(false)
   const [thread, setThread] = React.useState<Thread | null>(null)
   const [error, setError] = React.useState<string | null>(null)
   const [text, setText] = React.useState("")
   const [shots, setShots] = React.useState<{ mime: string; data: string }[]>([])
   const [sending, setSending] = React.useState(false)
-  const [editing, setEditing] = React.useState<{ id: string; text: string } | null>(null)
+  const [editing, setEditing] = React.useState<{ id: string; field: "text" | "prompt"; text: string } | null>(null)
+  // Messages showing their prompt in place of their text, and prompts being written.
+  const [showing, setShowing] = React.useState<Set<string>>(new Set())
+  const [writing, setWriting] = React.useState<Set<string>>(new Set())
+  const [focus, setFocus] = React.useState<string | null>(null)
   const listRef = React.useRef<HTMLDivElement>(null)
   const fileRef = React.useRef<HTMLInputElement>(null)
 
@@ -73,11 +91,34 @@ export function HousekeepingView() {
     }
   }, [load])
 
-  // The newest message in view whenever the thread grows.
-  const count = thread?.messages.length ?? 0
+  // A comment just sent, or a page marker pressed: the stream, with that message in view.
   React.useEffect(() => {
+    const take = () => {
+      const id = takeFocus()
+      if (!id) return
+      setWith(null)
+      setArchive(false)
+      setFocus(id)
+    }
+    take()
+    window.addEventListener(HOUSEKEEPING_OPEN, take)
+    return () => window.removeEventListener(HOUSEKEEPING_OPEN, take)
+  }, [])
+
+  const list = (thread?.messages ?? []).filter((m) => (archive ? m.status === "resolved" : m.status !== "resolved"))
+
+  // The newest message in view whenever the list grows, or the focused one once it has arrived.
+  const count = list.length
+  React.useEffect(() => {
+    if (focus) {
+      const el = listRef.current?.querySelector(`[data-message="${focus}"]`)
+      if (!el) return
+      el.scrollIntoView({ block: "center", behavior: "smooth" })
+      const t = window.setTimeout(() => setFocus(null), 2400)
+      return () => window.clearTimeout(t)
+    }
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight })
-  }, [count, withEmail])
+  }, [count, withEmail, archive, focus])
 
   const addFiles = async (files: FileList | File[]) => {
     const images = [...files].filter((f) => f.type.startsWith("image/")).slice(0, 4 - shots.length)
@@ -103,23 +144,44 @@ export function HousekeepingView() {
     if (!res.ok) return setError((await res.json().catch(() => ({}))).error ?? "That did not send.")
     setText("")
     setShots([])
+    setArchive(false)
     await load()
   }
 
-  const change = async (m: Message, patch: { status?: "open" | "resolved"; text?: string }) => {
+  const change = async (m: Message, patch: { status?: "open" | "resolved"; text?: string; prompt?: string }) => {
     const res = await fetch("/api/housekeeping", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pk: m.pk, sk: m.sk, ...patch }) })
     if (!res.ok) return setError((await res.json().catch(() => ({}))).error ?? "That did not save.")
     setEditing(null)
     await load()
   }
 
+  /** Shows a message's prompt in place of its text (or its text again), writing it first if none is stored. */
+  const togglePrompt = async (m: Message) => {
+    const next = new Set(showing)
+    if (next.has(m.id)) next.delete(m.id)
+    else next.add(m.id)
+    setShowing(next)
+    if (!next.has(m.id) || m.prompt || writing.has(m.id)) return
+    setWriting((w) => new Set(w).add(m.id))
+    const res = await fetch("/api/housekeeping/prompt", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pk: m.pk, sk: m.sk }) })
+    setWriting((w) => {
+      const n = new Set(w)
+      n.delete(m.id)
+      return n
+    })
+    if (!res.ok) setError((await res.json().catch(() => ({}))).error ?? "The prompt was not written.")
+    await load()
+  }
+
   const me = thread?.me
-  const others = (thread?.people ?? []).filter((p) => p.email !== me?.email)
+  const people = thread?.people ?? []
+  const others = people.filter((p) => p.email !== me?.email)
   const partner = others.find((p) => p.email === withEmail)
+  const photoOf = (email: string) => people.find((p) => p.email === email)?.photo
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {/* The threads: everyone's stream, then one-to-one with each person. */}
+      {/* The threads: everyone's stream, then one-to-one with each person; the pointer and the archive at the right. */}
       <div className="flex shrink-0 flex-wrap items-center gap-1.5 px-5 pb-3">
         <ThreadChip on={!withEmail} onClick={() => setWith(null)}>
           Everyone
@@ -129,81 +191,122 @@ export function HousekeepingView() {
             {p.name.split(" ")[0]}
           </ThreadChip>
         ))}
-        <button
-          type="button"
-          onClick={() => void togglePointer()}
-          className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-medium text-pax2-blue shadow-e1 transition-colors hover:bg-pax2-lavender"
-          title="Point at something on the page (⌥⇧C)"
-        >
-          <Crosshair className="size-3.5" />
-          Point at something
-        </button>
+        <span className="ml-auto flex gap-1.5">
+          <button type="button" onClick={() => void togglePointer()} className="flex size-8 items-center justify-center rounded-full bg-white text-pax2-blue shadow-e1 transition-colors hover:bg-pax2-lavender" aria-label="Point at something on the page (⌥⇧C)" title="Point at something on the page (⌥⇧C)">
+            <Crosshair className="size-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setArchive((a) => !a)}
+            aria-pressed={archive}
+            className={cn("flex size-8 items-center justify-center rounded-full shadow-e1 transition-colors", archive ? "bg-pax2-blue text-white" : "bg-white text-pax2-blue hover:bg-pax2-lavender")}
+            aria-label={archive ? "Back to open messages" : "Archive: resolved messages"}
+            title={archive ? "Back to open messages" : "Archive: resolved messages"}
+          >
+            <Archive className="size-4" />
+          </button>
+        </span>
       </div>
 
       <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto border-t border-slate-200/70 px-5 py-4">
+        {archive && <p className="mb-3 text-xs font-semibold tracking-wide text-slate-500 uppercase">Archive</p>}
         {error && <p className="mb-3 rounded-lg bg-white px-3 py-2 text-xs text-pax2-red shadow-e1">{error}</p>}
         {!thread && !error && <Loader2 className="mx-auto mt-6 size-5 animate-spin text-pax2-blue" />}
-        {thread && thread.messages.length === 0 && (
+        {thread && list.length === 0 && (
           <p className="mt-6 text-center text-sm text-slate-500">
-            {partner ? `No messages with ${partner.name} yet.` : "Nothing yet. Point at something on any page, or write below."}
+            {archive ? "Nothing resolved here yet." : partner ? `No messages with ${partner.name} yet.` : "Nothing open. Point at something on any page, or write below."}
           </p>
         )}
         <div className="flex flex-col gap-4">
-          {thread?.messages.map((m) => {
-            const mine = m.author === me?.email
+          {list.map((m) => {
             const resolved = m.status === "resolved"
+            const photo = photoOf(m.author)
+            const asPrompt = !!me?.superAdmin && showing.has(m.id)
+            const isWriting = writing.has(m.id)
+            const shown = asPrompt ? m.prompt : m.text
             return (
-              <div key={m.id} className="group flex gap-3">
-                <span className={cn("mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold", mine ? "bg-pax2-blue text-white" : "bg-white text-pax2-blue shadow-e1")}>{initials(m.authorName)}</span>
+              <div key={m.id} data-message={m.id} className={cn("group -mx-2 flex gap-3 rounded-xl px-2 py-1 transition-colors duration-700", focus === m.id && "bg-pax2-lavender")}>
+                {photo ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- a 32px headshot from public/
+                  <img src={photo} alt="" className="mt-0.5 size-8 shrink-0 rounded-full object-cover" />
+                ) : (
+                  <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-pax2-blue text-[11px] font-semibold text-white">{initials(m.authorName)}</span>
+                )}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline gap-2">
                     <span className="text-sm font-semibold text-slate-900">{m.authorName}</span>
                     <span className="text-[11px] text-slate-400">{when(m.createdAt)}</span>
                     {m.editedAt && <span className="text-[11px] text-slate-400">edited</span>}
-                    {resolved && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
-                        <Check className="size-3" />
-                        Resolved
-                      </span>
-                    )}
                     {me?.superAdmin && editing?.id !== m.id && (
                       <span className="ml-auto flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                        {asPrompt && m.prompt && m.prompt !== PROMPT_UNAVAILABLE && (
+                          <IconAction label="Copy the prompt" onClick={() => void navigator.clipboard.writeText(m.prompt!)}>
+                            <Copy className="size-3.5" />
+                          </IconAction>
+                        )}
                         <IconAction label={resolved ? "Reopen" : "Resolve"} onClick={() => void change(m, { status: resolved ? "open" : "resolved" })}>
                           {resolved ? <RotateCcw className="size-3.5" /> : <Check className="size-3.5" />}
                         </IconAction>
-                        <IconAction label="Edit" onClick={() => setEditing({ id: m.id, text: m.text })}>
-                          <Pencil className="size-3.5" />
-                        </IconAction>
+                        {!(asPrompt && !m.prompt) && (
+                          <IconAction label={asPrompt ? "Edit the prompt" : "Edit"} onClick={() => setEditing({ id: m.id, field: asPrompt ? "prompt" : "text", text: (asPrompt ? m.prompt : m.text) ?? "" })}>
+                            <Pencil className="size-3.5" />
+                          </IconAction>
+                        )}
                       </span>
                     )}
                   </div>
-                  {m.kind === "comment" && m.route && m.path && (
-                    <button
-                      type="button"
-                      onClick={() => goToComment(m.route!, m.path!, (href) => router.push(href))}
-                      className="mt-1 inline-flex max-w-full items-center gap-1.5 rounded-lg bg-white px-2 py-1 text-left text-[11px] text-pax2-blue shadow-e1 hover:bg-pax2-lavender"
-                      title="Open the page with this element outlined"
-                    >
-                      <MapPin className="size-3 shrink-0" />
-                      <span className="truncate">
-                        {m.route} · {m.target}
-                      </span>
-                    </button>
+                  {((m.kind === "comment" && m.route && m.path) || me?.superAdmin) && (
+                    <div className="mt-1 flex gap-1.5">
+                      {m.kind === "comment" && m.route && m.path && (
+                        <Chip label={`Go to the comment on ${m.route}`} onClick={() => goToComment(m.route!, m.path!, m.target, (href) => router.push(href))}>
+                          <MapPin className="size-3.5" />
+                        </Chip>
+                      )}
+                      {me?.superAdmin && (
+                        <Chip label={asPrompt ? "Show the comment" : "Show the prompt"} on={asPrompt} onClick={() => void togglePrompt(m)}>
+                          <SquareTerminal className="size-3.5" />
+                        </Chip>
+                      )}
+                    </div>
                   )}
                   {editing?.id === m.id ? (
                     <div className="mt-1.5">
-                      <textarea value={editing.text} onChange={(e) => setEditing({ id: m.id, text: e.target.value })} rows={3} className="w-full resize-none rounded-lg border border-slate-200 bg-white p-2 text-sm outline-none focus:border-pax2-light-blue" />
+                      <textarea
+                        ref={grow}
+                        value={editing.text}
+                        onChange={(e) => {
+                          setEditing({ ...editing, text: e.target.value })
+                          grow(e.target)
+                        }}
+                        className={cn("w-full resize-y overflow-hidden rounded-lg border border-slate-200 bg-white p-2 text-sm outline-none focus:border-pax2-light-blue", editing.field === "prompt" && "font-mono text-[12px]")}
+                      />
                       <div className="mt-1 flex justify-end gap-2 text-xs">
                         <button type="button" onClick={() => setEditing(null)} className="rounded-md px-2 py-1 text-slate-500 hover:bg-white">
                           Cancel
                         </button>
-                        <button type="button" onClick={() => void change(m, { text: editing.text })} className="rounded-md bg-pax2-blue px-2.5 py-1 font-medium text-white">
+                        <button type="button" onClick={() => void change(m, editing.field === "prompt" ? { prompt: editing.text } : { text: editing.text })} className="rounded-md bg-pax2-blue px-2.5 py-1 font-medium text-white">
                           Save
                         </button>
                       </div>
                     </div>
+                  ) : asPrompt && !m.prompt ? (
+                    <p className="mt-1.5 inline-flex items-center gap-1.5 text-xs text-slate-500">
+                      {isWriting ? <Loader2 className="size-3.5 animate-spin" /> : null}
+                      {isWriting ? "Writing the prompt…" : PROMPT_UNAVAILABLE}
+                    </p>
                   ) : (
-                    m.text && <p className={cn("mt-1 text-sm whitespace-pre-wrap text-slate-700", resolved && "text-slate-400")}>{m.text}</p>
+                    shown && (
+                      <p
+                        className={cn(
+                          "mt-1 text-sm whitespace-pre-wrap text-slate-700",
+                          resolved && "text-slate-400",
+                          asPrompt && "rounded-lg bg-white px-2.5 py-2 font-mono text-[12px] leading-relaxed shadow-e1",
+                          asPrompt && shown === PROMPT_UNAVAILABLE && "font-sans text-slate-400 italic",
+                        )}
+                      >
+                        {shown}
+                      </p>
+                    )
                   )}
                   {m.images?.length ? (
                     <div className="mt-2 flex flex-wrap gap-2">
@@ -255,7 +358,7 @@ export function HousekeepingView() {
               }
             }}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
+              if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
                 e.preventDefault()
                 void send()
               }
@@ -286,6 +389,22 @@ function ThreadChip({ on, onClick, children }: { on: boolean; onClick: () => voi
       onClick={onClick}
       aria-pressed={on}
       className={cn("rounded-full px-3 py-1.5 text-xs font-medium transition-[color,background-color,box-shadow]", on ? "bg-white text-pax2-blue shadow-e1" : "text-slate-500 hover:bg-white/70 hover:text-pax2-blue")}
+    >
+      {children}
+    </button>
+  )
+}
+
+/** An icon-only chip under a message's name: its element, its prompt. */
+function Chip({ label, on = false, onClick, children }: { label: string; on?: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      aria-pressed={on}
+      title={label}
+      className={cn("flex h-7 w-9 items-center justify-center rounded-lg shadow-e1 transition-colors", on ? "bg-pax2-blue text-white" : "bg-white text-pax2-blue hover:bg-pax2-lavender")}
     >
       {children}
     </button>

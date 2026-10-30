@@ -141,6 +141,7 @@ export const OVERLAY_CSS = `
   transform-origin: 0 100%;
 }
 .pin.note { background: #6b7280; }
+.pin img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; display: block; pointer-events: none; }
 .pin .badge {
   position: absolute;
   top: -5px; right: -5px;

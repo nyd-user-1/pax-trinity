@@ -1,4 +1,4 @@
-import { CognitoIdentityProviderClient, ConfirmForgotPasswordCommand, ConfirmSignUpCommand, ForgotPasswordCommand, InitiateAuthCommand, ResendConfirmationCodeCommand, SignUpCommand, type AuthenticationResultType } from "@aws-sdk/client-cognito-identity-provider"
+import { CognitoIdentityProviderClient, ConfirmForgotPasswordCommand, ConfirmSignUpCommand, ForgotPasswordCommand, InitiateAuthCommand, ResendConfirmationCodeCommand, RespondToAuthChallengeCommand, SignUpCommand, type AuthenticationResultType } from "@aws-sdk/client-cognito-identity-provider"
 import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
 
@@ -53,7 +53,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ action:
   }
   if (!CLIENT) return NextResponse.json({ error: "Auth isn't configured in this environment." }, { status: 503 })
   const { action } = await params
-  const body = (await req.json().catch(() => ({}))) as { email?: string; password?: string; code?: string }
+  const body = (await req.json().catch(() => ({}))) as { email?: string; password?: string; code?: string; session?: string }
   const email = (body.email ?? "").trim().toLowerCase()
   try {
     if (action === "signup") {
@@ -95,7 +95,20 @@ export async function POST(req: Request, { params }: { params: Promise<{ action:
       return NextResponse.json({ ok: true })
     }
     if (action === "signin") {
-      const t = (await signIn(email, body.password ?? "")).AuthenticationResult
+      const r = await signIn(email, body.password ?? "")
+      // An account given a temporary password (the staff's welcome emails, 2026-10-30) must choose its
+      // own before it signs in: the form asks for one and answers Cognito's challenge with "newpassword".
+      if (r.ChallengeName === "NEW_PASSWORD_REQUIRED" && r.Session) return NextResponse.json({ newPassword: true, session: r.Session })
+      const t = r.AuthenticationResult
+      if (!t?.IdToken) return NextResponse.json({ error: "Sign-in needs a step this flow doesn't support yet." }, { status: 400 })
+      await startSession(t)
+      return NextResponse.json({ ok: true })
+    }
+    if (action === "newpassword") {
+      const r = await cip.send(
+        new RespondToAuthChallengeCommand({ ClientId: CLIENT, ChallengeName: "NEW_PASSWORD_REQUIRED", Session: body.session, ChallengeResponses: { USERNAME: email, NEW_PASSWORD: body.password ?? "" } }),
+      )
+      const t = r.AuthenticationResult
       if (!t?.IdToken) return NextResponse.json({ error: "Sign-in needs a step this flow doesn't support yet." }, { status: 400 })
       await startSession(t)
       return NextResponse.json({ ok: true })
@@ -107,11 +120,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ action:
     if (name === "UserNotConfirmedException") return NextResponse.json({ confirm: true }, { status: 409 })
     // A code entered for an account that is already confirmed: Cognito names it NotAuthorizedException,
     // which would otherwise read as "Wrong email or password".
+    if (action === "newpassword" && name === "NotAuthorizedException") return NextResponse.json({ error: "That took too long. Sign in again with the temporary password." }, { status: 400 })
     if (action === "confirm" && name === "NotAuthorizedException") return NextResponse.json({ error: "That email already has a confirmed account. Sign in, or reset its password from the sign-in page." }, { status: 400 })
     // Cognito answers a password under 6 characters with InvalidParameterException, the same name it uses
     // for a malformed email: read its message, so a short password never reads as a bad email.
     const said = String((e as { message?: string }).message ?? "")
-    if (name === "InvalidParameterException" && (action === "reset" || /password/i.test(said))) return NextResponse.json({ error: FRIENDLY.InvalidPasswordException }, { status: 400 })
+    if (name === "InvalidParameterException" && (action === "reset" || action === "newpassword" || /password/i.test(said))) return NextResponse.json({ error: FRIENDLY.InvalidPasswordException }, { status: 400 })
     return NextResponse.json({ error: FRIENDLY[name] ?? "Something went wrong — try again." }, { status: 400 })
   }
 }

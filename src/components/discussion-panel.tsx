@@ -13,6 +13,7 @@ import { useHiddenBlocks, useShelf, type PageBlock, type ShelfBlock, type ShelfI
 import { setPageBlockDrag, setShelfDrag } from "@/lib/shelf-drag"
 import { cn } from "@/ui/lib/utils"
 import { whiteButton } from "@/components/white-button"
+import { HOUSEKEEPING_OPEN, takeOpen } from "@/components/housekeeping/tool"
 
 // 44b's DiscussionPanel (components/DiscussionPanel.tsx), cut to five doors: Blocks, Chat, Record, Slack and
 // Discord. Blocks is the shelf after Cloudflare's chat canvas: a handful of shorts, and any block added
@@ -235,6 +236,14 @@ export function DiscussionPanel({ onClose: close, admin = false }: { onClose: ()
   // Inside Slack or Discord, the header names the channel or post and its arrow steps back one level.
   const [sub, setSub] = React.useState<Nav>(null)
   const setView = (v: View) => setViewState((keptView = v))
+  // Housekeeping's pointer or a page marker asked for Housekeeping: open on it, now or as the panel mounts.
+  React.useEffect(() => {
+    if (!admin) return
+    if (takeOpen()) setViewState((keptView = "housekeeping"))
+    const open = () => (takeOpen(), setViewState((keptView = "housekeeping")))
+    window.addEventListener(HOUSEKEEPING_OPEN, open)
+    return () => window.removeEventListener(HOUSEKEEPING_OPEN, open)
+  }, [admin])
   // A page asking about itself (the video page's Ask row) opens straight onto the chat.
   React.useEffect(() => {
     if (discussSeed) setViewState((keptView = "chat"))

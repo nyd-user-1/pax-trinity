@@ -1,11 +1,11 @@
 // The comment popover (spec §2.4): anchored to the right of the pin, flipped left
 // when there's no room, below when neither side fits.
 
-import { h, svg } from "./dom";
+import { h } from "./dom";
 import type { Session } from "./index";
 
 export interface PopoverActions {
-  /** ⌘/Ctrl+Enter or the primary button. */
+  /** Enter or the primary button; Shift+Enter is a new line. */
   submit(): void;
   /** "Copy as prompt". */
   copy(): void;
@@ -19,19 +19,6 @@ const WIDTH = 320;
 const GAP = 8;
 const PIN = 28;
 const EDGE = 8;
-const isMac = /Mac|iPhone|iPad/.test(navigator.platform);
-
-interface SpeechRecognitionLike {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
-  onend: (() => void) | null;
-  onerror: (() => void) | null;
-  start(): void;
-  stop(): void;
-}
-type SpeechRecognitionCtor = new () => SpeechRecognitionLike;
 
 export class Popover {
   readonly el: HTMLDivElement;
@@ -41,7 +28,6 @@ export class Popover {
   private readonly note: HTMLDivElement;
   private readonly compose: HTMLDivElement;
   private readonly sendBox: HTMLInputElement;
-  private readonly mic: HTMLButtonElement;
   private readonly session: HTMLSelectElement;
   private readonly copyBtn: HTMLButtonElement;
   private readonly primary: HTMLButtonElement;
@@ -50,7 +36,6 @@ export class Popover {
   private pasted: { mime: string; data: string }[] = [];
   private readonly removeBtn: HTMLButtonElement;
   private readonly win: Window;
-  private recognition: SpeechRecognitionLike | null = null;
   private size = { w: WIDTH, h: 0 };
   mode: PopoverMode = "compose";
   isOpen = false;
@@ -67,7 +52,7 @@ export class Popover {
     this.textarea.placeholder = "Leave a comment… (paste a screenshot to attach it)";
     this.textarea.rows = 2;
 
-    // Options row: send toggle, dictation, session
+    // Options row: send toggle, session (PAX: dictation is gone, Brendan 2026-10-30)
     const sendLabel = h(doc, "label", "pc-check");
     this.sendBox = h(doc, "input");
     this.sendBox.type = "checkbox";
@@ -77,17 +62,10 @@ export class Popover {
     sendLabel.hidden = true;
     this.shots = h(doc, "span", "pc-note");
 
-    this.mic = h(doc, "button", "pc-icon");
-    this.mic.type = "button";
-    this.mic.title = "Dictate";
-    const micIcon = svg(doc, "svg", { width: 14, height: 14, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": 2, "stroke-linecap": "round" });
-    micIcon.append(svg(doc, "rect", { x: 9, y: 3, width: 6, height: 11, rx: 3 }), svg(doc, "path", { d: "M5 11a7 7 0 0 0 14 0M12 18v3" }));
-    this.mic.appendChild(micIcon);
-    this.mic.hidden = !this.speech();
 
     this.session = h(doc, "select", "pc-session");
     const options = h(doc, "div", "pc-row");
-    options.append(sendLabel, this.mic, this.session, this.shots);
+    options.append(sendLabel, this.session, this.shots);
 
     // Actions row
     this.copyBtn = h(doc, "button", "pc-link", "Copy as prompt");
@@ -97,7 +75,7 @@ export class Popover {
     this.primary = h(doc, "button", "pc-primary");
     this.primary.type = "button";
     this.primaryLabel = h(doc, "span", "", "Send");
-    this.primary.append(this.primaryLabel, h(doc, "kbd", "", isMac ? "⌘↵" : "Ctrl ↵"));
+    this.primary.append(this.primaryLabel, h(doc, "kbd", "", "↵"));
     const actionsRow = h(doc, "div", "pc-row pc-actions");
     actionsRow.append(this.copyBtn, this.removeBtn, h(doc, "span", "pc-grow"), this.primary);
 
@@ -123,7 +101,7 @@ export class Popover {
       }
     });
     this.textarea.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+      if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
         e.preventDefault();
         actions.submit();
       }
@@ -133,7 +111,6 @@ export class Popover {
     this.primary.addEventListener("click", () => actions.submit());
     this.copyBtn.addEventListener("click", () => actions.copy());
     this.removeBtn.addEventListener("click", () => actions.remove());
-    this.mic.addEventListener("click", () => this.dictate());
   }
 
   get value(): string {
@@ -163,6 +140,7 @@ export class Popover {
     this.textarea.value = o.mode === "compose" ? o.text ?? "" : "";
     this.pasted = [];
     this.shots.textContent = "";
+    this.shots.style.color = "";
     this.setSessions(o.sessions ?? []);
     this.refresh();
     this.autosize();
@@ -171,7 +149,6 @@ export class Popover {
   }
 
   close(): void {
-    this.stopDictation();
     this.isOpen = false;
     this.el.hidden = true;
   }
@@ -184,6 +161,13 @@ export class Popover {
   nudge(): void {
     this.el.animate([{ translate: "0 0" }, { translate: "-4px 0" }, { translate: "4px 0" }, { translate: "0 0" }], { duration: 180 });
     this.textarea.focus({ preventScroll: true });
+  }
+
+  /** Says a send failed, under the box. */
+  fail(text: string): void {
+    this.shots.textContent = text;
+    this.shots.style.color = "#f87171";
+    this.measure();
   }
 
   flashCopied(): void {
@@ -218,7 +202,7 @@ export class Popover {
   /** Visible buttons, for drivers that can't reach into the closed shadow root. */
   controls(): Record<string, DOMRect> {
     const out: Record<string, DOMRect> = {};
-    const all = { copy: this.copyBtn, primary: this.primary, remove: this.removeBtn, mic: this.mic, send: this.sendBox };
+    const all = { copy: this.copyBtn, primary: this.primary, remove: this.removeBtn, send: this.sendBox };
     for (const [name, el] of Object.entries(all)) if (!el.hidden && el.getClientRects().length) out[name] = el.getBoundingClientRect();
     return out;
   }
@@ -272,39 +256,4 @@ export class Popover {
     this.size = { w: this.el.offsetWidth || WIDTH, h: this.el.offsetHeight };
   }
 
-  private speech(): SpeechRecognitionCtor | null {
-    const w = this.win as unknown as { SpeechRecognition?: SpeechRecognitionCtor; webkitSpeechRecognition?: SpeechRecognitionCtor };
-    return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
-  }
-
-  private dictate(): void {
-    if (this.recognition) return this.stopDictation();
-    const Ctor = this.speech();
-    if (!Ctor) return;
-    const rec = new Ctor();
-    rec.continuous = true;
-    rec.interimResults = true;
-    rec.lang = navigator.language;
-    const base = this.textarea.value.trimEnd();
-    rec.onresult = (e) => {
-      let said = "";
-      for (let i = 0; i < e.results.length; i++) said += e.results[i][0].transcript;
-      this.textarea.value = [base, said.trim()].filter(Boolean).join(" ");
-      this.autosize();
-    };
-    rec.onend = rec.onerror = () => {
-      this.recognition = null;
-      this.mic.classList.remove("live");
-    };
-    this.recognition = rec;
-    this.mic.classList.add("live");
-    rec.start();
-    this.textarea.focus({ preventScroll: true });
-  }
-
-  private stopDictation(): void {
-    this.recognition?.stop();
-    this.recognition = null;
-    this.mic.classList.remove("live");
-  }
 }

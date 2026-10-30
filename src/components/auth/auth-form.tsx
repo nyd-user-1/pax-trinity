@@ -11,7 +11,7 @@ type Mode = "signup" | "signin"
 
 const post = async (action: string, body: object) => {
   const r = await fetch(`/api/auth/${action}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
-  const j = (await r.json().catch(() => ({}))) as { ok?: boolean; error?: string; confirm?: boolean; resent?: boolean; signedIn?: boolean }
+  const j = (await r.json().catch(() => ({}))) as { ok?: boolean; error?: string; confirm?: boolean; resent?: boolean; signedIn?: boolean; newPassword?: boolean; session?: string }
   return { status: r.status, ...j }
 }
 
@@ -25,7 +25,7 @@ const nextPath = (mode: Mode) => {
 const FIELD = "w-full rounded-xl border border-slate-400 bg-white px-4 py-3 text-[15px] text-slate-900 outline-none transition-[border-color,box-shadow] hover:border-pax2-blue focus:border-pax2-blue placeholder:text-slate-400 focus:ring-2 focus:ring-pax2-light-blue/40"
 const BUTTON = "flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-pax2-blue text-[15px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60"
 
-export type AuthStep = "form" | "code" | "reset"
+export type AuthStep = "form" | "code" | "reset" | "newpassword"
 
 /** `onStep`: told each time the form moves between its steps, so the page can retitle itself. */
 export function AuthForm({ mode, onStep }: { mode: Mode; onStep?: (step: AuthStep) => void }) {
@@ -38,6 +38,8 @@ export function AuthForm({ mode, onStep }: { mode: Mode; onStep?: (step: AuthSte
   const [error, setError] = React.useState<string | null>(null)
   const [notice, setNotice] = React.useState<string | null>(null)
   const [resumed, setResumed] = React.useState(false)
+  // Cognito's session for an account signing in with a temporary password, until it chooses its own.
+  const [challenge, setChallenge] = React.useState<string | null>(null)
   // The ?next= return address rides along when switching between sign in and sign up.
   const [qs, setQs] = React.useState("")
   React.useEffect(() => setQs(window.location.search), [])
@@ -47,6 +49,13 @@ export function AuthForm({ mode, onStep }: { mode: Mode; onStep?: (step: AuthSte
       await post("resend", { email: em })
       setNotice("Confirm your email first. I just sent you a fresh code.")
       setStep("code")
+      return false
+    }
+    if (r.newPassword && r.session) {
+      setChallenge(r.session)
+      setPassword("")
+      setNotice("Welcome. Choose your own password to finish signing in.")
+      setStep("newpassword")
       return false
     }
     if (!r.ok) {
@@ -99,7 +108,17 @@ export function AuthForm({ mode, onStep }: { mode: Mode; onStep?: (step: AuthSte
     setError(null)
     setNotice(null)
     try {
-      if (step === "reset") {
+      if (step === "newpassword") {
+        const r = await post("newpassword", { email, password, session: challenge })
+        if (r.ok) window.location.assign(nextPath(mode))
+        else {
+          setError(r.error ?? "Something went wrong.")
+          if (/too long/.test(r.error ?? "")) {
+            setChallenge(null)
+            setStep("form")
+          }
+        }
+      } else if (step === "reset") {
         const r = await post("reset", { email, code, password })
         if (!r.ok) setError(r.error ?? "Something went wrong.")
         else await signin()
@@ -155,7 +174,20 @@ export function AuthForm({ mode, onStep }: { mode: Mode; onStep?: (step: AuthSte
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-4">
-      {step === "reset" ? (
+      {step === "newpassword" ? (
+        <>
+          <p className="flex items-start gap-2.5 rounded-xl bg-pax2-lavender/60 px-4 py-3 text-sm leading-relaxed text-pax2-blue">{notice}</p>
+          <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">
+            New password
+            <input autoFocus type="password" required autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="8+ characters: upper, lower, number, symbol" className={FIELD} />
+            <span className="text-xs font-normal text-slate-400">8+ characters with an upper, a lower, a number and a symbol.</span>
+          </label>
+          {error && <p className="text-sm font-medium text-pax2-red-deep">{error}</p>}
+          <button type="submit" disabled={busy || !password} className={BUTTON}>
+            {busy ? "One moment…" : "Set password and sign in"} <ArrowRight className="size-4" />
+          </button>
+        </>
+      ) : step === "reset" ? (
         <>
           <p className="flex items-start gap-2.5 rounded-xl bg-pax2-lavender/60 px-4 py-3 text-sm leading-relaxed text-pax2-blue">
             <MailCheck className="mt-0.5 size-4 shrink-0" />

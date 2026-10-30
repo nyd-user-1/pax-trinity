@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server"
 
 import { currentUser, forbidDemo } from "@/lib/auth"
-import { canonical, dmKey, listThread, nameOf, PEOPLE, post, update } from "@/lib/housekeeping"
+import { canonical, dmKey, listThread, nameOf, openOnRoute, PEOPLE, post, update, type Message } from "@/lib/housekeeping"
 
 // Housekeeping's API (lib/housekeeping.ts). Signed-in admins read the stream and their own direct
 // messages, and post to either; only the super admin edits or resolves.
 //   GET   ?with=<email>                      a thread: the stream, or the direct messages with one person
+//   GET   ?route=<path>                       the open pointed comments on one page, for its markers
 //   POST  { text, to?, kind, page, … }       a message or a pointed comment, screenshots as data URLs
-//   PATCH { pk, sk, status?, text? }         resolve / reopen / edit (super admin)
+//   PATCH { pk, sk, status?, text?, prompt? } resolve / reopen / edit the text or the prompt (super admin)
+// The prompt beside each comment (and the locator bundle it is written from) reach the super admin only.
 
 export const runtime = "nodejs"
 
@@ -25,12 +27,23 @@ export async function GET(req: Request) {
   // ?me=1: who is asking, alone (the pointer's pin initial).
   // The main address, so a super admin signed in by Gmail reads as himself.
   const me = { email: canonical(user.email), superAdmin: user.superAdmin, name: nameOf(user.email) }
-  if (params.get("me")) return NextResponse.json({ me })
+  if (params.get("me")) return NextResponse.json({ me: { ...me, photo: PEOPLE.find((p) => p.email === me.email)?.photo } })
+  const route = params.get("route")
+  if (route) {
+    try {
+      const open = await openOnRoute(route, user.email)
+      const marks = open.map((m) => ({ id: m.id, pk: m.pk, sk: m.sk, path: m.path, target: m.target, author: m.author, authorName: m.authorName, photo: PEOPLE.find((p) => p.email === m.author)?.photo, text: m.text.slice(0, 140) }))
+      return NextResponse.json({ marks })
+    } catch (e) {
+      return NextResponse.json({ error: (e as Error).message }, { status: 500 })
+    }
+  }
   const withEmail = params.get("with")
   if (withEmail && !known(withEmail)) return NextResponse.json({ error: "Not someone in Housekeeping." }, { status: 400 })
   const pk = withEmail ? dmKey(user.email, withEmail) : "STREAM"
   try {
-    const messages = await listThread(pk)
+    const all = await listThread(pk)
+    const messages = user.superAdmin ? all : all.map(({ prompt: _p, promptAt: _a, bundle: _b, ...m }: Message) => m)
     return NextResponse.json({ me, people: PEOPLE, messages })
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 })
@@ -71,11 +84,11 @@ export async function POST(req: Request) {
 export async function PATCH(req: Request) {
   const user = await currentUser()
   if (!user?.superAdmin) return NextResponse.json({ error: "Only the super admin edits or resolves." }, { status: 403 })
-  const body = (await req.json().catch(() => null)) as { pk?: string; sk?: string; status?: "open" | "resolved"; text?: string } | null
+  const body = (await req.json().catch(() => null)) as { pk?: string; sk?: string; status?: "open" | "resolved"; text?: string; prompt?: string } | null
   if (!body?.pk || !body.sk) return NextResponse.json({ error: "Which message?" }, { status: 400 })
   if (body.status && body.status !== "open" && body.status !== "resolved") return NextResponse.json({ error: "status is open or resolved." }, { status: 400 })
   try {
-    await update({ pk: body.pk, sk: body.sk }, { status: body.status, text: body.text }, user.email)
+    await update({ pk: body.pk, sk: body.sk }, { status: body.status, text: body.text, prompt: body.prompt }, user.email)
     return NextResponse.json({ ok: true })
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 })

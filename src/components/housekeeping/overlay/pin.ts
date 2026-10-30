@@ -16,8 +16,14 @@ export class Pin {
   private fy = 0;
   state: PinState = "draft";
 
-  constructor(doc: Document, parent: ShadowRoot, initial: string, target: Element, x: number, y: number) {
-    this.el = h(doc, "div", "pin", initial.slice(0, 1).toUpperCase());
+  constructor(doc: Document, parent: ShadowRoot, initial: string, target: Element, x: number, y: number, photo?: string) {
+    this.el = h(doc, "div", "pin", photo ? "" : initial.slice(0, 1).toUpperCase());
+    if (photo) {
+      const img = h(doc, "img");
+      img.src = photo;
+      img.alt = "";
+      this.el.appendChild(img);
+    }
     this.badge = h(doc, "span", "badge");
     const tick = svg(doc, "svg", { width: 8, height: 8, viewBox: "0 0 10 10" });
     tick.appendChild(svg(doc, "path", { d: "M2 5.2 4.2 7.4 8 3", fill: "none", stroke: "#fff", "stroke-width": 1.8, "stroke-linecap": "round", "stroke-linejoin": "round" }));

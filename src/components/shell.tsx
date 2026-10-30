@@ -15,7 +15,7 @@ import { CommandKHost, openCommandK } from "@/components/command/command-k-host"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/ui/components/nova/dropdown-menu"
 import { cn } from "@/ui/lib/utils"
 import { whiteButton } from "@/components/white-button"
-import { HousekeepingTool } from "@/components/housekeeping/tool"
+import { HOUSEKEEPING_OPEN, HousekeepingTool } from "@/components/housekeeping/tool"
 import type { ChipOffer } from "@/lib/question-resolver"
 
 // The discussion panel carries the whole chat (markdown, the Remotion player): it loads the first time it opens,
@@ -150,6 +150,12 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
     }),
     [wide, size, nextSize, panelOpen, sidebarOpen, discuss, aside?.key, seed],
   )
+  // Housekeeping's pointer and page markers open the discussion panel on Housekeeping.
+  React.useEffect(() => {
+    const open = () => (setAside(null), setDiscuss(true))
+    window.addEventListener(HOUSEKEEPING_OPEN, open)
+    return () => window.removeEventListener(HOUSEKEEPING_OPEN, open)
+  }, [])
   // The dragged split is remembered between visits, but a panel always opens at the third.
   React.useEffect(() => {
     try {
