@@ -6,11 +6,13 @@
   "scripts": {
     "predev": "[ -d .next ] && [ $(du -sk .next | cut -f1) -gt 8388608 ] && rm -rf .next; true",
     "dev": "next dev",
+    "prebuild": "npm run studio:bundle",
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "video:studio": "remotion studio src/video/index.ts",
     "test:video": "vitest run",
+    "studio:bundle": "remotion bundle src/video/index.ts --out-dir .studio-bundle --public-path /studio-app/ --public-dir src/video/public --bundle-cache=false --disable-git-source --disable-ask-ai",
     "postinstall": "patch-package"
   },
   "dependencies": {

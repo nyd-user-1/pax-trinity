@@ -24,8 +24,18 @@ jobs:
           cache: npm
       - run: npm ci --no-audit --no-fund
       - run: printf 'PAX2_REGION=us-east-1\n' > .env.production
+      # Amplify runs npm run build, whose prebuild bundles Remotion Studio into .studio-bundle/; this check runs
+      # next build directly, so it bundles first, as Amplify does.
+      - run: npm run studio:bundle
       - run: npx next build 2>&1 | tee build.log
         shell: bash
+      - name: Remotion Studio ships with its route
+        shell: bash
+        run: |
+          for f in index.html bundle.js bundle.js.map; do
+            if [ ! -f ".next/standalone/.studio-bundle/$f" ]; then echo "::error::.studio-bundle/$f is not in the standalone output; /studio-app would answer 503"; exit 1; fi
+          done
+          echo "STUDIO $(du -sh .next/standalone/.studio-bundle | cut -f1) in the standalone output"
       - name: Size against Amplify's cap
         shell: bash
         run: |

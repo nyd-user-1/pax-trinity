@@ -44,6 +44,12 @@ const config: NextConfig = {
   // of binaries has no caller; excluding it keeps the server bundle under Amplify's 220 MB cap.
   images: { unoptimized: true },
   outputFileTracingExcludes: { "*": ["node_modules/sharp/**", "node_modules/@img/**"] },
+  // Remotion Studio, bundled static by the prebuild (npm run studio:bundle) into .studio-bundle/, ships with
+  // the one route that serves it to admins. Of its source maps (14 of its 25 MB) only bundle.js.map ships: the
+  // Studio reads it to show where each sequence sits in the code, and asks for no other.
+  outputFileTracingIncludes: {
+    "/studio-app/\\[\\[\\.\\.\\.path\\]\\]": [".studio-bundle/*.js", ".studio-bundle/bundle.js.map", ".studio-bundle/index.html", ".studio-bundle/favicon.ico"],
+  },
 }
 
 export default config

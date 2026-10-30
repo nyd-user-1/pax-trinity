@@ -117,3 +117,6 @@ public/clips-media/
 # behind the Amplify rewrite on /audience-data/. Local copies stay for dev.
 public/audience-data/*
 !public/audience-data/README.md
+
+# Remotion Studio, bundled static by npm run studio:bundle (the prebuild) and served at /studio-app/ to admins
+.studio-bundle/
