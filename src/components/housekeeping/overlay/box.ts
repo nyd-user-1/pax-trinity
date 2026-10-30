@@ -2,7 +2,8 @@
 // (never transform: scale, which blurs the 2px border), snaps when the same target
 // merely moves (scroll, resize, layout), and unfolds from the pointer on first show.
 
-import { h, sameRect, snapRect, type Rect } from "./dom";
+import { h, sameRect, snapRect, svg, type Rect } from "./dom";
+import type { Ways } from "./walk";
 
 const TWEEN_MS = 120;
 const CHIP_GAP = 4;
@@ -16,6 +17,7 @@ export class Box {
   private tweenUntil = 0;
   private chipWidth = 0;
   private chipHeight = 0;
+  private labelKey = "";
 
   constructor(doc: Document, parent: ShadowRoot) {
     this.el = h(doc, "div", "box");
@@ -70,9 +72,27 @@ export class Box {
     this.el.classList.remove("on");
   }
 
-  setLabel(text: string): void {
-    if (this.chip.textContent === text) return;
-    this.chip.textContent = text;
+  /** The label: its text, a closed eye when screen readers skip the element, and the walk's four
+   *  arrows, each dimmed when that way is closed (Brendan, 2026-10-30). */
+  setLabel(text: string, extra: { hidden?: boolean; ways?: Ways } = {}): void {
+    const key = `${text}|${extra.hidden ? 1 : 0}|${extra.ways ? Object.values(extra.ways).map(Number).join("") : ""}`;
+    if (this.labelKey === key) return;
+    this.labelKey = key;
+    const doc = this.chip.ownerDocument;
+    const parts: Element[] = [h(doc, "span", "chip-text", text)];
+    if (extra.hidden) parts.push(icon(doc, EYE_OFF, "Hidden from screen readers"));
+    if (extra.ways) {
+      const w = extra.ways;
+      const group = h(doc, "span", "chip-ways");
+      group.append(
+        icon(doc, ["m18 15-6-6-6 6"], "", !w.up),
+        icon(doc, ["m6 9 6 6 6-6"], "", !w.down),
+        icon(doc, ["m15 18-6-6 6-6"], "", !w.left),
+        icon(doc, ["m9 18 6-6-6-6"], "", !w.right),
+      );
+      parts.push(group);
+    }
+    this.chip.replaceChildren(...parts);
     this.chipWidth = this.chip.offsetWidth;
     this.chipHeight = this.chip.offsetHeight;
     this.chip.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 100, easing: "linear" });
@@ -100,4 +120,24 @@ export class Box {
     if (r.left + offset + 2 + this.chipWidth > view - EDGE) offset = Math.max(EDGE - r.left - 2, view - EDGE - this.chipWidth - r.left - 2);
     this.chip.style.left = `${offset}px`;
   }
+}
+
+const EYE_OFF = [
+  "M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49",
+  "M14.084 14.158a3 3 0 0 1-4.242-4.242",
+  "M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143",
+  "m2 2 20 20",
+];
+
+/** A 10px stroke icon from lucide paths; `off` dims it. */
+function icon(doc: Document, paths: string[], title: string, off = false): SVGElement {
+  const el = svg(doc, "svg", { width: 10, height: 10, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": 2.5, "stroke-linecap": "round", "stroke-linejoin": "round" });
+  el.setAttribute("class", off ? "chip-icon off" : "chip-icon");
+  if (title) {
+    const t = svg(doc, "title");
+    t.textContent = title;
+    el.appendChild(t);
+  }
+  for (const d of paths) el.appendChild(svg(doc, "path", { d }));
+  return el;
 }

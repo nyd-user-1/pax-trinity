@@ -7,14 +7,15 @@
 import { adopt, h, isEditable, outsideBy } from "./dom";
 import { Box } from "./box";
 import { Cursor } from "./cursor";
-import { breadcrumb, shortSel } from "./describe";
+import { labelOf, shortSel } from "./describe";
 import { locatorBundle, uniquePath } from "./locator";
 import { describe } from "./describe";
 import { DebugPanel, StatusPill } from "./panels";
 import { Pin, type PinState } from "./pin";
 import { Popover } from "./popover";
 import { HOST_CSS, OVERLAY_CSS, PAGE_CSS } from "./styles";
-import { boxParent, FRAME_TAGS, hitTest, isRoot, pick, type Pick } from "./targeting";
+import { FRAME_TAGS, hitTest, pick, type Pick } from "./targeting";
+import { childAt, parentOf, siblingNext } from "./walk";
 
 export interface Session {
   id: string;
@@ -170,9 +171,10 @@ export function mount(opts: MountOptions = {}): Sonar {
       box.hide();
       return;
     }
-    crumb = breadcrumb(current);
+    const label = labelOf(current);
+    crumb = label.text;
     box.to(current.getBoundingClientRect(), { x: px, y: py }, now);
-    box.setLabel(crumb);
+    box.setLabel(label.text, { hidden: label.hidden, ways: label.ways });
   }
 
   function evaluate(now: number, force = false): void {
@@ -212,36 +214,33 @@ export function mount(opts: MountOptions = {}): Sonar {
     if (fast ? pending.samples >= 2 : now - pending.since >= DWELL_MS) commit(p, now);
   }
 
-  /** ↑ parent / ↓ child under the pointer (or the pin, when locked). */
-  function walk(dir: "up" | "down"): void {
+  /**
+   * The arrow keys walk the tree (Brendan, 2026-10-30): ↑ the parent, ↓ the child under the pointer
+   * (or the pin, when locked), ← and → the previous and next sibling. Every level counts, wrappers that
+   * share an outline included (the label numbers them); a word split into a span per character is the
+   * bottom (walk.ts).
+   */
+  type Way = "up" | "down" | "left" | "right";
+  function walk(dir: Way): void {
     if (!current) return;
     const ref = draft ? draft.point() : { x: px, y: py };
-    let next: Element | null = null;
-    if (dir === "up") {
-      next = boxParent(current);
-      if (!next || isRoot(next)) return;
-    } else {
-      const kids = Array.from(current.children).filter((c) => {
-        const r = c.getBoundingClientRect();
-        return r.width > 0 && r.height > 0;
-      });
-      next =
-        kids.find((c) => {
-          const r = c.getBoundingClientRect();
-          return ref.x >= r.left && ref.x <= r.right && ref.y >= r.top && ref.y <= r.bottom;
-        }) ??
-        kids[0] ??
-        null;
-      if (!next) return;
-    }
-    const chain = [...(currentPick?.chain ?? []), { el: next, verdict: dir === "up" ? "✓ ↑ parent" : "✓ ↓ child" }];
+    const next =
+      dir === "up" ? parentOf(current) : dir === "down" ? childAt(current, ref.x, ref.y, host) : siblingNext(current, dir);
+    if (!next) return;
+    const verdict = { up: "✓ ↑ parent", down: "✓ ↓ child", left: "✓ ← sibling", right: "✓ → sibling" }[dir];
+    const chain = [...(currentPick?.chain ?? []), { el: next, verdict }];
     if (!draft) manual = { x: px, y: py };
     commit({ raw: currentPick?.raw ?? null, target: next, chain }, performance.now());
     if (draft) {
-      draft.anchor(next, ref.x, ref.y);
+      // A sideways step leaves the pin's point outside the new element: pin it to the element's middle.
+      const r = next.getBoundingClientRect();
+      const inside = ref.x >= r.left && ref.x <= r.right && ref.y >= r.top && ref.y <= r.bottom;
+      draft.anchor(next, inside ? ref.x : r.left + r.width / 2, inside ? ref.y : r.top + r.height / 2);
       popover.setCrumb(crumb);
     }
   }
+
+  const ARROWS: Record<string, Way> = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right" };
 
   // --- lock, pin, popover (spec §2.3–2.4) ---
 
@@ -332,7 +331,7 @@ export function mount(opts: MountOptions = {}): Sonar {
       unlock();
     }
     viewing = record;
-    popover.open({ mode: "view", crumb: breadcrumb(record.pin.target), text: record.comment });
+    popover.open({ mode: "view", crumb: labelOf(record.pin.target).text, text: record.comment });
   }
 
   function closeView(): void {
@@ -455,10 +454,10 @@ export function mount(opts: MountOptions = {}): Sonar {
       return;
     }
     if (fromOverlay(e)) {
-      // In the comment box, ↑/↓ walk the locked target only while it's empty.
-      if (draft && !popover.value && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+      // In the comment box, the arrows walk the locked target only while it's empty.
+      if (draft && !popover.value && ARROWS[e.key]) {
         stop(e);
-        walk(e.key === "ArrowUp" ? "up" : "down");
+        walk(ARROWS[e.key]);
       }
       return;
     }
@@ -469,9 +468,9 @@ export function mount(opts: MountOptions = {}): Sonar {
         manual = null;
         evaluate(performance.now(), true);
       }
-    } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+    } else if (ARROWS[e.key]) {
       stop(e);
-      walk(e.key === "ArrowUp" ? "up" : "down");
+      walk(ARROWS[e.key]);
     } else if ((e.key === "d" || e.key === "D") && !e.metaKey && !e.ctrlKey && !e.altKey && !isEditable(doc.activeElement)) {
       stop(e);
       debug.toggle();
@@ -576,7 +575,7 @@ export function mount(opts: MountOptions = {}): Sonar {
         popover: popover.isOpen
           ? {
               mode: popover.mode,
-              crumb: viewing ? breadcrumb(viewing.pin.target) : crumb,
+              crumb: viewing ? labelOf(viewing.pin.target).text : crumb,
               text: viewing ? viewing.comment : popover.value,
               focused: root.activeElement === popover.textarea,
               rect: rect4(popover.rect()),

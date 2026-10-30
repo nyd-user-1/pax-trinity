@@ -49,7 +49,10 @@ export const OVERLAY_CSS = `
   position: absolute;
   left: -2px;
   bottom: calc(100% + 4px);
-  max-width: min(480px, calc(100vw - 16px));
+  max-width: min(560px, calc(100vw - 16px));
+  display: flex;
+  align-items: center;
+  gap: 6px;
   padding: 2px 6px;
   border-radius: 4px;
   background: #111;
@@ -61,6 +64,10 @@ export const OVERLAY_CSS = `
   box-shadow: 0 1px 2px rgba(0,0,0,.35), 0 0 0 1px rgba(255,255,255,.06);
 }
 .chip.inside { bottom: auto; top: 2px; left: 2px; }
+.chip-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.chip-icon { flex-shrink: 0; display: block; }
+.chip-icon.off { opacity: .28; }
+.chip-ways { display: flex; flex-shrink: 0; gap: 1px; color: #93c5fd; }
 .box.locked .chip { visibility: hidden; } /* the popover carries the breadcrumb */
 .chip:empty { display: none; }
 

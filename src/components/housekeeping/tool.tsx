@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation"
 import { Crosshair } from "lucide-react"
 
 import { whiteButton } from "@/components/white-button"
-import { describe, legacyDescribe } from "./overlay/describe"
+import { describe, describeV2, legacyDescribe } from "./overlay/describe"
 
 // Housekeeping's pointer (Brendan, 2026-10-30): sonar's overlay as PAX's own comment tool. The
 // header's crosshair, or ⌥⇧C anywhere, starts it: hover outlines and names an element, a click
@@ -123,7 +123,7 @@ export function findElement(path: string, target?: string): Element | null {
   } catch {
     found = []
   }
-  const named = (el: Element) => !!target && (describe(el) === target || legacyDescribe(el) === target)
+  const named = (el: Element) => !!target && (describe(el) === target || describeV2(el) === target || legacyDescribe(el) === target)
   if (found.length === 1) return found[0]
   if (found.length > 1) return found.find(named) ?? found[0]
   // The path no longer matches (the page changed): look for its last tag with the same name.

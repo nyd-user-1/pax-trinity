@@ -1,11 +1,7 @@
-// Human-facing names for elements: the breadcrumb on the label chip (spec §2.5)
-// and the short selectors used in the debug panel.
+// Human-facing names for elements: the label over the outline (spec §2.5), the target a comment
+// saves, and the short selectors used in the debug panel.
 
-const LANDMARKS = [
-  "header", "nav", "main", "section", "article", "aside", "footer", "form", "dialog",
-  "[role=banner]", "[role=navigation]", "[role=main]", "[role=region]", "[role=complementary]",
-  "[role=contentinfo]", "[role=search]", "[role=dialog]", "[role=form]",
-].join(",");
+import { drawnChildren, hiddenFromReaders, stackOf, waysFrom, type Ways } from "./walk";
 
 export function clip(text: string, max: number): string {
   const t = text.replace(/\s+/g, " ").trim();
@@ -58,12 +54,47 @@ function ownName(el: Element, max: number): string {
   return visibleText(el, max);
 }
 
-/** `link "Chat"`: what the element is and what it is called. */
+/**
+ * `a "Chat"`: the element's tag (and role, when it has one) and its own name. This is what a comment
+ * saves as its target; the label on screen (labelOf) adds the walk's details to it.
+ */
 export function describe(el: Element): string {
+  const role = el.getAttribute("role");
+  const tag = role ? `${el.localName}[${role}]` : el.localName;
+  const text = ownName(el, 32);
+  return text ? `${tag} "${text}"` : tag;
+}
+
+/** The wording the comments of 2026-10-30's afternoon were saved under: `link "Chat"`. */
+export function describeV2(el: Element): string {
   const kind = el.getAttribute("role") || KIND[el.localName] || "";
   const text = ownName(el, 32);
   if (!text) return kind || el.localName;
   return kind ? `${kind} "${text}"` : `"${text}"`;
+}
+
+/**
+ * The label over the outline (Brendan, 2026-10-30): the tag, numbered when it is one of a stack of
+ * wrappers sharing one outline (div-1 the outermost), its size, its layout (grid, flex), and its
+ * name, or how many elements it holds when it has none. With it, whether screen readers skip it,
+ * and which ways the arrow keys can go from it.
+ */
+export function labelOf(el: Element): { text: string; hidden: boolean; ways: Ways } {
+  const role = el.getAttribute("role");
+  const stack = stackOf(el);
+  const head = `${el.localName}${stack.total > 1 ? `-${stack.index}` : ""}${role ? `[${role}]` : ""}`;
+  const r = el.getBoundingClientRect();
+  const parts = [head, `${Math.round(r.width)}×${Math.round(r.height)}`];
+  const display = el.ownerDocument.defaultView?.getComputedStyle(el).display ?? "";
+  if (/grid/.test(display)) parts.push("grid");
+  else if (/flex/.test(display)) parts.push("flex");
+  const name = ownName(el, 32);
+  if (name) parts.push(`"${name}"`);
+  else {
+    const n = drawnChildren(el).length;
+    if (n > 1) parts.push(`${n} items`);
+  }
+  return { text: parts.join(" · "), hidden: hiddenFromReaders(el), ways: waysFrom(el) };
 }
 
 /** sonar's own wording, which the first Housekeeping comments were saved under. */
@@ -73,34 +104,9 @@ export function legacyDescribe(el: Element): string {
   return text ? `${kind} "${text}"` : kind;
 }
 
-function landmarkName(lm: Element): string {
-  const aria = lm.getAttribute("aria-label");
-  if (aria?.trim()) return clip(aria, 24);
-  const labelledBy = lm.getAttribute("aria-labelledby");
-  if (labelledBy) {
-    const doc = lm.ownerDocument;
-    const text = labelledBy
-      .split(/\s+/)
-      .map((id) => doc.getElementById(id)?.textContent ?? "")
-      .join(" ");
-    if (text.trim()) return clip(text, 24);
-  }
-  const heading = lm.querySelector("h1, h2, h3");
-  const headingText = heading?.textContent?.trim();
-  if (headingText) return clip(headingText, 24);
-  return lm.getAttribute("role") || lm.localName;
-}
-
-/**
- * The element itself, after its landmark only when the landmark is named outright (an aria-label or
- * aria-labelledby). A landmark's first heading named the wrong thing: on Home, `main`'s first heading is
- * the America Thinks card, so every element there read "America Thinks › …" (Brendan, 2026-10-30).
- */
+/** The label's text, for the comment box's header. */
 export function breadcrumb(el: Element): string {
-  const lm = el.parentElement?.closest(LANDMARKS);
-  const tail = describe(el);
-  const named = lm && (lm.getAttribute("aria-label")?.trim() || lm.getAttribute("aria-labelledby"));
-  return named ? `${landmarkName(lm)} › ${tail}` : tail;
+  return labelOf(el).text;
 }
 
 /** `tag#id.class1.class2.class3` for display. */

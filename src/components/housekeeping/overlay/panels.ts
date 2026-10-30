@@ -91,7 +91,7 @@ export class StatusPill extends Floating {
     // PAX: the pill names the mode and the way out; the session and its light stay hidden.
     this.session.hidden = true;
     this.led.hidden = true;
-    this.el.append(h(doc, "span", "", "Commenting · Esc to exit"), this.session, this.led);
+    this.el.append(h(doc, "span", "", "Commenting · ↑↓←→ to walk · Esc to exit"), this.session, this.led);
   }
 
   set(sessionShortId: string | null, reachable: boolean): void {
