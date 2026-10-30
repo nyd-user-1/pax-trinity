@@ -1,6 +1,7 @@
 import type * as React from "react"
 
 import { Reveal } from "@/components/reveal"
+import { Block } from "@/components/settings/blocks"
 import { share, type Conversation, type Statement, type Tally } from "@/lib/consensus/data"
 import { fmtNumber } from "@/lib/format"
 
@@ -96,13 +97,15 @@ export function StatusBars({
 }
 
 // The card as Brendan arranged it in devtools (2026-09-11): the statement,
-// clamped to two lines, then one row — the agree share, the pills, the
-// disagree share. The note, the group rows and the foot came off.
+// then one row — the agree share, the pills, the disagree share. The note,
+// the group rows and the foot came off. Since 2026-10-30 it is /models'
+// block: the statement on the frame, the row in the white card inside it.
 export function StatementCard({ statement }: { statement: Statement; conversation?: Conversation; note?: string }) {
   return (
-    <article className="flex flex-col gap-4 rounded-xl border bg-card p-5">
-      <p className="line-clamp-2 text-sm leading-6 font-medium">{statement.text}</p>
-      <StatusBars votes={statement.votes} figures />
-    </article>
+    <Block title={<span className="leading-snug font-medium">{statement.text}</span>}>
+      <div className="px-4 py-3.5 sm:px-5">
+        <StatusBars votes={statement.votes} figures />
+      </div>
+    </Block>
   )
 }

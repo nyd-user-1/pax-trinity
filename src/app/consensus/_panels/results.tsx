@@ -1,6 +1,7 @@
 import { H3 } from "@/components/typeset"
 import { SplitLegend } from "@/components/consensus/split-bar"
 import { StatementCard } from "@/components/consensus/status-bars"
+import { Block } from "@/components/settings/blocks"
 import {
   agreement,
   consensusStatements,
@@ -41,23 +42,20 @@ export function ResultsPanel({ conversation: c }: { conversation: Conversation }
   const listed = c.statements.filter(standing)
 
   return (
-    <div data-not-typeset="true" className="my-8 flex flex-col gap-10">
+    <div data-not-typeset="true" className="flex flex-col gap-10">
       <header className="flex flex-col gap-4">
-        <div className="flex items-start justify-between gap-4">
-          <h2 className="text-xl font-semibold tracking-tight">{c.title}</h2>
-          <MakeQuestionCard title={c.title} voters={fmtNumber(c.stats.voters)} groups={c.stats.groups} shared={agreed.map((s) => s.text)} split={split.map((s) => s.text)} />
-        </div>
-        {c.description && (
-          <p className="text-sm text-balance text-muted-foreground">
-            {c.description}
-          </p>
-        )}
-        <div className="grid grid-cols-2 gap-6 rounded-xl border bg-card p-5 sm:grid-cols-4">
-          <Stat value={fmtNumber(c.stats.voters)} label="participants" />
-          <Stat value={fmtNumber(c.stats.statements)} label="statements" />
-          <Stat value={fmtNumber(c.stats.votes)} label="votes cast" />
-          <Stat value={String(c.stats.groups)} label="opinion groups" />
-        </div>
+        <Block
+          title={c.title}
+          sub={c.description || undefined}
+          action={<MakeQuestionCard title={c.title} voters={fmtNumber(c.stats.voters)} groups={c.stats.groups} shared={agreed.map((s) => s.text)} split={split.map((s) => s.text)} />}
+        >
+          <div className="grid grid-cols-2 gap-6 px-4 py-4 sm:grid-cols-4 sm:px-5">
+            <Stat value={fmtNumber(c.stats.voters)} label="participants" />
+            <Stat value={fmtNumber(c.stats.statements)} label="statements" />
+            <Stat value={fmtNumber(c.stats.votes)} label="votes cast" />
+            <Stat value={String(c.stats.groups)} label="opinion groups" />
+          </div>
+        </Block>
         <SplitLegend />
       </header>
 

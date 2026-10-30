@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { MessagesSquare } from "lucide-react"
 
-import { ProjectCard, ProjectGrid } from "@/components/project-card"
+import { Block, Fact, SMALL, Tile } from "@/components/settings/blocks"
 import { type Conversation } from "@/lib/consensus/data"
 import { fmtNumber } from "@/lib/format"
 
@@ -10,29 +10,52 @@ import { fmtNumber } from "@/lib/format"
 // Polis lists these by printing every conversation's entire description into
 // a wall of monospace. A conversation is a thing with a shape — how many
 // people, how many statements, how many groups it found — so it gets a card
-// with that shape on it, the way committees and bills do here.
+// with that shape on it: /models' block (Brendan, 2026-10-30), its numbers
+// as the rows, Vote and Results at its head.
 export function SurveysPanel({ all, admin }: { all: Conversation[]; admin: boolean }) {
   return (
-    <div data-not-typeset="true" className="my-8 flex flex-col gap-8">
-      <ProjectGrid>
+    <div data-not-typeset="true" className="space-y-6">
+      <div className="grid items-stretch gap-5 md:grid-cols-2">
         {all.map((c) => (
-          <ProjectCard
+          <Block
             key={c.slug}
-            href={`/consensus?tab=results&c=${c.slug}`}
+            stretch
+            lead={<Tile icon={MessagesSquare} tint="#475569" />}
             title={c.title}
-            media={<MessagesSquare className="size-7 text-muted-foreground" aria-hidden />}
-            meta={`${fmtNumber(c.stats.voters)} participants · ${fmtNumber(c.stats.statements)} statements · ${c.stats.groups} groups`}
-          />
+            sub={c.topic || undefined}
+            action={
+              <span className="flex shrink-0 gap-1.5">
+                <Link href={`/consensus?c=${c.slug}`} className={SMALL}>
+                  Vote
+                </Link>
+                <Link href={`/consensus?tab=results&c=${c.slug}`} className={SMALL}>
+                  Results
+                </Link>
+              </span>
+            }
+          >
+            <Fact label="Participants">{fmtNumber(c.stats.voters)}</Fact>
+            <Fact label="Statements">{fmtNumber(c.stats.statements)}</Fact>
+            <Fact label="Votes cast">{fmtNumber(c.stats.votes)}</Fact>
+            <Fact label="Opinion groups">{String(c.stats.groups)}</Fact>
+          </Block>
         ))}
-      </ProjectGrid>
+      </div>
 
-      <p className="text-sm text-muted-foreground">
+      <p className="text-[13px] text-slate-500">
         The conversations are the Computational Democracy Project&apos;s own published data, so every one of them has already clustered.{" "}
-        <Link href="/consensus?tab=questions">Questions</Link> is where a conversation is voted on
+        <Link href="/consensus" className="font-medium text-pax2-light-blue hover:underline">
+          Questions
+        </Link>{" "}
+        is where a conversation is voted on
         {admin ? (
           <>
             {" "}
-            and <Link href="/consensus?tab=admin">Admin</Link> is where one is built.
+            and{" "}
+            <Link href="/consensus?tab=admin" className="font-medium text-pax2-light-blue hover:underline">
+              Admin
+            </Link>{" "}
+            is where one is built.
           </>
         ) : (
           "."

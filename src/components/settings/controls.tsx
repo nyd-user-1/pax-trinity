@@ -37,11 +37,13 @@ export function Choice({ label, options, defaultValue }: { label: string; option
   )
 }
 
-export function Toggle({ label, defaultOn }: { label: string; defaultOn?: boolean }) {
+export function Toggle({ label, defaultOn, on, onChange }: { label: string; defaultOn?: boolean; on?: boolean; onChange?: (on: boolean) => void }) {
   return (
     <Switch.Root
       aria-label={label}
       defaultChecked={defaultOn}
+      checked={on}
+      onCheckedChange={onChange}
       className="relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full bg-slate-200 p-0.5 transition-colors outline-none focus-visible:ring-3 focus-visible:ring-pax2-light-blue/30 data-checked:bg-pax2-blue"
     >
       <Switch.Thumb className="size-4 rounded-full bg-white shadow-sm transition-transform duration-150 data-checked:translate-x-4" />

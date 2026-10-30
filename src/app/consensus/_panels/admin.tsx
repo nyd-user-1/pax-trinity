@@ -2,6 +2,7 @@ import Link from "next/link"
 
 import { DraftCard } from "@/components/consensus/draft-card"
 import { SplitBar } from "@/components/consensus/split-bar"
+import { Block } from "@/components/settings/blocks"
 import { share, type Conversation } from "@/lib/consensus/data"
 import { fmtNumber } from "@/lib/format"
 
@@ -30,26 +31,27 @@ export function AdminPanel({ conversation: c }: { conversation: Conversation }) 
   const busiest = [...c.statements].sort((a, b) => b.votes.seen - a.votes.seen).slice(0, 8)
 
   return (
-    <div data-not-typeset="true" className="my-8 flex flex-col gap-10">
+    <div data-not-typeset="true" className="flex flex-col gap-10">
       <DraftCard />
       <section className="flex flex-col gap-4">
-        <h2 className="text-lg font-semibold tracking-tight">{c.topic}</h2>
-        <div className="grid grid-cols-2 gap-6 rounded-xl border bg-card p-5 sm:grid-cols-4">
-          <Stat value={fmtNumber(c.stats.voters)} label="participants" />
-          <Stat value={fmtNumber(c.stats.votes)} label="votes cast" />
-          <Stat value={fmtNumber(c.stats.commenters)} label="wrote a statement" />
-          <Stat
-            value={
-              c.stats.voters
-                ? String(Math.round(c.stats.votes / c.stats.voters))
-                : "—"
-            }
-            label="votes per voter"
-          />
-        </div>
+        <Block title={c.title} sub={c.topic || undefined}>
+          <div className="grid grid-cols-2 gap-6 px-4 py-4 sm:grid-cols-4 sm:px-5">
+            <Stat value={fmtNumber(c.stats.voters)} label="participants" />
+            <Stat value={fmtNumber(c.stats.votes)} label="votes cast" />
+            <Stat value={fmtNumber(c.stats.commenters)} label="wrote a statement" />
+            <Stat
+              value={
+                c.stats.voters
+                  ? String(Math.round(c.stats.votes / c.stats.voters))
+                  : "—"
+              }
+              label="votes per voter"
+            />
+          </div>
+        </Block>
         <p className="text-sm text-muted-foreground">
           Voting happens on the{" "}
-          <Link href={`/consensus?tab=questions&c=${c.slug}`}>questions</Link>; the
+          <Link href={`/consensus?c=${c.slug}`}>questions</Link>; the
           findings are in the{" "}
           <Link href={`/consensus?tab=results&c=${c.slug}`}>results</Link>.
         </p>

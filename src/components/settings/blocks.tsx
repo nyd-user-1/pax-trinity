@@ -48,11 +48,12 @@ export function PageTabs({ tabs, active, trailing }: { tabs: { key: string; labe
   )
 }
 
-/** The reference block: a title on the slate-50 frame, the rows in a white card inside it. */
-export function Block({ title, sub, lead, badge, action, children, className }: { title: React.ReactNode; sub?: React.ReactNode; lead?: React.ReactNode; badge?: React.ReactNode; action?: React.ReactNode; children: React.ReactNode; className?: string }) {
+/** The reference block: a title on the slate-50 frame, the rows in a white card inside it. `stretch` fills
+ *  its grid cell, the title taking the slack, so blocks in one row end level whatever their titles' length. */
+export function Block({ title, sub, lead, badge, action, children, className, stretch }: { title: React.ReactNode; sub?: React.ReactNode; lead?: React.ReactNode; badge?: React.ReactNode; action?: React.ReactNode; children: React.ReactNode; className?: string; stretch?: boolean }) {
   return (
-    <section className={cn("rounded-[18px] border border-slate-200 bg-slate-50 p-1 shadow-e1", className)}>
-      <div className="flex items-center gap-3 px-4 pt-2.5 pb-3 sm:px-5">
+    <section className={cn("rounded-[18px] border border-slate-200 bg-slate-50 p-1 shadow-e1", stretch && "flex h-full flex-col", className)}>
+      <div className={cn("flex gap-3 px-4 pt-2.5 pb-3 sm:px-5", stretch ? "flex-1 items-start" : "items-center")}>
         {lead}
         <div className="min-w-0 flex-1">
           <h3 className="flex flex-wrap items-center gap-2 text-[15px] font-semibold text-slate-900">

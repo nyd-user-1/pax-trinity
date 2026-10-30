@@ -5,7 +5,7 @@ import { type Conversation } from "@/lib/consensus/data"
 // time, agree, disagree or pass. Passing is a real answer.
 export function QuestionsPanel({ conversation }: { conversation: Conversation }) {
   return (
-    <div data-not-typeset="true" className="my-8">
+    <div data-not-typeset="true">
       <Survey conversation={conversation} />
     </div>
   )
