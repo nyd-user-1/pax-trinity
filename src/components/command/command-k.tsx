@@ -69,7 +69,7 @@ export function CommandK({ onClose }: { onClose: () => void }) {
       ]
     }
     const hits = ITEMS.map((item) => ({ item, s: score(item, needle) })).filter((x) => x.s > 0)
-    const out = SECTIONS.map((title) => ({
+    const out: { title: string; rows: Row[] }[] = SECTIONS.map((title) => ({
       title,
       rows: hits
         .filter((x) => KINDS[x.item.kind].section === title)
