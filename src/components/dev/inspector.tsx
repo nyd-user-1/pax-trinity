@@ -29,7 +29,8 @@ import {
 
 /**
  * PAX (Brendan, 2026-10-30): GovBlock's dock (govblock apps/web/components/dev/inspector.tsx), brought
- * over whole to road-test beside Housekeeping's pointer, the two maybe to be combined. It replaces the
+ * over whole to road-test beside Housekeeping's pointer, the two maybe to be combined, in production
+ * as well as development, for admins. It replaces the
  * Home page's demo copy (app/InspectorMode.tsx, deleted). Each turns on only from its own control:
  * this one from the dock, the pointer from the header's crosshair. So the long ⌘C and ⌥⇧I that
  * GovBlock kept are gone here; Settings' switches and ARM still turn the same things on. Its layers
@@ -81,13 +82,16 @@ import {
  * resolve to, and the layer rows filter the page. Most of the DOM being amber
  * or red is the finding, not a bug.
  *
- * Development only — next.config aliases this module to an empty stub
- * otherwise, which is what actually keeps it out of the bundle. A
- * `process.env` guard alone does not: it kills the body while the module still
- * ships. Measured.
+ * GovBlock ran it in development only, aliased to an empty stub in production.
+ * PAX runs it in production too, for admins (Brendan, 2026-10-30): the root
+ * layout mounts it for them alone, and /api/dev-locate answers them alone.
+ * A production build carries no owner chain and minified names, so there it
+ * names less; the file lookup still works from the class strings.
  */
 
-const IS_DEV = process.env.NODE_ENV === "development"
+/** A production build: React keeps no owner chain and the bundler shortens component names, so a
+ *  name of one or two letters is a minified one, not a component's (PAX, 2026-10-30). */
+const PROD = process.env.NODE_ENV !== "development"
 
 /** Which held key reads the element under the pointer. 44b was ⌥ alone; ⌘ was
  *  added here because it is the key that gets reached for — and that is the
@@ -217,7 +221,8 @@ function fiberOf(node: Element): Fiber | null {
 function nameOf(f: Fiber | null | undefined): string | null {
   const t = (f?.type ?? f?.elementType) as { displayName?: string; name?: string } | string | null | undefined
   if (!t || typeof t === "string") return null
-  return t.displayName ?? t.name ?? null
+  const name = t.displayName ?? t.name ?? null
+  return PROD && name && name.length < 3 ? null : name
 }
 
 function ownerChain(fiber: Fiber | null, max = 3): string[] {
@@ -323,7 +328,6 @@ export function DevInspector() {
 
   // Read once the browser is there, so the first render matches the server's.
   useEffect(() => {
-    if (!IS_DEV) return
     try {
       const p = JSON.parse(localStorage.getItem(PREFS_KEY) ?? "null")
       if (p) setPrefs({ ...PREFS, ...p })
@@ -395,7 +399,6 @@ export function DevInspector() {
 
   // keys — a held key arms (Settings; off by default), ⌥↑/↓ walks the tree.
   useEffect(() => {
-    if (!IS_DEV) return
     const down = (e: KeyboardEvent) => {
       // Keys typed into the dock's own fields are text, not commands — an
       // arrow in the comment box must not walk the tree.
@@ -552,7 +555,6 @@ export function DevInspector() {
   }, [inspecting])
 
   useEffect(() => {
-    if (!IS_DEV) return
     window.addEventListener("mousemove", onMove, true)
     window.addEventListener("click", onClick, true)
     return () => {
@@ -561,7 +563,6 @@ export function DevInspector() {
     }
   }, [onMove, onClick])
 
-  if (!IS_DEV) return null
 
   // The wash draws one absolutely-positioned box per match. A page can hold
   // 1,100 page-local nodes on its own, so this is capped — and the cap is

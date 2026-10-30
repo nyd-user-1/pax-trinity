@@ -2,9 +2,12 @@ import { NextResponse } from "next/server"
 import { readFile, readdir, stat } from "node:fs/promises"
 import path from "node:path"
 
+import { currentUser } from "@/lib/auth"
+
 /**
  * PAX (2026-10-30): GovBlock's route (apps/web/app/api/dev-locate), for the dock in
- * components/dev/inspector.tsx; its roots and layers read this repo's src/ folders.
+ * components/dev/inspector.tsx; its roots and layers read this repo's src/ folders. It answers admins
+ * alone, in production too: next.config ships those folders' .ts and .tsx with this route.
  *
  * dev-locate — turn "which component, which classes" into `file:line`, plus
  * how systematized that line is and whether it looks worth extracting.
@@ -31,9 +34,7 @@ import path from "node:path"
  * is long and near-unique, which makes it a better key than a compiled offset
  * is recoverable.
  *
- * DEVELOPMENT ONLY — 404s in production, and next.config's alias keeps the
- * inspector that calls it out of the bundle entirely. It reads only the three
- * roots below.
+ * It reads only the roots below.
  */
 
 /** The repository root: pax-trinity's dev server runs from it (GovBlock's ran from apps/web). */
@@ -339,7 +340,7 @@ async function resolve(chain: string[], className: string, deep: boolean): Promi
 // ── the route ───────────────────────────────────────────────────────────────
 
 export async function GET(req: Request) {
-  if (process.env.NODE_ENV !== "development") {
+  if (!(await currentUser())?.admin) {
     return new NextResponse("Not found", { status: 404 })
   }
 
@@ -365,7 +366,7 @@ export async function GET(req: Request) {
  * which collapses a few thousand DOM nodes to a couple of hundred keys.
  */
 export async function POST(req: Request) {
-  if (process.env.NODE_ENV !== "development") {
+  if (!(await currentUser())?.admin) {
     return new NextResponse("Not found", { status: 404 })
   }
   try {

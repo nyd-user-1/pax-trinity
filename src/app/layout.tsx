@@ -28,8 +28,8 @@ export default async function RootLayout({ children, drawer }: LayoutProps<"/">)
         <Shell drawer={drawer} signedIn={!!user} admin={!!user?.admin}>
           {children}
         </Shell>
-        {/* GovBlock's inspector dock, bottom right, in development only (next.config aliases it to a stub otherwise). */}
-        {process.env.NODE_ENV === "development" && <DevInspector />}
+        {/* GovBlock's inspector dock, bottom right, for admins (beside Housekeeping's pointer, to compare). */}
+        {user?.admin && <DevInspector />}
       </body>
     </html>
   )
