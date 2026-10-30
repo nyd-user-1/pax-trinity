@@ -5,8 +5,8 @@ import { listChats, patchChat, readChat, writeChat, type ChatMessage, type ChatM
 
 // The reader's saved /chat conversations. Signed out, or on a shared demo account, nothing is kept:
 // a demo login is one account for every visitor, so its chats would be everyone's. Where the chats'
-// store can't be reached (its pax2-ledger table sits in us-east-1, which the new account's policy
-// denies), each action answers as if nothing were kept, quietly, instead of a 500 on every page.
+// store (pax-trinity-ledger, us-east-2, lib/ledger.ts) can't be reached, each action answers as if
+// nothing were kept, quietly, instead of a 500 on every page.
 
 async function reader(): Promise<string | null> {
   const u = await currentUser()

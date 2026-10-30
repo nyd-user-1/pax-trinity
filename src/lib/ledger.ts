@@ -18,8 +18,11 @@ import { BatchGetCommand, DeleteCommand, DynamoDBDocumentClient, GetCommand, Put
 //   BOOSTED#<reader>        <video id>                      the reader's current Boost state (on, at)
 //   BOOSTCOUNT#<video id>   META                            the running Boost count (n), a total of the usage log's boost events
 
-const TABLE = process.env.PAX2_LEDGER_TABLE ?? "pax2-ledger"
-const client = DynamoDBDocumentClient.from(new DynamoDBClient({ region: process.env.PAX2_REGION ?? "us-east-1" }), { marshallOptions: { removeUndefinedValues: true } })
+// The new account's us-east-2 (Brendan, 2026-10-30): pax-trinity-ledger holds the 1,522 items copied from
+// the old account's pax2-ledger (us-east-1), which neither production nor the local dev server could reach;
+// Amplify's compute role holds the pax-trinity-ledger policy for it.
+const TABLE = process.env.PAX_TRINITY_LEDGER_TABLE ?? "pax-trinity-ledger"
+const client = DynamoDBDocumentClient.from(new DynamoDBClient({ region: process.env.PAX_TRINITY_TABLES_REGION ?? "us-east-2" }), { marshallOptions: { removeUndefinedValues: true } })
 
 export type Item = { pk: string; sk: string; [k: string]: unknown }
 
