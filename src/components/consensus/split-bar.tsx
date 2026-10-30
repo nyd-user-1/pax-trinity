@@ -9,12 +9,12 @@ import { share, type Tally } from "@/lib/consensus/data"
 // shares of one whole, read left to right, need no decoding: agree, then
 // pass, then disagree, always in that order, always to the same width.
 //
-// The palette is a diverging pair — one hue each side of a neutral middle —
-// and it is teal and amber rather than green and red on purpose. Green/red
-// reads as approval and fails for the commonest colour blindness; blue/red in
-// a conversation about primaries reads as a party. Both steps were checked
-// with the dataviz validator against the light and dark surfaces: ΔE 15.6
-// under protanopia, 23.0 under normal vision, contrast over 3:1 on both.
+// The palette is a diverging pair — one hue each side of a neutral middle.
+// It was teal and amber from 2026-09-10 (green/red reads as approval and
+// fails the commonest colour blindness; blue/red can read as a party); since
+// 2026-10-30 (Brendan) it is the house's own pair, PAX navy and red, as Lift
+// draws a lift up and down (ui/styles/globals.css, --consensus-agree and
+// --consensus-disagree).
 // The bar grows in from the left the first time it comes into view
 // (components/reveal.tsx).
 

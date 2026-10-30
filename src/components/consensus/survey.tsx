@@ -6,7 +6,8 @@ import { Check, Info, Minus, X } from "lucide-react"
 
 import { Block, FIELD, SMALL, SMALL_PRIMARY } from "@/components/settings/blocks"
 import { Toggle } from "@/components/settings/controls"
-import type { Conversation, Statement } from "@/lib/consensus/data"
+import { StatementCard } from "@/components/consensus/status-bars"
+import { consensusOn, emergedStatements, type Conversation, type Statement } from "@/lib/consensus/data"
 import { questionCode } from "@/components/consensus/question-code"
 import { SLIDE } from "@/lib/motion"
 import { cn } from "@/lib/utils"
@@ -33,8 +34,12 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components
 // moves it on to the next question still unanswered. A row whose cards
 // are both answered closes with the slide run backwards (lib/motion.ts): it
 // dissolves as its height eases shut, and the next row rises into its place,
-// so the survey visibly moves on (Brendan, 2026-10-30). Voting is local here,
-// against the published conversations.
+// so the survey visibly moves on (Brendan, 2026-10-30). Once every row has
+// closed, the survey's results open in its place (the count above already
+// reads every one answered), only the questions
+// consensus emerged on (lib/consensus/data.ts consensusOn), each beside the
+// reader's own answer. Voting is local here, against the published
+// conversations.
 
 type Answer = "agree" | "disagree" | "pass"
 
@@ -89,7 +94,9 @@ export function Survey({ conversation, survey }: { conversation: Conversation; s
     const t = timers.current
     return () => t.forEach((id) => window.clearTimeout(id))
   }, [])
-  const done = !review && rows.length > 0 && closed.size === rows.length
+  // The results open once the last row has closed, and stay, under the open rows, while answers are reviewed.
+  const answered = queue.length > 0 && queue.every((st) => answers[st.tid])
+  const done = answered && (review || closed.size === rows.length)
 
   return (
     <div className="space-y-6">
@@ -148,21 +155,22 @@ export function Survey({ conversation, survey }: { conversation: Conversation; s
       </div>
 
       {done && (
-        <Block title={`All ${queue.length} answered`}>
-          <div className="flex items-center justify-between gap-4 px-4 py-3.5 sm:px-5">
-            <span className="text-sm text-slate-700">Every question in this survey has your answer.</span>
-            <button
-              type="button"
-              onClick={() => {
-                setReview(true)
-                setClosed(new Set())
-              }}
-              className={SMALL}
-            >
-              Review my answers
-            </button>
-          </div>
-        </Block>
+        <Unfold>
+          <Emerged
+            conversation={conversation}
+            survey={survey}
+            queue={queue}
+            answers={answers}
+            onReview={
+              review
+                ? undefined
+                : () => {
+                    setReview(true)
+                    setClosed(new Set())
+                  }
+            }
+          />
+        </Unfold>
       )}
 
       {/* Writing a statement is available throughout, not only at the end. */}
@@ -195,6 +203,58 @@ export function Survey({ conversation, survey }: { conversation: Conversation; s
           </button>
         </div>
       </Block>
+    </div>
+  )
+}
+
+const ANSWER_LABEL: Record<Answer, string> = { agree: "Agree", disagree: "Disagree", pass: "Pass" }
+
+/** The survey's results at its end: only the questions consensus emerged on, strongest first, each with
+ *  the reader's own answer beside the room's; or, where none did, a line that says so. */
+function Emerged({ conversation, survey, queue, answers, onReview }: { conversation: Conversation; survey: number; queue: Statement[]; answers: Record<number, Answer>; onReview?: () => void }) {
+  const emerged = emergedStatements(conversation).filter((s) => queue.includes(s))
+  return (
+    <section className="space-y-4">
+      <div className="flex items-center justify-between gap-4">
+        <h3 className="text-base font-semibold text-slate-900">Where consensus emerged</h3>
+        {onReview && (
+          <button type="button" onClick={onReview} className={SMALL}>
+            Review my answers
+          </button>
+        )}
+      </div>
+      {emerged.length ? (
+        emerged.map((s) => {
+          const n = queue.indexOf(s) + 1
+          const mine = answers[s.tid]
+          return <StatementCard key={s.tid} statement={s} number={n} code={questionCode(survey, n)} side={consensusOn(s) ?? undefined} yours={mine ? ANSWER_LABEL[mine] : undefined} />
+        })
+      ) : (
+        <Block title="No consensus emerged">
+          <p className="px-4 py-3.5 text-sm text-slate-700 sm:px-5">On every question, most of the room was not on one side, or an opinion group&apos;s majority stood on the other.</p>
+        </Block>
+      )}
+    </section>
+  )
+}
+
+/** Opens its content with the slide, forwards: from no height to its own, fading in. */
+function Unfold({ children }: { children: React.ReactNode }) {
+  const [open, setOpen] = React.useState(false)
+  React.useEffect(() => {
+    let second = 0
+    // Two frames, so the closed state is painted before the open one is set.
+    const first = requestAnimationFrame(() => {
+      second = requestAnimationFrame(() => setOpen(true))
+    })
+    return () => {
+      cancelAnimationFrame(first)
+      cancelAnimationFrame(second)
+    }
+  }, [])
+  return (
+    <div className={cn("grid transition-[grid-template-rows,opacity]", SLIDE, open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0")}>
+      <div className="-mx-2 min-h-0 overflow-hidden px-2 pb-1">{children}</div>
     </div>
   )
 }

@@ -76,11 +76,13 @@
     --border: oklch(0.922 0 0);
     --input: oklch(0.922 0 0);
     --ring: oklch(0.708 0 0);
-    /* Consensus (2026-09-10): a diverging pair for agree/disagree, teal and
-       amber rather than green/red (approval, and fails protanopia) or
-       blue/red (reads as a party). Validated in both modes. */
-    --consensus-agree: #0E9594;
-    --consensus-disagree: #C1670C;
+    /* Consensus: the agree/disagree pair. Teal and amber from 2026-09-10
+       (green/red reads as approval and fails protanopia; blue/red can read
+       as a party); since 2026-10-30 (Brendan) the house's own pair, PAX navy
+       and red, as Lift draws a lift up and down. Navy against red holds
+       apart under protanopia by lightness. */
+    --consensus-agree: #1e3a8a;
+    --consensus-disagree: #dc2626;
     --chart-1: oklch(0.808 0.114 19.571);
     --chart-2: oklch(0.637 0.237 25.331);
     --chart-3: oklch(0.577 0.245 27.325);
@@ -119,8 +121,8 @@
     --input: oklch(1 0 0 / 15%);
     --ring: oklch(0.556 0 0);
     /* Dark steps are chosen against the dark surface, not flipped. */
-    --consensus-agree: #17A09C;
-    --consensus-disagree: #C87A22;
+    --consensus-agree: #60a5fa;
+    --consensus-disagree: #f87171;
     --chart-1: oklch(0.808 0.114 19.571);
     --chart-2: oklch(0.637 0.237 25.331);
     --chart-3: oklch(0.577 0.245 27.325);

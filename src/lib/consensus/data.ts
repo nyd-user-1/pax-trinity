@@ -93,12 +93,34 @@ export function agreement(s: Statement) {
  */
 export const standing = (s: Statement) => s.moderated >= 0 && s.votes.seen >= 10
 
-/** Statements everyone agrees on, strongest first. */
+/**
+ * Whether consensus emerged on a statement, and on which side (Brendan, 2026-10-30: the survey's end shows
+ * only these). The rule is Results' "no group dissented from", made exact: most of the room on one side,
+ * and no opinion group with a majority on the other. A bare majority does not do it if any group's
+ * majority stands against; a group that merely leans the other way, without a majority, does not stop it.
+ */
+export function consensusOn(s: Statement): "agree" | "disagree" | null {
+  const all = share(s.votes)
+  const groups = Object.values(s.byGroup)
+    .filter((t) => t.seen >= 5)
+    .map(share)
+  if (all.agree > 50 && groups.every((g) => g.disagree <= 50)) return "agree"
+  if (all.disagree > 50 && groups.every((g) => g.agree <= 50)) return "disagree"
+  return null
+}
+
+/** Statements everyone agrees on, strongest first: consensus to agree, by the least agreeable group. */
 export function consensusStatements(c: Conversation, limit = 6) {
   return [...c.statements]
-    .filter(standing)
+    .filter((s) => standing(s) && consensusOn(s) === "agree")
     .sort((a, b) => agreement(b) - agreement(a))
     .slice(0, limit)
+}
+
+/** Every statement consensus emerged on, either side, the largest share on its side first. */
+export function emergedStatements(c: Conversation) {
+  const strength = (s: Statement) => share(s.votes)[consensusOn(s) ?? "agree"]
+  return c.statements.filter((s) => standing(s) && consensusOn(s)).sort((a, b) => strength(b) - strength(a))
 }
 
 /** Statements that split the groups, widest gap first. */

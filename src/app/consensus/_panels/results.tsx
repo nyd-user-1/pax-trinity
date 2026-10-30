@@ -73,7 +73,13 @@ export function ResultsPanel({ conversation: c, survey }: { conversation: Conver
           Statements no group dissented from — scored on the least agreeable
           group, not on the majority, so a big group cannot carry a small one.
         </p>
-        {agreed.map(card)}
+        {agreed.length ? (
+          agreed.map(card)
+        ) : (
+          <Block title="No consensus emerged">
+            <p className="px-4 py-3.5 text-sm text-slate-700 sm:px-5">No statement drew most of the room without an opinion group&apos;s majority against it.</p>
+          </Block>
+        )}
       </section>
 
       <section className="flex flex-col gap-4">

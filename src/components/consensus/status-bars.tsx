@@ -1,7 +1,7 @@
 import type * as React from "react"
 
 import { Reveal } from "@/components/reveal"
-import { Block } from "@/components/settings/blocks"
+import { Badge, Block, Fact } from "@/components/settings/blocks"
 import { share, type Conversation, type Statement, type Tally } from "@/lib/consensus/data"
 import { fmtNumber } from "@/lib/format"
 
@@ -10,9 +10,9 @@ import { fmtNumber } from "@/lib/format"
 // the service name goes, the agree share as the big figure on the right, and
 // the votes as a row of rounded pills — agree, then pass, then disagree, left
 // to right, so the row still reads as one measure. A pill grows under the
-// pointer and names its share. The colours are the report's own validated pair
-// (components/consensus/split-bar.tsx says why teal and amber, not green and
-// red), with pass in the neutral middle. The pills rise in left to right the
+// pointer and names its share. The colours are the consensus pair, PAX navy
+// and red (components/consensus/split-bar.tsx says how they came to be), with
+// pass in the neutral middle. The pills rise in left to right the
 // first time the row comes into view (components/reveal.tsx).
 
 const AGREE = "var(--consensus-agree)"
@@ -100,14 +100,20 @@ export function StatusBars({
 // then one row — the agree share, the pills, the disagree share. The note,
 // the group rows and the foot came off. Since 2026-10-30 it is the Questions
 // card's block, as Brendan drew it: Question and its number on the frame;
-// inside, the statement and the row, then the question's code.
-export function StatementCard({ statement, number, code }: { statement: Statement; number?: number; code?: string; conversation?: Conversation; note?: string }) {
+// inside, the statement and the row, then the question's code. At the
+// survey's end it also names the side consensus emerged on and the reader's
+// own answer.
+export function StatementCard({ statement, number, code, side, yours }: { statement: Statement; number?: number; code?: string; side?: "agree" | "disagree"; yours?: string; conversation?: Conversation; note?: string }) {
   return (
-    <Block title={<span className="font-medium">{number != null ? `Question ${number}` : "Statement"}</span>}>
+    <Block
+      title={<span className="font-medium">{number != null ? `Question ${number}` : "Statement"}</span>}
+      badge={side && <Badge tone="blue">{side === "agree" ? "Agreed" : "Disagreed"}</Badge>}
+    >
       <div className="flex flex-col gap-5 px-4 py-5 sm:px-5">
         <p className="text-[17px] leading-snug text-balance text-slate-900">{statement.text}</p>
         <StatusBars votes={statement.votes} figures />
       </div>
+      {yours && <Fact label="Your answer">{yours}</Fact>}
       {code && <p className="px-4 py-3 text-[13px] text-slate-500 tabular-nums sm:px-5">{code}</p>}
     </Block>
   )
