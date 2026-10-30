@@ -8,10 +8,12 @@ import { beforeAll, describe, expect, it } from "vitest"
 
 import { allTemplates, unpaired } from "./registry"
 import { allSpecs, durationOf, validate } from "./specs"
+import { GRAPHICS, versionEntries } from "./studio"
 
 // Every spec has its component; every template's fixture passes its schema,
 // props that do not fit are refused, and its first and last frames render
-// without throwing, from the same bundle Studio uses.
+// without throwing, from the same bundle Studio uses. The same for Studio's
+// Graphics folder, and its Versions folder keeps only versions it can draw.
 
 let serveUrl = ""
 
@@ -42,4 +44,33 @@ describe.each(allSpecs().map((t) => [t.id, t] as const))("%s", (id, t) => {
       await renderStill({ composition, serveUrl, frame, inputProps, output: path.join(os.tmpdir(), `pax-video-test-${id}-${frame}.png`) })
     }
   })
+})
+
+describe.each(GRAPHICS.map((g) => [g.id, g] as const))("%s", (id, g) => {
+  it("parses its sample", () => {
+    const r = g.schema.safeParse(g.defaultProps)
+    expect(r.success, r.success ? "" : r.error.message).toBe(true)
+  })
+
+  it("renders its first and last frames", async () => {
+    const composition = await selectComposition({ serveUrl, id, inputProps: g.defaultProps })
+    expect(composition.durationInFrames).toBe(g.durationInFrames)
+    for (const frame of [0, composition.durationInFrames - 1]) {
+      await renderStill({ composition, serveUrl, frame, inputProps: g.defaultProps, output: path.join(os.tmpdir(), `pax-video-test-${id}-${frame}.png`) })
+    }
+  })
+})
+
+it("keeps the versions Studio can draw and leaves out the rest", () => {
+  const fixture = allSpecs().find((s) => s.id === "lift-card")?.fixture
+  const entries = versionEntries([
+    { id: "v-lift-card-2", templateId: "lift-card", props: fixture },
+    { id: "v-lift-card-1", templateId: "lift-card", props: fixture },
+    { id: "v-lift-card-10", templateId: "lift-card", props: fixture },
+    { id: "v-gone-1", templateId: "gone", props: {} },
+    { id: "v-lift-card-3", templateId: "lift-card", props: { nonsense: true } },
+    { id: "not an id", templateId: "lift-card", props: fixture },
+  ])
+  expect(entries.map((e) => e.id)).toEqual(["v-lift-card-1", "v-lift-card-2", "v-lift-card-10"])
+  expect(entries[0].template.id).toBe("lift-card")
 })

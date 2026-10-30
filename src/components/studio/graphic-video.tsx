@@ -1,13 +1,16 @@
 import * as React from "react"
-import { AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig } from "remotion"
+import { AbsoluteFill, Img, interpolate, OffthreadVideo, Sequence, spring, useCurrentFrame, useVideoConfig } from "remotion"
 
-import { BRAND_PRESETS, FONTS, type Brand, type GraphicKind, type Graphics } from "@/lib/footage"
+// A relative path, not "@/lib/footage": Remotion Studio registers these graphics too (src/video/studio.tsx),
+// and its webpack has no "@/" alias. footage.ts imports nothing, so it is safe in every bundle.
+import { BRAND_PRESETS, FONTS, type Brand, type GraphicKind, type Graphics } from "../../lib/footage"
 
 // The graphics a script's footage carries, drawn by Remotion at 1080x1920: the checklist card after the
 // team's Question 3 example (a navy panel over the lower half, three white rows with orange checks, an
 // orange footer bar), a callout, a stat card, a quote, an intro and end credits. `backdrop` is the take
 // the graphic sits over; without one, a plain field stands in for it. `brand` dresses every graphic (its two
-// colors, its typeface, its logo top left); without one, the Yes on 3 kit.
+// colors, its typeface, its logo top left); without one, the Yes on 3 kit. A backdrop that is a video (a
+// recorded take from the Record flow, a short) plays under the graphic; anything else is drawn as a picture.
 
 const NAVY = "#1e3a8a"
 const ORANGE = "#ea6a24"
@@ -136,13 +139,21 @@ function End({ g }: { g: Graphics["end"] }) {
   )
 }
 
+const VIDEO = /\.(mp4|webm|mov|m4v)(\?|#|$)/i
+
+/** The take or picture the graphic sits over, filling the frame. */
+function Backdrop({ src }: { src: string }) {
+  const fill = { width: "100%", height: "100%", objectFit: "cover" } as const
+  return <AbsoluteFill>{VIDEO.test(src) ? <OffthreadVideo src={src} style={fill} /> : <Img src={src} style={fill} />}</AbsoluteFill>
+}
+
 export function GraphicVideo({ kind, graphics, backdrop, brand }: GraphicProps) {
   const full = kind === "intro" || kind === "end"
   const b = brand ?? BRAND_PRESETS[0]
   return (
     <BrandCtx.Provider value={b}>
     <AbsoluteFill style={{ background: backdrop ? "#000" : "linear-gradient(165deg, #cbd5e1 0%, #94a3b8 55%, #475569 100%)" }}>
-      {backdrop && !full && <AbsoluteFill style={{ backgroundImage: `url(${backdrop})`, backgroundSize: "cover", backgroundPosition: "center" }} />}
+      {backdrop && !full && <Backdrop src={backdrop} />}
       {kind === "checklist" && <Checklist g={graphics.checklist} />}
       {kind === "callout" && <Callout g={graphics.callout} />}
       {kind === "stat" && <Stat g={graphics.stat} />}
