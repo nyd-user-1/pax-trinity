@@ -44,6 +44,11 @@ const config: NextConfig = {
   // of binaries has no caller; excluding it keeps the server bundle under Amplify's 220 MB cap.
   images: { unoptimized: true },
   outputFileTracingExcludes: { "*": ["node_modules/sharp/**", "node_modules/@img/**"] },
+  // GovBlock's inspector dock (components/dev/inspector.tsx) is for development only. A NODE_ENV guard
+  // inside it would leave its code in the bundle; aliasing the import to the empty stub keeps it out.
+  turbopack: {
+    resolveAlias: process.env.NODE_ENV === "development" ? {} : { "@/components/dev/inspector": "./src/components/dev/inspector.stub.tsx" },
+  },
   // Remotion Studio, bundled static by the prebuild (npm run studio:bundle) into .studio-bundle/, ships with
   // the one route that serves it to admins. Of its source maps (14 of its 25 MB) only bundle.js.map ships: the
   // Studio reads it to show where each sequence sits in the code, and asks for no other.

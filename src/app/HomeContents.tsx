@@ -3,13 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { HomeCard } from './HomeCard'
 import { IN_HOUSE, KINDS, PAX_BOXES, SWITCHBOARD, HF_MODELS, type HomeCardData, type Kind } from '@/lib/home-data'
-import dynamic from 'next/dynamic'
 import { CardDialog } from './CardDialog'
 import { X } from 'lucide-react'
 import { useSwitchboard } from '@/components/SwitchboardPanel'
-
-// The Inspector's overlay loads when a reader turns it on, not with the page.
-const InspectorMode = dynamic(() => import('./InspectorMode').then(m => m.InspectorMode), { ssr: false })
 
 /**
  * The contents rail (2026-10-08) — every box on one sideways scroll.
@@ -56,45 +52,7 @@ export function HomeContents() {
   /** The composer banner over the plate, until the reader dismisses it. */
   const [notice, setNotice] = useState(true)
   const { openMenu } = useSwitchboard()
-  /** The Inspector is on over the page (its card's dialog button, or a held ⌘C). */
-  const [inspecting, setInspecting] = useState(false)
 
-  /**
-   * Long-press ⌘C (Ctrl+C elsewhere) toggles the Inspector from anywhere on
-   * the page — GovBlock's binding (apps/web/components/dev/inspector.tsx),
-   * ported: 600 ms, releasing early cancels, and the default is never
-   * prevented — a quick ⌘C still copies, only a held one toggles this.
-   * GovBlock gates its inspector to dev because it reads React's development
-   * build; this one reads the page's own data-inspect marks, which ship, so
-   * the binding is always live.
-   */
-  useEffect(() => {
-    let timer: number | null = null
-    const cancel = () => {
-      if (timer !== null) window.clearTimeout(timer)
-      timer = null
-    }
-    const down = (e: KeyboardEvent) => {
-      const mod = navigator.platform.startsWith('Mac') ? e.metaKey : e.ctrlKey
-      if (e.key !== 'c' || !mod || e.repeat || timer !== null) return
-      timer = window.setTimeout(() => {
-        timer = null
-        // A toggle, as on GovBlock: the press that opens it closes it.
-        setOpen(null)
-        setInspecting(v => !v)
-      }, 600)
-    }
-    const up = (e: KeyboardEvent) => {
-      if (e.key === 'c' || e.key === 'Meta' || e.key === 'Control') cancel()
-    }
-    document.addEventListener('keydown', down)
-    document.addEventListener('keyup', up)
-    return () => {
-      document.removeEventListener('keydown', down)
-      document.removeEventListener('keyup', up)
-      cancel()
-    }
-  }, [])
 
   const rail = useRef<HTMLDivElement>(null)
   const devFrame = useRef<HTMLDivElement>(null)
@@ -208,12 +166,7 @@ export function HomeContents() {
         card={open}
         onClose={() => setOpen(null)}
         onStep={step}
-        onInspect={() => {
-          setOpen(null)
-          setInspecting(true)
-        }}
       />
-      {inspecting && <InspectorMode onExit={() => setInspecting(false)} />}
     </>
   )
 }

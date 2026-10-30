@@ -4,6 +4,7 @@ import { Geist_Mono, Plus_Jakarta_Sans } from "next/font/google"
 import "@/ui/styles/globals.css"
 import { LoadCurtainGate } from "@/components/load-curtain-gate"
 import { Shell } from "@/components/shell"
+import { DevInspector } from "@/components/dev/inspector"
 import { currentUser } from "@/lib/auth"
 
 const sans = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-sans" })
@@ -27,6 +28,8 @@ export default async function RootLayout({ children, drawer }: LayoutProps<"/">)
         <Shell drawer={drawer} signedIn={!!user} admin={!!user?.admin}>
           {children}
         </Shell>
+        {/* GovBlock's inspector dock, bottom right, in development only (next.config aliases it to a stub otherwise). */}
+        {process.env.NODE_ENV === "development" && <DevInspector />}
       </body>
     </html>
   )

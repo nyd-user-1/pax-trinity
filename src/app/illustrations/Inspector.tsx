@@ -3,7 +3,10 @@
 import { useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import WHERE from "@/lib/inspect-map.json";
-import { SCREENSHOT_TOKENS, tokensOf } from "../InspectorMode";
+/** Anthropic's published cost of a 1920×1080 image on current Claude models. */
+const SCREENSHOT_TOKENS = 2691;
+/** A rough count for a short brief: about four characters to a token. */
+const tokensOf = (text: string) => Math.max(1, Math.ceil(text.length / 4));
 import { cn } from "@/lib/utils";
 import { Chip, MONO, Pane, SERIF, useStage, type Staged } from "./parts";
 
