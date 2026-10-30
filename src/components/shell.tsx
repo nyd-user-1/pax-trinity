@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { ArrowLeft, BadgeCheck, Bell, BookA, BookOpen, Boxes, ChevronDown, ChevronUp, ChevronsUpDown, ClipboardList, Columns2, Columns3, EllipsisVertical, ExternalLink, FileText, Film, FlaskConical, Gauge, House, Inbox, LayoutDashboard, Link2, ListChecks, LogIn, LogOut, MessagesSquare, PanelLeftClose, PanelLeftOpen, Puzzle, Search, Settings, Shield, ShieldCheck, SlidersHorizontal, Star, User2, Users, Video, Vote, X } from "lucide-react"
+import { ArrowLeft, BadgeCheck, Bell, BookA, BookOpen, Boxes, ChevronDown, Clapperboard, ChevronUp, ChevronsUpDown, ClipboardList, Columns2, Columns3, EllipsisVertical, ExternalLink, FileText, Film, FlaskConical, Gauge, House, Inbox, LayoutDashboard, Link2, ListChecks, LogIn, LogOut, MessagesSquare, PanelLeftClose, PanelLeftOpen, Puzzle, Search, Settings, Shield, ShieldCheck, SlidersHorizontal, Star, User2, Users, Video, Vote, X } from "lucide-react"
 
 import dynamic from "next/dynamic"
 import { SidebarChats } from "@/components/sidebar-chats"
@@ -16,6 +16,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { cn } from "@/ui/lib/utils"
 import { whiteButton } from "@/components/white-button"
 import { HOUSEKEEPING_OPEN, HousekeepingTool } from "@/components/housekeeping/tool"
+import { STUDIO_OPEN } from "@/lib/studio"
 import type { ChipOffer } from "@/lib/question-resolver"
 
 // The discussion panel carries the whole chat (markdown, the Remotion player): it loads the first time it opens,
@@ -29,14 +30,15 @@ const DiscussionPanel = dynamic(() => import("@/components/discussion-panel").th
 // as a route, off the sidebar.
 // The pages trinity keeps (the 2026-10-27 kill list, /reports since): every other destination renders in place but
 // goes nowhere. /changelog is unpublished pending Brendan's word, reachable by URL alone.
-const LIVE = new Set(["/", "/chat", "/clips", "/america-thinks", "/inbox", "/survey", "/consensus", "/lift", "/reports", "/message-tests", "/dashboard", "/data-dictionary", "/signin", "/signup"])
+const LIVE = new Set(["/", "/chat", "/clips", "/america-thinks", "/inbox", "/survey", "/consensus", "/lift", "/reports", "/message-tests", "/dashboard", "/data-dictionary", "/studio", "/signin", "/signup"])
 
 type NavLink = { href: string; label: string; icon: typeof House }
 type NavGroup = { label: string; icon: typeof House; children: NavLink[]; admin?: boolean }
 // A to Z (Brendan, 2026-10-23, again 2026-10-29); the Admin group holds the foot.
-// Dashboard joined, and Message tests became Tests (Brendan, 2026-10-29).
+// Dashboard joined, and Message tests became Tests (Brendan, 2026-10-29). Studio joined (Brendan, 2026-10-30).
 const ADMIN = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/studio", label: "Studio", icon: Clapperboard },
   { href: "/message-tests", label: "Tests", icon: ClipboardList },
 ]
 const NAV_TREE: (NavLink | NavGroup)[] = [
@@ -100,6 +102,8 @@ type PanelState = {
   askAbout: (seed: Omit<DiscussSeed, "nonce">) => void
   /** What this page last asked the discussion about. */
   discussSeed: DiscussSeed | null
+  /** The signed-in user is an admin: the Studio and Housekeeping are theirs. */
+  admin: boolean
 }
 /** `nonce` makes asking the same thing twice a second ask. */
 export type DiscussSeed = { context: () => string; chipVideo?: string; ask?: ChipOffer | null; nonce: number }
@@ -107,7 +111,7 @@ export type DiscussSeed = { context: () => string; chipVideo?: string; ask?: Chi
  *  Discussion panel's back arrow before the title; `flush` lets rows run to the panel's edges. */
 export type Aside = { key: string; title: string; body: React.ReactNode; back?: () => void; flush?: boolean }
 export type PanelSize = "third" | "half" | "full" | "custom"
-const PanelCtx = React.createContext<PanelState>({ setOpen: () => {}, wide: false, setWide: () => {}, size: "third", nextSize: "half", cycleSize: () => {}, panelOpen: false, sidebarOpen: false, toggleSidebar: () => {}, discuss: false, toggleDiscuss: () => {}, openAside: () => {}, asideKey: null, askAbout: () => {}, discussSeed: null })
+const PanelCtx = React.createContext<PanelState>({ setOpen: () => {}, wide: false, setWide: () => {}, size: "third", nextSize: "half", cycleSize: () => {}, panelOpen: false, sidebarOpen: false, toggleSidebar: () => {}, discuss: false, toggleDiscuss: () => {}, openAside: () => {}, asideKey: null, askAbout: () => {}, discussSeed: null, admin: false })
 export const useShellPanel = () => React.useContext(PanelCtx)
 
 export function Shell({ children, drawer, signedIn = false, admin = false }: { children: React.ReactNode; drawer: React.ReactNode; signedIn?: boolean; admin?: boolean }) {
@@ -147,14 +151,20 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
       asideKey: aside?.key ?? null,
       askAbout: (s: Omit<DiscussSeed, "nonce">) => (setAside(null), setSeed({ ...s, nonce: Date.now() }), setDiscuss(true)),
       discussSeed: seed,
+      admin,
     }),
-    [wide, size, nextSize, panelOpen, sidebarOpen, discuss, aside?.key, seed],
+    [wide, size, nextSize, panelOpen, sidebarOpen, discuss, aside?.key, seed, admin],
   )
-  // Housekeeping's pointer and page markers open the discussion panel on Housekeeping.
+  // Housekeeping's pointer and page markers open the discussion panel on Housekeeping; a chat video's
+  // Open in Studio opens it on the Studio.
   React.useEffect(() => {
     const open = () => (setAside(null), setDiscuss(true))
     window.addEventListener(HOUSEKEEPING_OPEN, open)
-    return () => window.removeEventListener(HOUSEKEEPING_OPEN, open)
+    window.addEventListener(STUDIO_OPEN, open)
+    return () => {
+      window.removeEventListener(HOUSEKEEPING_OPEN, open)
+      window.removeEventListener(STUDIO_OPEN, open)
+    }
   }, [])
   // The dragged split is remembered between visits, but a panel always opens at the third.
   React.useEffect(() => {
@@ -367,7 +377,8 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
   const paired = open && !takeover
   const closePanel = () => (panelOpen ? router.back() : discuss ? setDiscuss(false) : setAside(null))
   // /chat fills the content card edge to edge, as solar's chat fills its main area; /app/home is the same chat dressed as the home.
-  const full = path === "/" || ["/data-dictionary", "/america-thinks", "/survey", "/lift", "/chat", "/inbox"].some((p) => path.startsWith(p))
+  // /studio's Studio frame does too.
+  const full = path === "/" || ["/data-dictionary", "/america-thinks", "/survey", "/lift", "/chat", "/inbox", "/studio"].some((p) => path.startsWith(p))
   return (
     <PanelCtx.Provider value={panel}>
       <CommandKHost />

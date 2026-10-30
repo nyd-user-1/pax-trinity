@@ -118,6 +118,7 @@ export const ITEMS: CommandItem[] = [
   r("page", "Lift", "Every lift against its placebo", "/lift", "results benchmarks"),
   r("page", "Tests", "Admin", "/message-tests", "message tests setup field kit"),
   r("page", "Reports", "Every report as a card", "/reports"),
+  r("page", "Studio", "Admin", "/studio", "remotion video templates graphics versions"),
   r("page", "Survey", "Toplines and consensus surveys", "/survey"),
 
   // Commands

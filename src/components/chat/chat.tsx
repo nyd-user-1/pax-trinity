@@ -52,19 +52,21 @@ function pieces(content: string): ({ text: string } | { path: string; anchor: st
   if (at < content.length) out.push({ text: content.slice(at) })
   return out
 }
-// A filled video template in a reply: a ```pax-video block holding { templateId, props } as JSON
-// (src/video/gallery.ts writes them). Each draws as a TemplatePlayer where it stands in the prose; a
-// block still streaming in shows nothing until it closes.
+// A filled video template in a reply: a ```pax-video block holding { templateId, props } as JSON, and
+// "parent" when it revises a saved version (the model writes them; so does src/video/gallery.ts). Each
+// draws as a VideoBlock where it stands in the prose; a block still streaming in shows nothing until it closes.
 const VIDEO_BLOCK = /```pax-video\s*\n([\s\S]*?)```/g
-function videoSplit(text: string): ({ text: string } | { video: { templateId: string; props: unknown } | null })[] {
-  const out: ({ text: string } | { video: { templateId: string; props: unknown } | null })[] = []
+type VideoSpec = { templateId: string; props: unknown; parent?: string; title?: string }
+function videoSplit(text: string): ({ text: string } | { video: VideoSpec | null })[] {
+  const out: ({ text: string } | { video: VideoSpec | null })[] = []
   let at = 0
   for (const m of text.matchAll(VIDEO_BLOCK)) {
     if (m.index! > at) out.push({ text: text.slice(at, m.index) })
-    let video: { templateId: string; props: unknown } | null = null
+    let video: VideoSpec | null = null
     try {
-      const v = JSON.parse(m[1]) as { templateId?: unknown; props?: unknown }
-      if (typeof v.templateId === 'string') video = { templateId: v.templateId, props: v.props }
+      const v = JSON.parse(m[1]) as { templateId?: unknown; props?: unknown; parent?: unknown; title?: unknown }
+      if (typeof v.templateId === 'string')
+        video = { templateId: v.templateId, props: v.props, parent: typeof v.parent === 'string' ? v.parent : undefined, title: typeof v.title === 'string' ? v.title : undefined }
     } catch {}
     out.push({ video })
     at = m.index! + m[0].length
@@ -92,7 +94,7 @@ const footageShow = (model?: string): FootageShow | undefined => (model === 'lib
 const brollOf = (m: { model?: string; content: string }) => (m.model === 'library-broll' ? m.content.replace(/```(pax-broll)?/g, '').trim() : null)
 const TextType = dynamic(() => import('@/components/text-type'), { loading: () => <span className="block h-[65px]" /> })
 // Remotion's Player and the templates load the first time a reply carries a video.
-const TemplatePlayer = dynamic(() => import('@/components/video/TemplatePlayer').then((m) => m.TemplatePlayer), { ssr: false, loading: () => <div className="aspect-video w-full animate-pulse rounded-xl bg-white/70" /> })
+const VideoBlock = dynamic(() => import('@/components/chat/video-block').then((m) => m.VideoBlock), { ssr: false, loading: () => <div className="aspect-video w-full animate-pulse rounded-xl bg-white/70" /> })
 const READY = ['Ready to make change?', 'Ready to make a video?', 'Ready to make a storyboard?', 'Ready to make a script?', 'Ready to make a difference?', 'Ready. Set. Go.']
 
 const RECORD_OPENER = "I'm ready to make my first video — where do we start?"
@@ -1208,7 +1210,12 @@ export function Chat({ scripts = [], videos = [], shorts = [], compact = false, 
                         <MarkdownContent key={`${i}-${k}`} content={v.text} isStreaming={msgStreaming} />
                       ) : v.video ? (
                         <div key={`${i}-${k}`} className="my-3">
-                          <TemplatePlayer templateId={v.video.templateId} props={v.video.props} />
+                          <VideoBlock
+                            {...v.video}
+                            chatId={chatId}
+                            // A finished reply's block is saved as a version; the + menu's gallery of samples is not.
+                            saveKey={msg.role === 'assistant' && !msgStreaming && !msg.model?.startsWith('library-') ? `${chatId ?? 'chat'}#${msg.id}#${i}-${k}` : null}
+                          />
                         </div>
                       ) : null,
                     )

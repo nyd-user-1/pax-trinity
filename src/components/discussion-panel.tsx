@@ -1,8 +1,9 @@
 "use client"
 
 import * as React from "react"
-import { ArrowLeft, ChevronRight, Loader2, Columns2, Columns3, LayoutGrid, MessagesSquare, Video, Wrench, X } from "lucide-react"
+import { ArrowLeft, ChevronRight, Clapperboard, Loader2, Columns2, Columns3, LayoutGrid, Maximize2, MessagesSquare, Video, Wrench, X } from "lucide-react"
 import dynamic from "next/dynamic"
+import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 
 import { connections } from "@/app/connect-actions"
@@ -14,29 +15,35 @@ import { setPageBlockDrag, setShelfDrag } from "@/lib/shelf-drag"
 import { cn } from "@/ui/lib/utils"
 import { whiteButton } from "@/components/white-button"
 import { HOUSEKEEPING_OPEN, takeOpen } from "@/components/housekeeping/tool"
+import { STUDIO_OPEN, takeStudio } from "@/lib/studio"
 
 // 44b's DiscussionPanel (components/DiscussionPanel.tsx), cut to five doors: Blocks, Chat, Record, Slack and
 // Discord. Blocks is the shelf after Cloudflare's chat canvas: a handful of shorts, and any block added
 // from a page's block menu. A welcome list of rows; each opens its view in the same panel, with Back to the
-// list, except Record, which opens /recording. Slack and Discord are admins' alone (components/connect-view.tsx).
+// list, except Record, which opens /recording. Slack and Discord are admins' alone (components/connect-view.tsx),
+// and so are Housekeeping and the Studio (Remotion Studio in a frame, opened beside Chat on a video's version).
 // It sits in the shell's right slot in the take panel's frame, so the two read as one panel. It wears the
 // rail's dress (Brendan, 2026-10-29, after America Thinks): the mist ground, its rows the rail's rows.
 
-type View = "welcome" | "blocks" | "chat" | "housekeeping" | "slack" | "discord"
+type View = "welcome" | "blocks" | "chat" | "housekeeping" | "studio" | "slack" | "discord"
 
 // Housekeeping's stream loads when it is opened (components/housekeeping).
 const HousekeepingView = dynamic(() => import("@/components/housekeeping/view").then((m) => m.HousekeepingView), {
   ssr: false,
   loading: () => <Loader2 className="mx-6 my-6 size-5 animate-spin text-pax2-blue" />,
 })
+// The Studio's frame loads when its view is opened, so the panel's first load carries none of it.
+const StudioFrame = dynamic(() => import("@/components/studio-frame").then((m) => m.StudioFrame), { ssr: false })
 
 // The panel moves to its own column when a video's drawer opens beside it (the shell), which remounts
 // it; these keep its place through the move: the view it's on and the shelf tile last opened.
 let keptView: View = "welcome"
 let keptSelected: string | null = null
+/** The composition the Studio view stands on: a chat video's version, or the Studio's own first. */
+let keptStudio: string | null = null
 // The service a Slack or Discord view talks to, named by its logo in the header at every level.
 const LOGO: Partial<Record<View, string>> = { slack: "/logos/slack.png", discord: "/logos/discord-icon.svg" }
-const TITLE: Record<View, string> = { welcome: "Discussion", blocks: "Blocks", chat: "Chat", housekeeping: "Housekeeping", slack: "Slack", discord: "Discord" }
+const TITLE: Record<View, string> = { welcome: "Discussion", blocks: "Blocks", chat: "Chat", housekeeping: "Housekeeping", studio: "Studio", slack: "Slack", discord: "Discord" }
 
 function Row({ icon, label, sub, onClick }: { icon: React.ReactNode; label: string; sub?: string; onClick: () => void }) {
   return (
@@ -236,6 +243,8 @@ export function DiscussionPanel({ onClose: close, admin = false }: { onClose: ()
   // Inside Slack or Discord, the header names the channel or post and its arrow steps back one level.
   const [sub, setSub] = React.useState<Nav>(null)
   const setView = (v: View) => setViewState((keptView = v))
+  const [studio, setStudio] = React.useState<string | null>(keptStudio)
+  const standOn = (id: string | null) => setStudio((keptStudio = id))
   // Housekeeping's pointer or a page marker asked for Housekeeping: open on it, now or as the panel mounts.
   React.useEffect(() => {
     if (!admin) return
@@ -243,6 +252,19 @@ export function DiscussionPanel({ onClose: close, admin = false }: { onClose: ()
     const open = () => (takeOpen(), setViewState((keptView = "housekeeping")))
     window.addEventListener(HOUSEKEEPING_OPEN, open)
     return () => window.removeEventListener(HOUSEKEEPING_OPEN, open)
+  }, [admin])
+  // A chat video's Open in Studio: open the Studio view on its version, now or as the panel mounts.
+  React.useEffect(() => {
+    if (!admin) return
+    const go = () => {
+      const want = takeStudio()
+      if (!want) return
+      standOn(want.id)
+      setViewState((keptView = "studio"))
+    }
+    go()
+    window.addEventListener(STUDIO_OPEN, go)
+    return () => window.removeEventListener(STUDIO_OPEN, go)
   }, [admin])
   // A page asking about itself (the video page's Ask row) opens straight onto the chat.
   React.useEffect(() => {
@@ -252,6 +274,7 @@ export function DiscussionPanel({ onClose: close, admin = false }: { onClose: ()
   const onClose = () => {
     keptView = "welcome"
     keptSelected = null
+    keptStudio = null
     close()
   }
   return (
@@ -270,6 +293,11 @@ export function DiscussionPanel({ onClose: close, admin = false }: { onClose: ()
           <p className="truncate font-display text-xl text-slate-900">{sub?.title ?? TITLE[view]}</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          {view === "studio" && (
+            <Link href={studio ? `/studio?v=${encodeURIComponent(studio)}` : "/studio"} className={whiteButton("circle")} aria-label="Open the Studio full page" title="Open the Studio full page">
+              <Maximize2 className="size-4" />
+            </Link>
+          )}
           <button type="button" onClick={() => setWide(!wide)} className={whiteButton("circle", "hidden md:inline-flex")} aria-label={wide ? "Narrow the panel" : "Widen the panel"}>
             {wide ? <Columns3 className="size-4" /> : <Columns2 className="size-4" />}
           </button>
@@ -284,6 +312,7 @@ export function DiscussionPanel({ onClose: close, admin = false }: { onClose: ()
             <Row icon={<LayoutGrid className="size-4" />} label="Blocks" sub="Shorts and blocks you've saved" onClick={() => setView("blocks")} />
             <Row icon={<MessagesSquare className="size-4" />} label="Chat" sub="Ask about the scores, scripts and results" onClick={() => setView("chat")} />
             {admin && <Row icon={<Wrench className="size-4" />} label="Housekeeping" sub="Comments on the app, and direct messages" onClick={() => setView("housekeeping")} />}
+            {admin && <Row icon={<Clapperboard className="size-4" />} label="Studio" sub="Templates, graphics and saved versions" onClick={() => setView("studio")} />}
             <Row icon={<Video className="size-4" />} label="Record" sub="Write a script, record it or upload a video" onClick={() => router.push("/recording")} />
             {admin && (
               <>
@@ -297,6 +326,7 @@ export function DiscussionPanel({ onClose: close, admin = false }: { onClose: ()
         )}
         {view === "blocks" && <BlocksShelf />}
         {view === "housekeeping" && <HousekeepingView />}
+        {view === "studio" && admin && <StudioFrame id={studio} onMove={standOn} />}
         {view === "chat" && <Chat compact context={discussSeed?.context} chipVideo={discussSeed?.chipVideo} surface={discussSeed?.chipVideo ? "video-panel" : "chat"} explore={!discussSeed?.chipVideo} seedChip={discussSeed?.ask ?? null} seedNonce={discussSeed?.nonce} />}
         {(view === "slack" || view === "discord") && (linked ? <ConnectView key={view} service={view} mock={!linked[view]} onNav={setSub} /> : <Loader2 className="mx-6 my-6 size-5 animate-spin text-pax2-blue" />)}
       </div>
