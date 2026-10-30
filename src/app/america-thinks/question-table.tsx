@@ -361,7 +361,7 @@ function ToplineView({
   children: React.ReactNode
 }) {
   const waves = tab.years.slice(0, TOPLINE_WAVES)
-  const weights = [...new Set(waves.map((y) => weightOf(source, y)).filter((w): w is string => !!w))]
+  const weights = [...new Set(waves.flatMap((y) => weightOf(source, y) ?? []))]
   return (
     <ViewColumn>
       {children}
