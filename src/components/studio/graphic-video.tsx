@@ -1,13 +1,15 @@
 import * as React from "react"
-import { AbsoluteFill, Img, interpolate, OffthreadVideo, Sequence, spring, useCurrentFrame, useVideoConfig } from "remotion"
+import { AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig } from "remotion"
 
-// A relative path, not "@/lib/footage": Remotion Studio registers these graphics too (src/video/studio.tsx),
-// and its webpack has no "@/" alias. footage.ts imports nothing, so it is safe in every bundle.
+// Relative paths, not "@/…": Remotion Studio registers these graphics too (src/video/studio.tsx), and its
+// webpack has no "@/" alias. footage.ts imports nothing, so it is safe in every bundle.
 import { BRAND_PRESETS, FONTS, type Brand, type GraphicKind, type Graphics } from "../../lib/footage"
+import { Backdrop, PLAIN_FIELD } from "../../video/backdrop"
+import { QuestionCard } from "../../video/templates/yes-on-3-card/Card"
 
-// The graphics a script's footage carries, drawn by Remotion at 1080x1920: the checklist card after the
-// team's Question 3 example (a navy panel over the lower half, three white rows with orange checks, an
-// orange footer bar), a callout, a stat card, a quote, an intro and end credits. `backdrop` is the take
+// The graphics a script's footage carries, drawn by Remotion at 1080x1920: the checklist card as the Yes on
+// 3 team ran it in Wave 2 (a blue panel over the lower half, three white rows with orange checks, an orange
+// footer bar), a callout, a stat card, a quote, an intro and end credits. `backdrop` is the take
 // the graphic sits over; without one, a plain field stands in for it. `brand` dresses every graphic (its two
 // colors, its typeface, its logo top left); without one, the Yes on 3 kit. A backdrop that is a video (a
 // recorded take from the Record flow, a short) plays under the graphic; anything else is drawn as a picture.
@@ -31,41 +33,11 @@ function useIn(delay = 0) {
   return spring({ frame: frame - delay, fps, config: { damping: 18, stiffness: 140 } })
 }
 
-function Check() {
-  const { NAVY, ORANGE, FONT } = useBrand()
-  return (
-    <svg width={64} height={64} viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
-      <circle cx={12} cy={12} r={12} fill={ORANGE} />
-      <path d="M6.5 12.5l3.5 3.5 7.5-8" fill="none" stroke="#fff" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
-
+/** The Wave 2 card (src/video/templates/yes-on-3-card/Card.tsx) in the brand's dress. It keeps the rise
+ *  the Enhance flow's previews have always had; the yes-on-3-card template cuts on, as Wave 2 did. */
 function Checklist({ g }: { g: Graphics["checklist"] }) {
   const { NAVY, ORANGE, FONT } = useBrand()
-  const panel = useIn(0)
-  const frame = useCurrentFrame()
-  return (
-    <AbsoluteFill style={{ justifyContent: "flex-end" }}>
-      <div style={{ height: "46%", background: NAVY, transform: `translateY(${(1 - panel) * 100}%)`, padding: "70px 80px", display: "flex", flexDirection: "column", alignItems: "center", gap: 28 }}>
-        <div style={{ color: "#fff", fontFamily: FONT, fontWeight: 900, fontSize: 92, letterSpacing: 1 }}>{g.title}</div>
-        {(g.items ?? []).slice(0, 3).map((item, i) => {
-          const t = interpolate(frame, [10 + i * 6, 22 + i * 6], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
-          return (
-            <div key={i} style={{ width: "100%", background: "#fff", display: "flex", alignItems: "center", gap: 28, padding: "18px 30px", opacity: t, transform: `translateX(${(1 - t) * -60}px)` }}>
-              <Check />
-              <span style={{ color: NAVY, fontFamily: FONT, fontWeight: 900, fontSize: 64 }}>{item}</span>
-            </div>
-          )
-        })}
-        {g.footer && (
-          <div style={{ width: "100%", background: ORANGE, color: "#fff", fontFamily: FONT, fontWeight: 800, fontSize: 46, textAlign: "center", padding: "16px 20px", opacity: interpolate(frame, [32, 42], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) }}>
-            {g.footer}
-          </div>
-        )}
-      </div>
-    </AbsoluteFill>
-  )
+  return <QuestionCard title={g.title} items={g.items ?? []} footer={g.footer || undefined} entrance="rise" look={{ panel: NAVY, accent: ORANGE, font: FONT }} />
 }
 
 function Callout({ g }: { g: Graphics["callout"] }) {
@@ -139,20 +111,12 @@ function End({ g }: { g: Graphics["end"] }) {
   )
 }
 
-const VIDEO = /\.(mp4|webm|mov|m4v)(\?|#|$)/i
-
-/** The take or picture the graphic sits over, filling the frame. */
-function Backdrop({ src }: { src: string }) {
-  const fill = { width: "100%", height: "100%", objectFit: "cover" } as const
-  return <AbsoluteFill>{VIDEO.test(src) ? <OffthreadVideo src={src} style={fill} /> : <Img src={src} style={fill} />}</AbsoluteFill>
-}
-
 export function GraphicVideo({ kind, graphics, backdrop, brand }: GraphicProps) {
   const full = kind === "intro" || kind === "end"
   const b = brand ?? BRAND_PRESETS[0]
   return (
     <BrandCtx.Provider value={b}>
-    <AbsoluteFill style={{ background: backdrop ? "#000" : "linear-gradient(165deg, #cbd5e1 0%, #94a3b8 55%, #475569 100%)" }}>
+    <AbsoluteFill style={{ background: backdrop ? "#000" : PLAIN_FIELD }}>
       {backdrop && !full && <Backdrop src={backdrop} />}
       {kind === "checklist" && <Checklist g={graphics.checklist} />}
       {kind === "callout" && <Callout g={graphics.callout} />}

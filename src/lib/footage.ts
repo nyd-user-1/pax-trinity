@@ -60,12 +60,16 @@ export type BrandFont = "jakarta" | "condensed" | "serif"
 export type Brand = { name: string; logo: string | null; primary: string; accent: string; font: BrandFont }
 
 export const FONTS: Record<BrandFont, { label: string; stack: string }> = {
-  jakarta: { label: "Sans", stack: "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif" },
+  // Plus Jakarta Sans by name where Remotion loads it (Studio, the renderer), and by --font-sans in the app,
+  // where next/font gives it a hashed family; the var keeps a fallback, or the whole list fails without it.
+  jakarta: { label: "Sans", stack: "'Plus Jakarta Sans', var(--font-sans, 'Inter'), system-ui, sans-serif" },
   condensed: { label: "Condensed", stack: "'Arial Narrow', 'Roboto Condensed', 'Helvetica Neue', sans-serif" },
   serif: { label: "Serif", stack: "Georgia, 'Times New Roman', serif" },
 }
 
 export const BRAND_PRESETS: Brand[] = [
-  { name: "Yes on 3", logo: "/logos/channels/UC-rKSUWdEqPmP-UM7yV6Ssw.jpg", primary: "#24398c", accent: "#ea6a24", font: "jakarta" },
+  // The campaign's blue and orange as its Wave 2 cards draw them (Brendan, 2026-10-30): measured from Report 2's
+  // frames and the tested videos, the same two values as src/video/theme.ts YES_ON_3; keep them in step.
+  { name: "Yes on 3", logo: "/logos/channels/UC-rKSUWdEqPmP-UM7yV6Ssw.jpg", primary: "#003486", accent: "#e66026", font: "jakarta" },
   { name: "PAX", logo: null, primary: "#1e3a8a", accent: "#dc2626", font: "jakarta" },
 ]

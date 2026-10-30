@@ -7,7 +7,7 @@ export const videoBlock = (templateId: string, props: unknown) => "```pax-video\
 export function galleryMessage(): string {
   const shown = allSpecs().filter((s) => s.id !== "example")
   return [
-    "Here's every video template I can fill so far, each with real figures from Lift and America Thinks.",
+    "Here's every video template I can fill so far, each filled from Lift, America Thinks or the Yes on 3 campaign's own cards.",
     ...shown.map((s) => `**${s.name}**\n\n${videoBlock(s.id, s.fixture)}`),
   ].join("\n\n")
 }

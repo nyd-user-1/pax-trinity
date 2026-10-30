@@ -45,6 +45,15 @@ export const EMOTIONS = [
   { name: "No strong feeling", color: "#c3c2b7" },
 ] as const
 
+/** The Yes on 3 kit as the campaign's own Wave 2 cards draw it, measured from the frames in Report 2
+ *  (MA message testing, page 18) and the tested videos on the clips CDN: a royal blue panel and row
+ *  type, an orange for the checks and the footer bar. src/lib/footage.ts's Yes on 3 brand carries the
+ *  same two values; keep them in step. */
+export const YES_ON_3 = {
+  blue: "#003486",
+  orange: "#e66026",
+} as const
+
 /** Answer bands on a chart, in order: the brand's blues, then the Lift palette's warm hues. */
 export const BANDS = ["#1e3a8a", "#2563eb", "#60a5fa", "#eb6834", "#eda100", "#c3c2b7"] as const
 

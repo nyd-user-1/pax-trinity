@@ -7,6 +7,7 @@ import { LiftCardComposition } from "./templates/lift-card/Composition"
 import { LiftLeaderboardComposition } from "./templates/lift-leaderboard/Composition"
 import { MetricTrendComposition } from "./templates/metric-trend/Composition"
 import { SurveySplitComposition } from "./templates/survey-split/Composition"
+import { YesOn3CardComposition } from "./templates/yes-on-3-card/Composition"
 
 // Each spec (specs.ts) with the Remotion component that draws it: what
 // TemplatePlayer plays in the page and Root.tsx registers for Studio and the
@@ -20,6 +21,7 @@ const COMPONENTS: Record<string, React.ComponentType<any>> = {
   "lift-leaderboard": LiftLeaderboardComposition,
   "survey-split": SurveySplitComposition,
   "metric-trend": MetricTrendComposition,
+  "yes-on-3-card": YesOn3CardComposition,
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

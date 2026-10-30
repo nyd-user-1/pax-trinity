@@ -6,6 +6,7 @@ import { liftCardSpec } from "./templates/lift-card/spec"
 import { liftLeaderboardSpec } from "./templates/lift-leaderboard/spec"
 import { metricTrendSpec } from "./templates/metric-trend/spec"
 import { surveySplitSpec } from "./templates/survey-split/spec"
+import { yesOn3CardSpec } from "./templates/yes-on-3-card/spec"
 
 // Every template's spec by id: its schema, frame, length and fixture, without
 // its component. Server-safe, so /api/video/render and the chat agent validate
@@ -18,7 +19,7 @@ import { surveySplitSpec } from "./templates/survey-split/spec"
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnySpec = TemplateSpec<any>
 
-const SPECS: AnySpec[] = [exampleSpec, liftCardSpec, liftLeaderboardSpec, surveySplitSpec, metricTrendSpec]
+const SPECS: AnySpec[] = [exampleSpec, liftCardSpec, liftLeaderboardSpec, surveySplitSpec, metricTrendSpec, yesOn3CardSpec]
 
 const BY_ID: Readonly<Record<string, AnySpec>> = Object.fromEntries(SPECS.map((s) => [s.id, s]))
 
