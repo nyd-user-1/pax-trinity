@@ -7,7 +7,7 @@ import { ContentsRail } from "@/components/report-2/contents-rail"
 
 import { Block, Box, Footnote } from "./report-bits"
 import { studyAxis, studyParts, summarySections, waveSections, type ReportPart, type ReportSection } from "./report-doc"
-import { count, dateRange, listed, monthYear } from "./report-math"
+import { count, dateRange, listed } from "./report-math"
 
 // The reports as pages (Brendan, 2026-10-29): each study's executive summary and each wave, and the
 // methodology, each page its sections with their contents in a sticky column at the left, starting
@@ -40,19 +40,17 @@ export function reportCards(): ReportCard[] {
   ]
 }
 
-/** /reports' head: when the latest report was fielded, the title, and what the reports hold. */
+/** /reports' head: the title and what the reports hold. */
 export function ReportsCover() {
   const all = studies()
   const waves = all.flatMap((s) => s.waves)
   if (!waves.length) return null
-  const latest = [...waves].sort((a, b) => a.fielded.end.localeCompare(b.fielded.end))[waves.length - 1]
   const first = all[0].waves[all[0].waves.length - 1]
   const self = first.dimensions.find((d) => d.selfSelected)
   const measured = listed([...first.outcomes.map((o) => o.name), ...(self ? [self.name.replace(/\s*\(.*\)$/, "")] : [])].map((s, i) => (i === 0 ? s : s.charAt(0).toLowerCase() + s.slice(1))))
   return (
     <header className="pb-10">
-      <p className="text-[12px] font-semibold tracking-[0.18em] text-[var(--paper-strong)] uppercase">{monthYear(latest.fielded.end)}</p>
-      <h1 className="mt-3 text-[56px] leading-[1.02] font-semibold tracking-tight text-[var(--paper-strong)]">Reports</h1>
+      <h1 className="text-[56px] leading-[1.02] font-semibold tracking-tight text-[var(--paper-strong)]">Reports</h1>
       <p className="mt-4 text-[20px]">
         <span className="font-semibold">
           {waves.length} {waves.length === 1 ? "wave" : "waves"} · {all.length} {all.length === 1 ? "study" : "studies"}
