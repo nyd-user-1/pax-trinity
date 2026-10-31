@@ -23,6 +23,7 @@ import { Compose, EMPTY_DRAFT, type Draft } from "@/registry/blocks/sidebar-09/c
 import { ComposeWindow } from "@/registry/blocks/sidebar-09/components/compose-window"
 import { TemplateList } from "@/registry/blocks/sidebar-09/components/template-list"
 import type { Template } from "@/lib/agents/templates"
+import { requestOf } from "@/lib/agents/requests"
 import { isReportType, isTrace, reportBody } from "@/lib/agents/report-modes"
 import { attachmentMeta, reportFor, save } from "@/lib/agents/report-pdf"
 import { AttachmentGroup } from "@/registry/blocks/sidebar-09/components/attachment"
@@ -136,19 +137,6 @@ function Tip({ label, children }: { label: string; children: React.ReactNode }) 
 }
 
 /** The skeletons New test and New survey open with. */
-const REQUESTS: Record<"test" | "survey", Pick<Draft, "to" | "subject" | "body">> = {
-  test: {
-    to: ["tracker"],
-    subject: "New test: ",
-    body: "**Test:** ma-wave-3\n\n**Question card:** \n\n**Quota:** per the test\n\n**Close by:** ",
-  },
-  survey: {
-    to: ["tracker"],
-    subject: "New survey: ",
-    body: "**Survey:** open-primaries\n\n**Quota:** \n\n**Close by:** \n\n**Panels to build from it:** ",
-  },
-}
-
 export default function Page() {
   const [threads, setThreads] = React.useState<Thread[]>([])
   const [selected, setSelected] = React.useState<string | null>(null)
@@ -491,7 +479,8 @@ export default function Page() {
 
   // New test and New survey: a request to the Pollster with the fields fielding needs.
   const startRequest = (kind: "test" | "survey") => {
-    setDraft({ ...EMPTY_DRAFT, ...REQUESTS[kind] })
+    const r = requestOf(kind)
+    setDraft({ ...EMPTY_DRAFT, to: [...r.to], subject: r.subject, body: r.body })
     setDraftId(null)
     setPopped(false)
     setSelected(null)
