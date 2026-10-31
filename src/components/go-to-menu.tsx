@@ -3,11 +3,12 @@
 import * as React from "react"
 import { createPortal } from "react-dom"
 import { useRouter } from "next/navigation"
-import { ArrowUpRight, History, Search, Star, type LucideIcon } from "lucide-react"
+import { ArrowUpRight, EllipsisVertical, GripVertical, History, Link2, Search, Star, Trash2, X, type LucideIcon } from "lucide-react"
 
 import { isPanePath } from "@/lib/pane"
 import { useNavFavorites } from "@/lib/nav-favorites"
-import { useNavRecents } from "@/lib/nav-recents"
+import { clearRecents, useNavRecents } from "@/lib/nav-recents"
+import { KebabMenu, MenuRow, MenuSeparator } from "@/components/kebab-menu"
 import { PARTNERS } from "@/lib/roles"
 import { cn } from "@/ui/lib/utils"
 
@@ -41,6 +42,7 @@ export function GoToMenu({ at, pages, current, titleOf, onPane, onClose }: { at:
   const recents = useNavRecents()
   const { favs } = useNavFavorites()
   const [q, setQ] = React.useState("")
+  const input = React.useRef<HTMLInputElement>(null)
   const [active, setActive] = React.useState(0)
   const box = React.useRef<HTMLDivElement>(null)
   const [pos, setPos] = React.useState({ left: at.x, top: at.y })
@@ -84,17 +86,37 @@ export function GoToMenu({ at, pages, current, titleOf, onPane, onClose }: { at:
   }, [at])
 
   React.useEffect(() => {
-    const down = (e: MouseEvent) => !box.current?.contains(e.target as Node) && onClose()
+    const down = (e: MouseEvent) => !box.current?.contains(e.target as Node) && !(e.target as Element).closest?.("[role=menu]") && onClose()
     const away = () => onClose()
+    // Escape closes it wherever focus is; with the kebab's menu open, Escape closes that first.
+    const key = (e: KeyboardEvent) => e.key === "Escape" && !document.querySelector("body > [role=menu]") && onClose()
+    document.addEventListener("keydown", key)
     document.addEventListener("mousedown", down)
     window.addEventListener("resize", away)
     window.addEventListener("blur", away)
     return () => {
+      document.removeEventListener("keydown", key)
       document.removeEventListener("mousedown", down)
       window.removeEventListener("resize", away)
       window.removeEventListener("blur", away)
     }
   }, [onClose])
+
+  // The grip moves the card: pressed, it follows the pointer, held inside the window.
+  const drag = React.useRef<{ dx: number; dy: number } | null>(null)
+  const grip = {
+    onPointerDown: (e: React.PointerEvent) => {
+      e.preventDefault()
+      e.currentTarget.setPointerCapture(e.pointerId)
+      drag.current = { dx: e.clientX - pos.left, dy: e.clientY - pos.top }
+    },
+    onPointerMove: (e: React.PointerEvent) => {
+      if (!drag.current) return
+      const h = box.current?.offsetHeight ?? 0
+      setPos({ left: Math.max(8, Math.min(e.clientX - drag.current.dx, window.innerWidth - WIDTH - 8)), top: Math.max(8, Math.min(e.clientY - drag.current.dy, window.innerHeight - h - 8)) })
+    },
+    onPointerUp: () => (drag.current = null),
+  }
 
   const go = (href: string, pane = false) => {
     onClose()
@@ -103,7 +125,8 @@ export function GoToMenu({ at, pages, current, titleOf, onPane, onClose }: { at:
   }
 
   const onKey = (e: React.KeyboardEvent) => {
-    if (e.key === "Escape") return onClose()
+    // The kebab and its menu keep their own keys.
+    if ((e.target as HTMLElement).closest("button, [role=menu]")) return
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault()
       const n = flat.length
@@ -129,15 +152,29 @@ export function GoToMenu({ at, pages, current, titleOf, onPane, onClose }: { at:
       onKeyDown={onKey}
       onContextMenu={(e) => e.preventDefault()}
       style={{ left: pos.left, top: pos.top, width: WIDTH }}
-      // The model card's shape (settings/blocks.tsx Block, Brendan, 2026-10-31): the tinted frame with the search
-      // on it, and the rows in the white card inside.
-      className="fixed z-[80] rounded-[18px] border border-slate-200 bg-slate-50 p-1 shadow-e3"
+      // The model card's shape (settings/blocks.tsx Block, Brendan, 2026-10-31): the tinted frame titled Nav, as a
+      // question card is titled by what it is, with the inbox rows' grip before it and the three-dot menu opposite;
+      // the search and the rows in the white card inside.
+      className="fixed z-[60] rounded-[18px] border border-slate-200 bg-slate-50 p-1 shadow-e3"
     >
-      <div className="flex items-center gap-2 px-3 pt-2 pb-2.5">
-        <Search className="size-4 shrink-0 text-slate-400" />
-        <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Go to…" aria-label="Go to a page" className="min-w-0 flex-1 bg-transparent text-[15px] font-semibold text-slate-900 outline-none placeholder:font-normal placeholder:text-slate-400" />
+      <div className="flex items-center gap-1.5 pt-1.5 pr-1.5 pb-2 pl-2">
+        <span {...grip} aria-label="Move" title="Move" className="flex size-6 shrink-0 cursor-grab touch-none items-center justify-center text-slate-400 active:cursor-grabbing">
+          <GripVertical className="size-4" />
+        </span>
+        <h3 className="min-w-0 flex-1 text-[15px] font-semibold text-slate-900">Nav</h3>
+        <KebabMenu label="Nav options" width="w-52" trigger={<EllipsisVertical className="size-4" />} triggerClassName="inline-flex size-8 items-center justify-center rounded-md text-slate-800 outline-none hover:bg-foreground/8 hover:text-foreground aria-expanded:bg-foreground/8">
+          <MenuRow icon={<Link2 />} label="Copy this page's link" onClick={() => (void navigator.clipboard.writeText(window.location.href), input.current?.focus())} />
+          <MenuRow icon={<Trash2 />} label="Clear recent pages" disabled={!recents.length} onClick={() => (clearRecents(), input.current?.focus())} />
+          <MenuSeparator />
+          <MenuRow icon={<X />} label="Close" onClick={onClose} />
+        </KebabMenu>
       </div>
-      <div className="no-scrollbar max-h-[min(420px,70vh)] overflow-y-auto rounded-[14px] border border-slate-200 bg-pax2-surface p-1.5 shadow-e1" role="listbox">
+      <div className="overflow-hidden rounded-[14px] border border-slate-200 bg-pax2-surface shadow-e1">
+        <div className="flex items-center gap-2 border-b border-slate-200 px-3 py-2.5">
+          <Search className="size-4 shrink-0 text-slate-400" />
+          <input ref={input} autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Go to…" aria-label="Go to a page" className="min-w-0 flex-1 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400" />
+        </div>
+      <div className="no-scrollbar max-h-[min(380px,64vh)] overflow-y-auto p-1.5" role="listbox">
         {!flat.length && <p className="px-2.5 py-3 text-sm text-slate-500">No page matches.</p>}
         {sections.map((s) => (
           <div key={s.label ?? "hits"} className="pb-1">
@@ -180,6 +217,7 @@ export function GoToMenu({ at, pages, current, titleOf, onPane, onClose }: { at:
             })}
           </div>
         ))}
+      </div>
       </div>
     </div>,
     document.body,

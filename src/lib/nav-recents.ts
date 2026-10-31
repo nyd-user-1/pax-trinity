@@ -28,6 +28,14 @@ export function recordVisit(href: string) {
   window.dispatchEvent(new Event(EVENT))
 }
 
+/** Forget the pages lately visited (Nav's menu). */
+export function clearRecents() {
+  try {
+    localStorage.removeItem(KEY)
+  } catch {}
+  window.dispatchEvent(new Event(EVENT))
+}
+
 export function useNavRecents(): string[] {
   const [recents, setRecents] = React.useState<string[]>([])
   React.useEffect(() => {
