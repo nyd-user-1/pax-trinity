@@ -89,7 +89,7 @@ export function QuestionTable({
   wording: string | null
   about: About | null
   onPick: (a: About) => void
-  /** Present when the list is hidden: the title row's Back. */
+  /** The title row's Back: one layer up, from the full screen to the split, from the split to the rows. */
   onBack?: () => void
   /** The list's search, carried in the title row after the kebab. */
   search?: PaneSearch
@@ -133,9 +133,9 @@ export function QuestionTable({
   // The title row reads the question itself (Brendan, 2026-10-26) and the
   // chevrons changing the open question change it with them.
   const heading = normalizeWording(wording ?? title)
-  // Before the title: Back, where the list is hidden.
+  // Before the title: Back, one layer up.
   const leading = onBack ? (
-    <Button variant="ghost" size="icon-sm" aria-label="Back to the list" title="Back to the list" className="-ml-1.5 shrink-0" onClick={onBack}>
+    <Button variant="ghost" size="icon-sm" aria-label="Back" title="Back" className="-ml-1.5 shrink-0" onClick={onBack}>
       <ArrowLeft className="size-4" />
     </Button>
   ) : undefined

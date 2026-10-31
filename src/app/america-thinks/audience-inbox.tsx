@@ -527,13 +527,16 @@ export function AudienceInbox() {
                 wording={wordingOf(tableMetric)}
                 about={about}
                 onPick={setAbout}
+                // One layer up (Brendan, 2026-10-31): the full screen goes back
+                // to the split, the split back to the rows.
                 onBack={
                   split === "vertical"
-                    ? undefined
-                    : () => {
+                    ? () => {
                         setTableMetric(null)
                         setMode("list")
+                        setSplit("none")
                       }
+                    : () => setSplit("vertical")
                 }
                 aboutLayer={aboutPanel(srcOf(tableMetric), true)}
               />
