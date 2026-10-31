@@ -504,7 +504,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
               {admin && <HousekeepingTool />}
               {/* 44b's DiscussionHeaderButton: the discussion panel opens from every page. */}
               <button type="button" onClick={() => (setAside(null), setDiscuss((v) => !v))} aria-pressed={discuss} aria-label="Open the discussion" className={whiteButton("circle")}>
-                <MessagesSquare className="size-4" style={{ color: "#033882", fill: "#dbe7fa" }} />
+                <MessagesSquare className="size-4 fill-pax2-lavender text-pax2-blue" />
               </button>
             </div>
             <main className={cn("flex-1", full ? "flex min-h-0 flex-col md:overflow-hidden" : "md:overflow-y-auto")} onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 0)}>
@@ -775,7 +775,7 @@ export function AccountMenu() {
   // Signed out, the account chip is simply the way in.
   if (!user)
     return (
-      <Link href={`/signin?next=${encodeURIComponent(path)}`} className="flex w-full items-center gap-2 rounded-full py-1 pl-1 pr-2.5 text-sm font-semibold text-pax2-blue transition-colors hover:bg-pax2-surface/70">
+      <Link href={`/signin?next=${encodeURIComponent(path)}`} className="flex w-full items-center gap-2 rounded-full py-1 pl-1 pr-2.5 text-sm font-semibold text-pax2-blue transition-colors hover:bg-pax2-lift">
         <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-slate-200 text-slate-500"><LogIn className="size-3.5" /></span>
         Log in
       </Link>
@@ -785,7 +785,7 @@ export function AccountMenu() {
   const sub = "min-w-44 rounded-2xl border border-slate-500 bg-pax2-surface p-1.5 shadow-e2 ring-0"
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger aria-label="Account menu" className="flex w-full max-w-full items-center gap-2 rounded-full py-1 pl-1 pr-2.5 text-pax2-blue outline-none transition-colors hover:bg-pax2-surface/70 data-[popup-open]:bg-pax2-surface/70">
+      <DropdownMenuTrigger aria-label="Account menu" className="flex w-full max-w-full items-center gap-2 rounded-full py-1 pl-1 pr-2.5 text-pax2-blue outline-none transition-colors hover:bg-pax2-lift data-[popup-open]:bg-pax2-lift">
         {user ? <Initials name={name} size="sm" /> : <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-slate-200 text-slate-500"><User2 className="size-3.5" /></span>}
         <span className="flex-1 truncate text-left text-sm font-semibold">{name}</span>
         <ChevronsUpDown className="size-3.5 shrink-0 text-slate-400" />
@@ -862,10 +862,10 @@ export function AccountMenu() {
 function AsidePanel({ aside, wide, onWide, onClose }: { aside: Aside; wide: boolean; onWide: (wide: boolean) => void; onClose: () => void }) {
   return (
     <section className="fixed inset-0 z-50 flex flex-col bg-pax2-surface md:static md:z-auto md:h-full md:overflow-hidden md:rounded-2xl md:border md:border-slate-500 md:shadow-e2">
-      <div className="flex min-h-[73px] shrink-0 items-center justify-between gap-3 px-6 py-4">
+      <div className="relative z-10 flex min-h-[73px] shrink-0 items-center justify-between gap-3 px-6 py-4 shadow-[0_4px_12px_-8px_rgb(var(--t-shadow-rgb,15_23_42)/0.25)]">
         <div className="flex min-w-0 items-center gap-2">
           {aside.back && (
-            <button type="button" onClick={aside.back} aria-label="Back" className="-ml-2 flex size-9 shrink-0 items-center justify-center rounded-full text-slate-600 hover:bg-pax2-surface hover:text-pax2-blue">
+            <button type="button" onClick={aside.back} aria-label="Back" className="-ml-2 flex size-9 shrink-0 items-center justify-center rounded-full text-slate-600 hover:bg-pax2-lift hover:text-pax2-blue">
               <ArrowLeft className="size-4" />
             </button>
           )}
@@ -880,7 +880,7 @@ function AsidePanel({ aside, wide, onWide, onClose }: { aside: Aside; wide: bool
           </button>
         </div>
       </div>
-      <div className={cn("min-h-0 flex-1 overflow-y-auto border-t border-slate-200/70", !aside.flush && "px-6 py-5")}>{aside.body}</div>
+      <div className={cn("min-h-0 flex-1 overflow-y-auto", !aside.flush && "px-6 py-5")}>{aside.body}</div>
     </section>
   )
 }

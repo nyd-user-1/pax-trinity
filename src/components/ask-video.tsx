@@ -108,7 +108,7 @@ export function AskVideo({ ytId, title }: { ytId: string; title: string }) {
         onClick={() => askAbout({ context, chipVideo: ytId })}
         className="press flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border border-slate-300 bg-pax2-surface px-4 py-2 text-sm font-medium text-slate-800 shadow-e1 transition-colors hover:border-pax2-light-blue hover:text-pax2-blue"
       >
-        <MessagesSquare className="size-4" style={{ color: '#033882', fill: '#dbe7fa' }} />
+        <MessagesSquare className="size-4 fill-pax2-lavender text-pax2-blue" />
         Ask about this video
       </button>
       {shown === null

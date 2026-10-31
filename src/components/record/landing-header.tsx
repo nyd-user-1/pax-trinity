@@ -50,7 +50,7 @@ export function LandingHeader({ signedIn = false, arriveAt = CURTAIN, signIn = f
             {sidebarOpen ? <PanelLeftClose className="size-4" strokeWidth={2} /> : <PanelLeftOpen className="size-4" strokeWidth={2} />}
           </button>
           <button type="button" onClick={toggleDiscuss} aria-pressed={discuss} aria-label="Open the discussion" className={whiteButton("circle")}>
-            <MessagesSquare className="size-4" style={{ color: "#033882", fill: "#dbe7fa" }} />
+            <MessagesSquare className="size-4 fill-pax2-lavender text-pax2-blue" />
           </button>
         </>
       ) : (

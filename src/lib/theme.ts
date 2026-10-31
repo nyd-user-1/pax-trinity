@@ -6,14 +6,15 @@
 // raised step on a dark), a step down on Light, whose sidebar is already white.
 //
 //   PAX Light  the default: the mist is the main colour, on both; cards lift to white on it.
-//   PAX Dark   PAX's navy: the dark navy of the first dark conversion (sidebar #0b1120, main #121a2b).
+//   PAX Dark   PAX's navy: the dark navy of the first dark conversion (#121a2b).
 //   Light      white is the main colour, on the main container and the sidebar alike.
 //   Dark       the classic dark: one near-black grey on both, zinc's steps.
 //   Vercel     Vercel's near-black and its blue.
-//   VS Code    VS Code's Dark+.
+//   VS Code    VS Code's Dark+ greys, with PAX Dark's blue: Dark+'s own #0e639c could not be read as type.
 //
-// (The sidebar in a different colour from the main container was an earlier experiment; only PAX Dark
-// keeps a darker sidebar, as Brendan's navy had it.)
+// The sidebar and the right panel are the main colour in every theme (Brendan, 2026-10-31): a sidebar in
+// another colour turned everything in it drawn in the main colour (the search box, buttons, hovers) into
+// patches.
 //
 // The theme is data-theme on <html> (and `dark` for the four darks); its sixteen values are set on <html>
 // as --t-* variables, so the theme panel's edits are the same variables changed. THEME_SCRIPT does it in
@@ -65,7 +66,7 @@ export const THEMES: Theme[] = [
     label: "PAX Dark",
     dark: true,
     colors: {
-      frame: "#1d2638", sidebar: "#0b1120", surface: "#121a2b", raised: "#1c2638", tint: "#172033", lift: "#1c2638",
+      frame: "#1d2638", sidebar: "#121a2b", surface: "#121a2b", raised: "#1c2638", tint: "#172033", lift: "#1c2638",
       rule: "#2a3548", ruleStrong: "#3a465a",
       ink: "#eef2f7", ink2: "#b0bbcb", ink3: "#94a1b5", ink4: "#7d8aa0",
       accent: "#3b82f6", accent2: "#60a5fa", wash: "#182c50",
@@ -119,10 +120,10 @@ export const THEMES: Theme[] = [
     label: "VS Code",
     dark: true,
     colors: {
-      frame: "#181818", sidebar: "#252526", surface: "#1e1e1e", raised: "#2d2d30", tint: "#252526", lift: "#37373d",
+      frame: "#181818", sidebar: "#1e1e1e", surface: "#1e1e1e", raised: "#2d2d30", tint: "#252526", lift: "#37373d",
       rule: "#3c3c3c", ruleStrong: "#474747",
       ink: "#d4d4d4", ink2: "#bbbbbb", ink3: "#9d9d9d", ink4: "#858585",
-      accent: "#0e639c", accent2: "#3794ff", wash: "#264f78",
+      accent: "#3b82f6", accent2: "#3794ff", wash: "#1a2d4d",
       positive: "#89d185", negative: "#f48771",
     },
     numbers: { shadow: 5, gridOpacity: 0.12, gridFill: 0.06, gridSpotlight: 0.6 },

@@ -87,7 +87,7 @@ export function ThemeControls() {
 
   const groups = ["Surfaces", "Type", "Lines", "Accent", "Signals"] as const
   return (
-    <div data-theme-controls className="flex min-h-0 flex-1 flex-col border-t border-slate-200">
+    <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex-1 space-y-5 overflow-y-auto px-5 py-4">
         <Section label="Themes" action={<button type="button" onClick={reset} disabled={!edited} className="inline-flex items-center gap-1 text-[11px] font-semibold tracking-wide text-slate-500 uppercase hover:text-slate-900 disabled:opacity-40"><RotateCcw className="size-3" />Reset</button>}>
           <div className="grid grid-cols-2 gap-2">

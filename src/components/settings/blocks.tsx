@@ -141,11 +141,11 @@ export function Passage({ label, children }: { label?: string; children: React.R
 
 export type Tone = "green" | "violet" | "amber" | "slate" | "blue"
 const TONE: Record<Tone, string> = {
-  green: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
-  violet: "bg-violet-50 text-violet-700 ring-violet-600/20",
-  amber: "bg-amber-50 text-amber-800 ring-amber-600/25",
+  green: "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-400/10 dark:text-emerald-300 dark:ring-emerald-400/25",
+  violet: "bg-violet-50 text-violet-700 ring-violet-600/20 dark:bg-violet-400/10 dark:text-violet-300 dark:ring-violet-400/25",
+  amber: "bg-amber-50 text-amber-800 ring-amber-600/25 dark:bg-amber-400/10 dark:text-amber-300 dark:ring-amber-400/25",
   slate: "bg-pax2-surface text-slate-600 ring-slate-300",
-  blue: "bg-pax2-lavender text-pax2-blue ring-pax2-blue/20",
+  blue: "bg-pax2-lavender text-pax2-blue ring-pax2-blue/20 dark:text-pax2-light-blue",
 }
 
 export function Badge({ tone, children }: { tone: Tone; children: React.ReactNode }) {

@@ -222,7 +222,7 @@ export function HousekeepingTool() {
         title="Comment on the page"
         className={whiteButton("circle", on ? "ring-2 ring-pax2-light-blue" : undefined)}
       >
-        <Crosshair className="size-4" style={{ color: "#033882" }} />
+        <Crosshair className="size-4 text-pax2-blue" />
       </button>
       {marks.length > 0 && <Marks marks={marks} />}
     </>

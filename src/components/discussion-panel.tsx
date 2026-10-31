@@ -297,7 +297,7 @@ export function DiscussionPanel({ onClose: close, admin = false }: { onClose: ()
       <div className="relative z-10 flex min-h-[73px] shrink-0 items-center justify-between gap-3 bg-pax2-sidebar px-6 py-4 shadow-[0_4px_12px_-8px_rgb(var(--t-shadow-rgb,15_23_42)/0.25)]">
         <div className="flex min-w-0 items-center gap-2">
           {view !== "welcome" && (
-            <button type="button" onClick={() => (sub ? sub.back() : setView(PARENT[view] ?? "welcome"))} aria-label="Back" className="-ml-2 flex size-9 shrink-0 items-center justify-center rounded-full text-slate-600 hover:bg-pax2-surface hover:text-pax2-blue">
+            <button type="button" onClick={() => (sub ? sub.back() : setView(PARENT[view] ?? "welcome"))} aria-label="Back" className="-ml-2 flex size-9 shrink-0 items-center justify-center rounded-full text-slate-600 hover:bg-pax2-lift hover:text-pax2-blue">
               <ArrowLeft className="size-4" />
             </button>
           )}
@@ -321,7 +321,7 @@ export function DiscussionPanel({ onClose: close, admin = false }: { onClose: ()
           </button>
         </div>
       </div>
-      <div data-panel-body className={cn("flex min-h-0 flex-1 flex-col", view === "welcome" && "overflow-y-auto", view === "chat" && "border-t border-slate-200/70")}>
+      <div className={cn("flex min-h-0 flex-1 flex-col", view === "welcome" && "overflow-y-auto")}>
         {view === "welcome" && (
           <div className="flex flex-col px-3 pt-1">
             <Row icon={<LayoutGrid className="size-4" />} label="Blocks" sub="Shorts and blocks you've saved" onClick={() => setView("blocks")} />
