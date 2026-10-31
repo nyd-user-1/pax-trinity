@@ -99,13 +99,13 @@ export function BankFrame({
   }
   return (
     <TooltipProvider delayDuration={0}>
-      <div className="relative flex h-full min-h-0 w-full overflow-hidden bg-sidebar [--sidebar:var(--pax2-mist)] [--header-height:calc(var(--spacing)*12)]">
+      <div className="relative flex h-full min-h-0 w-full overflow-hidden bg-sidebar [--header-height:calc(var(--spacing)*12)]">
         <ResizablePanelGroup
           orientation="horizontal"
           className={cn("min-h-0 min-w-0 flex-1", sliding && "[&>[data-slot=resizable-panel]]:transition-[flex-grow] [&>[data-slot=resizable-panel]]:duration-300 [&>[data-slot=resizable-panel]]:ease-out")}
         >
           {/* react-resizable-panels v4 reads bare numbers as pixels. 240 and the
-              mist ground: the shell menu's own width (w-60) and colour. The rail
+              sidebar's colour: the shell menu's own width (w-60) and ground. The rail
               holds its width while it slides, clipped rather than rewrapped. */}
           <ResizablePanel
             panelRef={railRef}
@@ -118,14 +118,15 @@ export function BankFrame({
               setRailOpen(size.inPixels > 0)
               if (size.inPixels > 0) opened.current = true
             }}
-            className="flex min-w-0 flex-col overflow-x-hidden! bg-pax2-mist **:data-[slot=sidebar-content]:no-scrollbar"
+            className="flex min-w-0 flex-col overflow-x-hidden! bg-pax2-sidebar **:data-[slot=sidebar-content]:no-scrollbar"
           >
             <div className="flex h-full min-h-0 min-w-48 flex-col">{rail}</div>
           </ResizablePanel>
           <ResizableHandle withHandle className={cn(!railOpen && "pointer-events-none opacity-0")} />
           <ResizablePanel className="min-w-0">
-            {/* The rail tone's mist is the page's background token too, so the sticky table heads below match it. */}
-            <div className={cn("flex h-full min-h-0 flex-col overflow-hidden", tone === "rail" ? "bg-pax2-mist [--background:var(--pax2-mist)]" : "bg-background")}>
+            {/* The main colour in both tones (Brendan, 2026-10-31): the rail tone's mist ground made the page a
+                second colour inside the shell's main container. */}
+            <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background">
               {!bare && (
                 <header className="relative z-10 flex h-(--header-height) shrink-0 items-center gap-2 border-b">
                   <div className="flex w-full min-w-0 items-center gap-1 px-4 lg:gap-2 lg:px-6">

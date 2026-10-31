@@ -191,8 +191,8 @@ export function RowsView({
                   className={cn(
                     "group/row",
                     !r[5] && "bg-muted/40",
-                    onPick && "cursor-pointer transition-[background-color,box-shadow] hover:bg-pax2-raised hover:shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]",
-                    onPick && about?.r === r && "bg-pax2-raised shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]"
+                    onPick && "cursor-pointer transition-[background-color,box-shadow] hover:bg-pax2-lift hover:shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]",
+                    onPick && about?.r === r && "bg-pax2-lift shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]"
                   )}
                 >
                   <td className="border-b px-4 py-2 text-muted-foreground tabular-nums">{c.wave}</td>

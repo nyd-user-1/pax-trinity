@@ -101,7 +101,7 @@ export function RailRow({
   const [over, setOver] = React.useState(false)
   const dress = cn(
     "group relative flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm outline-none transition-[color,background-color,box-shadow]",
-    on ? "bg-pax2-raised font-semibold text-pax2-blue shadow-e1" : "text-slate-500 hover:bg-pax2-raised/70 hover:text-pax2-blue hover:shadow-e1",
+    on ? "bg-pax2-lift font-semibold text-pax2-blue shadow-e1" : "text-slate-500 hover:bg-pax2-lift/70 hover:text-pax2-blue hover:shadow-e1",
     over && "ring-2 ring-pax2-light-blue"
   )
   const dropProps = drop ? {

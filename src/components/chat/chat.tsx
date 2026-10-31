@@ -1088,7 +1088,7 @@ export function Chat({ scripts = [], videos = [], shorts = [], compact = false, 
     // The rail's dress (Brendan, 2026-10-29, after America Thinks): the mist ground, the box and my
     // own turns white and raised on it.
     <div
-      className="relative flex h-full flex-1 flex-col overflow-hidden bg-pax2-mist"
+      className="relative flex h-full flex-1 flex-col overflow-hidden bg-pax2-surface"
       style={SKIN}
       onDragOver={(e) => {
         if (!isShelfDrag(e.dataTransfer)) return
