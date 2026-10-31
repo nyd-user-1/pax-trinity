@@ -321,8 +321,51 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
       <button type="button" onClick={() => setView("grid")} className={cn("flex size-8 items-center justify-center rounded-full", view === "grid" ? "bg-background shadow-sm" : "text-muted-foreground")} aria-label="Grid">
         <LayoutGridIcon className="size-4" />
       </button>
+      {/* Edits and Reports at the switch's end (Brendan, 2026-10-31): the right panel's views of the clip picked. */}
+      <span aria-hidden className="mx-1 h-4 w-px bg-border" />
+      <button type="button" onClick={() => openTools("edits")} className="flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-foreground/8 hover:text-foreground" aria-label="Edits" title="Edits">
+        <SquarePenIcon className="size-4" />
+      </button>
+      <button type="button" onClick={() => openTools("reports")} className="flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-foreground/8 hover:text-foreground" aria-label="Reports" title="Reports">
+        <FileTextIcon className="size-4" />
+      </button>
     </div>
   )
+  // Picking a clip, from a tile, a partner row or the keys: the blue border, the address, and the tile into view.
+  const select = (id: string) => {
+    setActiveId(id)
+    window.history.replaceState(null, "", `/clips?c=${encodeURIComponent(id)}`)
+    document.querySelector(`[data-tile="${CSS.escape(id)}"]`)?.scrollIntoView({ behavior: "smooth", block: "nearest" })
+  }
+  // The keys step the clips (Brendan, 2026-10-31): in the partners list ↑ ↓ a row at a time, the grid following;
+  // in the grid ← → a tile and ↑ ↓ a row of tiles; in the feed, the header's chevrons. Typing, menus and a video
+  // with the focus keep their keys.
+  const keys = React.useRef<(e: KeyboardEvent) => void>(() => {})
+  keys.current = (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey || !clips.length) return
+    if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) return
+    const t = e.target as HTMLElement
+    if (t.closest("input, textarea, select, video, [contenteditable='true'], [role='menu'], [role='dialog']")) return
+    const inList = !!t.closest("[data-partner-list]")
+    if (inList && (e.key === "ArrowLeft" || e.key === "ArrowRight")) return
+    e.preventDefault()
+    const forward = e.key === "ArrowRight" || e.key === "ArrowDown"
+    if (view === "feed" && !inList) return step(forward ? 1 : -1)
+    const tiles = [...document.querySelectorAll<HTMLElement>("[data-tile]")]
+    const cols = inList || !tiles.length ? 1 : Math.max(1, tiles.filter((x) => x.offsetTop === tiles[0]!.offsetTop).length)
+    const by = e.key === "ArrowLeft" || e.key === "ArrowRight" || inList ? 1 : cols
+    const i = clips.findIndex((c) => c.id === activeId)
+    const next = clips[Math.min(clips.length - 1, Math.max(0, (i < 0 ? 0 : i) + (forward ? by : -by)))]!
+    if (view === "feed") {
+      setActiveId(next.id)
+      document.querySelector(`[data-id="${CSS.escape(next.id)}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" })
+    } else select(next.id)
+  }
+  React.useEffect(() => {
+    const on = (e: KeyboardEvent) => keys.current(e)
+    window.addEventListener("keydown", on)
+    return () => window.removeEventListener("keydown", on)
+  }, [])
   // The header's chevrons step through the clips shown (Brendan, 2026-10-31), wrapping at the ends: in the grid the
   // picked tile takes the blue border and comes into view; in the feed the clip scrolls in and plays.
   const step = (d: 1 | -1) => {
@@ -353,7 +396,7 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
                 <MenuRow key={x.id} label={x.name} checked={creator === x.id} onClick={() => setCreator(x.id)} />
               ))}
             >
-              <Creators clips={clipRows} activeId={view === "feed" ? activeId : null} onOpenClip={(id) => { const c = published.find((x) => x.id === id); if (c) goToPost(c) }} />
+              <Creators clips={clipRows} activeId={activeId} onSelect={select} onPlay={(id) => { const c = published.find((x) => x.id === id); if (c) goToPost(c) }} />
             </PanelBlock>
           </div>
         </aside>
@@ -449,7 +492,7 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
                   </Empty>
                 ) : view === "grid" ? (
                   <div className="scrollbar-none min-h-0 flex-1 overflow-y-auto rounded-lg">
-                    <Grid clips={shown} onOpen={goToPost} onSelect={(c) => (setActiveId(c.id), window.history.replaceState(null, "", `/clips?c=${encodeURIComponent(c.id)}`))} activeId={activeId} />
+                    <Grid clips={shown} onOpen={goToPost} onSelect={(c) => select(c.id)} activeId={activeId} />
                   </div>
                 ) : (
                   <Feed clips={shown} activeId={activeId} onActive={setActiveId} muted={muted} onMuted={setMuted} reactions={reactions} className={cn(FEED_HEIGHT[frame], "md:h-auto md:min-h-0 md:flex-1")} />

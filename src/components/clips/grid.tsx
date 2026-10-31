@@ -71,7 +71,7 @@ export function Grid({ clips, onOpen, onSelect, activeId, className }: { clips: 
               type="button"
               aria-label={`Play ${clip.title}`}
               onClick={(e) => (e.stopPropagation(), onOpen(clip))}
-              className="pointer-events-auto flex size-[62px] items-center justify-center rounded-full bg-black/35 transition-[transform,box-shadow] duration-200 ease-out outline-none hover:-translate-y-1 hover:shadow-lg hover:shadow-black/40 focus-visible:ring-2 focus-visible:ring-white"
+              className="pointer-events-auto flex size-[62px] items-center justify-center rounded-full bg-black/35 transition-[transform,box-shadow,background-color] duration-200 ease-out outline-none hover:scale-[1.18] hover:bg-pax2-light-blue/80 hover:shadow-lg hover:shadow-black/40 focus-visible:ring-2 focus-visible:ring-white"
             >
               <PlayIcon className="size-[31px] translate-x-0.5 fill-white text-white" />
             </button>
@@ -81,8 +81,9 @@ export function Grid({ clips, onOpen, onSelect, activeId, className }: { clips: 
               <LockIcon className="size-3" />
             </span>
           )}
-          {/* The 1px blue border (Brendan, 2026-10-31): on hover, and on the clip picked. Drawn over the video. */}
-          <span aria-hidden className={cn("pointer-events-none absolute inset-0 z-10 border transition-colors", clip.id === activeId ? "border-pax2-light-blue" : "border-transparent group-hover:border-pax2-light-blue")} />
+          {/* The blue border (Brendan, 2026-10-31; 3px, the 1px could not be seen): the clip picked, and 2px on hover.
+              Drawn over the video. */}
+          <span aria-hidden className={cn("pointer-events-none absolute inset-0 z-10 transition-colors", clip.id === activeId ? "border-[3px] border-pax2-light-blue shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55)]" : "border-2 border-transparent group-hover:border-pax2-light-blue")} />
         </div>
       ))}
     </div>
