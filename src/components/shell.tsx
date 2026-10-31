@@ -41,7 +41,7 @@ const DiscussionPanel = dynamic(() => import("@/components/discussion-panel").th
 // as a route, off the sidebar.
 // The pages trinity keeps (the 2026-10-27 kill list, /reports since): every other destination renders in place but
 // goes nowhere. /changelog is unpublished pending Brendan's word, reachable by URL alone.
-const LIVE = new Set(["/", "/chat", "/clips", "/america-thinks", "/inbox", "/survey", "/lift", "/reports", "/dashboard", "/data-dictionary", "/studio", "/signin", "/signup"])
+const LIVE = new Set(["/", "/chat", "/clips", "/america-thinks", "/inbox", "/survey", "/lift", "/reports", "/dashboard", "/data-dictionary", "/docs", "/studio", "/signin", "/signup"])
 
 /** `who`: a page not everyone may open shows only to them — "admin" for the admins, "board" for the admins
  *  and the partners (the Delivery Board). */
@@ -63,6 +63,8 @@ const NAV_TREE: (NavLink | NavGroup)[] = [
   { href: "/clips", label: "Clips", icon: Film },
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, who: "board" },
   { href: "/data-dictionary", label: "Data dictionary", icon: BookA },
+  // The help center (Brendan, 2026-10-31), in the sidebar and the page switcher as well as the account menu.
+  { href: "/docs", label: "Docs", icon: BookOpen },
   { href: "/inbox", label: "Inbox", icon: InboxTray },
   { href: "/lift", label: "Lift", icon: FlaskConical },
   { href: "/reports", label: "Reports", icon: FileText },
