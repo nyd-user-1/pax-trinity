@@ -1,14 +1,15 @@
 "use client"
 
 import * as React from "react"
-import { Combobox } from "@base-ui/react/combobox"
-import { ArrowDown, ArrowUp, ChartColumn, ChevronDown, ChevronUp, EllipsisVertical, Grid3x3, ListTree, Table, Tags, Check, CircleDashed, Copy, Download, Folder, Funnel, Info, Loader2, PanelLeftClose, PanelLeftOpen, SeparatorVertical, Share, Spline } from "lucide-react"
+import { ArrowDown, ArrowUp, ChartColumn, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Download, EllipsisVertical, Flag, Info, Loader2, Minus, PlayIcon, Search, SeparatorVertical, Shapes, Share, Star } from "lucide-react"
 
 import { cn } from "@/lib/utils"
-import { BankFrame, BankRail as RailState } from "@/components/bank/bank-frame"
+import { BankFrame, RailToggle } from "@/components/bank/bank-frame"
 import { Reveal } from "@/components/reveal"
 import { BankRail, RailGroup, RailRow } from "@/components/bank/bank-rail"
-import { ViewToggle } from "@/components/bank/pane-bars"
+import { SearchField } from "@/components/bank/pane-bars"
+import { ImportantIcon } from "@/components/bank/marks"
+import { Button } from "@govblock/ui/components/nova/button"
 import { RESULT_SETS } from "@/lib/results"
 import {
   DropdownMenu,
@@ -86,13 +87,8 @@ const FEATURED: Record<string, string[]> = { PAX_TEST: ["DiZoglio", "Matt Wilson
 /** A fielding the results register knows is its wave. */
 const WAVE = new Map(RESULT_SETS.map((s) => [`${s.fielded.start}|${s.fielded.end}`, `Wave ${s.wave}`]))
 
-const plural = (n: number, noun: string) => `${n.toLocaleString("en-US")} ${noun}${n === 1 ? "" : "s"}`
 const toggled = (list: string[], x: string) => (list.includes(x) ? list.filter((y) => y !== x) : [...list, x])
 
-const TOOL = "flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[13px] text-foreground/80 outline-none transition-colors hover:bg-muted hover:text-pax2-blue focus-visible:bg-muted aria-expanded:bg-muted"
-const TOOL_ICON = "size-3.5 text-muted-foreground"
-// The toolbar's words show only where the table is wide (Brendan, 2026-10-31): narrow, its buttons are icons.
-const TOOL_LABEL = "hidden @3xl/tools:inline"
 const TH = "group/th border-b px-3 py-2 text-left text-[13px] font-medium whitespace-nowrap"
 const TD = "border-b px-3 py-2 align-middle text-[13px]"
 const HEAD_ICON = "shrink-0 text-muted-foreground hover:text-foreground aria-expanded:text-foreground"
@@ -124,6 +120,18 @@ export function LiftSurface() {
   const [metricFilter, setMetricFilter] = React.useState<Record<string, "measured" | "significant">>({})
   // The table's bands folded shut (a breakdown such as Education, or a test in the Archive's grouping).
   const [shut, setShut] = React.useState<string[]>([])
+  // The inbox pages' search (Brendan, 2026-10-31): the rail's box, and the toolbar's, opened on its empty run.
+  const [query, setQuery] = React.useState("")
+  const [searching, setSearching] = React.useState(false)
+  // Favorites and Important: treatments starred or flagged on their rows, kept in this browser; the rail's two
+  // rows show only them.
+  const [favorites, setFavorites] = useStoredList("lift:favorites")
+  const [important, setImportant] = useStoredList("lift:important")
+  const [mark, setMark] = React.useState<"fav" | "imp" | null>(null)
+  const marks = React.useMemo(
+    () => ({ fav: favorites, imp: important, toggle: (kind: "fav" | "imp", o: string) => (kind === "fav" ? setFavorites : setImportant)((p) => toggled(p, o)) }),
+    [favorites, important, setFavorites, setImportant]
+  )
   // The Archive's ads under their tests, off until the Content column's filter turns it on.
   const [grouped, setGrouped] = React.useState(() => link.one("g") === "1")
   // The Archive's columns: the trait columns switched on (every coded trait is one), the standing ones switched off.
@@ -226,7 +234,6 @@ export function LiftSurface() {
   const defs = React.useMemo(() => new Map((index?.constructs ?? []).map((c) => [c.construct, c.definition])), [index])
   const geoName = React.useMemo(() => new Map((index?.geographies ?? []).map((g) => [g.code, g.name])), [index])
   const place = React.useCallback((code: string) => geoName.get(code) ?? code, [geoName])
-  const questions = React.useMemo(() => (index?.questions ?? []).filter((q) => q.source in SOURCES), [index])
 
   const rows = files[source]
   const archive = source === "LIFT_ARCHIVE"
@@ -365,8 +372,10 @@ export function LiftSurface() {
     const measured = (o: string) => (read.byOption.get(o) ?? []).filter(keeps)
     // A treatment sorts by its latest entry the metric measured; its entries stay together, latest first.
     const lead = (o: string) => measured(o).map((ek) => read.cell(ek, by, "")?.lift[7]).find((v) => v != null)
+    const q = query.trim().toLowerCase()
     const treatments = read.options
       .filter((o) => chosen.includes(o) && measured(o).length)
+      .filter((o) => (!q || treatmentName(o).toLowerCase().includes(q)) && (mark !== "fav" || favorites.includes(o)) && (mark !== "imp" || important.includes(o)))
       .sort((a, b) => {
         if (by === BY_NAME) return dir * treatmentName(a).localeCompare(treatmentName(b))
         const col = adCol(by)
@@ -417,7 +426,7 @@ export function LiftSurface() {
     const primary = metrics.filter((m) => PRIMARY.has(m)).length
     const emotion = !metricsOff.includes(EMOTION)
     return { metrics, primary, emotion, by, dir, treatments, groups, segCount: groups.reduce((n, g) => n + g.segs.length, 0), axis, scale, spread, segment: !archive, adCols }
-  }, [read, chosen, metricsOff, segsOff, sort, bench, median, archive, colFilter, metricFilter, traitCols, adColsOff])
+  }, [read, chosen, metricsOff, segsOff, sort, bench, median, archive, colFilter, metricFilter, traitCols, adColsOff, query, mark, favorites, important])
 
   const shown = view ? view.treatments.slice(0, depth) : []
   const canLoad = view ? depth < view.treatments.length : false
@@ -512,15 +521,6 @@ export function LiftSurface() {
     window.setTimeout(() => setShared(false), 1400)
   }
 
-  const rail = (
-    <BankRail title="Lift">
-      <RailGroup label="Folders">
-        {Object.entries(SOURCES).map(([key, name]) => (
-          <RailRow key={key} on={source === key} onClick={() => openFolder(key)} pane={`/lift?source=${encodeURIComponent(key)}`} icon={Folder} label={name} count={questions.filter((q) => q.source === key).length || null} />
-        ))}
-      </RailGroup>
-    </BankRail>
-  )
 
   // The toolbar's Filter holds every filter (Brendan, 2026-10-31): the waves, each metric's, each Archive column's.
   const filterCount = (periodsOff.length ? 1 : 0) + Object.keys(metricFilter).length + Object.values(colFilter).filter((v) => v.length).length
@@ -534,268 +534,288 @@ export function LiftSurface() {
     return [...order.keys()].sort((x, y) => order.get(x)!.localeCompare(order.get(y)!))
   }
   const segGroups = read ? [{ dim: null as string | null, name: "Everyone", vals: [null as string | null] }, ...[...read.dims].map(([d, vs]) => ({ dim: d as string | null, name: dimLabel(d), vals: vs as (string | null)[] }))] : []
+  // The table's rows in reading order, for the toolbar's arrows: the Archive's test bands, else each breakdown's
+  // segments under each treatment, skipping folded bands.
+  const order = React.useMemo(() => {
+    if (!view || !read) return [] as { o: string; s: Seg }[]
+    if (grouped && archive) {
+      const tests = new Map<string, string[]>()
+      for (const ek of shown) {
+        const id = optionOf(ek).match(/\(study ([^)]+)\)/)?.[1] ?? ""
+        tests.set(id, [...(tests.get(id) ?? []), ek])
+      }
+      return [...tests].filter(([id]) => !shut.includes(`test:${id}`)).flatMap(([, eks]) => eks.map((o) => ({ o, s: EVERYONE })))
+    }
+    return view.groups.flatMap((g) => (g.dim && shut.includes(`seg:${g.dim}`) ? [] : shown.flatMap((o) => g.segs.filter((s) => view.metrics.some((m) => read.cell(o, m, s.key))).map((s) => ({ o, s })))))
+  }, [view, read, shown, grouped, archive, shut])
+  // The arrows step the open analysis to the row before or after it with the same metric (Brendan, 2026-10-31).
+  const neighbor = (dir: 1 | -1) => {
+    if (!about || !read) return null
+    const at = order.findIndex((r) => r.o === about.entry && r.s.key === about.seg)
+    if (at < 0) return null
+    for (let j = at + dir; j >= 0 && j < order.length; j += dir) {
+      const c = read.cell(order[j].o, about.metric, order[j].s.key)
+      if (c) return { ...order[j], c }
+    }
+    return null
+  }
+  const step = (dir: 1 | -1) => {
+    const n = neighbor(dir)
+    if (n && about) setAbout({ option: optionOf(n.o), entry: n.o, metric: about.metric, seg: n.s.key, segName: n.s.name, cell: n.c })
+  }
+
+  // The inbox pages' toolbar (Brendan, 2026-10-31): the menu, the rail's toggle, the search its empty run opens,
+  // and the arrows. Treatments, Metrics and Segments are the rail's; View, Sort, Filter, Share, Download and Refresh
+  // the menu's.
   const toolbar = (
-    // 61px, so its rule lines up with the right panel's under its tabs (16px above and below them).
-    <div className="@container/tools flex h-[61px] shrink-0 items-center gap-0.5 border-b px-3">
-      <SidebarToggle />
-      <span aria-hidden className="mx-1 h-4 w-px bg-border" />
-      <TreatmentPicker options={read?.options ?? []} chosen={chosen} onChosen={setPicked} count={view ? new Set(view.treatments.map(optionOf)).size : 0} disabled={!read} />
-      <span aria-hidden className="mx-1 h-4 w-px bg-border" />
-
+    <div
+      className={cn("flex h-[52px] shrink-0 items-center gap-1 border-b px-3", !(searching || query) && "cursor-text")}
+      onClick={(event) => {
+        const target = event.target as HTMLElement
+        if (event.currentTarget.contains(target) && !target.closest("button, [data-keep]")) setSearching(true)
+      }}
+    >
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button type="button" className={TOOL} disabled={!read} title={plural((view?.metrics.length ?? 0) + (view?.emotion ? 1 : 0), "Metric")}>
-            <Spline className={TOOL_ICON} />
-            <span className={TOOL_LABEL}>{plural((view?.metrics.length ?? 0) + (view?.emotion ? 1 : 0), "Metric")}</span>
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="max-h-[28rem] w-max min-w-48 overflow-y-auto">
-          {(read?.metrics ?? []).map((m, i, all) => (
-            <React.Fragment key={m}>
-              {(i === 0 || PRIMARY.has(all[i - 1]) !== PRIMARY.has(m)) && <DropdownMenuLabel className="text-xs text-muted-foreground">{PRIMARY.has(m) ? "Primary" : "Secondary"}</DropdownMenuLabel>}
-              <DropdownMenuCheckboxItem checked={!metricsOff.includes(m)} onSelect={(e) => e.preventDefault()} onCheckedChange={() => setMetricsOff((prev) => toggled(prev, m))}>
-                {metricShort(m)}
-              </DropdownMenuCheckboxItem>
-            </React.Fragment>
-          ))}
-          <DropdownMenuLabel className="text-xs text-muted-foreground">Emotion</DropdownMenuLabel>
-          <DropdownMenuCheckboxItem checked={!metricsOff.includes(EMOTION)} onSelect={(e) => e.preventDefault()} onCheckedChange={() => setMetricsOff((prev) => toggled(prev, EMOTION))}>
-            {archive ? "Emotional appeal" : "Emotional response"}
-          </DropdownMenuCheckboxItem>
-          {archive && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel className="text-xs text-muted-foreground">Traits</DropdownMenuLabel>
-              {AD_COLUMNS.map((c) => (
-                <DropdownMenuCheckboxItem key={c.key} checked={!adColsOff.includes(c.key)} onSelect={(e) => e.preventDefault()} onCheckedChange={() => setAdColsOff((prev) => toggled(prev, c.key))}>
-                  {c.name}
-                </DropdownMenuCheckboxItem>
-              ))}
-              {TRAIT_COLUMNS.map((g) => (
-                <React.Fragment key={g.group}>
-                  <DropdownMenuLabel className="pt-2 text-[11px] font-normal text-muted-foreground">{g.group}</DropdownMenuLabel>
-                  {g.columns.map((c) => (
-                    <DropdownMenuCheckboxItem key={c.key} checked={traitCols.includes(c.key)} onSelect={(e) => e.preventDefault()} onCheckedChange={() => setTraitCols((prev) => toggled(prev, c.key))}>
-                      {c.name}
-                    </DropdownMenuCheckboxItem>
-                  ))}
-                </React.Fragment>
-              ))}
-            </>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      <span aria-hidden className="mx-1 h-4 w-px bg-border" />
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button type="button" className={TOOL} disabled={!read} title={plural(view?.segCount ?? 0, "Segment")}>
-            <CircleDashed className={TOOL_ICON} />
-            <span className={TOOL_LABEL}>{plural(view?.segCount ?? 0, "Segment")}</span>
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="max-h-[28rem] w-max min-w-56 overflow-y-auto">
-          <DropdownMenuItem
-            onSelect={(e) => {
-              e.preventDefault()
-              setSegsOff([])
-            }}
-          >
-            Show all
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onSelect={(e) => {
-              e.preventDefault()
-              setSegsOff(segGroups.flatMap((g) => (g.dim ? g.vals.map((v) => segKey(g.dim, v)) : [])))
-            }}
-          >
-            Everyone only
-          </DropdownMenuItem>
-          {segGroups.map((g) => {
-            const keys = g.vals.map((v) => segKey(g.dim, v))
-            const on = keys.filter((k) => !segsOff.includes(k)).length
-            return (
-              <React.Fragment key={g.dim ?? ""}>
-                <DropdownMenuSeparator />
-                {g.dim && (
-                  <DropdownMenuCheckboxItem
-                    checked={on === keys.length ? true : on ? "indeterminate" : false}
-                    onSelect={(e) => e.preventDefault()}
-                    onCheckedChange={() => setSegsOff((prev) => (on === keys.length ? [...new Set([...prev, ...keys])] : prev.filter((k) => !keys.includes(k))))}
-                    className="font-medium"
-                  >
-                    {g.name}
-                  </DropdownMenuCheckboxItem>
-                )}
-                {g.vals.map((v) => {
-                  const k = segKey(g.dim, v)
-                  return (
-                    <DropdownMenuCheckboxItem key={k} checked={!segsOff.includes(k)} onSelect={(e) => e.preventDefault()} onCheckedChange={() => setSegsOff((prev) => toggled(prev, k))} className={cn(g.dim && "pl-12")}>
-                      {v ?? "Everyone"}
-                    </DropdownMenuCheckboxItem>
-                  )
-                })}
-              </React.Fragment>
-            )
-          })}
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      <span aria-hidden className="mx-1 h-4 w-px bg-border" />
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button type="button" className={TOOL} disabled={!read}>
-            <Funnel className={TOOL_ICON} />
-            {filterCount ? plural(filterCount, "Filter") : "Filter"}
-          </button>
+          <Button variant="ghost" size="icon-sm" aria-label="More" disabled={!read}>
+            <EllipsisVertical className="size-4" />
+          </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-max min-w-52">
-          {(read?.periods ?? []).map((p) => (
-            <DropdownMenuCheckboxItem key={p.key} checked={!periodsOff.includes(p.key)} onSelect={(e) => e.preventDefault()} onCheckedChange={() => setPeriodsOff((prev) => toggled(prev, p.key))}>
-              <span className="flex-1">{p.name}</span>
-              {p.name !== p.dates && <span className="ml-4 text-xs text-muted-foreground">{p.dates}</span>}
-            </DropdownMenuCheckboxItem>
-          ))}
-          {/* Each metric's filter and each Archive column's, which were funnels in the column heads. */}
-          {!!view?.metrics.length && <DropdownMenuSeparator />}
-          {view?.metrics.map((m) => (
-            <DropdownMenuSub key={m}>
+          <DropdownMenuLabel className="text-xs text-muted-foreground">View</DropdownMenuLabel>
+          <DropdownMenuRadioGroup value={shownDisplay} onValueChange={(v) => setDisplay(v as "bars" | "heatmap" | "attributes")}>
+            <DropdownMenuRadioItem value="bars">{archive ? "Traits" : "Table"}</DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="heatmap">Heatmap</DropdownMenuRadioItem>
+            {archive && <DropdownMenuRadioItem value="attributes">Attributes</DropdownMenuRadioItem>}
+          </DropdownMenuRadioGroup>
+          {shownDisplay === "heatmap" && (
+            <DropdownMenuSub>
               <DropdownMenuSubTrigger>
-                <span className="flex-1">{metricShort(m)}</span>
-                {metricFilter[m] && <span className="ml-4 text-xs text-muted-foreground">{metricFilter[m] === "measured" ? "Measured" : "Clears its test"}</span>}
+                <span className="flex-1">Benchmark</span>
+                <span className="ml-4 text-xs text-muted-foreground">{bench ? "All tests (Median)" : "None"}</span>
               </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className="w-max min-w-44">
-                <DropdownMenuRadioGroup
-                  value={metricFilter[m] ?? "all"}
-                  onValueChange={(v) =>
-                    setMetricFilter((p) => {
-                      const next = { ...p }
-                      if (v === "all") delete next[m]
-                      else next[m] = v as "measured" | "significant"
-                      return next
-                    })
-                  }
-                >
-                  <DropdownMenuRadioItem value="all">All</DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="measured">Measured</DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="significant">Clears its test</DropdownMenuRadioItem>
+              <DropdownMenuSubContent className="w-max min-w-52">
+                <DropdownMenuRadioGroup value={bench ? "median" : "none"} onValueChange={(v) => setBench(v === "median")}>
+                  <DropdownMenuRadioItem value="median">All tests (Median)</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="none">No benchmark</DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
               </DropdownMenuSubContent>
             </DropdownMenuSub>
-          ))}
-          {!!view?.adCols.length && <DropdownMenuSeparator />}
-          {view?.adCols.map((c) => {
-            const off = colFilter[c.key] ?? []
-            return (
-              <DropdownMenuSub key={c.key}>
-                <DropdownMenuSubTrigger>
-                  <span className="flex-1">{c.name}</span>
-                  {off.length > 0 && <span className="ml-4 text-xs text-muted-foreground">{off.length} hidden</span>}
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent className="max-h-80 w-max min-w-44 overflow-y-auto">
-                  <DropdownMenuItem
-                    onSelect={(e) => {
-                      e.preventDefault()
-                      setColFilter((p) => ({ ...p, [c.key]: [] }))
-                    }}
-                  >
-                    Show all
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  {adValues(c).map((v) => (
-                    <DropdownMenuCheckboxItem key={v} checked={!off.includes(v)} onSelect={(e) => e.preventDefault()} onCheckedChange={() => setColFilter((p) => ({ ...p, [c.key]: toggled(p[c.key] ?? [], v) }))}>
-                      {v}
-                    </DropdownMenuCheckboxItem>
-                  ))}
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
-            )
-          })}
-          {archive && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuCheckboxItem checked={grouped} onSelect={(e) => e.preventDefault()} onCheckedChange={() => setGrouped((g) => !g)}>
-                Group by test
-              </DropdownMenuCheckboxItem>
-            </>
           )}
+          <DropdownMenuSeparator />
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              <span className="flex-1">Sort by</span>
+              <span className="ml-4 text-xs text-muted-foreground">{view ? (view.by === BY_NAME ? "Treatment name" : metricShort(view.by)) : ""}</span>
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="w-max min-w-48">
+              <DropdownMenuRadioGroup value={view?.by ?? BY_NAME} onValueChange={(by) => setSort({ by, dir: by === BY_NAME ? 1 : -1 })}>
+                {(view?.metrics ?? []).map((m) => (
+                  <DropdownMenuRadioItem key={m} value={m}>
+                    {metricShort(m)}
+                  </DropdownMenuRadioItem>
+                ))}
+                <DropdownMenuRadioItem value={BY_NAME}>Treatment name</DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              <span className="flex-1">Filter</span>
+              {filterCount > 0 && <span className="ml-4 text-xs text-muted-foreground">{filterCount} on</span>}
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="w-max min-w-52">
+                {(read?.periods ?? []).map((p) => (
+                  <DropdownMenuCheckboxItem key={p.key} checked={!periodsOff.includes(p.key)} onSelect={(e) => e.preventDefault()} onCheckedChange={() => setPeriodsOff((prev) => toggled(prev, p.key))}>
+                    <span className="flex-1">{p.name}</span>
+                    {p.name !== p.dates && <span className="ml-4 text-xs text-muted-foreground">{p.dates}</span>}
+                  </DropdownMenuCheckboxItem>
+                ))}
+                {/* Each metric's filter and each Archive column's, which were funnels in the column heads. */}
+                {!!view?.metrics.length && <DropdownMenuSeparator />}
+                {view?.metrics.map((m) => (
+                  <DropdownMenuSub key={m}>
+                    <DropdownMenuSubTrigger>
+                      <span className="flex-1">{metricShort(m)}</span>
+                      {metricFilter[m] && <span className="ml-4 text-xs text-muted-foreground">{metricFilter[m] === "measured" ? "Measured" : "Clears its test"}</span>}
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent className="w-max min-w-44">
+                      <DropdownMenuRadioGroup
+                        value={metricFilter[m] ?? "all"}
+                        onValueChange={(v) =>
+                          setMetricFilter((p) => {
+                            const next = { ...p }
+                            if (v === "all") delete next[m]
+                            else next[m] = v as "measured" | "significant"
+                            return next
+                          })
+                        }
+                      >
+                        <DropdownMenuRadioItem value="all">All</DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem value="measured">Measured</DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem value="significant">Clears its test</DropdownMenuRadioItem>
+                      </DropdownMenuRadioGroup>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                ))}
+                {!!view?.adCols.length && <DropdownMenuSeparator />}
+                {view?.adCols.map((c) => {
+                  const off = colFilter[c.key] ?? []
+                  return (
+                    <DropdownMenuSub key={c.key}>
+                      <DropdownMenuSubTrigger>
+                        <span className="flex-1">{c.name}</span>
+                        {off.length > 0 && <span className="ml-4 text-xs text-muted-foreground">{off.length} hidden</span>}
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent className="max-h-80 w-max min-w-44 overflow-y-auto">
+                        <DropdownMenuItem
+                          onSelect={(e) => {
+                            e.preventDefault()
+                            setColFilter((p) => ({ ...p, [c.key]: [] }))
+                          }}
+                        >
+                          Show all
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        {adValues(c).map((v) => (
+                          <DropdownMenuCheckboxItem key={v} checked={!off.includes(v)} onSelect={(e) => e.preventDefault()} onCheckedChange={() => setColFilter((p) => ({ ...p, [c.key]: toggled(p[c.key] ?? [], v) }))}>
+                            {v}
+                          </DropdownMenuCheckboxItem>
+                        ))}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+                  )
+                })}
+                {archive && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuCheckboxItem checked={grouped} onSelect={(e) => e.preventDefault()} onCheckedChange={() => setGrouped((g) => !g)}>
+                      Group by test
+                    </DropdownMenuCheckboxItem>
+                  </>
+                )}
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={share}>
+            <Share />
+            {shared ? "Link copied" : "Share"}
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={download} disabled={!view}>
+            <Download />
+            Download
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onSelect={() => {
+              setError(null)
+              setFiles((prev) => Object.fromEntries(Object.entries(prev).filter(([key]) => key !== source)))
+            }}
+          >
+            Refresh
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-
-      {shownDisplay === "heatmap" && (
-        <>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button type="button" className={TOOL} disabled={!read}>
-                <ChartColumn className={TOOL_ICON} />
-                {bench ? "All tests (Median)" : "No benchmark"}
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-max min-w-52">
-              <DropdownMenuRadioGroup value={bench ? "median" : "none"} onValueChange={(v) => setBench(v === "median")}>
-                <DropdownMenuRadioItem value="median">All tests (Median)</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="none">No benchmark</DropdownMenuRadioItem>
-              </DropdownMenuRadioGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <HeatKey center={bench ? "median" : "zero"} />
-        </>
+      <RailToggle />
+      {(searching || query) && (
+        <div className="min-w-0 flex-1">
+          <SearchField query={query} onQuery={setQuery} placeholder="Search treatments…" autoFocus={searching} onClose={() => (setQuery(""), setSearching(false))} />
+        </div>
       )}
-
-      <div className="ml-auto flex items-center gap-0.5">
-        <span className="mr-1">
-          {/* Icons (Brendan, 2026-10-31): Table (was Bars), Heatmap; the Archive's Traits and Attributes. */}
-          <ViewToggle
-            views={[
-              { value: "bars" as const, label: archive ? "Traits" : "Table", icon: archive ? Tags : Table },
-              { value: "heatmap" as const, label: "Heatmap", icon: Grid3x3 },
-              ...(archive ? [{ value: "attributes" as const, label: "Attributes", icon: ListTree }] : []),
-            ]}
-            value={shownDisplay}
-            onChange={setDisplay}
-          />
+      {shownDisplay === "heatmap" && (
+        <span data-keep className="ml-2 cursor-default">
+          <HeatKey center={bench ? "median" : "zero"} />
         </span>
-        {/* Sort, Share, Download and Refresh in the three-dot menu (Brendan, 2026-10-31). */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button type="button" className={cn(TOOL, "px-1.5")} aria-label="Table options" title="Table options">
-              <EllipsisVertical className="size-4" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-max min-w-48">
-            <DropdownMenuLabel className="text-xs text-muted-foreground">Sort by</DropdownMenuLabel>
-            <DropdownMenuRadioGroup value={view?.by ?? BY_NAME} onValueChange={(by) => setSort({ by, dir: by === BY_NAME ? 1 : -1 })}>
-              {(view?.metrics ?? []).map((m) => (
-                <DropdownMenuRadioItem key={m} value={m} disabled={!view}>
-                  {metricShort(m)}
-                </DropdownMenuRadioItem>
-              ))}
-              <DropdownMenuRadioItem value={BY_NAME} disabled={!view}>
-                Treatment name
-              </DropdownMenuRadioItem>
-            </DropdownMenuRadioGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={share}>
-              <Share />
-              {shared ? "Link copied" : "Share"}
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={download} disabled={!view}>
-              <Download />
-              Download
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onSelect={() => {
-                setError(null)
-                setFiles((prev) => Object.fromEntries(Object.entries(prev).filter(([key]) => key !== source)))
-              }}
-            >
-              Refresh
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+      )}
+      <div className="ml-auto flex items-center gap-1">
+        <Button variant="ghost" size="icon-sm" aria-label="Previous" disabled={!neighbor(-1)} onClick={() => step(-1)}>
+          <ChevronLeft className="size-4" />
+        </Button>
+        <Button variant="ghost" size="icon-sm" aria-label="Next" disabled={!neighbor(1)} onClick={() => step(1)}>
+          <ChevronRight className="size-4" />
+        </Button>
       </div>
     </div>
+  )
+
+  // America Thinks' rail (Brendan, 2026-10-31): its search, the folders, Favorites and Important, then the header's
+  // old menus as checklists: Treatments, Metrics and Segments, all checked to start, each row on or off.
+  const railSearch = (
+    <div className="flex h-9 items-center gap-2 rounded-full border border-slate-200 bg-pax2-surface px-3 shadow-e1 transition-colors focus-within:border-slate-300">
+      <Search className="size-4 shrink-0 text-slate-400" />
+      <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search…" aria-label="Search treatments" className="w-full min-w-0 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400" />
+      <span aria-hidden className="flex shrink-0 gap-1">
+        <kbd className="rounded-md border border-slate-200 bg-pax2-mist px-1.5 py-0.5 text-[11px] text-slate-500">⌘</kbd>
+        <kbd className="rounded-md border border-slate-200 bg-pax2-mist px-1.5 py-0.5 text-[11px] text-slate-500">K</kbd>
+      </span>
+    </div>
+  )
+  const options = read?.options ?? []
+  const rail = (
+    <BankRail header={railSearch}>
+      <RailGroup>
+        {Object.entries(SOURCES).map(([key, name]) => (
+          <RailRow key={key} on={source === key && !mark} onClick={() => (setMark(null), openFolder(key))} pane={`/lift?source=${encodeURIComponent(key)}`} icon={Shapes} label={name} />
+        ))}
+        <RailRow on={mark === "fav"} onClick={() => setMark((m) => (m === "fav" ? null : "fav"))} icon={Star} label="Favorites" count={favorites.length} />
+        <RailRow on={mark === "imp"} onClick={() => setMark((m) => (m === "imp" ? null : "imp"))} icon={Flag} label="Important" count={important.length} />
+      </RailGroup>
+      <RailGroup label="Treatments" collapsible defaultOpen={false} maxRows={12}>
+        {options.map((o) => (
+          <RailCheck key={o} on={chosen.includes(o)} onToggle={() => setPicked(toggled(chosen, o))} lead={<Thumb o={o} />} label={treatmentName(o)} />
+        ))}
+        <RailActions actions={[["Show all", () => setPicked(options)], ["Hide all", () => setPicked([])]]} />
+      </RailGroup>
+      <RailGroup label="Metrics" collapsible defaultOpen={false}>
+        {(read?.metrics ?? []).map((m, i, all) => (
+          <React.Fragment key={m}>
+            {(i === 0 || PRIMARY.has(all[i - 1]) !== PRIMARY.has(m)) && <RailLabel>{PRIMARY.has(m) ? "Primary" : "Secondary"}</RailLabel>}
+            <RailCheck on={!metricsOff.includes(m)} onToggle={() => setMetricsOff((prev) => toggled(prev, m))} label={metricShort(m)} />
+          </React.Fragment>
+        ))}
+        <RailLabel>Emotion</RailLabel>
+        <RailCheck on={!metricsOff.includes(EMOTION)} onToggle={() => setMetricsOff((prev) => toggled(prev, EMOTION))} label={archive ? "Emotional appeal" : "Emotional response"} />
+        {archive && (
+          <>
+            <RailLabel>Traits</RailLabel>
+            {AD_COLUMNS.map((c) => (
+              <RailCheck key={c.key} on={!adColsOff.includes(c.key)} onToggle={() => setAdColsOff((prev) => toggled(prev, c.key))} label={c.name} />
+            ))}
+            {TRAIT_COLUMNS.map((g) => (
+              <React.Fragment key={g.group}>
+                <RailLabel>{g.group}</RailLabel>
+                {g.columns.map((c) => (
+                  <RailCheck key={c.key} on={traitCols.includes(c.key)} onToggle={() => setTraitCols((prev) => toggled(prev, c.key))} label={c.name} />
+                ))}
+              </React.Fragment>
+            ))}
+          </>
+        )}
+      </RailGroup>
+      <RailGroup label="Segments" collapsible defaultOpen={false} maxRows={12}>
+        <RailActions actions={[["Show all", () => setSegsOff([])], ["Everyone only", () => setSegsOff(segGroups.flatMap((g) => (g.dim ? g.vals.map((v) => segKey(g.dim, v)) : [])))]]} />
+        {segGroups.map((g) => {
+          const keys = g.vals.map((v) => segKey(g.dim, v))
+          const on = keys.filter((k) => !segsOff.includes(k)).length
+          return (
+            <React.Fragment key={g.dim ?? ""}>
+              {g.dim && (
+                <RailCheck
+                  on={on === keys.length ? true : on ? "mixed" : false}
+                  onToggle={() => setSegsOff((prev) => (on === keys.length ? [...new Set([...prev, ...keys])] : prev.filter((k) => !keys.includes(k))))}
+                  label={g.name}
+                  strong
+                />
+              )}
+              {g.vals.map((v) => {
+                const k = segKey(g.dim, v)
+                return <RailCheck key={k} on={!segsOff.includes(k)} onToggle={() => setSegsOff((prev) => toggled(prev, k))} label={v ?? "Everyone"} indent={!!g.dim} />
+              })}
+            </React.Fragment>
+          )
+        })}
+      </RailGroup>
+    </BankRail>
   )
 
   const ariaSort = (by: string) => (view?.by === by ? (view.dir === 1 ? "ascending" : "descending") : undefined)
@@ -1162,6 +1182,7 @@ export function LiftSurface() {
   const table = shownDisplay === "attributes" ? attributesTable : shownDisplay === "heatmap" ? heatTable : barsTable
 
   return (
+    <Marks.Provider value={marks}>
     <BankFrame rail={rail} crumb="Lift" search={NO_SEARCH} bare railDefaultOpen={false}>
       <div className="flex h-full min-h-0 flex-col">
         {toolbar}
@@ -1183,6 +1204,7 @@ export function LiftSurface() {
         </div>
       </div>
     </BankFrame>
+    </Marks.Provider>
   )
 }
 
@@ -1197,62 +1219,30 @@ function BandToggle({ label, shut, onToggle }: { label: string; shut: boolean; o
   )
 }
 
-/** The frame is bare (Brendan, 2026-10-29): no header row, so no header search; the rail's toggle leads the toolbar. */
+/** The frame is bare (Brendan, 2026-10-29): no header row, so no header search; the search is the toolbar's. */
 const NO_SEARCH = { query: "", onQuery: () => {}, placeholder: "" }
 
-/** The rail's open and close, at the toolbar's head (Brendan, 2026-10-29). */
-function SidebarToggle() {
-  const rail = React.useContext(RailState)
-  if (!rail) return null
-  const Icon = rail.open ? PanelLeftClose : PanelLeftOpen
-  const label = rail.open ? "Hide sidebar" : "Show sidebar"
-  return (
-    <button type="button" onClick={rail.toggle} aria-label={label} title={label} className={cn(TOOL, "px-1.5")}>
-      <Icon className="size-4 text-muted-foreground" />
-    </button>
+/** A list of ids kept in this browser (America Thinks' useStoredIds). */
+function useStoredList(key: string) {
+  const [ids, setIds] = React.useState<string[]>([])
+  React.useEffect(() => {
+    try {
+      const v: unknown = JSON.parse(window.localStorage.getItem(key) ?? "[]")
+      if (Array.isArray(v)) setIds(v.filter((x): x is string => typeof x === "string"))
+    } catch {}
+  }, [key])
+  const set = React.useCallback(
+    (next: (prev: string[]) => string[]) =>
+      setIds((prev) => {
+        const v = next(prev)
+        try {
+          window.localStorage.setItem(key, JSON.stringify(v))
+        } catch {}
+        return v
+      }),
+    [key]
   )
-}
-
-/** The Treatments menu as a combobox: type to narrow, arrow keys and Enter (or a click) to show or hide one. */
-function TreatmentPicker({ options, chosen, onChosen, count, disabled }: { options: string[]; chosen: string[]; onChosen: (v: string[]) => void; count: number; disabled: boolean }) {
-  const input = React.useRef<HTMLInputElement>(null)
-  return (
-    <Combobox.Root items={options} multiple autoHighlight value={chosen} onValueChange={(v) => onChosen(v as string[])} itemToStringLabel={(o: string) => treatmentName(o)}>
-      <Combobox.Trigger className={cn(TOOL, "data-[popup-open]:bg-muted")} disabled={disabled} title={plural(count, "Treatment")}>
-        <Copy className={TOOL_ICON} />
-        <span className={TOOL_LABEL}>{plural(count, "Treatment")}</span>
-      </Combobox.Trigger>
-      <Combobox.Portal>
-        <Combobox.Positioner align="start" sideOffset={4} className="z-50">
-          <Combobox.Popup initialFocus={input} className="w-72 overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md">
-            <div className="border-b p-1.5">
-              <Combobox.Input ref={input} aria-label="Find a treatment" className="w-full rounded-md px-2 py-1 text-sm outline-none" />
-            </div>
-            <Combobox.Empty className="px-3 py-2 text-sm text-muted-foreground empty:hidden">Nothing matching.</Combobox.Empty>
-            <Combobox.List className="max-h-80 overflow-y-auto p-1 empty:hidden">
-              {(o: string) => (
-                <Combobox.Item key={o} value={o} className="relative flex cursor-default items-center rounded-sm py-1.5 pr-2 pl-8 text-sm outline-none select-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground">
-                  <Combobox.ItemIndicator className="absolute left-2 flex size-3.5 items-center justify-center">
-                    <Check className="size-4" />
-                  </Combobox.ItemIndicator>
-                  {THUMB[o] ? <img src={THUMB[o]} alt="" width={36} height={24} className="mr-2.5 h-6 w-9 shrink-0 rounded-[3px] bg-muted object-cover" /> : <span aria-hidden className="mr-2.5 h-6 w-9 shrink-0 rounded-[3px] bg-muted" />}
-                  <span className="truncate">{treatmentName(o)}</span>
-                </Combobox.Item>
-              )}
-            </Combobox.List>
-            <div className="flex justify-between border-t px-2 py-1.5 text-xs">
-              <button type="button" onClick={() => onChosen(options)} className="rounded px-1.5 py-1 text-muted-foreground hover:bg-muted hover:text-foreground">
-                Show all
-              </button>
-              <button type="button" onClick={() => onChosen([])} className="rounded px-1.5 py-1 text-muted-foreground hover:bg-muted hover:text-foreground">
-                Hide all
-              </button>
-            </div>
-          </Combobox.Popup>
-        </Combobox.Positioner>
-      </Combobox.Portal>
-    </Combobox.Root>
-  )
+  return [ids, set] as const
 }
 
 /** A link's parts: each percent-encoded, so a treatment's commas and parentheses survive; Everyone's empty key reads "all". */
@@ -1291,15 +1281,79 @@ const entryKey = (option: string, fielding: string) => `${option}\u0002${fieldin
 const optionOf = (ek: string) => ek.slice(0, ek.indexOf("\u0002"))
 const fieldingOf = (ek: string) => ek.slice(ek.indexOf("\u0002") + 1)
 
-function creative(ek: string) {
+/** A treatment's picture: its video's frame, or the clips partners' play mark in a frame's shape (Brendan,
+ *  2026-10-31: every row has one). */
+function Thumb({ o }: { o: string }) {
+  return THUMB[o] ? (
+    <img src={THUMB[o]} alt="" width={36} height={24} className="h-6 w-9 shrink-0 rounded-[3px] bg-muted object-cover" />
+  ) : (
+    <span aria-hidden className="flex h-6 w-9 shrink-0 items-center justify-center rounded-[3px] bg-muted text-slate-500">
+      <PlayIcon className="size-3.5" strokeWidth={1.75} />
+    </span>
+  )
+}
+
+/** Favorites and Important, for the rows' star and flag (the rail's two rows read the same lists). */
+const Marks = React.createContext<{ fav: string[]; imp: string[]; toggle: (kind: "fav" | "imp", o: string) => void } | null>(null)
+
+/** A row's treatment: its picture and its name on one line, cut short rather than wrapped (Brendan, 2026-10-31), and
+ *  on the row's hover America Thinks' star and flag, which stay once set. */
+function Creative({ ek }: { ek: string }) {
   const o = optionOf(ek)
+  const marks = React.useContext(Marks)
+  const fav = !!marks?.fav.includes(o)
+  const imp = !!marks?.imp.includes(o)
+  const mark = (kind: "fav" | "imp") => (event: React.MouseEvent) => (event.stopPropagation(), marks?.toggle(kind, o))
   return (
-    <span className="flex min-h-6 items-center gap-2.5">
-      {THUMB[o] && <img src={THUMB[o]} alt="" width={36} height={24} className="h-6 w-9 shrink-0 rounded-[3px] bg-muted object-cover" />}
-      <span className="line-clamp-2 font-medium" title={o}>
+    <span className="flex min-h-6 min-w-0 items-center gap-2.5">
+      <Thumb o={o} />
+      <span className="min-w-0 flex-1 truncate font-medium" title={treatmentName(o)}>
         {treatmentName(o)}
       </span>
+      {marks && (
+        <span className="flex shrink-0 items-center">
+          <button type="button" aria-pressed={imp} aria-label={imp ? "Not important" : "Important"} onClick={mark("imp")} className={cn("flex size-6 items-center justify-center rounded-md hover:bg-foreground/8", !imp && "opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100")}>
+            <ImportantIcon className={imp ? "size-3.5 fill-amber-400 text-amber-400" : "size-3.5 fill-transparent text-muted-foreground"} />
+          </button>
+          <button type="button" aria-pressed={fav} aria-label={fav ? "Unfavorite" : "Favorite"} onClick={mark("fav")} className={cn("flex size-6 items-center justify-center rounded-md hover:bg-foreground/8", !fav && "opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100")}>
+            <Star className={fav ? "size-3.5 fill-amber-400 text-amber-400" : "size-3.5 text-muted-foreground"} />
+          </button>
+        </span>
+      )}
     </span>
+  )
+}
+
+/** A rail checklist row: a header menu's checkbox, moved into the rail. `on` "mixed" is a breakdown partly shown. */
+function RailCheck({ on, onToggle, label, lead, indent, strong }: { on: boolean | "mixed"; onToggle: () => void; label: string; lead?: React.ReactNode; indent?: boolean; strong?: boolean }) {
+  return (
+    <button
+      type="button"
+      role="menuitemcheckbox"
+      aria-checked={on === "mixed" ? "mixed" : on}
+      onClick={onToggle}
+      className={cn("flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm outline-none transition-colors hover:bg-pax2-lift/70 hover:text-pax2-blue", on ? "text-slate-700" : "text-slate-400", indent && "pl-7", strong && "font-medium")}
+    >
+      {on === "mixed" ? <Minus className="size-3.5 shrink-0" /> : <Check className={cn("size-3.5 shrink-0", !on && "invisible")} />}
+      {lead}
+      <span className="min-w-0 truncate">{label}</span>
+    </button>
+  )
+}
+
+function RailLabel({ children }: { children: React.ReactNode }) {
+  return <p className="px-2 pt-2 pb-0.5 text-[11px] text-slate-400">{children}</p>
+}
+
+function RailActions({ actions }: { actions: [string, () => void][] }) {
+  return (
+    <div className="flex justify-between px-2 py-1 text-xs">
+      {actions.map(([label, run]) => (
+        <button key={label} type="button" onClick={run} className="rounded px-1 py-0.5 text-slate-500 hover:text-pax2-blue">
+          {label}
+        </button>
+      ))}
+    </div>
   )
 }
 
@@ -1326,9 +1380,13 @@ function EmotionCell({ o, s, inChart }: { o: string; s: Seg; inChart?: boolean }
 /** A bars-view row. Memoized: a pick re-renders only the rows it selects and unselects. */
 const BarsRow = React.memo(function BarsRow({ o, s, first, last, sel, read, view, onPick }: { o: string; s: Seg; first: boolean; last: boolean; sel: boolean; read: RowRead; view: RowView; onPick: OnPick }) {
   return (
-    <tr className={rowDress(sel)}>
-      <td className={cn(TD, !last && "border-b-transparent")}>{first && creative(o)}</td>
-      {view.segment && <td className={cn(TD, "border-l")}>{s.name}</td>}
+    <tr className={cn(rowDress(sel), "group/row")}>
+      <td className={cn(TD, !last && "border-b-transparent")}>{first && <Creative ek={o} />}</td>
+      {view.segment && (
+        <td className={cn(TD, "truncate border-l")} title={s.name}>
+          {s.name}
+        </td>
+      )}
       <AdCells o={o} view={view} />
       {view.metrics.map((m) => {
         const c = read.cell(o, m, s.key)
@@ -1385,7 +1443,7 @@ const HeatRow = React.memo(function HeatRow({
       <td className={cn(TD, "border-l", !lastOfBlock && "border-b-transparent")}>
         {firstOfBlock &&
           (o ? (
-            creative(o)
+            <Creative ek={o} />
           ) : (
             <span className="flex min-h-6 items-center gap-2.5">
               <ChartColumn aria-hidden className="size-4 shrink-0 text-muted-foreground" />
