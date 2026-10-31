@@ -5,6 +5,7 @@ import { PanelLeftIcon, Search, X } from "lucide-react"
 import type { PanelImperativeHandle } from "react-resizable-panels"
 
 import { cn } from "@/lib/utils"
+import { isEmbedded } from "@/lib/pane"
 import { PathBar } from "@/components/create/path-bar"
 import { Button } from "@govblock/ui/components/nova/button"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@govblock/ui/components/ny4/resizable"
@@ -74,6 +75,10 @@ export function BankFrame({
     slideEnd.current = window.setTimeout(() => setSliding(false), 340)
   }, [])
   React.useEffect(() => () => window.clearTimeout(slideEnd.current), [])
+  // In the second panel (lib/pane.ts) the rail starts shut, whatever the page's own default (Brendan, 2026-10-31).
+  React.useLayoutEffect(() => {
+    if (isEmbedded()) railRef.current?.collapse()
+  }, [])
   const railCtl = React.useMemo(() => ({ open: railOpen, toggle: toggleRail }), [railOpen, toggleRail])
   const [searching, setSearching] = React.useState(false)
   const close = () => {

@@ -153,7 +153,8 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
   // is now. `n` reloads the frame when a page is opened into it again.
   const [pane, setPane] = React.useState<{ src: string; href: string; n: number } | null>(null)
   const paneRef = React.useRef<HTMLIFrameElement>(null)
-  const openPane = React.useCallback((href: string) => (setAside(null), setPane({ src: href, href, n: Date.now() })), [])
+  // Opening it shuts the sidebar, as picking a page does (Brendan, 2026-10-31).
+  const openPane = React.useCallback((href: string) => (setAside(null), setSidebarOpen(false), setPane({ src: href, href, n: Date.now() })), [])
   // The panel's frame says where its page has gone; the address follows (PaneSync).
   React.useEffect(() => {
     const on = (e: MessageEvent) => {
