@@ -1,4 +1,6 @@
 import { mergeAttributes, Node } from "@tiptap/core"
+import { Fragment, Slice, type Node as PMNode } from "@tiptap/pm/model"
+import { Plugin } from "@tiptap/pm/state"
 
 // A note card's chat is one text (Brendan, 2026-10-31): the reader writes, Shift Enter sends what they wrote since
 // PAX last answered, and the answer is written into the same text, a block set off by a lavender rule. In markdown a
@@ -23,6 +25,9 @@ export const PaxReply = Node.create({
   renderHTML({ HTMLAttributes }) {
     return ["div", mergeAttributes(HTMLAttributes, { "data-pax": "" }), 0]
   },
+  addProseMirrorPlugins() {
+    return [new Plugin({ props: { transformPasted: mine } })]
+  },
   addStorage() {
     return {
       markdown: {
@@ -40,6 +45,22 @@ export const PaxReply = Node.create({
     }
   },
 })
+
+/** What the reader pastes or drags in is theirs (Brendan, 2026-10-31): words copied out of a reply come without the
+ *  reply around them, which ProseMirror would otherwise rebuild, so the paste read as PAX's and Shift Enter found
+ *  nothing new to send. */
+function mine(slice: Slice): Slice {
+  let { openStart, openEnd } = slice
+  const blocks: PMNode[] = []
+  const last = slice.content.childCount - 1
+  slice.content.forEach((node, _, i) => {
+    if (node.type.name !== "paxReply") return void blocks.push(node)
+    node.content.forEach((child) => void blocks.push(child))
+    if (i === 0 && openStart > 0) openStart--
+    if (i === last && openEnd > 0) openEnd--
+  })
+  return blocks.length === slice.content.childCount && openStart === slice.openStart && openEnd === slice.openEnd ? slice : new Slice(Fragment.fromArray(blocks), openStart, openEnd)
+}
 
 export type Turn = { role: "user" | "assistant"; content: string }
 
