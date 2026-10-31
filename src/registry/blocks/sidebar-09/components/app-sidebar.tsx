@@ -96,7 +96,7 @@ export function InboxRail({
         })}
       </RailGroup>
       {/* Templates (Brendan, 2026-10-31), as America Thinks' Data: each with its mail's thumbnail, folding past ten. */}
-      <RailGroup label="Templates" collapsible maxRows={10}>
+      <RailGroup label="Templates" collapsible defaultOpen={false} maxRows={10}>
         <Intent label="Requests" />
         {REQUESTS.map((r) => (
           <RailRow key={r.kind} onClick={() => onNew(r.kind)} lead={<TemplateThumb template={r} />} label={r.name} />
