@@ -469,7 +469,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false, partn
   const closePanel = () => (panelOpen ? router.back() : pane ? setPane(null) : discuss ? setDiscuss(false) : setAside(null))
   // /chat fills the content card edge to edge, as solar's chat fills its main area; /app/home is the same chat dressed as the home.
   // /studio's Studio frame does too.
-  const full = path === "/" || ["/data-dictionary", "/america-thinks", "/survey", "/lift", "/chat", "/inbox", "/studio"].some((p) => path.startsWith(p))
+  const full = path === "/" || ["/data-dictionary", "/america-thinks", "/survey", "/lift", "/chat", "/inbox", "/studio", "/docs"].some((p) => path.startsWith(p))
   return (
     <PanelCtx.Provider value={panel}>
       <CommandKHost />

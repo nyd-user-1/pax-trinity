@@ -6,9 +6,39 @@ import type { Doc } from "./types"
 
 export const RELEASE_NOTES: Doc[] = [
   {
+    slug: "release-2026-10-31",
+    title: "October 31, 2026",
+    category: "releases",
+    summary: "Lift's new sidebar and Lift Analysis, Tools' new views, two rules for consensus, and these docs.",
+    tags: ["Release notes"],
+    body: `- **Lift.** The toolbar matches the Inbox pages': a menu (View, Sort by, Filter, Share, Download, Refresh), the sidebar button, a search on the toolbar's empty space, and arrows that step the open analysis. Treatments, Metrics and Segments move into the sidebar as checklists, with Favorites and Important. Rows stay on one line, every row has a picture, breakdowns fold, and every column resizes from its header. Lift opens with its sidebar shut.
+- **Lift Analysis.** About Result is now Lift Analysis, with a Result section, benchmarks that show their curve without a click, and an Explainer tab that says it all in sentences.
+- **Tools.** The right panel's list is Tools. New: Lift Analysis (a card for every deliverable tested), Edits and Reports for Clips. The panel's back arrow climbs every level.
+- **Survey.** Answering any card moves the survey on: the card leaves and the rest move up a place. The results switch between two rules for consensus: Trinity's, and the nysgpt walkthrough's.
+- **Second panel.** Opens at half the width.
+- **Themes.** The sidebar and the right panel match the main colour in every theme; hovers show on every ground; the header's shadow reads on the darks.
+- **Models.** Cards lift on hover and carry the block menu.
+- **Docs.** Rebuilt as a help center, with screenshots of every page and video guides.`,
+  },
+  {
+    slug: "release-2026-10-30",
+    title: "October 30, 2026",
+    category: "releases",
+    summary: "Six themes, videos from Chat, Studio, and consensus as cards.",
+    tags: ["Release notes"],
+    body: `- **Themes.** Six themes, PAX Light, PAX Dark, Light, Dark, Vercel and VS Code, with a panel that edits every colour.
+- **Chat makes videos.** Ask for a video and I fill a template with the numbers on file; each is saved as a version.
+- **Studio.** The templates, the Enhance flow's graphics and every saved version, for staff, as a page and in the right panel.
+- **Yes on 3 card.** A template matching the campaign's Wave 2 cards.
+- **Consensus.** Questions as cards, two to a row, with a blue outline on the next one to answer; the survey ends on where consensus emerged.
+- **Comments on the app.** Staff can point at any element and comment on it; every open comment marks its element.`,
+  },
+  {
     slug: "release-2026-10-29",
     title: "October 29, 2026",
-    section: "Release notes",
+    category: "releases",
+    summary: "What changed on October 29, 2026.",
+    tags: ["Release notes"],
     body: `## New
 
 - **Docs.** These pages, in the account menu where Help was: getting started, partner onboarding, every feature, FAQs and these notes.
@@ -40,7 +70,9 @@ export const RELEASE_NOTES: Doc[] = [
   {
     slug: "release-2026-10-28",
     title: "October 28, 2026",
-    section: "Release notes",
+    category: "releases",
+    summary: "What changed on October 28, 2026.",
+    tags: ["Release notes"],
     body: `## Improved
 
 - **Lift** takes the results view campaigns know from Swayable: one toolbar and one table, rows as treatments and columns as outcomes.
@@ -49,7 +81,9 @@ export const RELEASE_NOTES: Doc[] = [
   {
     slug: "release-2026-10-27",
     title: "October 27, 2026",
-    section: "Release notes",
+    category: "releases",
+    summary: "What changed on October 27, 2026.",
+    tags: ["Release notes"],
     body: `## New
 
 - **America Thinks** is the new name and address for the audience database, /america-thinks.
@@ -69,7 +103,9 @@ export const RELEASE_NOTES: Doc[] = [
   {
     slug: "release-2026-10-26",
     title: "October 26, 2026",
-    section: "Release notes",
+    category: "releases",
+    summary: "What changed on October 26, 2026.",
+    tags: ["Release notes"],
     body: `## New
 
 - **The construct layer**: one idea measured across sources, gathered as one family of questions.
@@ -84,7 +120,9 @@ export const RELEASE_NOTES: Doc[] = [
   {
     slug: "release-2026-10-25",
     title: "October 25, 2026",
-    section: "Release notes",
+    category: "releases",
+    summary: "What changed on October 25, 2026.",
+    tags: ["Release notes"],
     body: `## New
 
 - **Clips becomes the partners' library.** The rail is headed Partners, with a desk for each: 100 Voter Freedom cuts, 48 Yes on 3, 36 Unite America shorts and the PAX review cuts, served fast from a CDN.
@@ -98,7 +136,9 @@ export const RELEASE_NOTES: Doc[] = [
   {
     slug: "release-2026-10-24",
     title: "October 24, 2026",
-    section: "Release notes",
+    category: "releases",
+    summary: "What changed on October 24, 2026.",
+    tags: ["Release notes"],
     body: `## New
 
 - **Trinity opens**: the front door's boxes, the app's frame and sidebar, Chat, and sign-in and sign-up.

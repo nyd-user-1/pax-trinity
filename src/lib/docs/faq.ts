@@ -4,10 +4,12 @@ export const FAQ: Doc[] = [
   {
     slug: "faq-accounts",
     title: "Accounts and sign-in",
-    section: "FAQ",
+    category: "faq",
+    summary: "Signing in, passwords, and who can see what.",
+    tags: ["FAQ"],
     body: `## I'm on the staff. Should I sign up?
 
-No. Your account already exists. Your first sign-in goes through **Forgot password**: see [Staff: your first sign-in](${doc("staff-sign-in")}).
+No. Your account already exists. Your first sign-in goes through **Forgot password**: see [Your first sign-in](${doc("first-sign-in")}).
 
 ## Sign-up says my email already has an account.
 
@@ -44,7 +46,9 @@ Not yet. [Settings](/settings) lays out every option, and a change lasts until y
   {
     slug: "faq-partners",
     title: "Partners and channels",
-    section: "FAQ",
+    category: "faq",
+    summary: "Channels, desks, and what partners share.",
+    tags: ["FAQ"],
     body: `## Which organizations are partners?
 
 PAX, Voter Freedom, Unite America and Yes on 3. Each keeps a desk in [Clips](/clips), and every partner sees the whole library.
@@ -80,7 +84,9 @@ A new result reaches Lift, Clips and Reports once it's published, a step run by 
   {
     slug: "faq-results",
     title: "Reading results",
-    section: "FAQ",
+    category: "faq",
+    summary: "Lifts, margins, and what a result can and can't tell you.",
+    tags: ["FAQ"],
     body: `## What a lift means
 
 The difference, in percentage points, between how the people who saw a video answered and how the people who saw the placebo answered. The panel is randomized, so the gap is the video's effect alone. A lift of +4 on ballot support means 4 more points of support among the video's viewers than among the placebo's.
@@ -112,7 +118,9 @@ A test's respondents are weighted to its population's targets; for Massachusetts
   {
     slug: "faq-data",
     title: "Data and models",
-    section: "FAQ",
+    category: "faq",
+    summary: "Where the data comes from, and the models that read it.",
+    tags: ["FAQ"],
     body: `## Where do America Thinks' numbers come from?
 
 The General Social Survey, ANES, CES, public polls, official results, the census, and turnout, voting-age and enrollment records. Each question names its source and wording.

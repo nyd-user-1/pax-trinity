@@ -1,53 +1,96 @@
 import Link from "next/link"
+import { redirect } from "next/navigation"
+import { PlayCircle } from "lucide-react"
 
-import { DocMarkdown } from "@/components/docs/doc-markdown"
-import { Badge } from "@/components/settings/blocks"
-import { DOCS, SECTIONS, docBySlug } from "@/lib/docs"
-import { cn } from "@/ui/lib/utils"
+import { ICONS } from "@/components/docs/icons"
+import { CATEGORIES, docBySlug, inCategory } from "@/lib/docs"
+import { DOCS_MEDIA, GUIDES } from "@/lib/docs/media"
 
 export const metadata = { title: "Docs" }
 
-// /docs (Brendan, 2026-10-29): the account menu's Docs, which was Help. The articles live in src/lib/docs,
-// one file a section; ?page= opens one, the first by default. The layout is a stand-in until Brendan's
-// reference arrives: the sections and their articles in a rail, the article beside them.
 
-export default async function Docs({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
+// The first three to read, each with its picture.
+const START = [
+  { slug: "welcome", shot: "lift" },
+  { slug: "lift-analysis", shot: "lift-analysis" },
+  { slug: "find-your-way", shot: "sidebar" },
+]
+
+// /docs: the Help Center's front page (Notion's, Brendan 2026-10-31): start here, the categories, the video
+// guides. The old ?page= addresses land on their articles.
+export default async function DocsHome({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const { page } = await searchParams
-  const open = docBySlug(page) ?? DOCS[0]!
-  return (
-    <div className="mx-auto grid w-full max-w-[1080px] gap-10 pb-16 md:grid-cols-[220px_minmax(0,1fr)]">
-      <nav aria-label="Docs" className="space-y-6 md:self-start">
-        {SECTIONS.map((section) => (
-          <div key={section}>
-            <p className="mb-1.5 px-2.5 text-[12px] font-semibold tracking-wide text-slate-400 uppercase">{section}</p>
-            <ul>
-              {DOCS.filter((d) => d.section === section).map((d) => (
-                <li key={d.slug}>
-                  <Link
-                    href={d.slug === DOCS[0]!.slug ? "/docs" : `/docs?page=${d.slug}`}
-                    scroll={false}
-                    aria-current={d.slug === open.slug ? "page" : undefined}
-                    className={cn(
-                      "block rounded-lg px-2.5 py-1.5 text-sm transition-colors",
-                      d.slug === open.slug ? "bg-pax2-surface font-medium text-pax2-blue shadow-e1" : "text-slate-600 hover:bg-pax2-surface/70 hover:text-slate-900",
-                    )}
-                  >
-                    {d.title}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
-      </nav>
+  const old = docBySlug(page)
+  if (old) redirect(`/docs/${old.slug}`)
 
-      <article className="min-w-0 max-w-[720px]">
-        <div className="mb-6 flex flex-wrap items-center gap-3">
-          <h1 className="font-display m-0 text-[26px] text-pax2-blue">{open.title}</h1>
-          {open.admins && <Badge tone="violet">Admins</Badge>}
+  return (
+    <div className="mx-auto max-w-[1120px] px-10 pt-14 pb-24">
+      <h1 className="text-[44px] leading-tight font-bold tracking-tight text-slate-900">How can I help?</h1>
+
+      <section className="mt-12">
+        <h2 className="mb-5 text-[13px] font-medium tracking-[0.08em] text-slate-500 uppercase">Start here</h2>
+        <div className="grid gap-5 md:grid-cols-3">
+          {START.map(({ slug, shot }) => {
+            const d = docBySlug(slug)!
+            return (
+              <Link key={slug} href={`/docs/${slug}`} className="lift group overflow-hidden rounded-2xl border border-slate-200 bg-pax2-surface shadow-e1">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={`${DOCS_MEDIA}/shots/${shot}.jpg`} alt="" loading="lazy" className="aspect-[16/10] w-full border-b border-slate-200 object-cover object-left-top" />
+                <div className="p-5">
+                  <p className="text-[17px] font-semibold text-slate-900 group-hover:text-pax2-blue">{d.title}</p>
+                  <p className="mt-1.5 text-[14px] leading-relaxed text-slate-500">{d.summary}</p>
+                </div>
+              </Link>
+            )
+          })}
         </div>
-        <DocMarkdown>{open.body}</DocMarkdown>
-      </article>
+      </section>
+
+      <section className="mt-16">
+        <h2 className="mb-5 text-[13px] font-medium tracking-[0.08em] text-slate-500 uppercase">Browse by topic</h2>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {CATEGORIES.map((c) => {
+            const Icon = ICONS[c.id]
+            const docs = inCategory(c.id)
+            return (
+              <Link key={c.id} id={c.id} href={`/docs/${docs[0]!.slug}`} className="lift group flex gap-4 rounded-2xl border border-slate-200 bg-pax2-surface p-5 shadow-e1">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-pax2-lavender text-pax2-blue">
+                  <Icon aria-hidden className="size-5" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-[16px] font-semibold text-slate-900 group-hover:text-pax2-blue">{c.title}</span>
+                  <span className="mt-1 block text-[14px] leading-relaxed text-slate-500">{c.blurb}</span>
+                  <span className="mt-2 block text-[13px] text-slate-400">{docs.length === 1 ? "1 article" : `${docs.length} articles`}</span>
+                </span>
+              </Link>
+            )
+          })}
+        </div>
+      </section>
+
+      <section className="mt-16">
+        <div className="mb-5 flex items-baseline justify-between">
+          <h2 className="text-[13px] font-medium tracking-[0.08em] text-slate-500 uppercase">Video guides</h2>
+          <Link href="/docs/video-guides" className="text-[14px] font-medium text-pax2-light-blue hover:underline">
+            See all
+          </Link>
+        </div>
+        <div className="grid gap-5 md:grid-cols-3">
+          {GUIDES.slice(0, 3).map((g) => (
+            <Link key={g.name} href={`/docs/${g.article}`} className="lift group overflow-hidden rounded-2xl border border-slate-200 bg-pax2-surface shadow-e1">
+              <span className="relative block">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={`${DOCS_MEDIA}/videos/${g.name}.jpg`} alt="" loading="lazy" className="aspect-[16/10] w-full border-b border-slate-200 object-cover" />
+                <PlayCircle aria-hidden className="absolute right-3 bottom-3 size-8 fill-white/90 text-pax2-blue" />
+              </span>
+              <span className="block p-5">
+                <span className="block text-[16px] font-semibold text-slate-900 group-hover:text-pax2-blue">{g.title}</span>
+                <span className="mt-1 block text-[14px] text-slate-500">{g.summary}</span>
+              </span>
+            </Link>
+          ))}
+        </div>
+      </section>
     </div>
   )
 }

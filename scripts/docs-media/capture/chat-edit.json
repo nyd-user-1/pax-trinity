@@ -1,0 +1,7 @@
+{"title": "Make videos in Chat", "subtitle": "A handful at once, from the real numbers", "src": "rec/chat.webm", "segments": [
+ {"from": 4.8, "to": 8.7, "rate": 1, "caption": "Ask for what you want to show, in plain words."},
+ {"from": 8.7, "to": 16.0, "rate": 1.4, "caption": "Each video comes back drawn with the numbers on file."},
+ {"from": 16.0, "to": 24.2, "rate": 1.25, "caption": "Ask for three, and you get three, each saved as a version."},
+ {"from": 24.2, "to": 31.6, "rate": 1.25, "caption": "Ask for a change. It comes back as a new version."},
+ {"from": 31.7, "to": 53.7, "rate": 2, "caption": "Open in Studio opens that exact version."}
+]}

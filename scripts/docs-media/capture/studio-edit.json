@@ -1,0 +1,7 @@
+{"title": "Studio", "subtitle": "Every template, and every version made from it", "src": "rec/studio.webm", "segments": [
+ {"from": 12.6, "to": 20.6, "rate": 1.25, "caption": "Studio lists every template. Pick one, and it plays."},
+ {"from": 20.6, "to": 27.7, "rate": 1.25, "caption": "Lift leaderboard: videos ranked on one measure."},
+ {"from": 27.8, "to": 34.8, "rate": 1.25, "caption": "Trend: up to four lines across waves."},
+ {"from": 34.9, "to": 41.9, "rate": 1.25, "caption": "Survey split: one question's answers by group."},
+ {"from": 42.0, "to": 49.0, "rate": 1.25, "caption": "Yes on 3 card, for the campaign's own videos."}
+]}

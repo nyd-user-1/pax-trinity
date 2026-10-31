@@ -7,7 +7,9 @@ export const PARTNERS: Doc[] = [
   {
     slug: "partner-account",
     title: "1. Create your account",
-    section: "Partner onboarding",
+    category: "partners",
+    summary: "Make your partner account in a minute.",
+    tags: ["Partners"],
     body: `1. Open [Sign up](/signup) and choose **Partner**.
 2. Enter your email and a password: 8 or more characters, with an uppercase letter, a lowercase letter, a number and a symbol. Choose **Create account**.
 3. A six-digit code arrives by email. Enter it to confirm the address.
@@ -22,7 +24,9 @@ Some partner logins are set up by the staff ahead of time. If yours was, skip Si
   {
     slug: "partner-welcome",
     title: "2. Tell me about your work",
-    section: "Partner onboarding",
+    category: "partners",
+    summary: "Tell me about your work, so everything I make fits it.",
+    tags: ["Partners"],
     body: `The welcome steps come one at a time. The dots at the foot show where you are, and the back chevron returns a step. **Skip** turns into **Continue** once you've picked something, and each Continue saves your answers, so you can stop and come back.
 
 1. **About you**: your first and last name, your role, where you're based and, if you like, how you heard about PAX. A first name is the one thing required.
@@ -34,7 +38,9 @@ Your name, role and town carry into recording, so a script I draft for you alrea
   {
     slug: "partner-youtube",
     title: "3. Connect YouTube and upload",
-    section: "Partner onboarding",
+    category: "partners",
+    summary: "Connect your YouTube channel and bring your videos in.",
+    tags: ["Partners"],
     body: `## Connect YouTube
 
 1. Choose **Connect YouTube** and approve Google's consent screen. The access is read-only analytics: I can read your channel's numbers, never post, edit or delete.
@@ -60,7 +66,9 @@ The last step lists each channel I'm analyzing. Choose **View analysis** to fini
   {
     slug: "partner-desk",
     title: "4. Your desk and your first test",
-    section: "Partner onboarding",
+    category: "partners",
+    summary: "Your desk in Clips, and how to run your first test.",
+    tags: ["Partners"],
     body: `## Your desk in Clips
 
 [Clips](/clips) is one library shared by every partner: PAX, Voter Freedom, Unite America and Yes on 3 each keep a desk of their videos and review threads, so no one pays to shoot what another desk has already made or tested. Narrow to one desk from the Partners menu, and switch between the feed and the grid at the top. A new organization's desk is opened by the staff; ask your PAX contact.
