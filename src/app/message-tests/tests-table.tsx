@@ -5,7 +5,12 @@ import Link from "next/link"
 
 import { TableBlock } from "@/components/blocks"
 import type { Status } from "@/lib/tests/types"
-import { newTestHref, testHref } from "@/lib/survey-links"
+import { editTestHref, newTestHref, testHref } from "@/lib/survey-links"
+import { useRouter } from "next/navigation"
+import { Maximize2, Pencil } from "lucide-react"
+import { MenuFoot, MenuHeader, MenuRow, MenuSeparator } from "@/components/kebab-menu"
+import { RowMenu, TD, TR } from "@/components/row-dress"
+import { cn } from "@/ui/lib/utils"
 import { buttonVariants } from "@/ui/components/nova/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/ui/components/nova/table"
 
@@ -32,6 +37,7 @@ function useCompletes(ids: string[]) {
 }
 
 export function TestsTable({ tests, reachable }: { tests: Row[]; reachable: boolean }) {
+  const router = useRouter()
   const ids = React.useMemo(() => tests.map((t) => t.id), [tests])
   const done = useCompletes(ids)
   return (
@@ -58,22 +64,33 @@ export function TestsTable({ tests, reachable }: { tests: Row[]; reachable: bool
             </TableRow>
           </TableHeader>
           <TableBody>
+            {/* The house row (components/row-dress.tsx, Brendan, 2026-10-31): one line, the id after the title. */}
             {tests.map((t) => (
-              <TableRow key={t.id}>
-                <TableCell className="py-2.5">
-                  <Link href={testHref(t.id)} className="block truncate font-semibold text-slate-900 hover:text-pax2-blue">
+              <TableRow key={t.id} onClick={() => router.push(testHref(t.id))} className={cn(TR, "cursor-pointer")}>
+                <TableCell className={cn(TD, "truncate")}>
+                  <Link href={testHref(t.id)} onClick={(e) => e.stopPropagation()} className="font-semibold">
                     {t.title || t.id}
                   </Link>
-                  <p className="truncate font-mono text-xs text-slate-400">{t.id}</p>
+                  <span className="font-mono text-xs text-slate-400">&nbsp;- {t.id}</span>
                 </TableCell>
-                <TableCell>
+                <TableCell className={TD}>
                   <StatusChip status={t.status} />
                 </TableCell>
-                <TableCell className="tabular-nums text-sm text-slate-600">{t.arms}</TableCell>
-                <TableCell className="tabular-nums text-sm text-slate-600">
+                <TableCell className={cn(TD, "tabular-nums text-sm text-slate-600")}>{t.arms}</TableCell>
+                <TableCell className={cn(TD, "tabular-nums text-sm text-slate-600")}>
                   {done[t.id] == null ? "—" : done[t.id]!.toLocaleString("en-US")} / {(t.targetPerArm * t.arms).toLocaleString("en-US")}
                 </TableCell>
-                <TableCell className="text-sm text-slate-500">{t.updatedAt ? t.updatedAt.slice(0, 10) : "Seeded"}</TableCell>
+                <TableCell className={cn(TD, "text-sm text-slate-500")}>{t.updatedAt ? t.updatedAt.slice(0, 10) : "Seeded"}</TableCell>
+                <td className="absolute top-1/2 right-5 -translate-y-1/2 border-0 p-0">
+                  <RowMenu label={`${t.title || t.id} options`} className="rounded-lg bg-pax2-lift">
+                    <MenuHeader text={t.id} copy={t.id} />
+                    <MenuSeparator />
+                    <MenuRow icon={<Maximize2 />} label="Open" onClick={() => router.push(testHref(t.id))} />
+                    <MenuRow icon={<Pencil />} label="Edit" onClick={() => router.push(editTestHref(t.id))} />
+                    <MenuSeparator />
+                    <MenuFoot title={t.title || t.id} sub={t.status[0].toUpperCase() + t.status.slice(1)} />
+                  </RowMenu>
+                </td>
               </TableRow>
             ))}
           </TableBody>

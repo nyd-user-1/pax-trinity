@@ -1,7 +1,11 @@
 "use client"
 
 import * as React from "react"
-import { ChartLine, ChevronDown, ExternalLink, FileText, Film, FlaskConical, ListChecks, Plus } from "lucide-react"
+import { ChartLine, ChevronDown, ExternalLink, FileText, Film, FlaskConical, LayoutDashboard, ListChecks, Maximize2, Plus, UserRound } from "lucide-react"
+import { useRouter } from "next/navigation"
+
+import { MenuFoot, MenuHeader, MenuRow, MenuSeparator } from "@/components/kebab-menu"
+import { ON, RowMenu, TD, TR } from "@/components/row-dress"
 
 import { Avatar, Badge, FIELD, SMALL, SMALL_PRIMARY } from "@/components/settings/blocks"
 import { HEALTH_LABEL, isOverdue, KIND_LABEL, KINDS, STAGE_LABEL, STAGES, daysBetween, type Health, type Item, type ItemEvent, type Kind, type Person, type Stage } from "@/lib/delivery/types"
@@ -52,9 +56,20 @@ export function When({ it, today }: { it: Item; today: string }) {
 
 const STAGE_FILL: Record<Stage, string> = { requested: "bg-slate-400", production: "bg-pax2-blue", review: "bg-amber-500", delivered: "bg-emerald-500" }
 
-/** Four steps, filled to the item's stage, in the stage's colour. */
-export function StageTrack({ stage, wide }: { stage: Stage; wide?: boolean }) {
+/** Four steps, filled to the item's stage, in the stage's colour. `inline`: the label beside the steps, for a one-line row. */
+export function StageTrack({ stage, wide, inline }: { stage: Stage; wide?: boolean; inline?: boolean }) {
   const at = STAGES.indexOf(stage)
+  if (inline)
+    return (
+      <span className="flex items-center gap-2">
+        <span className="flex w-16 shrink-0 gap-0.5">
+          {STAGES.map((s, i) => (
+            <span key={s} className={cn("h-1.5 flex-1 rounded-full", i <= at ? STAGE_FILL[stage] : "bg-slate-200")} />
+          ))}
+        </span>
+        <span className="truncate text-[12px] text-slate-500">{STAGE_LABEL[stage]}</span>
+      </span>
+    )
   return (
     <div className={cn("flex flex-col gap-1.5", wide ? "w-full" : "w-32")}>
       <div className="flex gap-1">
@@ -213,6 +228,76 @@ export function ReviewAnswer({ it, compact }: { it: Item; compact?: boolean }) {
       </button>
       <ErrorLine error={w.error} />
     </div>
+  )
+}
+
+/** An unassigned item's owner cell: take it yourself. */
+export function Take({ it, me }: { it: Item; me: string }) {
+  const w = useWrite()
+  return (
+    <span className="flex items-center gap-2">
+      <span className="text-[13px] text-amber-700 dark:text-amber-300">Unassigned</span>
+      <button
+        type="button"
+        disabled={w.pending}
+        title={w.error ?? undefined}
+        onClick={(e) => {
+          e.stopPropagation()
+          w.run(() => assignItem(it.partner, it.id, me))
+        }}
+        className={cn(SMALL, "h-7 px-2.5 disabled:opacity-40")}
+      >
+        Take
+      </button>
+    </span>
+  )
+}
+
+/** A piece of work as the house row (components/row-dress.tsx, Brendan, 2026-10-31): one line at 40px, the kind's
+ *  mark, the title and its detail after Gmail's dash, the partner (the admin's queue), the stage, the owner, the
+ *  date, the next step, and the row's kebab. */
+export function ItemRow({ it, board, partner, open, onOpen }: { it: Item; board: Board; partner?: { name: string; image: string | null }; open: boolean; onOpen: (id: string) => void }) {
+  const router = useRouter()
+  const Icon = KIND_ICON[it.type]
+  const boardHref = `/dashboard?partner=${encodeURIComponent(it.partner)}`
+  return (
+    <tr onClick={() => onOpen(it.id)} className={cn(TR, "cursor-pointer", open && ON)}>
+      <td className={cn(TD, "truncate px-4")} title={it.title}>
+        <Icon aria-label={KIND_LABEL[it.type]} className="mr-2.5 inline size-4 -translate-y-px text-slate-500" />
+        <span className="font-medium">{it.title}</span>
+        <span className="text-slate-500">&nbsp;- {it.detail || KIND_LABEL[it.type]}</span>
+      </td>
+      {partner && (
+        <td className={cn(TD, "truncate px-3 text-[13px] text-slate-700")}>
+          <span className="flex min-w-0 items-center gap-2">
+            <Avatar name={partner.name} fallback={partner.image ?? undefined} size={20} />
+            <span className="truncate">{partner.name}</span>
+          </span>
+        </td>
+      )}
+      <td className={cn(TD, "px-3")}>
+        <StageTrack stage={it.stage} inline />
+      </td>
+      <td className={cn(TD, "px-3")}>{it.owner ? <Who person={personOf(board, it.owner)} /> : board.admin ? <Take it={it} me={board.me} /> : <span className="text-[13px] text-slate-400">Unassigned</span>}</td>
+      <td className={cn(TD, "px-3")}>
+        <When it={it} today={board.today} />
+      </td>
+      <td className={cn(TD, "pr-5 pl-3")}>
+        <span className="flex items-center justify-end gap-1">
+          {board.admin && <NextStep it={it} />}
+          <RowMenu label={`${it.title} options`}>
+            <MenuHeader text={it.title} copy={it.title} />
+            <MenuSeparator />
+            <MenuRow icon={<Maximize2 />} label="Open" onClick={() => onOpen(it.id)} />
+            {it.href && <MenuRow icon={<ExternalLink />} label="Open where it lives" onClick={() => (it.href!.startsWith("http") ? window.open(it.href!, "_blank", "noopener") : router.push(it.href!))} />}
+            {board.admin && it.owner !== board.me && <MenuRow icon={<UserRound />} label="Take it" onClick={() => void assignItem(it.partner, it.id, board.me)} />}
+            {board.admin && partner && <MenuRow icon={<LayoutDashboard />} label={`Open ${partner.name}'s board`} onClick={() => router.push(boardHref)} />}
+            <MenuSeparator />
+            <MenuFoot title={partner?.name ?? KIND_LABEL[it.type]} sub={STAGE_LABEL[it.stage]} />
+          </RowMenu>
+        </span>
+      </td>
+    </tr>
   )
 }
 

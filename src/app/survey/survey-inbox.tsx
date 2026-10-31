@@ -2,11 +2,12 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, ChartColumn, ClipboardCheck, ClipboardList, FileText, FlaskConical, MessagesSquare, Plus, Shield, Vote } from "lucide-react"
+import { ArrowLeft, ChartColumn, ClipboardCheck, ClipboardList, Copy, FileText, FlaskConical, MessagesSquare, PanelRight, Plus, Shield, Vote } from "lucide-react"
 
 import { BankFrame, BankSplit, RailToggle } from "@/components/bank/bank-frame"
 import { BankRail, RailGroup, RailRow } from "@/components/bank/bank-rail"
 import { CardList, type Card, type Split } from "@/components/bank/card-list"
+import { MenuFoot, MenuHeader, MenuRow, MenuSeparator } from "@/components/kebab-menu"
 import { PaneTitleRow, RefreshButton } from "@/components/bank/pane-bars"
 import { questionCode, questionNumbers } from "@/components/consensus/question-code"
 import { Button } from "@govblock/ui/components/nova/button"
@@ -107,21 +108,38 @@ export function SurveyInbox({
   const statementOf = (id: string) => open?.statements.find((s) => String(s.tid) === id) ?? null
   const draftQuestionOf = (id: string) => draft?.questions[Number(id)] ?? null
 
+  // The house row's kebab (Brendan, 2026-10-31): the question's code leads and copies, its survey at the foot.
+  const rowMenu = (id: string, text: string, code: string | null, foot: string, sub?: string) => (
+    <>
+      {code && (
+        <>
+          <MenuHeader text={code} copy={code} />
+          <MenuSeparator />
+        </>
+      )}
+      <MenuRow icon={<PanelRight />} label="Open split view" onClick={() => openQuestion(id)} />
+      <MenuRow icon={<Copy />} label="Copy the question" onClick={() => void navigator.clipboard.writeText(text)} />
+      <MenuSeparator />
+      <MenuFoot title={foot} sub={sub} />
+    </>
+  )
   const cardOf = (id: string): Card => {
     if (onDraft) {
       const dq = draftQuestionOf(id)
       const n = dq?.options.length ?? 0
-      return { title: dq?.text ?? "", hint: dq?.text, chip: n ? `${n} ${n === 1 ? "option" : "options"}` : null }
+      return { title: dq?.text ?? "", hint: dq?.text, chip: n ? `${n} ${n === 1 ? "option" : "options"}` : null, menu: dq ? rowMenu(id, dq.text, null, draft?.title ?? "Pretraining") : undefined }
     }
     const s = statementOf(id)
     if (!s) return { title: "" }
     const v = share(s.votes)
+    const code = open && numbers.has(s.tid) ? questionCode(surveyNumber, numbers.get(s.tid) as number) : null
     return {
       title: s.text,
       hint: s.text,
       chip: verdicts.get(s.tid) ?? null,
       span: s.votes.seen ? `${Math.round(v.agree)}% agree` : null,
       detail: `${Math.round(v.disagree)}% disagree · ${Math.round(v.pass)}% pass · ${fmtNumber(s.votes.seen)} saw it`,
+      menu: rowMenu(id, s.text, code, open?.title ?? "Survey", verdicts.get(s.tid)),
     }
   }
 

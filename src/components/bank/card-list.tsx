@@ -295,8 +295,8 @@ export function CardList({
                   railTone
                     ? cn(
                         // Square and edge to edge, lifting as the Data view's rows do (Brendan, 2026-10-31): the
-                        // one-line rows and the folded cards both.
-                        "px-5 transition-[color,background-color,box-shadow]",
+                        // one-line rows and the folded cards both, each with its line under it, the bar's above the first.
+                        "border-b border-slate-200 px-5 transition-[color,background-color,box-shadow]",
                         active
                           ? "z-10 bg-pax2-lift text-pax2-blue shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]"
                           : "text-slate-600 hover:z-10 hover:bg-pax2-lift hover:text-pax2-blue hover:shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]"

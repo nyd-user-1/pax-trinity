@@ -1,12 +1,14 @@
 "use client"
 
 import * as React from "react"
-import { EllipsisVerticalIcon, Loader2 } from "lucide-react"
+import { Copy, EllipsisVerticalIcon, Loader2, PanelRight } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { MenuFoot, MenuRow, MenuSeparator } from "@/components/kebab-menu"
+import { ON, RowMenu, TD, TR } from "@/components/row-dress"
 import { Button } from "@govblock/ui/components/nova/button"
 import { PaneTitleRow, type PaneSearch } from "@/components/bank/pane-bars"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@govblock/ui/components/ny4/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@govblock/ui/components/ny4/dropdown-menu"
 
 import { num, weightOf, year, type SourceRow } from "./audience-data"
 import { type About } from "./audience-pane"
@@ -177,7 +179,7 @@ export function RowsView({
                   {h}
                 </th>
               ))}
-              <th aria-label="Row actions" className="sticky top-0 z-10 w-10 border-b bg-background" />
+              <th aria-label="Row actions" className="sticky top-0 z-10 w-14 border-b bg-background" />
             </tr>
           </thead>
           <tbody>
@@ -188,24 +190,25 @@ export function RowsView({
                 <tr
                   key={i}
                   onClick={pick}
-                  className={cn(
-                    "group/row",
-                    !r[5] && "bg-muted/40",
-                    onPick && "cursor-pointer transition-[background-color,box-shadow] hover:bg-pax2-lift hover:shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]",
-                    onPick && about?.r === r && "bg-pax2-lift shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]"
-                  )}
+                  // The house row (components/row-dress.tsx, Brendan, 2026-10-31).
+                  className={cn(TR, !r[5] && "bg-muted/40", onPick && "cursor-pointer", onPick && about?.r === r && ON)}
                 >
-                  <td className="border-b px-4 py-2 text-muted-foreground tabular-nums">{c.wave}</td>
-                  <td className="border-b px-4 py-2">{c.segment}</td>
-                  <td className="border-b px-4 py-2">{c.band}</td>
+                  <td className={cn(TD, "px-4 text-muted-foreground tabular-nums")}>{c.wave}</td>
+                  <td className={cn(TD, "px-4")}>{c.segment}</td>
+                  <td className={cn(TD, "px-4")}>{c.band}</td>
                   {/* The cell knows its estimate's type: a count prints whole, a lift signed in points, a share one-decimal. */}
-                  <td className="border-b px-4 py-2 text-right font-semibold tabular-nums">{c.est}</td>
-                  <td className="border-b px-4 py-2 text-right text-muted-foreground tabular-nums">{c.moe}</td>
-                  <td className="border-b px-4 py-2 text-right text-muted-foreground tabular-nums">{c.n}</td>
-                  <td className="border-b px-4 py-2 text-muted-foreground">{c.geo}</td>
-                  <td className="border-b px-4 py-2 text-muted-foreground">{c.weight}</td>
-                  <td className="w-10 border-b px-1 py-1 text-right">
-                    <RowKebab onOpen={pick} copy={[c.wave, c.segment, c.band, c.est, c.moe, c.n, c.geo, c.weight].join("\t")} />
+                  <td className={cn(TD, "px-4 text-right font-semibold tabular-nums")}>{c.est}</td>
+                  <td className={cn(TD, "px-4 text-right text-muted-foreground tabular-nums")}>{c.moe}</td>
+                  <td className={cn(TD, "px-4 text-right text-muted-foreground tabular-nums")}>{c.n}</td>
+                  <td className={cn(TD, "px-4 text-muted-foreground")}>{c.geo}</td>
+                  <td className={cn(TD, "px-4 text-muted-foreground")}>{c.weight}</td>
+                  <td className={cn(TD, "w-14 pr-5 pl-1 text-right")}>
+                    <RowMenu>
+                      {pick && <MenuRow icon={<PanelRight />} label="Open in the panel" onClick={pick} />}
+                      <MenuRow icon={<Copy />} label="Copy row" onClick={() => void navigator.clipboard.writeText([c.wave, c.segment, c.band, c.est, c.moe, c.n, c.geo, c.weight].join("\t"))} />
+                      <MenuSeparator />
+                      <MenuFoot title={String(c.segment)} sub={`${c.wave} · ${c.band}`} />
+                    </RowMenu>
                   </td>
                 </tr>
               )
@@ -240,30 +243,6 @@ function rowCells(r: SourceRow, source: string | null) {
 }
 
 /** The row's kebab, shown on hover (held while open): the row into the panel, or onto the clipboard. */
-function RowKebab({ onOpen, copy }: { onOpen?: () => void; copy: string }) {
-  const [open, setOpen] = React.useState(false)
-  return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          aria-label="Row actions"
-          onClick={(event) => event.stopPropagation()}
-          className={cn("opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100", open && "opacity-100")}
-        >
-          <EllipsisVerticalIcon className="size-4" />
-        </Button>
-      </DropdownMenuTrigger>
-      {/* The menu portals out, but React bubbles its clicks to the row: stop them here. */}
-      <DropdownMenuContent align="end" className="w-max min-w-40" onClick={(event) => event.stopPropagation()}>
-        {onOpen && <DropdownMenuItem onClick={onOpen}>Open in the panel</DropdownMenuItem>}
-        <DropdownMenuItem onClick={() => void navigator.clipboard.writeText(copy)}>Copy row</DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
-}
-
 /** The end of the table: reaching it reads sixty more. */
 function MoreRow({ onMore }: { onMore: () => void }) {
   const mark = React.useRef<HTMLDivElement>(null)

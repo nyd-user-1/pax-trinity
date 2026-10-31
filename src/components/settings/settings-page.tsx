@@ -46,6 +46,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { whiteButton } from "@/components/white-button"
 import { MEMBERS, type Role } from "@/lib/roles"
 import { cn } from "@/ui/lib/utils"
+import { MenuFlyout, MenuFoot, MenuHeader, MenuRow, MenuSeparator } from "@/components/kebab-menu"
+import { RowMenu, TD, TR } from "@/components/row-dress"
 
 import { Avatar, Badge, Block, Chip, FIELD, ICON_BUTTON, PageTabs, PRIMARY, Row, SMALL, SMALL_PRIMARY, Tile, type Tone } from "./blocks"
 import { Choice, Field, Tick, Ticks, Toggle } from "./controls"
@@ -443,61 +445,47 @@ function Members({ user }: { user: User | null }) {
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody>
+              {/* The house row (components/row-dress.tsx, Brendan, 2026-10-31): one line, the address after the name. */}
               {slice.map((p) => (
-                <tr key={`${p.name}:${p.email ?? ""}`}>
-                  <td className="px-5 py-2.5">
-                    <div className="flex items-center gap-3">
-                      <Avatar name={p.name} email={p.email} fallback={p.you ? "/avatars/default.jpg" : undefined} />
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 font-medium text-slate-900">
-                          <span className="truncate">{p.name}</span>
-                          {p.you && <Badge tone="slate">You</Badge>}
-                        </div>
-                        {p.email && <div className="truncate text-[13px] text-slate-500">{p.email}</div>}
-                      </div>
+                <tr key={`${p.name}:${p.email ?? ""}`} className={TR}>
+                  <td className={cn(TD, "max-w-0 px-5")}>
+                    <div className="flex min-w-0 items-center gap-3">
+                      <Avatar name={p.name} email={p.email} fallback={p.you ? "/avatars/default.jpg" : undefined} size={24} />
+                      <span className="truncate font-medium">{p.name}</span>
+                      {p.you && <Badge tone="slate">You</Badge>}
+                      {p.email && <span className="truncate text-[13px] text-slate-500">{p.email}</span>}
                     </div>
                   </td>
-                  <td className="px-3 py-2.5">
+                  <td className={cn(TD, "px-3")}>
                     <Badge tone={ROLE_TONE[p.role]}>{ROLE_LABEL[p.role]}</Badge>
                   </td>
-                  <td className="px-3 py-2.5">
+                  <td className={cn(TD, "px-3")}>
                     <Badge tone={STATUS_TONE[p.status]}>{p.status}</Badge>
                   </td>
-                  <td className="px-3 py-2.5 text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger aria-label={`Actions for ${p.name}`} className={ICON_BUTTON}>
-                        <EllipsisVertical className="size-4" />
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className={MENU}>
-                        <DropdownMenuSub>
-                          <DropdownMenuSubTrigger disabled={p.role === "superadmin"} className={cn(MENU_ITEM, "data-disabled:opacity-40")}>
-                            <Shield /> Change role
-                          </DropdownMenuSubTrigger>
-                          <DropdownMenuSubContent className={MENU}>
-                            <DropdownMenuRadioGroup value={p.role} onValueChange={(v) => update(p.email, p.name, { role: v as Role })}>
-                              {(["admin", "staff", "partner"] as const).map((r) => (
-                                <DropdownMenuRadioItem key={r} value={r} closeOnClick className={MENU_ITEM}>
-                                  {ROLE_LABEL[r]}
-                                </DropdownMenuRadioItem>
-                              ))}
-                            </DropdownMenuRadioGroup>
-                          </DropdownMenuSubContent>
-                        </DropdownMenuSub>
-                        <DropdownMenuItem disabled={p.status !== "Invited"} className={cn(MENU_ITEM, "data-disabled:opacity-40")}>
-                          <Mail /> Resend invite
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          data-edit
-                          disabled={p.role === "superadmin" || p.you}
-                          onClick={() => update(p.email, p.name, null)}
-                          className={cn(MENU_ITEM, "text-pax2-red-deep data-disabled:opacity-40 [&_svg]:text-pax2-red-deep")}
-                        >
-                          <X /> Remove from workspace
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                  <td className={cn(TD, "pr-5 pl-3 text-right")}>
+                    <RowMenu label={`Actions for ${p.name}`}>
+                      {p.email && (
+                        <>
+                          <MenuHeader text={p.email} copy={p.email} />
+                          <MenuSeparator />
+                        </>
+                      )}
+                      {p.role === "superadmin" ? (
+                        <MenuRow icon={<Shield />} label="Change role" disabled onClick={() => {}} />
+                      ) : (
+                        <MenuFlyout id="role" icon={<Shield />} label="Change role" hint={ROLE_LABEL[p.role]}>
+                          {(["admin", "staff", "partner"] as const).map((r) => (
+                            <MenuRow key={r} label={ROLE_LABEL[r]} checked={p.role === r} onClick={() => update(p.email, p.name, { role: r })} />
+                          ))}
+                        </MenuFlyout>
+                      )}
+                      <MenuRow icon={<Mail />} label="Resend invite" disabled={p.status !== "Invited"} onClick={() => {}} />
+                      <MenuSeparator />
+                      <MenuRow icon={<X />} label="Remove from workspace" danger disabled={p.role === "superadmin" || p.you} onClick={() => update(p.email, p.name, null)} />
+                      <MenuSeparator />
+                      <MenuFoot title={p.name} sub={ROLE_LABEL[p.role]} />
+                    </RowMenu>
                   </td>
                 </tr>
               ))}

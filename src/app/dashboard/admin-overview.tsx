@@ -3,15 +3,16 @@
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { AlarmClock, ChevronLeft, ChevronRight, CircleCheck, Hourglass, Layers, Search } from "lucide-react"
+import { AlarmClock, ChevronLeft, ChevronRight, CircleCheck, Copy, Hourglass, Layers, LayoutDashboard, Search } from "lucide-react"
+import { MenuFoot, MenuHeader, MenuRow, MenuSeparator } from "@/components/kebab-menu"
+import { RowMenu, TD, TR } from "@/components/row-dress"
 
-import { Avatar, Block, FIELD, SMALL } from "@/components/settings/blocks"
-import { byUrgency, daysBetween, healthOf, isOpen, isOverdue, KIND_LABEL, KINDS, type Account, type Health, type Item } from "@/lib/delivery/types"
+import { Avatar, Block, FIELD } from "@/components/settings/blocks"
+import { byUrgency, daysBetween, HEALTH_LABEL, healthOf, isOpen, isOverdue, KIND_LABEL, KINDS, type Account, type Health, type Item } from "@/lib/delivery/types"
 import { cn } from "@/ui/lib/utils"
 
-import { assignItem } from "./actions"
 import { useItemPanel } from "./item-panel"
-import { HealthBadge, KindTile, NewWork, NextStep, personOf, Pick, StageTrack, useWrite, When, Who, type Board } from "./parts"
+import { HealthBadge, ItemRow, NewWork, personOf, Pick, Who, type Board } from "./parts"
 
 // The admin's Overview: every partner's work in one queue, most urgent first, and every partner as a row
 // with its state, so the accounts that need a hand show at the top. The four counts pick the queue's view.
@@ -107,7 +108,15 @@ function Queue({ view, items, accounts, board, onOpen, openId }: { view: View; i
         <Pick label="Kind" value={kind} onChange={setKind} options={[{ value: "all", label: "Any kind" }, ...KINDS.map((k) => ({ value: k, label: KIND_LABEL[k] }))]} className="w-44" />
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[980px] border-collapse text-sm">
+        <table className="w-full min-w-[980px] table-fixed border-collapse text-sm">
+          <colgroup>
+            <col />
+            <col className="w-44" />
+            <col className="w-44" />
+            <col className="w-52" />
+            <col className="w-32" />
+            <col className="w-44" />
+          </colgroup>
           <thead>
             <tr className="border-b border-slate-200 text-left text-[13px] text-slate-500">
               <th className="px-4 py-2 font-normal">Work</th>
@@ -115,41 +124,13 @@ function Queue({ view, items, accounts, board, onOpen, openId }: { view: View; i
               <th className="px-3 py-2 font-normal">Stage</th>
               <th className="px-3 py-2 font-normal">Owner</th>
               <th className="px-3 py-2 font-normal">When</th>
-              <th className="w-36 px-4 py-2" />
+              <th className="px-3 py-2" />
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-200">
+          <tbody>
             {shown.map((it) => {
               const a = accounts.find((x) => x.id === it.partner)
-              return (
-                <tr key={it.id} onClick={() => onOpen(it.id)} className={cn("cursor-pointer transition-colors hover:bg-slate-50", openId === it.id && "bg-pax2-lift")}>
-                  <td className="px-4 py-3">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <KindTile kind={it.type} />
-                      <div className="min-w-0">
-                        <p className="max-w-[380px] truncate font-medium text-slate-900">{it.title}</p>
-                        <p className="max-w-[380px] truncate text-[13px] text-slate-500">{it.detail || KIND_LABEL[it.type]}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-3 py-3">
-                    <span className="flex items-center gap-2 whitespace-nowrap text-[13px] text-slate-700">
-                      <Avatar name={a?.name ?? it.partner} fallback={a?.image ?? undefined} size={24} />
-                      {a?.name}
-                    </span>
-                  </td>
-                  <td className="px-3 py-3">
-                    <StageTrack stage={it.stage} />
-                  </td>
-                  <td className="px-3 py-3">{it.owner ? <Who person={personOf(board, it.owner)} /> : <Take it={it} me={board.me} />}</td>
-                  <td className="px-3 py-3">
-                    <When it={it} today={today} />
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <NextStep it={it} />
-                  </td>
-                </tr>
-              )
+              return <ItemRow key={it.id} it={it} board={board} partner={{ name: a?.name ?? it.partner, image: a?.image ?? null }} open={openId === it.id} onOpen={onOpen} />
             })}
             {!shown.length && (
               <tr>
@@ -163,28 +144,6 @@ function Queue({ view, items, accounts, board, onOpen, openId }: { view: View; i
       </div>
       <Pages page={page} pages={pages} total={rows.length} onPage={setPage} />
     </Block>
-  )
-}
-
-/** An unassigned item's owner cell: take it yourself. */
-function Take({ it, me }: { it: Item; me: string }) {
-  const w = useWrite()
-  return (
-    <span className="flex items-center gap-2">
-      <span className="text-[13px] text-amber-700 dark:text-amber-300">Unassigned</span>
-      <button
-        type="button"
-        disabled={w.pending}
-        title={w.error ?? undefined}
-        onClick={(e) => {
-          e.stopPropagation()
-          w.run(() => assignItem(it.partner, it.id, me))
-        }}
-        className={cn(SMALL, "h-7 px-2.5 disabled:opacity-40")}
-      >
-        Take
-      </button>
-    </span>
   )
 }
 
@@ -255,7 +214,19 @@ function Partners({ accounts, board }: { accounts: Account[]; board: Board }) {
         />
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[980px] border-collapse text-sm">
+        <table className="w-full min-w-[980px] table-fixed border-collapse text-sm">
+          <colgroup>
+            <col />
+            <col className="w-52" />
+            <col className="w-28" />
+            <col className="w-20" />
+            <col className="w-24" />
+            <col className="w-20" />
+            <col className="w-40" />
+            <col className="w-20" />
+            <col className="w-32" />
+            <col className="w-16" />
+          </colgroup>
           <thead>
             <tr className="border-b border-slate-200 text-left text-[13px] text-slate-500">
               <th className="px-4 py-2 font-normal">Partner</th>
@@ -266,36 +237,48 @@ function Partners({ accounts, board }: { accounts: Account[]; board: Board }) {
               <th className="px-3 py-2 text-right font-normal">Late</th>
               <th className="px-3 py-2 text-right font-normal">Delivered, 30 days</th>
               <th className="px-3 py-2 text-right font-normal">Videos</th>
-              <th className="px-4 py-2 text-right font-normal">Tests in field</th>
+              <th className="px-3 py-2 text-right font-normal">Tests in field</th>
+              <th className="px-3 py-2" />
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-200">
+          <tbody>
             {shown.map((r) => {
               const href = `/dashboard?partner=${encodeURIComponent(r.a.id)}`
               return (
-                <tr key={r.a.id} onClick={() => router.push(href)} className="cursor-pointer transition-colors hover:bg-slate-50">
-                  <td className="px-4 py-3">
-                    <Link href={href} onClick={(e) => e.stopPropagation()} className="flex items-center gap-3 font-medium text-slate-900 hover:text-pax2-blue">
-                      <Avatar name={r.a.name} fallback={r.a.image ?? undefined} size={32} />
-                      {r.a.name}
+                // The house row (components/row-dress.tsx, Brendan, 2026-10-31).
+                <tr key={r.a.id} onClick={() => router.push(href)} className={cn(TR, "cursor-pointer")}>
+                  <td className={cn(TD, "truncate px-4")}>
+                    <Link href={href} onClick={(e) => e.stopPropagation()} className="flex min-w-0 items-center gap-3 font-medium">
+                      <Avatar name={r.a.name} fallback={r.a.image ?? undefined} size={24} />
+                      <span className="truncate">{r.a.name}</span>
                     </Link>
                   </td>
-                  <td className="px-3 py-3">{r.a.owner ? <Who person={personOf(board, r.a.owner)} /> : <span className="text-[13px] text-amber-700 dark:text-amber-300">Unassigned</span>}</td>
-                  <td className="px-3 py-3">
+                  <td className={cn(TD, "px-3")}>{r.a.owner ? <Who person={personOf(board, r.a.owner)} /> : <span className="text-[13px] text-amber-700 dark:text-amber-300">Unassigned</span>}</td>
+                  <td className={cn(TD, "px-3")}>
                     <HealthBadge health={r.health} />
                   </td>
-                  <td className="px-3 py-3 text-right">{num(r.open)}</td>
-                  <td className="px-3 py-3 text-right">{num(r.review)}</td>
-                  <td className="px-3 py-3 text-right">{num(r.late, "font-semibold text-pax2-red-deep")}</td>
-                  <td className="px-3 py-3 text-right">{num(r.delivered)}</td>
-                  <td className="px-3 py-3 text-right">{num(r.a.desk)}</td>
-                  <td className="px-4 py-3 text-right">{num(r.fielding)}</td>
+                  <td className={cn(TD, "px-3 text-right")}>{num(r.open)}</td>
+                  <td className={cn(TD, "px-3 text-right")}>{num(r.review)}</td>
+                  <td className={cn(TD, "px-3 text-right")}>{num(r.late, "font-semibold text-pax2-red-deep")}</td>
+                  <td className={cn(TD, "px-3 text-right")}>{num(r.delivered)}</td>
+                  <td className={cn(TD, "px-3 text-right")}>{num(r.a.desk)}</td>
+                  <td className={cn(TD, "px-3 text-right")}>{num(r.fielding)}</td>
+                  <td className={cn(TD, "pr-5 pl-2 text-right")}>
+                    <RowMenu label={`${r.a.name} options`}>
+                      <MenuHeader text={r.a.id} copy={r.a.id} />
+                      <MenuSeparator />
+                      <MenuRow icon={<LayoutDashboard />} label="Open the board" onClick={() => router.push(href)} />
+                      <MenuRow icon={<Copy />} label="Copy link" onClick={() => void navigator.clipboard.writeText(`${window.location.origin}${href}`)} />
+                      <MenuSeparator />
+                      <MenuFoot title={r.a.name} sub={HEALTH_LABEL[r.health]} />
+                    </RowMenu>
+                  </td>
                 </tr>
               )
             })}
             {!shown.length && (
               <tr>
-                <td colSpan={9} className="px-4 py-12 text-center text-[13px] text-slate-500">
+                <td colSpan={10} className="px-4 py-12 text-center text-[13px] text-slate-500">
                   No partner matches.
                 </td>
               </tr>

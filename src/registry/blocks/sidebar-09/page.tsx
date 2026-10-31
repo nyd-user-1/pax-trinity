@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ArrowLeft, Check, Copy, ExternalLink, Forward as ForwardIcon, PenSquare, Reply as ReplyIcon, RotateCcw, Star, Trash2, UserRound } from "lucide-react"
+import { ArrowLeft, Check, Copy, ExternalLink, Forward as ForwardIcon, MailOpen, Maximize2, PenSquare, Reply as ReplyIcon, RotateCcw, Star, Trash2, UserRound } from "lucide-react"
 
 import { agent as findAgent, maxRounds } from "@/lib/agents/registry"
 import { addressFor, findAddress, inFolder, isPerson, isUnread, loadThreads, matches, messageId, nameOf, newThread, reply, running, runners, saveThreads, settle, shownRecipients, snippet, teaser, threadCost, when, type Attached, type Folder, type Message, type Thread } from "@/lib/agents/inbox"
@@ -15,6 +15,7 @@ import { SaveToDrive } from "@/components/connectors/save-to-drive"
 import { Prose, RunSteps } from "@/app/agents/transcript"
 import { BankFrame } from "@/components/bank/bank-frame"
 import { CardList, type Card, type Split } from "@/components/bank/card-list"
+import { MenuFoot, MenuHeader, MenuRow, MenuSeparator } from "@/components/kebab-menu"
 import { InboxRail, THREAD_DRAG } from "@/registry/blocks/sidebar-09/components/app-sidebar"
 import { Compose, EMPTY_DRAFT, type Draft } from "@/registry/blocks/sidebar-09/components/compose"
 import { ComposeWindow } from "@/registry/blocks/sidebar-09/components/compose-window"
@@ -653,6 +654,31 @@ export default function Page() {
               event.dataTransfer.setData(THREAD_DRAG, id)
               event.dataTransfer.effectAllowed = "move"
             },
+            // The house row's kebab (Brendan, 2026-10-31): the thread's subject leads and copies, its sender at the foot.
+            menu: (
+              <>
+                <MenuHeader text={thread.subject || id} copy={thread.subject || id} />
+                <MenuSeparator />
+                <MenuRow icon={<Maximize2 />} label="Open" onClick={() => openThread(id)} />
+                <MenuRow
+                  icon={<MailOpen />}
+                  label={isUnread(thread) ? "Mark as read" : "Mark as unread"}
+                  onClick={() =>
+                    // Unread is the newest message from someone else, as Gmail marks it.
+                    patch(id, (t) => {
+                      if (isUnread(t)) return { ...t, messages: t.messages.map((m) => ({ ...m, unread: false })) }
+                      const last = t.messages.map((m) => m.from !== "you").lastIndexOf(true)
+                      return { ...t, messages: t.messages.map((m, i) => (i === last ? { ...m, unread: true } : m)) }
+                    })
+                  }
+                />
+                <MenuRow icon={<Star className={thread.starred ? "fill-amber-400 text-amber-400" : undefined} />} label={thread.starred ? "Unstar" : "Star"} onClick={() => patch(id, (t) => ({ ...t, starred: !t.starred }))} />
+                <MenuSeparator />
+                <MenuRow icon={<Trash2 />} label={thread.trashed ? "Restore" : "Move to trash"} danger={!thread.trashed} onClick={() => moveToFolder(id, thread.trashed ? "inbox" : "trash")} />
+                <MenuSeparator />
+                <MenuFoot title={who} sub={TITLES[folder]} />
+              </>
+            ),
           }
         }
         // The thread list's toolbar, in the list kebab: the unread filter, the selection, refresh, mark read, clear.

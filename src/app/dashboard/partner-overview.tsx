@@ -11,7 +11,7 @@ import { cn } from "@/ui/lib/utils"
 
 import { ownAccount } from "./actions"
 import { useItemPanel } from "./item-panel"
-import { day, KindTile, NewWork, NextStep, personOf, Pick, ReviewAnswer, StageTrack, useWrite, When, Who, type Board } from "./parts"
+import { day, ItemRow, KindTile, NewWork, personOf, Pick, ReviewAnswer, useWrite, When, type Board } from "./parts"
 
 // One partner's Overview: who at PAX has the account, what's on their desk and in test, what's waiting
 // on them, and all their work with where each piece stands. A partner sees their own; an admin opens
@@ -208,34 +208,18 @@ function Work({ account, board, onOpen, openId }: { account: Account; board: Boa
       }
     >
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[860px] border-collapse text-sm">
-          <tbody className="divide-y divide-slate-200">
+        {/* The card's own edge is the first row's top line; each row draws its own under it. */}
+        <table className="w-full min-w-[860px] table-fixed border-collapse text-sm">
+          <colgroup>
+            <col />
+            <col className="w-44" />
+            <col className="w-52" />
+            <col className="w-32" />
+            <col className={admin ? "w-44" : "w-12"} />
+          </colgroup>
+          <tbody>
             {rows.map((it) => (
-              <tr key={it.id} onClick={() => onOpen(it.id)} className={cn("cursor-pointer transition-colors hover:bg-slate-50", openId === it.id && "bg-pax2-lift")}>
-                <td className="px-4 py-3">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <KindTile kind={it.type} />
-                    <div className="min-w-0">
-                      <p className="max-w-[420px] truncate font-medium text-slate-900">{it.title}</p>
-                      <p className="max-w-[420px] truncate text-[13px] text-slate-500">{it.detail || KIND_LABEL[it.type]}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-3 py-3">
-                  <StageTrack stage={it.stage} />
-                </td>
-                <td className="px-3 py-3">
-                  <Who person={personOf(board, it.owner)} />
-                </td>
-                <td className="px-3 py-3">
-                  <When it={it} today={today} />
-                </td>
-                {admin && (
-                  <td className="w-36 px-4 py-3 text-right">
-                    <NextStep it={it} />
-                  </td>
-                )}
-              </tr>
+              <ItemRow key={it.id} it={it} board={board} open={openId === it.id} onOpen={onOpen} />
             ))}
             {!rows.length && (
               <tr>

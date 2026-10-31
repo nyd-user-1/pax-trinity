@@ -139,9 +139,18 @@ export function PanelBlock(props: BlockProps) {
   return <MainBlock {...props} panel />
 }
 
-/** MainBlock with a table in it: the column header pins while the rows scroll. */
+/** MainBlock with a table in it: the column header pins while the rows scroll. Its rows hover as the house row
+ *  does (components/row-dress.tsx, Brendan, 2026-10-31): the raised fill, the blue type, Gmail's lift. */
 export function TableBlock(props: BlockProps) {
-  return <MainBlock {...props} className={cn("[&_tbody_tr]:transition-colors [&_tbody_tr:hover]:bg-muted/60", props.className)} />
+  return (
+    <MainBlock
+      {...props}
+      className={cn(
+        "[&_tbody_tr]:relative [&_tbody_tr]:transition-[color,background-color,box-shadow] [&_tbody_tr:hover]:z-10 [&_tbody_tr:hover]:bg-pax2-lift [&_tbody_tr:hover]:text-pax2-blue [&_tbody_tr:hover]:shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]",
+        props.className
+      )}
+    />
+  )
 }
 
 /** MainBlock with tiles in it; tag each tile data-find so the searchbar filters them. */

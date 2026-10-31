@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ArrowDown, ArrowUp, ChartColumn, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Download, EllipsisVertical, Flag, Info, Loader2, Minus, PlayIcon, Search, SeparatorVertical, Shapes, Share, Star } from "lucide-react"
+import { ArrowDown, ArrowUp, ChartColumn, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Download, EllipsisVertical, Flag, Info, Loader2, Minus, PanelRight, PlayIcon, Copy, Search, SeparatorVertical, Shapes, Share, Star } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { BankFrame, RailToggle } from "@/components/bank/bank-frame"
@@ -29,6 +29,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components
 
 import { dimLabel, groupSources, num, type AudienceIndex, type SourceRow } from "../america-thinks/audience-data"
 import { rowDress } from "../america-thinks/segment-grid"
+import { MenuFoot, MenuHeader, MenuRow, MenuSeparator } from "@/components/kebab-menu"
+import { RowMenu } from "@/components/row-dress"
 import { AboutResult } from "./about-result"
 import { useShellPanel } from "@/components/shell"
 import { PANE_PARAM } from "@/lib/pane"
@@ -90,7 +92,8 @@ const WAVE = new Map(RESULT_SETS.map((s) => [`${s.fielded.start}|${s.fielded.end
 const toggled = (list: string[], x: string) => (list.includes(x) ? list.filter((y) => y !== x) : [...list, x])
 
 const TH = "group/th border-b px-3 py-2 text-left text-[13px] font-medium whitespace-nowrap"
-const TD = "border-b px-3 py-2 align-middle text-[13px]"
+// The house row's cell (components/row-dress.tsx, Brendan, 2026-10-31): 40px on one line, its line under it.
+const TD = "h-10 border-b border-slate-200 px-3 py-0 align-middle text-[13px]"
 const HEAD_ICON = "shrink-0 text-muted-foreground hover:text-foreground aria-expanded:text-foreground"
 // A header's info circle shows while the header is hovered or the circle has focus (Brendan, 2026-10-31).
 const HEAD_INFO = `${HEAD_ICON} opacity-0 transition-opacity group-hover/th:opacity-100 focus-visible:opacity-100`
@@ -1172,6 +1175,15 @@ export function LiftSurface() {
                     {c ? <Candle cell={c} axis={attributes.axis} scale={attributes.scale} baseTitle={`Ads without it average ${signed(c.control![7])}`} /> : <span className="block text-center text-xs text-muted-foreground/40">—</span>}
                   </td>
                 ))}
+                <td className="absolute top-1/2 right-5 -translate-y-1/2 border-0 p-0">
+                  <RowMenu label={`${t.name} options`} className="rounded-lg bg-pax2-lift">
+                    <MenuHeader text={t.name} copy={t.name} />
+                    <MenuSeparator />
+                    <MenuRow icon={<Copy />} label="Copy row" onClick={() => void navigator.clipboard.writeText(`${t.name}\t${t.n} of ${attributes.total}`)} />
+                    <MenuSeparator />
+                    <MenuFoot title={t.name} sub={g.name} />
+                  </RowMenu>
+                </td>
               </tr>
             ))}
           </React.Fragment>
@@ -1403,6 +1415,7 @@ const BarsRow = React.memo(function BarsRow({ o, s, first, last, sel, read, view
         )
       })}
       {view.emotion && <EmotionCell o={o} s={s} />}
+      <RowEnd o={o} s={s} read={read} view={view} onPick={onPick} />
     </tr>
   )
 })
@@ -1487,9 +1500,38 @@ const HeatRow = React.memo(function HeatRow({
         )
       })}
       {view.emotion && (o ? <EmotionCell o={o} s={s} inChart /> : <td className={cn(TD, "border-l")} />)}
+      {o && <RowEnd o={o} s={s} read={read} view={view} onPick={onPick} />}
     </Reveal>
   )
 })
+
+/** The house row's kebab (components/row-dress.tsx; Brendan, 2026-10-31): at the row's end over its last cell, as
+ *  the inbox rows' kebab takes their span's place. Positioned out of the table's flow, so it adds no column. */
+function RowEnd({ o, s, read, view, onPick }: { o: string; s: Seg; read: RowRead; view: RowView; onPick: OnPick }) {
+  const marks = React.useContext(Marks)
+  const opt = optionOf(o)
+  const name = treatmentName(opt)
+  const fav = !!marks?.fav.includes(opt)
+  const imp = !!marks?.imp.includes(opt)
+  const first = view.metrics.map((m) => ({ m, c: read.cell(o, m, s.key) })).find((x) => x.c)
+  return (
+    <td className="absolute top-1/2 right-5 -translate-y-1/2 border-0 p-0">
+      <RowMenu label={`${name} options`} className="rounded-lg bg-pax2-lift">
+        <MenuHeader text={name} copy={name} />
+        <MenuSeparator />
+        {first && <MenuRow icon={<PanelRight />} label="Open the analysis" onClick={() => onPick(o, first.m, s, first.c!)} />}
+        {marks && (
+          <>
+            <MenuRow icon={<Star className={fav ? "fill-amber-400 text-amber-400" : undefined} />} label={fav ? "Unfavorite" : "Favorite"} onClick={() => marks.toggle("fav", opt)} />
+            <MenuRow icon={<ImportantIcon className={imp ? "fill-amber-400 text-amber-400" : "fill-transparent"} />} label={imp ? "Mark as not important" : "Mark as important"} onClick={() => marks.toggle("imp", opt)} />
+          </>
+        )}
+        <MenuSeparator />
+        <MenuFoot title={name} sub={s.name} />
+      </RowMenu>
+    </td>
+  )
+}
 
 /** The column-resize handle: drag it to set the column's width. */
 /** A column's resize control, in its head beside the label (Brendan, 2026-10-31: every column's, in place of the
