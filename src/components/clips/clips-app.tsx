@@ -24,6 +24,7 @@ import { ReportDialog } from "./report"
 import { Upload } from "./upload"
 import { isTested } from "./clip-test"
 import { openTools, publishClipsPanel } from "@/lib/clips-panel"
+import { LAST } from "./catalog"
 import { creatorOf, CREATORS, isKeptRecording, PUBLISHED, SEED_COMMENTS, deleteClip, loadFeed, takeDown, loadFollows, loadLikes, loadMyComments, loadSaves, saveClip, storeFollows, storeLikes, storeMyComments, storeSaves, updateClip, type Clip, type Comment, type Feed as FeedData, type Upload as UploadRow } from "./store"
 
 // Clips: short vertical video, recorded on a phone or a laptop, kept private
@@ -161,7 +162,9 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
     const list = creator === "you" ? mine : creator === "all" ? published : creator === "saved" ? [...mine, ...published].filter((c, i, a) => saved.has(c.id) && a.findIndex((x) => x.id === c.id) === i) : published.filter((c) => c.creatorId === creator)
     // Newest first, everywhere (Brendan, 2026-10-25), the tested clips ahead of the rest (Brendan, 2026-10-29).
     const tested = (c: Clip) => (isTested(c.id) ? 1 : 0)
-    return [...list].sort((a, b) => tested(b) - tested(a) || Date.parse(b.createdAt) - Date.parse(a.createdAt))
+    // The edited cuts sort last, in LAST's order (catalog.ts).
+    const last = (c: Clip) => LAST.indexOf(c.id) + 1
+    return [...list].sort((a, b) => last(a) - last(b) || tested(b) - tested(a) || Date.parse(b.createdAt) - Date.parse(a.createdAt))
   }, [creator, mine, published, saved])
 
   // The rail lists the videos themselves (Brendan, 2026-10-25), not the desks.

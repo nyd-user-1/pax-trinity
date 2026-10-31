@@ -147,7 +147,14 @@ export const PUBLISHED: Clip[] = [
   frame("no-newscaster", "why-independentsare-locked-out-no-newscaster-21s.mp4", { title: "Why independents are locked out", partner: "voter-freedom", duration: 21, createdAt: "2026-10-05T12:00:00Z" }),
   frame("theo", "why-nothing-passes-theo-51s.mp4", { title: "Why nothing passes", messenger: "Theo", partner: "voter-freedom", duration: 52, createdAt: "2026-10-05T12:00:00Z" }),
   ...(PARTNER_SHORTS as PartnerShort[]).map(shortClip),
+  // Two edited cuts of tested clips (Brendan, 2026-10-31): the clip with its sound, a name card, and an end card with
+  // what its randomized test found (scripts/docs-media ClipCut). The cuts themselves were not tested.
+  frame("dustin-cut", "docs/edits/dustin-cut.mp4", { title: "Dustin Cathcart, edited", messenger: "Dustin Cathcart", caption: "Edited: a name card, and at the end what the randomized test found.", duration: 34, createdAt: "2026-10-31T20:30:00Z" }),
+  frame("danielle-cut", "docs/edits/danielle-cut.mp4", { title: "Danielle Allen, edited", messenger: "Danielle Allen", caption: "Edited: a name card, and at the end what the randomized test found.", duration: 41, createdAt: "2026-10-31T20:30:00Z" }),
 ]
+
+/** Clips that sort after every other, in this order, whatever their dates (Brendan, 2026-10-31: the edited cuts last). */
+export const LAST = ["px-dustin-cut", "px-danielle-cut"]
 
 const person = (name: string, handle: string) => ({ name, handle, image: null })
 
