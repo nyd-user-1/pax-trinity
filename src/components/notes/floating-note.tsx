@@ -75,8 +75,8 @@ export function FloatingNote({ rect, id: firstId, body: firstBody, onClose }: { 
     onPointerUp: () => void (drag.current = null),
   }
 
-  // The bottom-right corner resizes the card in proportion (Brendan, 2026-10-31), no smaller than 300 by 240 and
-  // no larger than the window has room for.
+  // The bottom-right corner resizes the card (Brendan, 2026-10-31): down for height, right for width, down and right
+  // for both, no smaller than 300 by 240 and no larger than the window has room for.
   const from = React.useRef<{ x: number; y: number; w: number; h: number } | null>(null)
   const corner = {
     onPointerDown: (e: React.PointerEvent) => {
@@ -87,11 +87,9 @@ export function FloatingNote({ rect, id: firstId, body: firstBody, onClose }: { 
     onPointerMove: (e: React.PointerEvent) => {
       const f = from.current
       if (!f) return
-      const scale = ((f.w + e.clientX - f.x) / f.w + (f.h + e.clientY - f.y) / f.h) / 2
-      const least = Math.max(300 / f.w, 240 / f.h)
-      const most = Math.min((window.innerWidth - 8 - pos.left) / f.w, (window.innerHeight - 8 - pos.top) / f.h)
-      const s = Math.max(least, Math.min(scale, most))
-      setSize({ w: Math.round(f.w * s), h: Math.round(f.h * s) })
+      const w = Math.max(300, Math.min(f.w + e.clientX - f.x, window.innerWidth - 8 - pos.left))
+      const h = Math.max(240, Math.min(f.h + e.clientY - f.y, window.innerHeight - 8 - pos.top))
+      setSize({ w: Math.round(w), h: Math.round(h) })
     },
     onPointerUp: () => void (from.current = null),
   }
