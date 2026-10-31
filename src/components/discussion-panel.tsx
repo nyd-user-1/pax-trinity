@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ArrowLeft, ChartColumn, ChevronRight, Clapperboard, Crosshair, Loader2, Columns2, Columns3, LayoutGrid, Maximize2, MessageSquareText, MessagesSquare, Palette, SquareDashedMousePointer, Video, Wrench, X } from "lucide-react"
+import { ArrowLeft, ChartColumn, ChevronRight, Clapperboard, Crosshair, FileText, Loader2, Columns2, Columns3, LayoutGrid, Maximize2, MessageSquareText, MessagesSquare, Palette, SquarePen, SquareDashedMousePointer, Video, Wrench, X } from "lucide-react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -19,6 +19,7 @@ import { LIFT_ANALYSIS_OPEN, LIFT_TOOLS_OPEN, takeToolsOnCards } from "@/lib/lif
 import { useDeliverables, type Deliverable } from "@/app/lift/deliverables"
 import { useThemePanel } from "@/components/theme/theme-palette"
 import { STUDIO_OPEN, takeStudio } from "@/lib/studio"
+import { TOOLS_OPEN, takeTools } from "@/lib/clips-panel"
 
 // 44b's DiscussionPanel (components/DiscussionPanel.tsx), cut to five doors: Blocks, Chat, Record, Slack and
 // Discord. Blocks is the shelf after Cloudflare's chat canvas: a handful of shorts, and any block added
@@ -28,7 +29,7 @@ import { STUDIO_OPEN, takeStudio } from "@/lib/studio"
 // It sits in the shell's right slot in the take panel's frame, so the two read as one panel. It wears the
 // rail's dress (Brendan, 2026-10-29, after America Thinks): the mist ground, its rows the rail's rows.
 
-type View = "welcome" | "blocks" | "chat" | "devtools" | "lift" | "housekeeping" | "inspector" | "theme" | "studio" | "slack" | "discord"
+type View = "welcome" | "blocks" | "chat" | "devtools" | "edits" | "lift" | "reports" | "housekeeping" | "inspector" | "theme" | "studio" | "slack" | "discord"
 
 // Dev Tools (Brendan, 2026-10-30): one row for the admins' tools. Dev Comments is Housekeeping, renamed; the
 // Inspector item opens the inspector dock's two panels here, Classifier and Comments (the admin's own
@@ -48,6 +49,10 @@ const HousekeepingView = dynamic(() => import("@/components/housekeeping/view").
 })
 // The theme panel's controls load when Theme is opened.
 const ThemeControls = dynamic(() => import("@/components/theme/theme-palette").then((m) => m.ThemeControls), { ssr: false })
+// Edits and Reports, the clip's thread and readout that left /clips for this panel (Brendan, 2026-10-31), load
+// when opened: the readout carries the results register.
+const ClipEdits = dynamic(() => import("@/components/clips/tools-views").then((m) => m.ClipEdits), { ssr: false })
+const ClipReports = dynamic(() => import("@/components/clips/tools-views").then((m) => m.ClipReports), { ssr: false })
 // The Studio's frame loads when its view is opened, so the panel's first load carries none of it.
 const StudioFrame = dynamic(() => import("@/components/studio-frame").then((m) => m.StudioFrame), { ssr: false })
 
@@ -59,7 +64,7 @@ let keptSelected: string | null = null
 let keptStudio: string | null = null
 // The service a Slack or Discord view talks to, named by its logo in the header at every level.
 const LOGO: Partial<Record<View, string>> = { slack: "/logos/slack.png", discord: "/logos/discord-icon.svg" }
-const TITLE: Record<View, string> = { welcome: "Tools", blocks: "Blocks", chat: "Chat", devtools: "Dev Tools", lift: "Lift Analysis", housekeeping: "Dev Comments", inspector: "Inspector", theme: "Theme", studio: "Studio", slack: "Slack", discord: "Discord" }
+const TITLE: Record<View, string> = { welcome: "Tools", blocks: "Blocks", chat: "Chat", devtools: "Dev Tools", edits: "Edits", lift: "Lift Analysis", reports: "Reports", housekeeping: "Dev Comments", inspector: "Inspector", theme: "Theme", studio: "Studio", slack: "Slack", discord: "Discord" }
 
 function Row({ icon, label, sub, onClick }: { icon: React.ReactNode; label: string; sub?: string; onClick: () => void }) {
   return (
@@ -332,6 +337,16 @@ export function DiscussionPanel({ onClose: close, admin = false }: { onClose: ()
     window.addEventListener(DEVTOOLS_OPEN, go)
     return () => window.removeEventListener(DEVTOOLS_OPEN, go)
   }, [admin])
+  // A clip's comment button on /clips opens Edits: now, or as the panel mounts.
+  React.useEffect(() => {
+    const go = () => {
+      const v = takeTools()
+      if (v) setViewState((keptView = v))
+    }
+    go()
+    window.addEventListener(TOOLS_OPEN, go)
+    return () => window.removeEventListener(TOOLS_OPEN, go)
+  }, [])
   // A chat video's Open in Studio: open the Studio view on its version, now or as the panel mounts.
   React.useEffect(() => {
     if (!admin) return
@@ -398,10 +413,13 @@ export function DiscussionPanel({ onClose: close, admin = false }: { onClose: ()
             <Row icon={<LayoutGrid className="size-4" />} label="Blocks" sub="Shorts and blocks you've saved" onClick={() => setView("blocks")} />
             <Row icon={<MessagesSquare className="size-4" />} label="Chat" sub="Ask about the scores, scripts and results" onClick={() => setView("chat")} />
             {admin && <Row icon={<Wrench className="size-4" />} label="Dev Tools" sub="Comment, inspect, and more" onClick={() => setView("devtools")} />}
+            {/* A to Z, Slack and Discord at the foot (Brendan, 2026-10-31). */}
+            <Row icon={<SquarePen className="size-4" />} label="Edits" sub="The team's thread on the clip playing" onClick={() => setView("edits")} />
             <Row icon={<ChartColumn className="size-4" />} label="Lift Analysis" sub="Every deliverable the tests measured" onClick={() => setView("lift")} />
-            {themeRow && <Row icon={<Palette className="size-4" />} label="Theme" sub="Six themes, and every colour in them" onClick={() => setView("theme")} />}
-            {admin && <Row icon={<Clapperboard className="size-4" />} label="Studio" sub="Templates, graphics and saved versions" onClick={() => setView("studio")} />}
             <Row icon={<Video className="size-4" />} label="Record" sub="Write a script, record it or upload a video" onClick={() => router.push("/recording")} />
+            <Row icon={<FileText className="size-4" />} label="Reports" sub="Every tested clip's readout" onClick={() => setView("reports")} />
+            {admin && <Row icon={<Clapperboard className="size-4" />} label="Studio" sub="Templates, graphics and saved versions" onClick={() => setView("studio")} />}
+            {themeRow && <Row icon={<Palette className="size-4" />} label="Theme" sub="Six themes, and every colour in them" onClick={() => setView("theme")} />}
             {admin && (
               <>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -414,6 +432,8 @@ export function DiscussionPanel({ onClose: close, admin = false }: { onClose: ()
         )}
         {view === "blocks" && <BlocksShelf />}
         {view === "lift" && <LiftAnalyses />}
+        {view === "edits" && <ClipEdits />}
+        {view === "reports" && <ClipReports onNav={setSub} />}
         {view === "devtools" && admin && (
           <div className="flex flex-col px-3 pt-1">
             <Row icon={<MessageSquareText className="size-4" />} label="Dev Comments" sub="Comments on the app, and direct messages" onClick={() => setView("housekeeping")} />

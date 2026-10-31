@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@govblock/ui/lib/utils"
 
 import { Capture } from "./capture"
-import { CommentsPanel } from "./comments"
+import { EditThread } from "./comments"
 import { PanelBlock } from "@/components/blocks"
 import { MenuRow } from "@/components/kebab-menu"
 import { Creators } from "./creators"
@@ -23,19 +23,19 @@ import { Grid } from "./grid"
 import { ReportDialog } from "./report"
 import { Upload } from "./upload"
 import { isTested } from "./clip-test"
+import { openTools, publishClipsPanel } from "@/lib/clips-panel"
 import { creatorOf, CREATORS, isKeptRecording, PUBLISHED, SEED_COMMENTS, deleteClip, loadFeed, takeDown, loadFollows, loadLikes, loadMyComments, loadSaves, saveClip, storeFollows, storeLikes, storeMyComments, storeSaves, updateClip, type Clip, type Comment, type Feed as FeedData, type Upload as UploadRow } from "./store"
 
 // Clips: short vertical video, recorded on a phone or a laptop, kept private
 // until its owner says otherwise. A mock of the whole experience (Brendan,
 // 2026-09-07) so the shape can be judged before Stream is wired in.
 //
-// The page is the site's centred layout with both rails (Brendan, 2026-09-07):
-// creators on the left, the clip in the middle, and the comments on the
-// right. The middle scrolls down, one clip a screen, the way every other
-// page here scrolls; a grid of the same clips is one toggle away and opens
-// into the feed at the tile you chose. On a phone the rails fold away: the
-// creators become a select in the toolbar and the comments a sheet that
-// rises from the foot.
+// The page is two panels in the Block dress (Brendan, 2026-10-31): the partners on the left, the clips in
+// the middle, the grid first and the feed a toggle away, opening at the tile you chose. The clip's Edit
+// Panel and Report Panel left the page for the shell's right panel (Tools' Edits and Reports, which read
+// the clip playing through lib/clips-panel.ts). The partners' panel gives way first: it narrows before the
+// clips do, and leaves when keeping it would cost the grid a column, its menu moving into the clips'
+// header. On a phone the thread is a sheet that rises from the foot.
 
 type Account = { name?: string | null; email?: string | null; image?: string | null; admin?: boolean } | null
 
@@ -90,6 +90,8 @@ const Generate = dynamic(() => import("./generate").then((m) => m.Generate), { s
 type Frame = "page" | "sheet"
 const FEED_HEIGHT: Record<Frame, string> = { page: "h-[calc(100svh-var(--header-height)-4.5rem)]", sheet: "h-[calc(100svh-var(--header-height)-5.2rem)]" }
 const COLUMN_HEIGHT: Record<Frame, string> = { page: "h-[calc(100svh-var(--header-height)-4.375rem)]", sheet: "h-[calc(100svh-var(--header-height)-1.7rem)]" }
+// The clips' panel is a column like the partners' once the shell's frame is (md); on a phone the page scrolls.
+const MAIN_HEIGHT: Record<Frame, string> = { page: "md:h-[calc(100svh-var(--header-height)-4.375rem)]", sheet: "md:h-[calc(100svh-var(--header-height)-1.7rem)]" }
 
 export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
   const { account, ready } = useAccount()
@@ -102,7 +104,6 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
   const [creator, setCreator] = React.useState("all")
   // The grid first (Brendan, 2026-09-14); a clip opens the feed.
   const [view, setView] = React.useState<"feed" | "grid">("grid")
-  const [panelTab, setPanelTab] = React.useState<"edit" | "report">("edit")
   const [activeId, setActiveId] = React.useState<string | null>(null)
   const [muted, setMuted] = React.useState(true)
   const [liked, setLiked] = React.useState<Set<string>>(new Set())
@@ -240,10 +241,13 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
         return n
       })
     },
+    // The thread is Tools' Edits in the shell's right panel; on a phone, the sheet.
     onComment: (clip) => {
       setActiveId(clip.id)
-      if (window.matchMedia("(min-width: 64rem)").matches) setFocusKey((k) => k + 1)
-      else setSheet(true)
+      if (window.matchMedia("(min-width: 48rem)").matches) {
+        openTools("edits")
+        setFocusKey((k) => k + 1)
+      } else setSheet(true)
     },
     onGoToPost: goToPost,
   }
@@ -279,30 +283,24 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
     void loadFeed().then(applyFeed)
   }
 
-  const panel = (className?: string) =>
-    active ? (
-      <CommentsPanel
-        tab={panelTab}
-        clip={active}
-        comments={commentsFor(active.id)}
-        liked={liked.has(active.id)}
-        saved={saved.has(active.id)}
-        following={following.has(active.creatorId)}
-        signedIn={signedIn}
-        onLike={() => reactions.onLike(active)}
-        onSave={() => reactions.onSave(active)}
-        onDelete={active.mine && !isKeptRecording(active.id) ? () => void remove(active) : undefined}
-        onReport={!active.mine ? () => setReporting(active) : undefined}
-        onTakeDown={admin && active.origin ? () => void takeDownClip(active) : undefined}
-        onFollow={() => reactions.onFollow?.(active.creatorId)}
-        onGoToPost={() => goToPost(active)}
-        onPost={post}
-        onLikeComment={(id) => setLikedComments((s) => toggleIn(s, id))}
-        likedComments={likedComments}
-        focusKey={focusKey}
-        className={className}
-      />
-    ) : null
+  const likeComment = (id: string) => setLikedComments((s) => toggleIn(s, id))
+  // A clip opened from Tools' Reports plays here; one under another partner brings back All partners.
+  const openClip = (id: string) => {
+    const c = clips.find((x) => x.id === id)
+    if (c) return goToPost(c)
+    pendingId.current = id
+    setCreator("all")
+    setView("feed")
+  }
+  // What the shell's right panel reads (Edits and Reports): the clip playing and the thread's handlers.
+  const openClipRef = React.useRef(openClip)
+  openClipRef.current = openClip
+  React.useEffect(() => {
+    publishClipsPanel({ clip: active, comments: active ? commentsFor(active.id) : [], signedIn, likedComments, focusKey, onPost: post, onLikeComment: likeComment, onOpen: (id) => openClipRef.current(id) })
+    // post and likeComment read only active and state setters.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, commentsFor, signedIn, likedComments, focusKey])
+  React.useEffect(() => () => publishClipsPanel(null), [])
 
   const shown = clips
   // The count's refresh: the feed read again.
@@ -328,9 +326,12 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
 
   return (
     // The slot hides the site footer (Brendan, 2026-09-11): the page is the clip.
-    <div data-slot="clips" className="container-wrapper">
-      <div className="px-2 lg:grid lg:grid-cols-[340px_minmax(0,1fr)_340px] lg:gap-6 lg:px-4">
-        <aside className="hidden lg:block">
+    <div data-slot="clips" className="container-wrapper @container/clips">
+      {/* The partners' column takes 340px of the first 1156 and gives back up to 100 before the clips' column
+          gives any (it shrinks a thousand times faster); under 1056px of page it leaves, since keeping it would
+          take the grid below three columns. */}
+      <div className="flex gap-6 px-2 md:px-4">
+        <aside className="hidden min-w-[240px] flex-[0_1000_340px] @min-[1056px]/clips:block">
           <div className={cn("sticky top-4 pb-4", COLUMN_HEIGHT[frame])}>
             {/* The Block dress (Brendan, 2026-10-25): the title, then the menu, where the partners live. */}
             <PanelBlock
@@ -346,122 +347,106 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
           </div>
         </aside>
 
-        <main className="min-w-0">
-          {/* The row over the videos (restored 2026-10-26): the view pill on the left, the count and its
-              refresh on the right. */}
-          <div className="hidden h-14 items-center gap-2 lg:flex">
-            {viewToggle}
-            <span className="ml-auto text-xs whitespace-nowrap text-muted-foreground tabular-nums">{shown.length} clips</span>
-            <button type="button" aria-label="Refresh" title="Refresh" onClick={refresh} className="-ml-1 inline-flex size-8 items-center justify-center rounded-md text-slate-800 hover:bg-muted hover:text-foreground">
-              <RefreshCwIcon className={cn("size-3.5", refreshing && "animate-spin")} />
-            </button>
-          </div>
-          <div className="flex h-14 items-center gap-2 lg:hidden">
-            {viewToggle}
-            <div className="hidden">
-              <button type="button" onClick={() => setView("feed")} className={cn("flex size-8 items-center justify-center rounded-full", view === "feed" ? "bg-background shadow-sm" : "text-muted-foreground")} aria-label="Feed">
-                <PlaySquareIcon className="size-4" />
-              </button>
-              <button type="button" onClick={() => setView("grid")} className={cn("flex size-8 items-center justify-center rounded-full", view === "grid" ? "bg-background shadow-sm" : "text-muted-foreground")} aria-label="Grid">
-                <LayoutGridIcon className="size-4" />
-              </button>
-            </div>
-            <Select value={creator} onValueChange={(v) => v && setCreator(String(v))}>
-              <SelectTrigger className="h-8 w-max min-w-36 lg:hidden" size="sm" aria-label="Creator">
-                <SelectValue>{() => creatorLabel}</SelectValue>
-              </SelectTrigger>
-              <SelectContent className="w-max min-w-44">
-                <SelectItem value="all" className="whitespace-nowrap">
-                  All clips
-                </SelectItem>
-                {CREATORS.map((c) => (
-                  <SelectItem key={c.id} value={c.id} className="whitespace-nowrap">
-                    {c.name}
-                  </SelectItem>
-                ))}
-                {signedIn && (
-                  <SelectItem value="you" className="whitespace-nowrap">
-                    Your library
-                  </SelectItem>
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {creator === "you" && signedIn && uploads.length > 0 && (
-            <ul className="flex flex-col gap-1 pb-3 text-sm">
-              {uploads.map((u) => (
-                <li key={u.id} className="flex items-center gap-2">
-                  <span className="truncate font-medium">{u.title}</span>
-                  <span className="shrink-0 text-muted-foreground" title={u.error ?? undefined}>{u.status === "queued" ? "waiting for the worker box" : u.status === "running" ? "being cut" : u.status === "failed" ? "could not be cut" : `${u.clips ?? 0} clips`}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-          {creator === "you" && ready && !signedIn ? (
-            <Empty icon={<LockIcon className="size-6" />} text="Your library is yours. Sign in to see it.">
-              <Button render={<Link href="/sign-in" />} size="sm">
-                Sign in
-              </Button>
-            </Empty>
-          ) : clips.length === 0 && !loaded ? (
-            <div className="flex justify-center py-16">
-              <LoadingFlag />
-            </div>
-          ) : clips.length === 0 ? (
-            <Empty icon={<CameraIcon className="size-6" />} text={creator === "you" ? "Nothing recorded yet." : "Nothing published yet."}>
-              {creator === "you" && (
-                <Button size="sm" onClick={record}>
-                  Record the first one
-                </Button>
-              )}
-            </Empty>
-          ) : view === "grid" ? (
-            <Grid clips={shown} onOpen={goToPost} className="-mx-2 lg:mx-0" />
-          ) : (
-            <Feed clips={shown} activeId={activeId} onActive={setActiveId} muted={muted} onMuted={setMuted} reactions={reactions} className={cn(FEED_HEIGHT[frame], "-mx-2 lg:mx-0")} />
-          )}
-
-          {creator === "you" && active?.mine && view === "feed" && (
-            <div className="flex items-center gap-2 py-3 text-sm lg:pr-16">
-              <span className="text-muted-foreground">{active.visibility === "public" ? "Everyone can see this." : "Only you can see this."}</span>
-              {!isKeptRecording(active.id) && (
-                <>
-                  <Button variant="outline" size="sm" className="ml-auto" onClick={() => void publish(active)}>
-                    {active.visibility === "public" ? "Make private" : "Publish"}
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => void remove(active)}>
-                    Delete
-                  </Button>
-                </>
-              )}
-            </div>
-          )}
-        </main>
-
-        <aside className="hidden lg:block">
-          {/* mt-14 clears the center toolbar so the panel's border starts at the video top. */}
-          <div className={cn("sticky top-4 pb-4", COLUMN_HEIGHT[frame])}>
+        <main className="min-w-0 flex-[1_1_756px]">
+          <div className={cn("flex flex-col md:sticky md:top-4 md:pb-4", MAIN_HEIGHT[frame])}>
+            {/* The partners' dress (Brendan, 2026-10-31): the partner shown as the title, the view toggle after it,
+                the count and its refresh before the menu. Without the partners' column the title is its menu. */}
             <PanelBlock
               title=""
-              id="clip-panel"
-              name="clip panel"
+              id="clips"
+              name="clips"
+              rows={clipRows}
               tools={
-                <div className="flex items-center gap-2.5">
-                  <button type="button" onClick={() => setPanelTab("edit")} className={cn("text-sm font-semibold", panelTab === "edit" ? "" : "text-muted-foreground")}>
-                    Edit Panel
-                  </button>
-                  <span className="text-muted-foreground">·</span>
-                  <button type="button" onClick={() => setPanelTab("report")} className={cn("text-sm font-semibold", panelTab === "report" ? "" : "text-muted-foreground")}>
-                    Report Panel
-                  </button>
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="hidden truncate text-base font-medium @min-[1056px]/clips:inline">{creatorLabel}</span>
+                  <Select value={creator} onValueChange={(v) => v && setCreator(String(v))}>
+                    <SelectTrigger className="h-8 w-max min-w-36 @min-[1056px]/clips:hidden" size="sm" aria-label="Partner">
+                      <SelectValue>{() => creatorLabel}</SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="w-max min-w-44">
+                      <SelectItem value="all" className="whitespace-nowrap">
+                        All clips
+                      </SelectItem>
+                      {CREATORS.map((c) => (
+                        <SelectItem key={c.id} value={c.id} className="whitespace-nowrap">
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                      {signedIn && (
+                        <SelectItem value="you" className="whitespace-nowrap">
+                          Your library
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {viewToggle}
                 </div>
               }
+              actions={
+                <>
+                  <span className="text-xs whitespace-nowrap text-muted-foreground tabular-nums">{shown.length} clips</span>
+                  <button type="button" aria-label="Refresh" title="Refresh" onClick={refresh} className="-ml-1 inline-flex size-8 items-center justify-center rounded-md text-slate-800 hover:bg-foreground/8 hover:text-foreground">
+                    <RefreshCwIcon className={cn("size-3.5", refreshing && "animate-spin")} />
+                  </button>
+                </>
+              }
             >
-              {panel()}
+              <div className="flex min-h-0 flex-1 flex-col px-4">
+                {creator === "you" && signedIn && uploads.length > 0 && (
+                  <ul className="flex shrink-0 flex-col gap-1 pb-3 text-sm">
+                    {uploads.map((u) => (
+                      <li key={u.id} className="flex items-center gap-2">
+                        <span className="truncate font-medium">{u.title}</span>
+                        <span className="shrink-0 text-muted-foreground" title={u.error ?? undefined}>{u.status === "queued" ? "waiting for the worker box" : u.status === "running" ? "being cut" : u.status === "failed" ? "could not be cut" : `${u.clips ?? 0} clips`}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {creator === "you" && ready && !signedIn ? (
+                  <Empty icon={<LockIcon className="size-6" />} text="Your library is yours. Sign in to see it.">
+                    <Button render={<Link href="/sign-in" />} size="sm">
+                      Sign in
+                    </Button>
+                  </Empty>
+                ) : clips.length === 0 && !loaded ? (
+                  <div className="flex justify-center py-16">
+                    <LoadingFlag />
+                  </div>
+                ) : clips.length === 0 ? (
+                  <Empty icon={<CameraIcon className="size-6" />} text={creator === "you" ? "Nothing recorded yet." : "Nothing published yet."}>
+                    {creator === "you" && (
+                      <Button size="sm" onClick={record}>
+                        Record the first one
+                      </Button>
+                    )}
+                  </Empty>
+                ) : view === "grid" ? (
+                  <div className="scrollbar-none min-h-0 flex-1 overflow-y-auto rounded-lg">
+                    <Grid clips={shown} onOpen={goToPost} />
+                  </div>
+                ) : (
+                  <Feed clips={shown} activeId={activeId} onActive={setActiveId} muted={muted} onMuted={setMuted} reactions={reactions} className={cn(FEED_HEIGHT[frame], "md:h-auto md:min-h-0 md:flex-1")} />
+                )}
+
+                {creator === "you" && active?.mine && view === "feed" && (
+                  <div className="flex shrink-0 items-center gap-2 py-3 text-sm">
+                    <span className="text-muted-foreground">{active.visibility === "public" ? "Everyone can see this." : "Only you can see this."}</span>
+                    {!isKeptRecording(active.id) && (
+                      <>
+                        <Button variant="outline" size="sm" className="ml-auto" onClick={() => void publish(active)}>
+                          {active.visibility === "public" ? "Make private" : "Publish"}
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => void remove(active)}>
+                          Delete
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
             </PanelBlock>
           </div>
-        </aside>
+        </main>
       </div>
 
       <button type="button" onClick={record} aria-label="Record" className="fixed right-4 bottom-6 z-40 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg ring-4 ring-background lg:hidden">
@@ -471,7 +456,7 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
       <Drawer open={sheet} onOpenChange={setSheet} showSwipeHandle>
         <DrawerContent className="h-[75dvh]">
           <DrawerTitle className="sr-only">Comments</DrawerTitle>
-          {panel("h-full")}
+          {active && <EditThread clip={active} comments={commentsFor(active.id)} signedIn={signedIn} onPost={post} onLikeComment={likeComment} likedComments={likedComments} focusKey={focusKey} className="h-full" />}
         </DrawerContent>
       </Drawer>
 

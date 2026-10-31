@@ -20,6 +20,7 @@ import { DEVTOOLS_OPEN, HOUSEKEEPING_OPEN, HousekeepingTool, openDevTools } from
 import { LIFT_TOOLS_OPEN } from "@/lib/lift-analyses"
 import { useThemePanel } from "@/components/theme/theme-palette"
 import { STUDIO_OPEN } from "@/lib/studio"
+import { TOOLS_OPEN } from "@/lib/clips-panel"
 import { testsHref } from "@/lib/survey-links"
 import { PaneFrame, PaneSync } from "@/components/pane"
 import { PANE_MESSAGE, isEmbedded, isPanePath } from "@/lib/pane"
@@ -219,12 +220,14 @@ export function Shell({ children, drawer, signedIn = false, admin = false, partn
     const open = () => (setAside(null), setDiscuss(true))
     window.addEventListener(HOUSEKEEPING_OPEN, open)
     window.addEventListener(DEVTOOLS_OPEN, open)
+    window.addEventListener(TOOLS_OPEN, open)
     window.addEventListener(STUDIO_OPEN, open)
     // Lift Analysis' Back, when Tools' cards opened it.
     window.addEventListener(LIFT_TOOLS_OPEN, open)
     return () => {
       window.removeEventListener(HOUSEKEEPING_OPEN, open)
       window.removeEventListener(DEVTOOLS_OPEN, open)
+      window.removeEventListener(TOOLS_OPEN, open)
       window.removeEventListener(STUDIO_OPEN, open)
       window.removeEventListener(LIFT_TOOLS_OPEN, open)
     }

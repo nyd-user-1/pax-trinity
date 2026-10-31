@@ -31,11 +31,13 @@ export const testsOf = (clipId: string): ClipTestRef[] =>
 const TESTED = new Set(MEASURED.flatMap((rs) => rs.arms.filter((arm) => arm.role === "treatment" && arm.clipId).map((arm) => arm.clipId as string)))
 export const isTested = (clipId: string) => TESTED.has(clipId)
 
-/** The mark on a tile whose clip carries the register's randomized-test results: dark green on light green. */
-export function RctBadge({ className }: { className?: string }) {
+/** The mark on a tile whose clip carries the register's randomized-test results: dark green on light green.
+ *  `collapse`: inside a tile (an @container/tile), the word drops below 280px and the check stands alone. */
+export function RctBadge({ className, collapse }: { className?: string; collapse?: boolean }) {
   return (
-    <span className={cn("flex shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-[11px] leading-none font-semibold text-emerald-700", className)}>
-      <CheckIcon className="size-3" strokeWidth={3} /> RCT
+    <span title="Randomized controlled test" className={cn("flex shrink-0 items-center gap-1 rounded-full bg-emerald-50 py-1 text-[11px] leading-none font-semibold text-emerald-700", collapse ? "px-1 @min-[280px]/tile:px-2" : "px-2", className)}>
+      <CheckIcon className="size-3" strokeWidth={3} />
+      <span className={cn(collapse && "hidden @min-[280px]/tile:inline")}>RCT</span>
     </span>
   )
 }

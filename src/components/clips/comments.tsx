@@ -10,46 +10,23 @@ import { cn } from "@govblock/ui/lib/utils"
 import { ClipTest, drawnTest, testsOf } from "./clip-test"
 import { fmtAge, type Clip, type Comment } from "./store"
 
-// Instagram's post panel, as the page's right rail: the author with Follow
-// and the menu, the caption as the first entry, the comments, the action row
-// with the like count and the date, and a box to write in. Signed out, the
-// box is a sentence with a sign-in link.
-
-export function CommentsPanel({
-  tab,
+// A clip's edit thread (Brendan's mock, 2026-10-25): the team's notes on the cut, the record's links, the
+// readers' comments, and a box to write in. Signed out, the box is a sentence with a sign-in link. It reads
+// in Tools' Edits (the shell's right panel) and in the phone's sheet; the page's Edit Panel is gone
+// (Brendan, 2026-10-31).
+export function EditThread({
   clip,
   comments,
-  liked,
-  saved,
-  following,
   signedIn,
-  onLike,
-  onSave,
-  onDelete,
-  onReport,
-  onTakeDown,
-  onFollow,
-  onGoToPost,
   onPost,
   onLikeComment,
   likedComments,
   focusKey,
   className,
 }: {
-  tab: "edit" | "report"
   clip: Clip | null
   comments: Comment[]
-  liked: boolean
-  saved: boolean
-  following: boolean
   signedIn: boolean
-  onLike: () => void
-  onSave: () => void
-  onDelete?: () => void
-  onReport?: () => void
-  onTakeDown?: () => void
-  onFollow: () => void
-  onGoToPost: () => void
   onPost: (text: string) => void
   onLikeComment: (id: string) => void
   likedComments: Set<string>
@@ -64,13 +41,9 @@ export function CommentsPanel({
   React.useEffect(() => setText(""), [clip?.id])
 
   if (!clip) return <div className={cn("flex items-center justify-center p-6 text-sm text-muted-foreground", className)}>Nothing playing.</div>
-  const likes = clip.likes + (liked ? 1 : 0)
 
   return (
     <div className={cn("flex h-full min-h-0 flex-col", className)}>
-      {tab === "report" ? (
-        <ReportView clip={clip} />
-      ) : (
       <div className="scrollbar-none min-h-0 flex-1 overflow-y-auto px-4 py-3">
         {EDITS.map((e) => (
           <div key={e.who + e.ago} className="flex gap-3 py-2">
@@ -109,9 +82,8 @@ export function CommentsPanel({
           </p>
         )}
       </div>
-      )}
 
-      {tab === "edit" && signedIn && (
+      {signedIn && (
         <Composer
           placeholder={`Message #${clip.author.handle}`}
           value={text}
@@ -172,7 +144,8 @@ const EDITS = [
 ]
 
 // The cut's readout (clip-test.tsx): the register's arm where it joins the clip, else the panel drawn for it.
-function ReportView({ clip }: { clip: Clip }) {
+// Tools' Reports opens it (the shell's right panel).
+export function ClipReport({ clip }: { clip: Clip }) {
   const tests = testsOf(clip.id)
   return <ClipTest tests={tests.length ? tests : [drawnTest(clip)]} />
 }

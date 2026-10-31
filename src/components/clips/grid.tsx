@@ -15,14 +15,16 @@ import { fmtCount, type Clip } from "./store"
 const CompositionThumb = dynamic(() => import("./composition-player").then((m) => m.CompositionThumb), { ssr: false })
 
 // Instagram's grid: the poster fills the tile, the author's avatar and handle
-// sit top left, the play count and the caption sit at the foot. Three across
-// on a phone, four on a desktop, with the hairline gaps Instagram uses.
+// sit top left, the play count and the caption sit at the foot, with the
+// hairline gaps Instagram uses.
 
 export function Grid({ clips, onOpen, className }: { clips: Clip[]; onOpen: (clip: Clip) => void; className?: string }) {
   return (
-    <div className={cn("grid grid-cols-3 gap-0.5", className)}>
+    // As many columns as fit at 240px or more (Brendan, 2026-10-31): three in the page's usual width, two and
+    // then one as the column narrows, more when it is wide.
+    <div className={cn("grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-0.5", className)}>
       {clips.map((clip) => (
-        <button key={clip.id} type="button" onClick={() => onOpen(clip)} className="group relative aspect-[9/16] overflow-hidden bg-black text-left text-white" aria-label={clip.title}>
+        <button key={clip.id} type="button" onClick={() => onOpen(clip)} className="group @container/tile relative aspect-[9/16] overflow-hidden bg-black text-left text-white" aria-label={clip.title}>
           {clip.composition ? (
             <div className="size-full transition-transform duration-300 group-hover:scale-[1.03]">
               <CompositionThumb composition={clip.composition} />
@@ -38,7 +40,7 @@ export function Grid({ clips, onOpen, className }: { clips: Clip[]; onOpen: (cli
               <AvatarFallback className="bg-white/20 text-[10px] text-white">{clip.author.name.slice(0, 1)}</AvatarFallback>
             </Avatar>
             <span className="truncate text-xs font-semibold max-sm:text-[11px]">{clip.messenger ?? clip.author.name}</span>
-            {isTested(clip.id) && <RctBadge className="ml-auto" />}
+            {isTested(clip.id) && <RctBadge collapse className="ml-auto" />}
           </div>
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent p-2 pt-8">
             {!clip.mine && (
