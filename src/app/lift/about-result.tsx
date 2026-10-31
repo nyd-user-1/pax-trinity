@@ -110,8 +110,9 @@ export function AboutResult({
   return (
     // Its own tooltip provider: in the shell's right panel it stands outside Lift's (the panel crashed on a Tooltip without one).
     <TooltipProvider delayDuration={0}>
-    <div className="flex w-full flex-col pt-4">
-      <div className="px-6">
+    <div className="flex w-full flex-col">
+      {/* 16px above and below the tabs, and a rule over the first section (Brendan, 2026-10-31). */}
+      <div className="px-6 py-4">
         <div className="grid grid-cols-2 rounded-md bg-muted p-0.5 text-xs">
           {(["analytics", "second"] as const).map((t) => (
             <button
@@ -149,7 +150,7 @@ export function AboutResult({
         )
       ) : (
         <>
-          <div className="px-6 pt-4 pb-4">
+          <div className="border-t px-6 py-4">
             <h4 className="mb-3 text-[13px] font-semibold">Result</h4>
             {control && <Scale control={control[7]} delta={delta} quiet={significance(lift) === false} />}
             <div className={cn("grid grid-cols-[1fr_88px_72px] items-center gap-x-3 gap-y-2.5 text-[13px]", control && "mt-4")}>
@@ -262,10 +263,12 @@ export function AboutResult({
 }
 
 const points = (x: number) => `${num(Math.abs(x))} ${num(Math.abs(x)) === "1" ? "point" : "points"}`
+const ordinal = (k: number) => `${k}${k % 100 >= 11 && k % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][k % 10] ?? "th"}`
 const listed = (xs: string[]) => (xs.length < 3 ? xs.join(" and ") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`)
 
 /** The second tab where a result has no open-ends (Brendan, 2026-10-31): what Analytics shows, in sentences, from
- *  the same figures (the means, the impact and its interval, the benchmarks, the test's ranking). */
+ *  the same figures, under its sections' names: Result (the means, the impact and its interval), Benchmarks and
+ *  Compare Rank. */
 function Explainer({
   name,
   metric,
@@ -298,41 +301,65 @@ function Explainer({
 }) {
   const who = segment === "Everyone" ? "everyone" : segment
   const moved = delta === 0 ? `left ${metric} unchanged among ${who}` : `${delta > 0 ? "raised" : "lowered"} ${metric} by ${points(delta)} among ${who}`
-  const paras: string[] = []
+  // An article in the Analytics tab's sections (Brendan, 2026-10-31): each a title and a line that sums it
+  // up, in the card header's dress (settings/blocks.tsx Block), over its sentences.
+  const sections: { title: string; sub: string; body: string[] }[] = []
 
   const sample = n != null ? ` ${num(n, 0)} people saw it${nControl != null ? `; ${num(nControl, 0)} were in the control group` : ""}.` : ""
-  paras.push(control && level ? `${name} ${moved}: ${levelOf(control)} in the control group, ${levelOf(level)} among those who saw it.${sample}` : `${name} ${moved}.${sample}`)
-
+  const result = [control && level ? `${name} ${moved}: ${levelOf(control)} in the control group, ${levelOf(level)} among those who saw it.${sample}` : `${name} ${moved}.${sample}`]
+  let verdict = ""
   if (moe != null) {
     const lo = delta - moe
     const hi = delta + moe
     const p = z != null ? pOf(z) : null
-    paras.push(
-      lo <= 0 && hi >= 0
+    const crosses = lo <= 0 && hi >= 0
+    verdict = crosses ? ", not clear of zero" : ", clear of zero"
+    result.push(
+      crosses
         ? `At 90% confidence the effect lies between ${signed(lo)} and ${signed(hi)} points. That range includes zero, so the test can't tell this effect from none.`
         : `At 90% confidence the effect lies between ${signed(lo)} and ${signed(hi)} points. The whole range is ${delta > 0 ? "above" : "below"} zero${p != null ? ` (p ${p < 0.001 ? "< 0.001" : `= ${p.toFixed(3)}`})` : ""}, so chance is an unlikely explanation.`
     )
   }
+  sections.push({ title: "Result", sub: `${signed(delta)} points on ${metric}${verdict}`, body: result })
 
   // Five results are the fewest the benchmarks place among, as on the Analytics tab. The pools nest, so one the
   // size of the pool before it is the same pool (the Archive holds no Support): it is said once.
-  const placed = (pools ?? []).filter((b, i, all) => b.values.length >= 5 && b.values.length !== all[i - 1]?.values.length).map((b) => `${Math.round(percentile(b.values, delta))}% of the ${num(b.values.length, 0)} in ${b.name === "All tests" ? "all tests" : b.name === "This test" ? "this test" : b.name}`)
-  if (placed.length) paras.push(`Against other results on ${metric} among ${who}, it's ahead of ${listed(placed)}.`)
+  const placed = (pools ?? [])
+    .filter((b, i, all) => b.values.length >= 5 && b.values.length !== all[i - 1]?.values.length)
+    .map((b) => ({ pct: Math.round(percentile(b.values, delta)), n: b.values.length, where: b.name === "All tests" ? "all tests" : b.name === "This test" ? "this test" : b.name }))
+  if (placed.length)
+    sections.push({
+      title: "Benchmarks",
+      sub: `Ahead of ${placed[0].pct}% of ${placed[0].where}`,
+      body: [`Against other results on ${metric} among ${who}, it's ahead of ${listed(placed.map((b) => `${b.pct}% of the ${num(b.n, 0)} in ${b.where}`))}.`],
+    })
 
   const at = ranked.findIndex((r) => r[4] === self)
   if (ranked.length > 1 && at >= 0) {
     const nameOf = (r: SourceRow) => treatmentName(r[4] ?? "")
-    paras.push(
-      at === 0
-        ? `It's the strongest of the ${ranked.length} treatments in this test, ${points(delta - ranked[1][7])} ahead of ${nameOf(ranked[1])}.`
-        : `It ranks ${at + 1} of ${ranked.length} treatments in this test; ${nameOf(ranked[0])} leads it by ${points(ranked[0][7] - delta)}.`
-    )
+    sections.push({
+      title: "Compare Rank",
+      sub: `${ordinal(at + 1)} of ${ranked.length} in this test`,
+      body: [
+        at === 0
+          ? `It's the strongest of the ${ranked.length} treatments in this test, ${points(delta - ranked[1][7])} ahead of ${nameOf(ranked[1])}.`
+          : `It ranks ${at + 1} of ${ranked.length} treatments in this test; ${nameOf(ranked[0])} leads it by ${points(ranked[0][7] - delta)}.`,
+      ],
+    })
   }
 
   return (
-    <div className="flex flex-col gap-3 px-6 py-4 text-[13px] leading-6">
-      {paras.map((t) => (
-        <p key={t}>{t}</p>
+    <div className="flex flex-col">
+      {sections.map((sec) => (
+        <section key={sec.title} className="border-t px-6 py-4">
+          <h3 className="text-[15px] font-semibold text-slate-900">{sec.title}</h3>
+          <p className="text-[13px] text-slate-500">{sec.sub}</p>
+          <div className="mt-3 flex flex-col gap-3 text-[14px] leading-6">
+            {sec.body.map((t) => (
+              <p key={t}>{t}</p>
+            ))}
+          </div>
+        </section>
       ))}
     </div>
   )
