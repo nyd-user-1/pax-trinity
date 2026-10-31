@@ -6,8 +6,8 @@ import { bandOf, baseGeoOf, baseWave, fmtPct, seriesOf, type Band, type Point } 
 // sentence's own case, and the move from the base wave. A small file of its
 // own so the list need not load the dossier to say it.
 
-/** Sources whose rows are a general-population survey: their shares read "of Americans". */
-export const ATTITUDE = new Set(["GSS", "ANES", "CES"])
+/** Sources whose rows are a general-population survey: their shares read "of Americans" (or "of people in" a state, as Survey's Consensus rows do). */
+export const ATTITUDE = new Set(["GSS", "ANES", "CES", "CONSENSUS"])
 
 /** A band in the sentence's case: "Fairly well" reads "fairly well" where the wording says it that way. */
 export function inSentence(band: string, wording: string | null) {

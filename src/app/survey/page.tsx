@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 
 import { currentUser } from "@/lib/auth"
+import { databaseKind } from "@/lib/policy/db"
 import { conversations } from "@/lib/consensus/store"
 import { isSurface } from "@/lib/survey-links"
 
@@ -29,6 +30,7 @@ export default async function SurveyPage({ searchParams }: { searchParams: Promi
       admin={!!user?.admin}
       surface={page ? surface : null}
       page={page}
+      demo={databaseKind() === "none"}
     />
   )
 }

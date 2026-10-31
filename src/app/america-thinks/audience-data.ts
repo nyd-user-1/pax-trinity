@@ -59,6 +59,8 @@ export const SHORT_SOURCE: Record<string, string> = {
   MA_ENROLLMENT: "Enrollment",
   PAX_TEST: "Tests",
   POLL: "Polls",
+  /** Survey's Consensus statements, read in this pane (lib/consensus/rows.ts). */
+  CONSENSUS: "Consensus",
 }
 export const shortSource = (key: string) => SHORT_SOURCE[key] ?? key
 

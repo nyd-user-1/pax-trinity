@@ -8,10 +8,14 @@ import { BankFrame, BankSplit, RailToggle } from "@/components/bank/bank-frame"
 import { BankRail, RailGroup, RailRow } from "@/components/bank/bank-rail"
 import { CardList, type Card, type Split } from "@/components/bank/card-list"
 import { PaneTitleRow, RefreshButton } from "@/components/bank/pane-bars"
-import { SplitBar, SplitLegend } from "@/components/consensus/split-bar"
+import { questionCode, questionNumbers } from "@/components/consensus/question-code"
 import { Button } from "@govblock/ui/components/nova/button"
-import { agreement, consensusStatements, divisiveness, divisiveStatements, share, type Conversation, type Statement } from "@/lib/consensus/data"
+import { consensusStatements, divisiveStatements, share, type Conversation } from "@/lib/consensus/data"
 import { readDraft, type SurveyDraft } from "@/lib/consensus/draft"
+import { CONSENSUS, MASSACHUSETTS, statementRows } from "@/lib/consensus/rows"
+import { buildInfo } from "@/app/america-thinks/audience-data"
+import { AboutPanel, type About } from "@/app/america-thinks/audience-pane"
+import { QuestionTable } from "@/app/america-thinks/question-table"
 import { fmtNumber } from "@/lib/format"
 import { consensusHref, newTestHref, testsHref, type Surface } from "@/lib/survey-links"
 import { SURVEYS } from "@/lib/surveys/catalog"
@@ -25,7 +29,11 @@ import { SURVEYS } from "@/lib/surveys/catalog"
 // and Split are the Results tab's top six of each, Held back a moderator's.
 // Since 2026-10-31 (Brendan) the rail also holds Consensus (Questions, Surveys,
 // Results, Admin) and, for admins, the message tests: each row opens its page
-// here, rendered by the server (surfaces.tsx), in place of the list.
+// here, rendered by the server (surfaces.tsx), in place of the list. An open
+// statement reads in America Thinks' own question pane (Brendan, 2026-10-31):
+// its votes as that pane's rows (lib/consensus/rows.ts), with the Data,
+// Crosstab, Trend, Topline and Global views and the About panel a clicked
+// value opens.
 // It wears America Thinks' anatomy (Brendan, 2026-10-31): one bar all the way
 // down, the rows alone on load, a question opening the split, the split's
 // kebab giving the question the screen, and Back going one layer up.
@@ -34,7 +42,29 @@ export type SurveyMeta = { slug: string; title: string; statements: number }
 
 const DRAFT = "draft"
 
-export function SurveyInbox({ surveys, open, admin, surface, page }: { surveys: SurveyMeta[]; open: Conversation | null; admin: boolean; surface: Surface | null; page: React.ReactNode }) {
+/** The rows' geographies, for the pane's baseline and its names. */
+const GEO_LEVEL = new Map([
+  ["US", "US"],
+  [MASSACHUSETTS, "STATE"],
+])
+const place = (code: string) => (code === MASSACHUSETTS ? "Massachusetts" : code === "US" ? "United States" : code)
+
+export function SurveyInbox({
+  surveys,
+  open,
+  admin,
+  surface,
+  page,
+  demo,
+}: {
+  surveys: SurveyMeta[]
+  open: Conversation | null
+  admin: boolean
+  surface: Surface | null
+  page: React.ReactNode
+  /** The votes are the committed seed's invented ones: the rows add the demo's breakdowns and earlier waves. */
+  demo: boolean
+}) {
   const router = useRouter()
   const [draft, setDraft] = React.useState<SurveyDraft | null>(null)
   // The open folder: a survey's slug (the server's open one) or the draft.
@@ -44,6 +74,9 @@ export function SurveyInbox({ surveys, open, admin, surface, page }: { surveys: 
   const [query, setQuery] = React.useState("")
   // The open question's title row carries the search, as America Thinks' does.
   const [paneSearch, setPaneSearch] = React.useState(false)
+  // A clicked value's About panel, over the open question's view.
+  const [about, setAbout] = React.useState<About | null>(null)
+  React.useEffect(() => setAbout(null), [selected])
 
   // The draft lives in this browser's localStorage, so it is read after mount.
   React.useEffect(() => setDraft(readDraft()), [])
@@ -169,66 +202,97 @@ export function SurveyInbox({ surveys, open, admin, surface, page }: { surveys: 
   const statement = selected && !onDraft ? statementOf(selected) : null
   const draftQuestion = selected && onDraft ? draftQuestionOf(selected) : null
 
+  // The open statement as America Thinks' rows, its code (question, then survey) the metric's id.
+  const numbers = React.useMemo(() => (open ? questionNumbers(open) : new Map<number, number>()), [open])
+  const surveyNumber = Math.max(1, surveys.findIndex((x) => x.slug === open?.slug) + 1)
+  const metric = statement && open ? (numbers.has(statement.tid) ? questionCode(surveyNumber, numbers.get(statement.tid) as number) : `${open.slug}-${statement.tid}`) : null
+  const rows = React.useMemo(() => (statement && open && metric ? statementRows(open, statement, metric, demo) : []), [statement, open, metric, demo])
+  const info = React.useMemo(() => buildInfo(rows, GEO_LEVEL), [rows])
+  const sourceLabel = open ? `Consensus: ${open.title} (PAX)` : null
+
   // Back, one layer up: the full screen to the split, the split to the rows.
+  const goBack = () => {
+    if (split === "vertical") {
+      setSelected(null)
+      setSplit("none")
+    } else setSplit("vertical")
+  }
   const back = selected && (
-    <Button
-      variant="ghost"
-      size="icon-sm"
-      aria-label="Back"
-      title="Back"
-      className="-ml-1.5 shrink-0"
-      onClick={() => {
-        if (split === "vertical") {
-          setSelected(null)
-          setSplit("none")
-        } else setSplit("vertical")
-      }}
-    >
+    <Button variant="ghost" size="icon-sm" aria-label="Back" title="Back" className="-ml-1.5 shrink-0" onClick={goBack}>
       <ArrowLeft className="size-4" />
     </Button>
   )
-  const pane = (
-    <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
-      <PaneTitleRow
-        title={statement?.text ?? draftQuestion?.text ?? folderName}
-        leading={back || undefined}
-        search={{
-          query,
-          onQuery: setQuery,
-          placeholder: "Search questions…",
-          open: paneSearch,
-          onOpen: () => setPaneSearch(true),
-          onClose: () => {
-            setQuery("")
-            setPaneSearch(false)
-          },
-        }}
-      >
-        {!onDraft && <RefreshButton onRefresh={() => router.refresh()} />}
-      </PaneTitleRow>
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        {statement && open ? (
-          <StatementResults statement={statement} conversation={open} />
-        ) : draftQuestion ? (
-          <ul className="divide-y px-4">
-            {draftQuestion.options.map((o) => (
-              <li key={o} className="py-2.5 text-sm">
-                {o}
-              </li>
-            ))}
-            {!draftQuestion.options.length && <li className="py-2.5 text-sm text-muted-foreground">No answer options on file.</li>}
-          </ul>
-        ) : (
-          <div className="flex flex-col items-center px-8 py-16 text-center">
-            <p className="text-lg">No question open</p>
-            <p className="mt-3 text-sm text-muted-foreground">
-              {ids.length.toLocaleString("en-US")} questions in {folderName}.
-            </p>
-          </div>
-        )}
+  const search = {
+    query,
+    onQuery: setQuery,
+    placeholder: "Search questions…",
+    open: paneSearch,
+    onOpen: () => setPaneSearch(true),
+    onClose: () => {
+      setQuery("")
+      setPaneSearch(false)
+    },
+  }
+  const statementInfo = metric ? info.get(metric) : undefined
+  const pane =
+    statement && metric && statementInfo ? (
+      <QuestionTable
+        rows={rows}
+        title={statement.text}
+        metric={metric}
+        place={place}
+        info={statementInfo}
+        source={CONSENSUS}
+        sourceLabel={sourceLabel}
+        wording={statement.text}
+        about={about}
+        onPick={setAbout}
+        onBack={goBack}
+        search={search}
+        local
+        aboutLayer={
+          about && (
+            <AboutPanel
+              layer
+              about={about}
+              onClose={() => setAbout(null)}
+              source={CONSENSUS}
+              groups={[{ source: CONSENSUS, label: sourceLabel ?? "Consensus", rows: rows.length, files: [] }]}
+              files={{}}
+              info={info}
+              label={() => statement.text}
+              place={place}
+              geoLevel={GEO_LEVEL}
+            />
+          )
+        }
+      />
+    ) : (
+      <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
+        <PaneTitleRow title={draftQuestion?.text ?? folderName} leading={back || undefined} search={search}>
+          {!onDraft && <RefreshButton onRefresh={() => router.refresh()} />}
+        </PaneTitleRow>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          {draftQuestion ? (
+            <ul className="divide-y px-4">
+              {draftQuestion.options.map((o) => (
+                <li key={o} className="py-2.5 text-sm">
+                  {o}
+                </li>
+              ))}
+              {!draftQuestion.options.length && <li className="py-2.5 text-sm text-muted-foreground">No answer options on file.</li>}
+            </ul>
+          ) : (
+            <div className="flex flex-col items-center px-8 py-16 text-center">
+              <p className="text-lg">No question open</p>
+              <p className="mt-3 text-sm text-muted-foreground">
+                {ids.length.toLocaleString("en-US")} questions in {folderName}.
+              </p>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  )
+    )
 
   return (
     <BankFrame rail={rail} crumb="Survey" search={{ query, onQuery: setQuery, placeholder: "Search questions" }} bare tone="rail" railDefaultOpen={false}>
@@ -249,35 +313,5 @@ export function SurveyInbox({ surveys, open, admin, surface, page }: { surveys: 
         <BankSplit list={list(split)} pane={split === "vertical" && pane} fold={{ size: 420, min: 320, max: 640 }} />
       )}
     </BankFrame>
-  )
-}
-
-/** One statement's results: everyone's split, the report's two measures, each opinion group's split. */
-function StatementResults({ statement: s, conversation: c }: { statement: Statement; conversation: Conversation }) {
-  const groups = c.groups.filter((g) => s.byGroup[String(g.id)])
-  return (
-    <div className="flex flex-col gap-6 p-5">
-      <SplitLegend />
-      <div className="flex flex-col gap-2">
-        <SplitBar votes={s.votes} />
-        <p className="text-xs text-muted-foreground tabular-nums">
-          {fmtNumber(s.votes.seen)} saw it · {fmtNumber(s.votes.agree)} agreed · {fmtNumber(s.votes.disagree)} disagreed · {fmtNumber(s.votes.pass)} passed
-        </p>
-        {s.moderated === -1 && <p className="text-xs text-pax2-red">Held back by a moderator: its votes stand, but the results leave it out.</p>}
-      </div>
-      <dl className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1.5 border-t pt-3 text-[13px]">
-        <dt className="text-muted-foreground">Agreement in the least agreeable group</dt>
-        <dd className="text-right font-semibold tabular-nums">{Math.round(agreement(s))}%</dd>
-        <dt className="text-muted-foreground">Gap between the furthest groups</dt>
-        <dd className="text-right font-semibold tabular-nums">{Math.round(divisiveness(s))} points</dd>
-      </dl>
-      {groups.length > 0 && (
-        <div className="flex flex-col gap-2.5 border-t pt-3">
-          {groups.map((g) => (
-            <SplitBar key={g.id} votes={s.byGroup[String(g.id)]} label={`Group ${String.fromCharCode(65 + g.id)} · ${fmtNumber(g.size)}`} compact />
-          ))}
-        </div>
-      )}
-    </div>
   )
 }

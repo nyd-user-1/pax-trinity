@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Audience · data tables</title>
+<!-- MagicPath's two stylesheets (magicpath-project and magicpath-project (1), src/index.css), verbatim: Tailwind's
+     base from its browser build once, then each file's own rules as a plain stylesheet; the button switches which
+     one is on. Dropped: the tailwindcss-animate plugin line (build-time only, unused here). -->
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<style type="text/tailwindcss">
+@import "tailwindcss";
+@custom-variant dark (&:is(.dark *));
+</style>
+<style>@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400&family=Roboto:wght@400&display=swap');</style>
+<style id="variant-slate">
+:root {
+  --blue: #7dd3fc;
+  --lightblue: #38bdf8;
+  --lav: rgba(14, 165, 233, .18);
+  --outline: rgba(125, 211, 252, .48);
+  --mist: #1e293b;
+  --rule: #334155;
+  --ink: #f8fafc;
+  --mut: #cbd5e1;
+  --surface: #0f172a;
+  --surface-raised: #111c2f;
+  --surface-soft: #172033;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { min-height: 100%; width: 100%; margin: 0; }
+body {
+  background: var(--surface);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  line-height: 1.45;
+}
+button { font: inherit; }
+
+.audience-page { min-height: 100vh; background: var(--surface); }
+.audience-nav {
+  display: flex; align-items: center; gap: 24px;
+  padding: 14px 40px; border-bottom: 1px solid var(--rule);
+  background: var(--surface);
+}
+.audience-tabs { display: flex; gap: 8px; align-items: center; }
+.audience-tab {
+  border: 1px solid var(--rule); border-radius: 999px; background: var(--surface-raised);
+  color: var(--mut); cursor: pointer; font-size: 13px; padding: 6px 14px;
+  line-height: 1.2; transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.audience-tab:hover, .audience-tab:focus-visible { border-color: var(--blue); color: var(--blue); outline: none; }
+.audience-tab-active { background: var(--lightblue); border-color: var(--lightblue); color: #020617; }
+.audience-nav-note { color: var(--mut); font-size: 12px; margin-left: auto; white-space: nowrap; }
+.audience-main { max-width: 1200px; margin: 0 auto; padding: 28px 40px 56px; }
+.audience-heading { margin-bottom: 18px; }
+.audience-heading h1 { color: var(--ink); font-size: 22px; font-weight: 600; letter-spacing: -.01em; line-height: 1.2; margin: 0; }
+.audience-filters { align-items: center; display: flex; gap: 16px; justify-content: space-between; margin-bottom: 20px; }
+.audience-filter-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.audience-filter {
+  align-items: center; background: var(--surface-raised); border: 1px solid var(--rule); border-radius: 10px;
+  color: var(--mut); cursor: pointer; display: flex; font-size: 13px; gap: 5px; padding: 7px 10px;
+}
+.audience-filter:hover, .audience-filter:focus-visible { border-color: var(--blue); outline: none; }
+.audience-filter strong { color: var(--blue); font-weight: 600; }
+.audience-filter svg { color: var(--mut); margin-left: 2px; }
+.audience-row-count { color: var(--mut); font-size: 13px; white-space: nowrap; }
+.audience-table-wrap { overflow-x: auto; }
+.audience-table { border-collapse: collapse; margin-bottom: 0; table-layout: fixed; width: 100%; }
+.audience-table th, .audience-table td { border: 1px solid var(--rule); padding: 9px 12px; text-align: left; }
+.audience-table thead th { background: var(--mist); color: var(--ink); font-size: 13px; font-weight: 600; }
+.audience-table thead .audience-subhead th { color: var(--mut); font-size: 12px; font-weight: 500; }
+.audience-segment { width: 190px; }
+.audience-band th { background: var(--surface-soft); color: var(--blue); font-size: 12px; font-weight: 600; padding: 6px 12px; }
+.audience-row-label { color: var(--ink); font-weight: 500; width: 190px; }
+.audience-row-label span { display: inline-block; }
+.audience-row-label small { color: var(--mut); font-size: 11px; font-weight: 400; margin-left: 7px; }
+.audience-cell { height: 38px; }
+.audience-value { align-items: center; display: flex; gap: 8px; min-width: 170px; white-space: nowrap; }
+.audience-bar { background: var(--lav); border: 1px solid var(--outline); border-radius: 2px; display: inline-block; flex: 0 0 auto; height: 12px; opacity: 1; }
+.audience-bar-primary { background: var(--lightblue); border-color: var(--lightblue); }
+.audience-value strong { color: var(--ink); font-variant-numeric: tabular-nums; font-weight: 600; }
+.audience-value small { color: var(--mut); font-size: 11px; margin-left: -3px; }
+.audience-cell-faded .audience-bar, .audience-cell-faded .audience-value strong { opacity: .42; }
+.audience-note { color: var(--mut); font-size: 12px; margin: 8px 0 34px; }
+.audience-table-enrollment .audience-segment { width: 190px; }
+.sr-only { border: 0; clip: rect(0, 0, 0, 0); height: 1px; margin: -1px; overflow: hidden; padding: 0; position: absolute; white-space: nowrap; width: 1px; }
+
+@media (max-width: 760px) {
+  .audience-nav { align-items: flex-start; flex-direction: column; padding: 14px 20px; }
+  .audience-nav-note { margin-left: 0; white-space: normal; }
+  .audience-main { padding: 24px 20px 44px; }
+  .audience-filters { align-items: flex-start; flex-direction: column; }
+  .audience-row-count { align-self: flex-end; }
+  .audience-table { min-width: 860px; }
+}
+</style>
+<style id="variant-charcoal" disabled>
+:root {
+  --charcoal: #121212;
+  --charcoal-raised: #181818;
+  --header-charcoal: #262626;
+  --rule: #3a3a3a;
+  --rule-strong: #555555;
+  --ink: #ffffff;
+  --mut: #d4d4d4;
+  --soft: #a3a3a3;
+  --bar: #737373;
+  --bar-primary: #ffffff;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { min-height: 100%; width: 100%; margin: 0; }
+body {
+  background: #121212;
+  color: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  line-height: 1.45;
+}
+button { font: inherit; }
+
+.audience-page { min-height: 100vh; background: #121212; color: #ffffff; }
+.audience-nav {
+  display: flex; align-items: center; gap: 24px;
+  padding: 14px 40px; border-bottom: 1px solid var(--rule);
+  background: #121212;
+}
+.audience-tabs { display: flex; gap: 8px; align-items: center; }
+.audience-tab {
+  border: 1px solid var(--rule-strong); border-radius: 999px; background: #181818;
+  color: var(--mut); cursor: pointer; font-size: 13px; padding: 6px 14px;
+  line-height: 1.2; transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.audience-tab:hover, .audience-tab:focus-visible { border-color: #ffffff; color: #ffffff; outline: none; }
+.audience-tab-active { background: #ffffff; border-color: #ffffff; color: #121212; }
+.audience-nav-note { color: var(--mut); font-size: 12px; margin-left: auto; white-space: nowrap; }
+.audience-main { max-width: 1200px; margin: 0 auto; padding: 28px 40px 56px; }
+.audience-heading { margin-bottom: 18px; }
+.audience-heading h1 { color: #ffffff; font-size: 22px; font-weight: 600; letter-spacing: -.01em; line-height: 1.2; margin: 0; }
+.audience-filters { align-items: center; display: flex; gap: 16px; justify-content: space-between; margin-bottom: 20px; }
+.audience-filter-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.audience-filter {
+  align-items: center; background: #181818; border: 1px solid var(--rule-strong); border-radius: 10px;
+  color: var(--mut); cursor: pointer; display: flex; font-size: 13px; gap: 5px; padding: 7px 10px;
+}
+.audience-filter:hover, .audience-filter:focus-visible { border-color: #ffffff; outline: none; }
+.audience-filter strong { color: #ffffff; font-weight: 600; }
+.audience-filter svg { color: var(--mut); margin-left: 2px; }
+.audience-row-count { color: var(--mut); font-size: 13px; white-space: nowrap; }
+.audience-table-wrap { overflow-x: auto; }
+.audience-table { border-collapse: collapse; margin-bottom: 0; table-layout: fixed; width: 100%; }
+.audience-table th, .audience-table td { border: 1px solid var(--rule); padding: 9px 12px; text-align: left; }
+.audience-table thead th { background: #262626; color: #ffffff; font-size: 13px; font-weight: 600; }
+.audience-table thead .audience-subhead th { color: #ffffff; font-size: 12px; font-weight: 500; }
+.audience-segment { width: 190px; }
+.audience-band th { background: #262626; color: #ffffff; font-size: 12px; font-weight: 600; padding: 6px 12px; }
+.audience-row-label { background: #181818; color: #ffffff; font-weight: 500; width: 190px; }
+.audience-row-label span { display: inline-block; }
+.audience-row-label small { color: var(--mut); font-size: 11px; font-weight: 400; margin-left: 7px; }
+.audience-cell { background: #121212; color: #ffffff; height: 38px; }
+.audience-value { align-items: center; display: flex; gap: 8px; min-width: 170px; white-space: nowrap; }
+.audience-bar { background: var(--bar); border: 1px solid #8a8a8a; border-radius: 2px; display: inline-block; flex: 0 0 auto; height: 12px; opacity: 1; }
+.audience-bar-primary { background: var(--bar-primary); border-color: var(--bar-primary); }
+.audience-value strong { color: #ffffff; font-variant-numeric: tabular-nums; font-weight: 600; }
+.audience-value small { color: var(--mut); font-size: 11px; margin-left: -3px; }
+.audience-cell-faded .audience-bar, .audience-cell-faded .audience-value strong { opacity: .58; }
+.audience-note { color: var(--mut); font-size: 12px; margin: 8px 0 34px; }
+.audience-table-enrollment .audience-segment { width: 190px; }
+.sr-only { border: 0; clip: rect(0, 0, 0, 0); height: 1px; margin: -1px; overflow: hidden; padding: 0; position: absolute; white-space: nowrap; width: 1px; }
+
+@media (max-width: 760px) {
+  .audience-nav { align-items: flex-start; flex-direction: column; padding: 14px 20px; }
+  .audience-nav-note { margin-left: 0; white-space: normal; }
+  .audience-main { padding: 24px 20px 44px; }
+  .audience-filters { align-items: flex-start; flex-direction: column; }
+  .audience-row-count { align-self: flex-end; }
+  .audience-table { min-width: 860px; }
+}
+</style>
+<style>
+  /* The theme picker in the header row; plain on purpose, it inherits each theme's colours. */
+  .theme-picks { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+  .theme-pick { border: 1px solid currentColor; border-radius: 6px; background: transparent; color: inherit; opacity: .6; font-size: 11px; padding: 3px 7px; cursor: pointer; }
+  .theme-pick[aria-pressed="true"] { opacity: 1; font-weight: 700; }
+</style>
+</head>
+<body>
+<div id="root"><div class="audience-page" id="app"></div></div>
+<script>
+// MagicPath's AudienceDataTables (src/components/generated/AudienceDataTables.tsx) as plain HTML: the same
+// data, markup and class names, styled by the project's own src/index.css; the tabs keep their state.
+const audienceBands = [
+  { label: "All respondents", rows: [
+    { label: "Adults", cells: [{ value: "69%", width: 138, primary: true }, { value: "29%", width: 58, note: "±3.9" }, { value: "2%", width: 4 }] },
+  ]},
+  { label: "Party", rows: [
+    { label: "Democrat", cells: [{ value: "73.0%", width: 146, primary: true }, { value: "25.1%", width: 50 }, { value: "1.9%", width: 4 }] },
+    { label: "Independent", cells: [{ value: "74.0%", width: 148, primary: true }, { value: "23.2%", width: 46 }, { value: "2.8%", width: 6 }] },
+    { label: "Republican", cells: [{ value: "61.5%", width: 123, primary: true }, { value: "36.9%", width: 74 }, { value: "1.6%", width: 3 }] },
+  ]},
+  { label: "Age", rows: [
+    { label: "18-29", cells: [{ value: "76.6%", width: 153, primary: true }, { value: "21.8%", width: 44 }, { value: "1.6%", width: 3, faded: true }] },
+    { label: "65+", cells: [{ value: "64.7%", width: 129, primary: true }, { value: "33.1%", width: 66 }, { value: "2.2%", width: 4, faded: true }] },
+  ]},
+];
+const enrollmentBands = [
+  { label: "Statewide", rows: [
+    { label: "Massachusetts", note: "n 5,025,826", cells: [{ value: "25.8%", width: 52, primary: true }, { value: "8.4%", width: 17 }, { value: "64.8%", width: 130, primary: true }, { value: "1.0%", width: 2 }] },
+  ]},
+  { label: "By town", rows: [
+    { label: "Boston", cells: [{ value: "39.4%", width: 79, primary: true }, { value: "4.6%", width: 9 }, { value: "54.6%", width: 109, primary: true }, { value: "1.4%", width: 3 }] },
+    { label: "Worcester", cells: [{ value: "31.8%", width: 64, primary: true }, { value: "9.3%", width: 19 }, { value: "57.5%", width: 115, primary: true }, { value: "1.4%", width: 3 }] },
+  ]},
+];
+const tabs = ["Lead", "Inbox", "Combined", "Refined"];
+let activeTab = "Lead";
+
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const chevron = '<svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
+const filterChip = (label, value) => `<button class="audience-filter" type="button" aria-label="${esc(label)}: ${esc(value)}"><span>${esc(label)}</span><strong>${esc(value)}</strong>${chevron}</button>`;
+const dataCell = (c) => `<td class="${c.faded ? "audience-cell audience-cell-faded" : "audience-cell"}"><div class="audience-value"><span class="${c.primary ? "audience-bar audience-bar-primary" : "audience-bar"}" style="width:${c.width}px" aria-hidden="true"></span><strong>${esc(c.value)}</strong>${c.note ? `<small>${esc(c.note)}</small>` : ""}</div></td>`;
+const body = (bands, span) => bands.flatMap((b) => [
+  `<tr class="audience-band"><th colspan="${span}" scope="rowgroup">${esc(b.label)}</th></tr>`,
+  ...b.rows.map((r) => `<tr><th scope="row" class="audience-row-label"><span>${esc(r.label)}</span>${r.note ? `<small>${esc(r.note)}</small>` : ""}</th>${r.cells.map(dataCell).join("")}</tr>`),
+]).join("");
+
+function render() {
+  document.getElementById("app").innerHTML = `
+  <nav class="audience-nav" aria-label="Audience views">
+    <div class="audience-tabs">${tabs.map((t) => `<button class="${t === activeTab ? "audience-tab audience-tab-active" : "audience-tab"}" type="button" data-tab="${t}"${t === activeTab ? ' aria-current="page"' : ""}><span>${t}</span></button>`).join("")}</div>
+    ${themePicks()}
+    <span class="audience-nav-note">The four moves on the existing table page — no rail, no panel</span>
+  </nav>
+  <main class="audience-main">
+    <header class="audience-heading"><h1>Audience</h1></header>
+    <section class="audience-filters" aria-label="Table filters">
+      <div class="audience-filter-list">${filterChip("Source", "Polls")}${filterChip("Metric", "Open primaries support")}${filterChip("Geography", "United States")}${filterChip("Period", "2016")}</div>
+      <span class="audience-row-count">70 rows n 1,060</span>
+    </section>
+    <section aria-labelledby="support-table-title">
+      <h2 class="sr-only" id="support-table-title">Open primaries support by audience segment</h2>
+      <div class="audience-table-wrap"><table class="audience-table">
+        <thead>
+          <tr><th rowspan="2" scope="col" class="audience-segment">Segment</th><th colspan="3" scope="colgroup">Open primaries support</th></tr>
+          <tr class="audience-subhead"><th scope="col">Open primary</th><th scope="col">Closed primary</th><th scope="col">Skipped</th></tr>
+        </thead>
+        <tbody>${body(audienceBands, 4)}</tbody>
+      </table></div>
+      <p class="audience-note">Options spread as columns under one metric header; breakdowns as band rows; a value is a bar at its level; thin cells fade rather than vanish.</p>
+    </section>
+    <section aria-labelledby="enrollment-table-title">
+      <h2 class="sr-only" id="enrollment-table-title">Party enrollment by geography</h2>
+      <div class="audience-table-wrap"><table class="audience-table audience-table-enrollment">
+        <thead>
+          <tr><th rowspan="2" scope="col" class="audience-segment">Geography</th><th colspan="4" scope="colgroup">Party enrollment Massachusetts, February 1, 2025</th></tr>
+          <tr class="audience-subhead"><th scope="col">Democrat</th><th scope="col">Republican</th><th scope="col">Unenrolled</th><th scope="col">Other designations</th></tr>
+        </thead>
+        <tbody>${body(enrollmentBands, 5)}</tbody>
+      </table></div>
+    </section>
+  </main>`;
+}
+document.addEventListener("click", (e) => {
+  const t = e.target.closest("[data-tab]");
+  if (t) { activeTab = t.dataset.tab; render(); }
+});
+
+// Fifteen dark themes. Slate and Charcoal are MagicPath's two stylesheets, verbatim. The rest are the
+// common editor and UI palettes, poured into slate's eleven colour variables.
+const V = ["surface", "surface-raised", "surface-soft", "mist", "rule", "ink", "mut", "blue", "lightblue", "lav", "outline"];
+const THEMES = {
+  "Slate": null,
+  "Charcoal": "sheet",
+  "GitHub Dark":   ["#0d1117", "#161b22", "#161b22", "#161b22", "#30363d", "#e6edf3", "#8b949e", "#58a6ff", "#1f6feb", "rgba(56,139,253,.15)", "rgba(88,166,255,.4)"],
+  "GitHub Dimmed": ["#22272e", "#2d333b", "#2d333b", "#2d333b", "#444c56", "#adbac7", "#768390", "#539bf5", "#316dca", "rgba(65,132,228,.15)", "rgba(83,155,245,.4)"],
+  "Vercel":        ["#000000", "#0a0a0a", "#111111", "#111111", "#333333", "#ededed", "#a1a1a1", "#ffffff", "#ededed", "rgba(255,255,255,.12)", "rgba(255,255,255,.35)"],
+  "shadcn zinc":   ["#09090b", "#18181b", "#18181b", "#27272a", "#27272a", "#fafafa", "#a1a1aa", "#fafafa", "#e4e4e7", "rgba(250,250,250,.1)", "rgba(250,250,250,.3)"],
+  "VS Code Dark+": ["#1e1e1e", "#252526", "#2d2d30", "#2d2d30", "#3c3c3c", "#d4d4d4", "#9d9d9d", "#4fc1ff", "#007acc", "rgba(0,122,204,.2)", "rgba(79,193,255,.45)"],
+  "One Dark":      ["#282c34", "#21252b", "#2c313a", "#21252b", "#3e4451", "#abb2bf", "#7f848e", "#61afef", "#61afef", "rgba(97,175,239,.18)", "rgba(97,175,239,.45)"],
+  "Nord":          ["#2e3440", "#3b4252", "#3b4252", "#434c5e", "#4c566a", "#eceff4", "#d8dee9", "#88c0d0", "#81a1c1", "rgba(136,192,208,.18)", "rgba(136,192,208,.45)"],
+  "Dracula":       ["#282a36", "#343746", "#343746", "#44475a", "#44475a", "#f8f8f2", "#a9adc1", "#ff79c6", "#bd93f9", "rgba(189,147,249,.18)", "rgba(189,147,249,.45)"],
+  "Tokyo Night":   ["#1a1b26", "#16161e", "#24283b", "#24283b", "#292e42", "#c0caf5", "#a9b1d6", "#7dcfff", "#7aa2f7", "rgba(122,162,247,.18)", "rgba(122,162,247,.45)"],
+  "Catppuccin":    ["#1e1e2e", "#181825", "#313244", "#313244", "#45475a", "#cdd6f4", "#bac2de", "#cba6f7", "#89b4fa", "rgba(137,180,250,.18)", "rgba(137,180,250,.45)"],
+  "Solarized":     ["#002b36", "#073642", "#073642", "#073642", "#1f4a54", "#eee8d5", "#93a1a1", "#2aa198", "#268bd2", "rgba(38,139,210,.2)", "rgba(42,161,152,.5)"],
+  "Gruvbox":       ["#282828", "#32302f", "#3c3836", "#3c3836", "#504945", "#ebdbb2", "#bdae93", "#83a598", "#fabd2f", "rgba(250,189,47,.18)", "rgba(250,189,47,.45)"],
+  "Monokai":       ["#272822", "#3e3d32", "#3e3d32", "#3e3d32", "#49483e", "#f8f8f2", "#a6a28c", "#66d9ef", "#a6e22e", "rgba(166,226,46,.18)", "rgba(166,226,46,.45)"],
+  "Rosé Pine":     ["#191724", "#1f1d2e", "#26233a", "#26233a", "#403d52", "#e0def4", "#908caa", "#c4a7e7", "#ebbcba", "rgba(235,188,186,.18)", "rgba(235,188,186,.45)"],
+};
+let theme = "Slate";
+const slate = document.getElementById("variant-slate");
+const charcoal = document.getElementById("variant-charcoal");
+function applyTheme() {
+  const t = THEMES[theme];
+  charcoal.disabled = t !== "sheet";
+  slate.disabled = t === "sheet";
+  const root = document.documentElement.style;
+  V.forEach((v, k) => (Array.isArray(t) ? root.setProperty(`--${v}`, t[k]) : root.removeProperty(`--${v}`)));
+}
+const themePicks = () => `<div class="theme-picks" aria-label="Dark themes">${Object.keys(THEMES).map((n) => `<button class="theme-pick" type="button" data-theme="${esc(n)}" aria-pressed="${n === theme}">${esc(n)}</button>`).join("")}</div>`;
+document.addEventListener("click", (e) => {
+  const t = e.target.closest("[data-theme]");
+  if (t) { theme = t.dataset.theme; applyTheme(); render(); }
+});
+applyTheme();
+render();
+</script>
+</body>
+</html>

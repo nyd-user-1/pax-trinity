@@ -72,7 +72,8 @@ export function Copyable({ children, flush = false }: { children: React.ReactNod
 const LOADER: Record<string, string> = { GSS: "gss", ACS: "acs", CVAP: "cvap", CPS: "cps", MA_ENROLLMENT: "ma_enrollment", LIFT_ARCHIVE: "lift_archive", PAX_TEST: "pax_tests" }
 
 /** Where the question's rows come from: the source, its file, the loader and the raw rows. */
-export function Provenance({ source, id, label, rows, extra }: { source: string; id: string; label: string | null; rows: SourceRow[] | null; extra?: React.ReactNode }) {
+/** `raw` false where the rows are the mount's own, not an export file (Survey's): no raw-rows link. */
+export function Provenance({ source, id, label, rows, extra, raw = true }: { source: string; id: string; label: string | null; rows: SourceRow[] | null; extra?: React.ReactNode; raw?: boolean }) {
   const urls = React.useMemo(() => [...new Set((rows ?? []).map((r) => r[12]).filter((u): u is string => !!u))], [rows])
   const host = (u: string) => {
     try {
@@ -98,11 +99,12 @@ export function Provenance({ source, id, label, rows, extra }: { source: string;
       </span>
     )
   if (rows) parts.push(`${num(rows.length, 0)} rows for this question`)
-  parts.push(
-    <a key="raw" href={rawHref(source, id)} className="text-pax2-light-blue underline" target="_blank" rel="noreferrer">
-      open raw rows
-    </a>
-  )
+  if (raw)
+    parts.push(
+      <a key="raw" href={rawHref(source, id)} className="text-pax2-light-blue underline" target="_blank" rel="noreferrer">
+        open raw rows
+      </a>
+    )
   return (
     <p className="text-[13px] leading-relaxed text-muted-foreground">
       {parts.map((p, i) => (

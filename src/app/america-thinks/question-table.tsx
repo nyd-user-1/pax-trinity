@@ -73,6 +73,7 @@ export function QuestionTable({
   onBack,
   search,
   aboutLayer,
+  local = false,
 }: {
   /** The question's rows alone. */
   rows: SourceRow[]
@@ -95,6 +96,9 @@ export function QuestionTable({
   search?: PaneSearch
   /** The picked value's About panel, as the layer over the view. */
   aboutLayer?: React.ReactNode
+  /** The rows are the mount's own, not an export file's (Survey's Consensus statements): the Global
+   *  view reads them as handed in, and the provenance links no raw file. */
+  local?: boolean
 }) {
   const [view, setView] = React.useState<View>("tidy")
 
@@ -158,7 +162,7 @@ export function QuestionTable({
             {viewToggle}
           </PaneTitleRow>
           <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
-            <Dossier source={source.toLowerCase()} id={metric} embedded />
+            <Dossier source={source.toLowerCase()} id={metric} embedded given={local ? { rows, label: title, wording, sourceLabel } : undefined} />
           </div>
         </>
       ) : view === "tidy" ? (
@@ -173,7 +177,7 @@ export function QuestionTable({
           sideways and swallowed the vertical scroll with it. */}
       <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
         {view === "topline" ? (
-          <ToplineView tab={tab} title={title} wording={wording} metric={metric} source={source} sourceLabel={sourceLabel} rows={rows} about={about} onPick={onPick}>
+          <ToplineView tab={tab} title={title} wording={wording} metric={metric} source={source} sourceLabel={sourceLabel} rows={rows} about={about} onPick={onPick} local={local}>
             <ViewHeading sub={facts(baseName, src, tab.years.length > 1 ? `${oldest}–${tab.latestYear}, ${tab.years.length} waves` : null)}>
               {people ? <>Every answer from {asked}.</> : <>Every figure on file for {baseName} in <B>{tab.latestYear}</B>.</>}
             </ViewHeading>
@@ -346,6 +350,7 @@ function ToplineView({
   rows,
   about,
   onPick,
+  local = false,
   children,
 }: {
   tab: Tab
@@ -357,6 +362,7 @@ function ToplineView({
   rows: SourceRow[]
   about: About | null
   onPick: (a: About) => void
+  local?: boolean
   /** The view's h2. */
   children: React.ReactNode
 }) {
@@ -419,7 +425,7 @@ function ToplineView({
       {source && (
         <Card>
           <CardLabel>Provenance</CardLabel>
-          <Provenance source={source} id={metric} label={sourceLabel} rows={rows} extra={weights.length ? <span key="w">weighted by {listed(weights)}</span> : undefined} />
+          <Provenance source={source} id={metric} label={sourceLabel} rows={rows} raw={!local} extra={weights.length ? <span key="w">weighted by {listed(weights)}</span> : undefined} />
         </Card>
       )}
     </ViewColumn>

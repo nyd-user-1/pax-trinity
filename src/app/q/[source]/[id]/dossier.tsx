@@ -46,14 +46,20 @@ import {
 /** Ordinal orders for breakdowns the export files alphabetically. */
 const VALUE_ORDER: Record<string, string[]> = { educ: ["HS or less", "Some college", "BA", "Grad"] }
 
-export function Dossier({ source, id, embedded = false }: { source: string; id: string; embedded?: boolean }) {
+/** A question the export does not carry, handed in whole (Survey's Consensus statements, 2026-10-31):
+ *  its rows, its name and wording, and its source's name. */
+export type GivenQuestion = { rows: SourceRow[]; label: string; wording: string | null; sourceLabel: string | null }
+
+export function Dossier({ source, id, embedded = false, given }: { source: string; id: string; embedded?: boolean; given?: GivenQuestion }) {
   const SRC = source.toUpperCase()
   const { index, error } = useWireIndex()
-  const [rows, setRows] = React.useState<SourceRow[] | null>(null)
+  const [loaded, setRows] = React.useState<SourceRow[] | null>(null)
   const [rowsError, setRowsError] = React.useState<string | null>(null)
   const [pick, setPick] = React.useState<string | null>(null)
+  const rows = given ? given.rows : loaded
 
   React.useEffect(() => {
+    if (given) return
     let on = true
     setRows(null)
     setRowsError(null)
@@ -63,13 +69,13 @@ export function Dossier({ source, id, embedded = false }: { source: string; id: 
     return () => {
       on = false
     }
-  }, [SRC, id])
+  }, [SRC, id, given])
 
   const geoName = React.useMemo(() => new Map((index?.geographies ?? []).map((g) => [g.code, g.name])), [index])
   const geoLevel = React.useMemo(() => new Map((index?.geographies ?? []).map((g) => [g.code, g.level])), [index])
   const construct = React.useMemo(() => index?.constructs.find((c) => c.construct === id) ?? null, [index, id])
-  const label = construct?.label ?? id
-  const wording = construct?.wording ?? WORDING[id] ?? null
+  const label = given?.label ?? construct?.label ?? id
+  const wording = given ? given.wording : (construct?.wording ?? WORDING[id] ?? null)
 
   const baseGeo = React.useMemo(() => (rows ? baseGeoOf(rows, (c) => (c === "US" ? "US" : geoLevel.get(c))) : "US"), [rows, geoLevel])
   const geo = pick ?? baseGeo
@@ -135,13 +141,14 @@ export function Dossier({ source, id, embedded = false }: { source: string; id: 
       )}
 
       {error && <p className="text-sm text-muted-foreground">{error}</p>}
-      {index && <Related index={index} source={SRC} id={id} ownRows={rows} />}
+      {/* A handed-in question has no family in the export's index, nor chips into it. */}
+      {index && !given && <Related index={index} source={SRC} id={id} ownRows={rows} />}
       <Card>
         <CardLabel>Provenance</CardLabel>
-        <Provenance source={SRC} id={id} label={index?.sources.find((s) => s.source === SRC)?.label ?? null} rows={rows} />
+        <Provenance source={SRC} id={id} label={given ? given.sourceLabel : (index?.sources.find((s) => s.source === SRC)?.label ?? null)} rows={rows} raw={!given} />
       </Card>
       {/* The chips at the foot, a blog's tags: under a rule, from the left. */}
-      {index && rows && (
+      {index && rows && !given && (
         <div className="border-t pt-4">
           <Chips index={index} source={SRC} id={id} rows={rows} geo={geo} geoLevel={geoLevel} geoName={geoName} onGeo={setPick} />
         </div>
