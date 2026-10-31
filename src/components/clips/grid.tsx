@@ -18,14 +18,25 @@ const CompositionThumb = dynamic(() => import("./composition-player").then((m) =
 // sit top left, the play count and the caption sit at the foot, with the
 // hairline gaps Instagram uses.
 
-/** `activeId`: the clip the page has picked (the header's chevrons step it), which wears the 1px blue border hover gives any tile. */
-export function Grid({ clips, onOpen, activeId, className }: { clips: Clip[]; onOpen: (clip: Clip) => void; activeId?: string | null; className?: string }) {
+/** `activeId`: the clip the page has picked (the header's chevrons step it), which wears the 1px blue border hover gives any tile.
+ *  A click on a tile picks it (`onSelect`); only its play button plays it (`onOpen`) (Brendan, 2026-10-31). */
+export function Grid({ clips, onOpen, onSelect, activeId, className }: { clips: Clip[]; onOpen: (clip: Clip) => void; onSelect?: (clip: Clip) => void; activeId?: string | null; className?: string }) {
   return (
     // As many columns as fit at 240px or more (Brendan, 2026-10-31): three in the page's usual width, two and
     // then one as the column narrows, more when it is wide.
     <div className={cn("grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-0.5", className)}>
       {clips.map((clip) => (
-        <button key={clip.id} type="button" data-tile={clip.id} aria-current={clip.id === activeId || undefined} onClick={() => onOpen(clip)} className="group @container/tile relative aspect-[9/16] overflow-hidden bg-black text-left text-white" aria-label={clip.title}>
+        <div
+          key={clip.id}
+          role="button"
+          tabIndex={0}
+          data-tile={clip.id}
+          aria-current={clip.id === activeId || undefined}
+          onClick={() => (onSelect ?? onOpen)(clip)}
+          onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), (onSelect ?? onOpen)(clip))}
+          className="group @container/tile relative aspect-[9/16] cursor-pointer overflow-hidden bg-black text-left text-white outline-none"
+          aria-label={clip.title}
+        >
           {clip.composition ? (
             <div className="size-full transition-transform duration-300 group-hover:scale-[1.03]">
               <CompositionThumb composition={clip.composition} />
@@ -53,11 +64,17 @@ export function Grid({ clips, onOpen, activeId, className }: { clips: Clip[]; on
               <span className="font-semibold">{clip.title}</span> {clip.caption}
             </p>
           </div>
-          {/* The play button shows on hover; the tile opens the clip in the single view, playing. */}
-          <span aria-hidden className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
-            <span className="pointer-events-auto flex size-14 items-center justify-center rounded-full bg-black/35 transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-1 hover:shadow-lg hover:shadow-black/40">
-              <PlayIcon className="size-7 translate-x-0.5 fill-white text-white" />
-            </span>
+          {/* The play button, about 10% larger (62px, was 56): it shows on hover and on the picked tile, and it alone
+              opens the clip in the single view, playing; the rest of the tile picks it. */}
+          <span className={cn("pointer-events-none absolute inset-0 flex items-center justify-center transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100", clip.id === activeId ? "opacity-100" : "opacity-0")}>
+            <button
+              type="button"
+              aria-label={`Play ${clip.title}`}
+              onClick={(e) => (e.stopPropagation(), onOpen(clip))}
+              className="pointer-events-auto flex size-[62px] items-center justify-center rounded-full bg-black/35 transition-[transform,box-shadow] duration-200 ease-out outline-none hover:-translate-y-1 hover:shadow-lg hover:shadow-black/40 focus-visible:ring-2 focus-visible:ring-white"
+            >
+              <PlayIcon className="size-[31px] translate-x-0.5 fill-white text-white" />
+            </button>
           </span>
           {clip.visibility === "private" && (
             <span className="absolute top-2 right-2 flex size-6 items-center justify-center rounded-full bg-black/50" title="Private">
@@ -66,7 +83,7 @@ export function Grid({ clips, onOpen, activeId, className }: { clips: Clip[]; on
           )}
           {/* The 1px blue border (Brendan, 2026-10-31): on hover, and on the clip picked. Drawn over the video. */}
           <span aria-hidden className={cn("pointer-events-none absolute inset-0 z-10 border transition-colors", clip.id === activeId ? "border-pax2-light-blue" : "border-transparent group-hover:border-pax2-light-blue")} />
-        </button>
+        </div>
       ))}
     </div>
   )

@@ -449,7 +449,7 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
                   </Empty>
                 ) : view === "grid" ? (
                   <div className="scrollbar-none min-h-0 flex-1 overflow-y-auto rounded-lg">
-                    <Grid clips={shown} onOpen={goToPost} activeId={activeId} />
+                    <Grid clips={shown} onOpen={goToPost} onSelect={(c) => (setActiveId(c.id), window.history.replaceState(null, "", `/clips?c=${encodeURIComponent(c.id)}`))} activeId={activeId} />
                   </div>
                 ) : (
                   <Feed clips={shown} activeId={activeId} onActive={setActiveId} muted={muted} onMuted={setMuted} reactions={reactions} className={cn(FEED_HEIGHT[frame], "md:h-auto md:min-h-0 md:flex-1")} />
