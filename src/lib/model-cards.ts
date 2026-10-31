@@ -42,7 +42,8 @@ export const LLM_CARDS: CommercialCard[] = MODEL_OPTIONS.map((m, i): CommercialC
   const known = LLM_FACTS[m.id]
   return {
     id: m.id,
-    name: m.label,
+    // The cards name no model Claude (Brendan, 2026-10-31): Sonnet 4.6, not Claude Sonnet 4.6.
+    name: m.label.replace(/^Claude /, ""),
     maker: known?.maker ?? m.description,
     logo: m.logo,
     badge: i === 0 ? { label: "Default", tone: "blue" } : undefined,
