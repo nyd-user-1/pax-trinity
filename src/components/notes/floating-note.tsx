@@ -275,19 +275,22 @@ export function FloatingNote({ rect, id: firstId, body: firstBody, chat: firstCh
             </div>
           </>
         ) : (
-          // Shift Enter sends; Enter keeps its new line.
-          <div
-            className="min-h-0 flex-1 cursor-text overflow-y-auto px-4 py-3"
-            onClick={() => talk?.commands.focus()}
-            onKeyDownCapture={(e) => {
-              if (e.key !== "Enter" || !e.shiftKey || e.nativeEvent.isComposing) return
-              e.preventDefault()
-              e.stopPropagation()
-              void send()
-            }}
-          >
-            <TaskSurface editor={talk} className="min-h-full [&_.ProseMirror]:min-h-full [&_[data-pax]]:my-3 [&_[data-pax]]:border-l-[3px] [&_[data-pax]]:border-pax2-lavender [&_[data-pax]]:pl-3 [&_[data-pax]]:text-slate-600" />
-          </div>
+          <>
+            <TaskToolbar editor={talk} className="shrink-0 border-b border-slate-200 px-2 py-1" />
+            {/* Shift Enter sends; Enter keeps its new line. */}
+            <div
+              className="min-h-0 flex-1 cursor-text overflow-y-auto px-4 py-3"
+              onClick={() => talk?.commands.focus()}
+              onKeyDownCapture={(e) => {
+                if (e.key !== "Enter" || !e.shiftKey || e.nativeEvent.isComposing) return
+                e.preventDefault()
+                e.stopPropagation()
+                void send()
+              }}
+            >
+              <TaskSurface editor={talk} className="min-h-full [&_.ProseMirror]:min-h-full [&_[data-pax]]:my-3 [&_[data-pax]]:border-l-[3px] [&_[data-pax]]:border-pax2-lavender [&_[data-pax]]:pl-3 [&_[data-pax]]:text-slate-600" />
+            </div>
+          </>
         )}
       </div>
       <span {...corner} aria-label="Resize" className="absolute right-0 bottom-0 size-4 cursor-nwse-resize touch-none" />
