@@ -11,10 +11,11 @@ import type { PanelSize } from "@/components/shell"
 
 // The second panel's frame (lib/pane.ts): the right column's header, title and size and close, over the
 // page in its frame. The frame's src is set once per opening; the page moves inside it on its own.
-export function PaneFrame({ src, title, nextSize, onSize, onClose, dragging, frameRef }: { src: string; title: string; nextSize: PanelSize; onSize: () => void; onClose: () => void; dragging: boolean; frameRef: React.RefObject<HTMLIFrameElement | null> }) {
+export function PaneFrame({ src, title, nextSize, onSize, onClose, dragging, frameRef, onMenu }: { src: string; title: string; nextSize: PanelSize; onSize: () => void; onClose: () => void; dragging: boolean; onMenu?: (e: React.MouseEvent) => void; frameRef: React.RefObject<HTMLIFrameElement | null> }) {
   return (
     <section className="fixed inset-0 z-50 flex flex-col bg-pax2-surface md:static md:z-auto md:h-full md:overflow-hidden md:rounded-2xl md:border md:border-slate-500 md:shadow-e2">
-      <div className="relative z-10 flex min-h-[73px] shrink-0 items-center justify-between gap-3 bg-pax2-surface px-6 py-4 shadow-header">
+      {/* A right-click on the header's empty run opens Nav for this panel (components/go-to-menu.tsx). */}
+      <div onContextMenu={onMenu} className="relative z-10 flex min-h-[73px] shrink-0 items-center justify-between gap-3 bg-pax2-surface px-6 py-4 shadow-header">
         <p className="truncate font-display text-xl text-slate-900">{title}</p>
         <div className="flex shrink-0 items-center gap-2">
           {/* The icon shows the size the next press goes to: a third, half, then the whole area. */}

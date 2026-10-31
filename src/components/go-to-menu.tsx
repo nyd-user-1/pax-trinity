@@ -2,8 +2,7 @@
 
 import * as React from "react"
 import { createPortal } from "react-dom"
-import { useRouter } from "next/navigation"
-import { ArrowUpRight, EllipsisVertical, GripVertical, History, Link2, Search, Star, Trash2, X, type LucideIcon } from "lucide-react"
+import { ArrowUpLeft, ArrowUpRight, EllipsisVertical, GripVertical, History, Link2, Search, Star, Trash2, X, type LucideIcon } from "lucide-react"
 
 import { isPanePath } from "@/lib/pane"
 import { useNavFavorites } from "@/lib/nav-favorites"
@@ -12,9 +11,13 @@ import { KebabMenu, MenuRow, MenuSeparator } from "@/components/kebab-menu"
 import { PARTNERS } from "@/lib/roles"
 import { cn } from "@/ui/lib/utils"
 
-// Go to (Brendan, 2026-10-31): a right-click on the page header's empty run opens a page switcher at the
-// pointer. Type to find; Recent, Favorites and the pages otherwise. Enter (or a click) opens the page here;
-// ⌥ Enter, or a row's arrow, opens it in the second panel, as a right-click on a link does.
+// Nav (Brendan, 2026-10-31): a right-click on a header's empty run, the page's or the second panel's, opens a
+// page switcher at the pointer. Type to find; Recent, Favorites and the pages otherwise. One rule on both:
+// Enter (or a click) opens the page in the panel whose header was clicked; ⌥ Enter, or a row's arrow, in the
+// other one, as a right-click on a link sends it to the second panel.
+
+/** The page's own column, or the second panel. */
+export type Side = "main" | "pane"
 
 type Page = { href: string; label: string; icon: LucideIcon }
 type Entry = { href: string; label: string; sub?: string; icon: LucideIcon }
@@ -37,8 +40,8 @@ function rank(e: Entry, needle: string) {
   return 2
 }
 
-export function GoToMenu({ at, pages, current, titleOf, onPane, onClose }: { at: { x: number; y: number }; pages: Page[]; current: string; titleOf: (href: string) => string; onPane: (href: string) => void; onClose: () => void }) {
-  const router = useRouter()
+export function GoToMenu({ at, side, here, pages, titleOf, onOpen, onClose }: { at: { x: number; y: number }; side: Side; here: string; pages: Page[]; titleOf: (href: string) => string; onOpen: (href: string, to: Side) => void; onClose: () => void }) {
+  const other: Side = side === "main" ? "pane" : "main"
   const recents = useNavRecents()
   const { favs } = useNavFavorites()
   const [q, setQ] = React.useState("")
@@ -60,8 +63,7 @@ export function GoToMenu({ at, pages, current, titleOf, onPane, onClose }: { at:
 
   const sections = React.useMemo(() => {
     const needle = q.trim().toLowerCase()
-    // The page in view, its query included, is where the reader already is.
-    const here = typeof window === "undefined" ? current : window.location.pathname + window.location.search
+    // The page in the clicked panel, its query included, is where the reader already is.
     const recent = recents.filter((h) => h !== here).slice(0, RECENT).map((h) => entry(h))
     const fav = favs.map((h) => entry(h, Star))
     const all = pages.map((p) => entry(p.href))
@@ -75,7 +77,7 @@ export function GoToMenu({ at, pages, current, titleOf, onPane, onClose }: { at:
       { label: "Favorites", entries: fav },
       { label: "Pages", entries: all },
     ].filter((s) => s.entries.length)
-  }, [q, recents, favs, pages, current, entry])
+  }, [q, recents, favs, pages, here, entry])
   const flat = sections.flatMap((s) => s.entries)
   React.useEffect(() => setActive(0), [q])
 
@@ -118,10 +120,10 @@ export function GoToMenu({ at, pages, current, titleOf, onPane, onClose }: { at:
     onPointerUp: () => (drag.current = null),
   }
 
-  const go = (href: string, pane = false) => {
+  const go = (href: string, toOther = false) => {
     onClose()
-    if (pane && isPanePath(href)) onPane(href)
-    else router.push(href)
+    const to = toOther ? other : side
+    onOpen(href, to === "pane" && !isPanePath(href) ? "main" : to)
   }
 
   const onKey = (e: React.KeyboardEvent) => {
@@ -163,7 +165,7 @@ export function GoToMenu({ at, pages, current, titleOf, onPane, onClose }: { at:
         </span>
         <h3 className="min-w-0 flex-1 text-[15px] font-semibold text-slate-900">Nav</h3>
         <KebabMenu label="Nav options" width="w-52" trigger={<EllipsisVertical className="size-4" />} triggerClassName="inline-flex size-8 items-center justify-center rounded-md text-slate-800 outline-none hover:bg-foreground/8 hover:text-foreground aria-expanded:bg-foreground/8">
-          <MenuRow icon={<Link2 />} label="Copy this page's link" onClick={() => (void navigator.clipboard.writeText(window.location.href), input.current?.focus())} />
+          <MenuRow icon={<Link2 />} label="Copy this page's link" onClick={() => (void navigator.clipboard.writeText(`${window.location.origin}${here}`), input.current?.focus())} />
           <MenuRow icon={<Trash2 />} label="Clear recent pages" disabled={!recents.length} onClick={() => (clearRecents(), input.current?.focus())} />
           <MenuSeparator />
           <MenuRow icon={<X />} label="Close" onClick={onClose} />
@@ -198,18 +200,18 @@ export function GoToMenu({ at, pages, current, titleOf, onPane, onClose }: { at:
                     {e.label}
                     {e.sub && <span className="ml-1.5 text-xs text-slate-400">{e.sub}</span>}
                   </span>
-                  {isPanePath(e.href) && (
+                  {(other === "main" || isPanePath(e.href)) && (
                     <button
                       type="button"
-                      aria-label={`Open ${e.label} in the second panel`}
-                      title="Panel 2"
+                      aria-label={`Open ${e.label} in ${other === "pane" ? "the second panel" : "the main page"}`}
+                      title={other === "pane" ? "Panel 2" : "Main page"}
                       onClick={(ev) => {
                         ev.stopPropagation()
                         go(e.href, true)
                       }}
                       className={cn("flex size-6 shrink-0 items-center justify-center rounded-md text-slate-400 hover:bg-foreground/8 hover:text-pax2-blue", !on && "opacity-0 group-hover:opacity-100")}
                     >
-                      <ArrowUpRight className="size-3.5" />
+                      {other === "pane" ? <ArrowUpRight className="size-3.5" /> : <ArrowUpLeft className="size-3.5" />}
                     </button>
                   )}
                 </div>
