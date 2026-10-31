@@ -17,11 +17,8 @@ import { TaskSurface, TaskToolbar, useTaskEditor } from "@/registry/blocks/sideb
 
 export type Rect = { x: number; y: number; w: number; h: number }
 
-const time = (iso: string) => new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
-
 export function FloatingNote({ rect, id: firstId, body: firstBody, onClose }: { rect: Rect; id: string | null; body: string; onClose: () => void }) {
   const [body, setBody] = React.useState(firstBody)
-  const [saved, setSaved] = React.useState<string | null>(null)
   // The last save failed: the next keystroke tries again.
   const [failed, setFailed] = React.useState(false)
   const [pos, setPos] = React.useState({ left: rect.x, top: rect.y })
@@ -45,7 +42,6 @@ export function FloatingNote({ rect, id: firstId, body: firstBody, onClose }: { 
         if (!note) return
         id.current = note.id
         kept.current = md
-        setSaved(note.updatedAt)
         setFailed(false)
         window.dispatchEvent(new Event(NOTES_CHANGED))
       } catch {
@@ -107,7 +103,7 @@ export function FloatingNote({ rect, id: firstId, body: firstBody, onClose }: { 
           <MenuSeparator />
           <MenuRow icon={<X />} label="Close" onClick={close} />
           <MenuSeparator />
-          <MenuFoot title="My notes" sub={failed ? "Not saved: the notes store can't be reached" : saved ? `Saved ${time(saved)}` : id.current ? "Kept" : "Kept once you write"} />
+          <MenuFoot title="My notes" sub={failed ? "Not saved: the notes store can't be reached" : undefined} />
         </KebabMenu>
       </div>
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[14px] border border-slate-200 bg-pax2-surface shadow-e1">
