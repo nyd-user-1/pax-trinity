@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ChevronLeftIcon, ChevronRightIcon, EllipsisVerticalIcon, PanelLeftClose, PanelLeftOpen, PinIcon, StarIcon } from "lucide-react"
+import { ArrowUp, ChevronLeftIcon, ChevronRightIcon, EllipsisVerticalIcon, PanelLeftClose, PanelLeftOpen, PinIcon, StarIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
@@ -16,6 +16,7 @@ import {
 } from "@govblock/ui/components/ny4/dropdown-menu"
 import { ScrollArea } from "@govblock/ui/components/ny4/scroll-area"
 import { KebabMenu } from "@/components/kebab-menu"
+import { whiteButton } from "@/components/white-button"
 
 import { BankRail, BankTone } from "./bank-frame"
 import { Marks, type MarkState } from "./marks"
@@ -148,6 +149,10 @@ export function CardList({
   // The frame's rail toggle, carried here where the frame has no header row.
   const rail = React.useContext(BankRail)
   const railCtl = compact ? rail : null
+  // Back to the top (Brendan, 2026-10-31): the site's circled up-arrow
+  // (ScrollTop), shown once the list is a screen or more down.
+  const viewport = React.useRef<HTMLElement | null>(null)
+  const [deep, setDeep] = React.useState(false)
   // The rail tone: rows in the rail's own dress, inset and rounded, the open one white and raised with the left bar.
   const railTone = React.useContext(BankTone) === "rail"
 
@@ -192,7 +197,7 @@ export function CardList({
   )
 
   return (
-    <div ref={rootRef} className="flex h-full min-h-0 flex-col">
+    <div ref={rootRef} className="relative flex h-full min-h-0 flex-col">
       {compact ? (
         // A press on the bar's empty run opens the search; its buttons, and the kebab's menu (a portal), keep their own.
         <div
@@ -231,7 +236,15 @@ export function CardList({
         </>
       )}
 
-      <ScrollArea className="min-h-0 flex-1">
+      <ScrollArea
+        className="min-h-0 flex-1"
+        onScrollCapture={(event) => {
+          const el = event.target as HTMLElement
+          if (el.dataset.slot !== "scroll-area-viewport") return
+          viewport.current = el
+          setDeep(el.scrollTop > el.clientHeight)
+        }}
+      >
         {error && <p className="p-6 text-center text-sm text-pax2-red">The data did not load: {error}</p>}
         {!error && loading && <p className="p-6 text-center text-sm text-muted-foreground">Reading the index…</p>}
         {!error && !loading && ids.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">{empty}</p>}
@@ -325,6 +338,19 @@ export function CardList({
         </ul>
         {depth < ids.length && <MoreMark onMore={more} />}
       </ScrollArea>
+      <button
+        type="button"
+        aria-label="Back to top"
+        title="Back to top"
+        onClick={() => viewport.current?.scrollTo({ top: 0, behavior: "smooth" })}
+        className={whiteButton(
+          "circle",
+          "absolute right-6 bottom-6 z-20 transition-[opacity,color,background-color,border-color] duration-200",
+          deep ? "opacity-100" : "pointer-events-none opacity-0"
+        )}
+      >
+        <ArrowUp className="size-5" />
+      </button>
     </div>
   )
 }
