@@ -40,9 +40,9 @@ const WANTS = [
 export type ConnectedForStepper = { channelId: string; title: string; thumbnail: string | null; progress: Progress | null }
 
 // FIELD and PRIMARY are auth-form's FIELD and BUTTON; PRIMARY sizes to its label in the action row.
-const FIELD = "w-full rounded-xl border border-slate-400 bg-surface px-4 py-3 text-[15px] text-slate-900 outline-none transition-[border-color,box-shadow] hover:border-pax2-blue focus:border-pax2-blue placeholder:text-slate-400 focus:ring-2 focus:ring-pax2-light-blue/40"
+const FIELD = "w-full rounded-xl border border-slate-400 bg-pax2-surface px-4 py-3 text-[15px] text-slate-900 outline-none transition-[border-color,box-shadow] hover:border-pax2-blue focus:border-pax2-blue placeholder:text-slate-400 focus:ring-2 focus:ring-pax2-light-blue/40"
 const PRIMARY = "inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-pax2-blue px-6 text-[15px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60"
-const OUTLINE = "inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-slate-400 bg-surface px-6 text-[15px] font-medium text-pax2-blue transition-colors hover:border-pax2-blue hover:bg-slate-50 disabled:opacity-60"
+const OUTLINE = "inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-slate-400 bg-pax2-surface px-6 text-[15px] font-medium text-pax2-blue transition-colors hover:border-pax2-blue hover:bg-slate-50 disabled:opacity-60"
 const EMPTY: Profile = { name: "", lastName: "", role: "", town: "", heard: "", makes: [], wants: [] }
 
 export function Stepper({ initial, channels }: { initial: Profile | null; channels: ConnectedForStepper[] }) {
@@ -205,8 +205,8 @@ function Field({ label, optional, children }: { label: string; optional?: boolea
 
 function Option({ label, on, onClick }: { label: string; on: boolean; onClick: () => void }) {
   return (
-    <button type="button" role="checkbox" aria-checked={on} onClick={onClick} className={cn("flex items-center gap-3 rounded-xl border bg-surface px-4 py-3 text-left text-[15px] text-slate-900 transition-[border-color,box-shadow]", on ? "border-pax2-blue ring-2 ring-pax2-light-blue/40" : "border-slate-400 hover:border-pax2-blue")}>
-      <span className={cn("inline-flex size-5 shrink-0 items-center justify-center rounded-full border transition-colors", on ? "border-pax2-blue bg-pax2-blue text-white" : "border-slate-400 bg-surface")}>
+    <button type="button" role="checkbox" aria-checked={on} onClick={onClick} className={cn("flex items-center gap-3 rounded-xl border bg-pax2-surface px-4 py-3 text-left text-[15px] text-slate-900 transition-[border-color,box-shadow]", on ? "border-pax2-blue ring-2 ring-pax2-light-blue/40" : "border-slate-400 hover:border-pax2-blue")}>
+      <span className={cn("inline-flex size-5 shrink-0 items-center justify-center rounded-full border transition-colors", on ? "border-pax2-blue bg-pax2-blue text-white" : "border-slate-400 bg-pax2-surface")}>
         {on && <Check className="size-3" strokeWidth={3} />}
       </span>
       {label}
@@ -220,7 +220,7 @@ function Tile({ icon: Icon, label, on, onClick }: { icon: React.ComponentType<{ 
       type="button"
       aria-pressed={on}
       onClick={onClick}
-      className={cn("flex aspect-square flex-col items-center justify-center gap-3 rounded-2xl border bg-surface px-2 text-center transition-colors", on ? "border-pax2-blue ring-2 ring-pax2-light-blue/40" : "border-slate-400 hover:border-pax2-blue")}
+      className={cn("flex aspect-square flex-col items-center justify-center gap-3 rounded-2xl border bg-pax2-surface px-2 text-center transition-colors", on ? "border-pax2-blue ring-2 ring-pax2-light-blue/40" : "border-slate-400 hover:border-pax2-blue")}
     >
       <span className="inline-flex size-11 items-center justify-center rounded-xl bg-pax2-lavender/70 text-pax2-blue">
         <Icon className="size-5" />
@@ -333,7 +333,7 @@ function Uploader({ hasChannels }: { hasChannels: boolean }) {
         onDragOver={(e) => (e.preventDefault(), setOver(true))}
         onDragLeave={() => setOver(false)}
         onDrop={(e) => (e.preventDefault(), setOver(false), add(e.dataTransfer.files))}
-        className={cn("flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed bg-surface px-6 py-10 text-center transition-colors", over ? "border-pax2-blue bg-slate-50" : "border-slate-400 hover:border-pax2-blue")}
+        className={cn("flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed bg-pax2-surface px-6 py-10 text-center transition-colors", over ? "border-pax2-blue bg-slate-50" : "border-slate-400 hover:border-pax2-blue")}
       >
         <span className="inline-flex size-11 items-center justify-center rounded-full bg-pax2-lavender/70 text-pax2-blue"><Upload className="size-5" /></span>
         <span className="text-[15px] font-medium text-slate-900">Drop mp4 files or choose them</span>
@@ -344,7 +344,7 @@ function Uploader({ hasChannels }: { hasChannels: boolean }) {
       {items.length > 0 && (
         <ul className="flex flex-col gap-2">
           {items.map((it) => (
-            <li key={it.uploadId} className="flex flex-col gap-2 rounded-xl border border-slate-400 bg-surface px-4 py-3">
+            <li key={it.uploadId} className="flex flex-col gap-2 rounded-xl border border-slate-400 bg-pax2-surface px-4 py-3">
               <div className="flex min-w-0 items-center gap-3">
                 <Video className="size-4 shrink-0 text-slate-400" />
                 <div className="min-w-0 flex-1">
@@ -357,7 +357,7 @@ function Uploader({ hasChannels }: { hasChannels: boolean }) {
                 </div>
               </div>
               {videos.length > 0 && it.state !== "failed" && (
-                <select value={it.youtubeId ?? ""} onChange={(e) => relink(it, e.target.value)} aria-label={`Which YouTube video ${it.name} is`} className="w-full rounded-xl border border-slate-400 bg-surface px-3 py-2 text-sm text-slate-900 outline-none transition-colors hover:border-pax2-blue focus:border-pax2-blue">
+                <select value={it.youtubeId ?? ""} onChange={(e) => relink(it, e.target.value)} aria-label={`Which YouTube video ${it.name} is`} className="w-full rounded-xl border border-slate-400 bg-pax2-surface px-3 py-2 text-sm text-slate-900 outline-none transition-colors hover:border-pax2-blue focus:border-pax2-blue">
                   <option value="">Not on YouTube</option>
                   {videos.map((v) => (
                     <option key={v.youtubeId} value={v.youtubeId}>{v.title}</option>

@@ -64,7 +64,7 @@ export function ModelPicker({ value, onChange }: { value: string; onChange: (id:
         <ChevronDown className={cn("size-3.5 text-slate-400 transition-transform", open && "rotate-180")} />
       </button>
       {open && (
-        <div role="menu" className={cn("absolute right-0 z-50 max-h-[380px] w-64 overflow-y-auto rounded-xl border border-slate-200 bg-surface p-1 shadow-e3", above ? "bottom-full mb-2" : "top-full mt-2")}>
+        <div role="menu" className={cn("absolute right-0 z-50 max-h-[380px] w-64 overflow-y-auto rounded-xl border border-slate-200 bg-pax2-surface p-1 shadow-e3", above ? "bottom-full mb-2" : "top-full mt-2")}>
           {MODEL_OPTIONS.map((m) => (
             <button
               key={m.id}

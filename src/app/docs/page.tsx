@@ -29,7 +29,7 @@ export default async function Docs({ searchParams }: { searchParams: Promise<{ p
                     aria-current={d.slug === open.slug ? "page" : undefined}
                     className={cn(
                       "block rounded-lg px-2.5 py-1.5 text-sm transition-colors",
-                      d.slug === open.slug ? "bg-surface font-medium text-pax2-blue shadow-e1" : "text-slate-600 hover:bg-surface/70 hover:text-slate-900",
+                      d.slug === open.slug ? "bg-pax2-surface font-medium text-pax2-blue shadow-e1" : "text-slate-600 hover:bg-pax2-surface/70 hover:text-slate-900",
                     )}
                   >
                     {d.title}

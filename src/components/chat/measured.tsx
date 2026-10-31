@@ -62,7 +62,7 @@ export function ChipRow({ chips, onTap, disabled }: { chips: ChipOffer[]; onTap:
           type="button"
           disabled={disabled}
           onClick={() => onTap(c)}
-          className="rounded-full border border-[var(--border)] bg-surface px-3 py-1.5 text-left text-[13px] leading-snug text-[var(--txt)] transition-colors hover:border-pax2-light-blue hover:text-pax2-blue disabled:opacity-40"
+          className="rounded-full border border-[var(--border)] bg-pax2-surface px-3 py-1.5 text-left text-[13px] leading-snug text-[var(--txt)] transition-colors hover:border-pax2-light-blue hover:text-pax2-blue disabled:opacity-40"
         >
           {c.ask}
         </button>

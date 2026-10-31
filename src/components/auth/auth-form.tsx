@@ -22,7 +22,7 @@ const nextPath = (mode: Mode) => {
   return n && n !== "/" && n.startsWith("/") && !n.startsWith("//") ? n : mode === "signup" ? "/signup/welcome" : "/chat"
 }
 
-const FIELD = "w-full rounded-xl border border-slate-400 bg-surface px-4 py-3 text-[15px] text-slate-900 outline-none transition-[border-color,box-shadow] hover:border-pax2-blue focus:border-pax2-blue placeholder:text-slate-400 focus:ring-2 focus:ring-pax2-light-blue/40"
+const FIELD = "w-full rounded-xl border border-slate-400 bg-pax2-surface px-4 py-3 text-[15px] text-slate-900 outline-none transition-[border-color,box-shadow] hover:border-pax2-blue focus:border-pax2-blue placeholder:text-slate-400 focus:ring-2 focus:ring-pax2-light-blue/40"
 const BUTTON = "flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-pax2-blue text-[15px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60"
 
 export type AuthStep = "form" | "code" | "reset" | "newpassword"

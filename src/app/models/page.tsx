@@ -16,13 +16,13 @@ const TABS = [
 ] as const
 
 function Logo({ src }: { src: string | null }) {
-  if (!src) return <span className="size-8 shrink-0 rounded-lg border border-slate-200 bg-surface" />
+  if (!src) return <span className="size-8 shrink-0 rounded-lg border border-slate-200 bg-pax2-surface" />
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src={src} alt="" width={32} height={32} className="size-8 shrink-0 rounded-lg border border-slate-200 bg-surface object-contain p-0.5" />
+  return <img src={src} alt="" width={32} height={32} className="size-8 shrink-0 rounded-lg border border-slate-200 bg-pax2-surface object-contain p-0.5" />
 }
 
 const PaxTile = () => (
-  <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-surface">
+  <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-pax2-surface">
     <PaxMark size={11} />
   </span>
 )

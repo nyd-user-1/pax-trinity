@@ -79,7 +79,7 @@ function Row({ title, thumbnail, progress, error }: { title: string; thumbnail: 
 export function ChannelChip({ channelId, title, thumbnail, initial, className }: { channelId: string; title: string; thumbnail: string | null; initial: Progress | null; className?: string }) {
   const { progress, error } = useIngest(channelId, initial)
   return (
-    <div className={cn("rounded-2xl border border-slate-200 bg-surface", className)}>
+    <div className={cn("rounded-2xl border border-slate-200 bg-pax2-surface", className)}>
       <Row title={title} thumbnail={thumbnail} progress={progress} error={error} />
     </div>
   )
@@ -93,7 +93,7 @@ export function ChannelCard({ channelId, title, thumbnail, initial, className }:
   const hidden = progress?.hidden ?? 0
   const listed = progress != null && progress.phase !== "catalog"
   return (
-    <div className={cn("rounded-2xl border border-slate-200 bg-surface", className)}>
+    <div className={cn("rounded-2xl border border-slate-200 bg-pax2-surface", className)}>
       <Row title={title} thumbnail={thumbnail} progress={progress} error={error} />
       {listed && hidden > 0 && (
         <div className="border-t border-slate-100">

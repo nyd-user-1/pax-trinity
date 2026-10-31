@@ -41,7 +41,7 @@ export function LandingHeader({ signedIn = false, arriveAt = CURTAIN, signIn = f
     <header
       className={cn(
         "sticky top-0 z-30 flex h-16 items-center justify-between border-b px-6 transition-[border-color,box-shadow,background-color] duration-200 md:px-10",
-        scrolled ? "border-slate-200/70 bg-surface/85 shadow-[0_4px_12px_-8px_rgb(15_23_42/0.25)] backdrop-blur" : "border-transparent",
+        scrolled ? "border-slate-200/70 bg-pax2-surface/85 shadow-[0_4px_12px_-8px_rgb(15_23_42/0.25)] backdrop-blur" : "border-transparent",
       )}
     >
       {signedIn ? (

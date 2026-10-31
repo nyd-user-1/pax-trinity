@@ -54,7 +54,7 @@ export function Clips({ onStage }: Staged) {
 
               <div className="pointer-events-none absolute inset-x-0 top-0 flex gap-1 p-2.5">
                 {SCENES.map((scene, i) => (
-                  <span key={scene.figure} className={cn("h-0.5 flex-1 rounded-full transition-colors duration-300", i <= at ? "bg-surface" : "bg-white/25")} />
+                  <span key={scene.figure} className={cn("h-0.5 flex-1 rounded-full transition-colors duration-300", i <= at ? "bg-pax2-surface" : "bg-white/25")} />
                 ))}
               </div>
               <button type="button" onClick={() => { setClip(false); setAt(0); }} aria-label="Back to the document" title="Back to the document" className="absolute top-5 left-2.5 flex size-9 items-center justify-center rounded-full bg-white/15 hover:bg-white/25">

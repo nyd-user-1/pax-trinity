@@ -37,7 +37,7 @@ const FEEDBACK = [
 ]
 
 const CARD = 'my-3 animate-in fade-in slide-in-from-bottom-1 duration-300'
-const FIELD = 'w-full rounded-lg border border-[var(--border)] bg-surface px-3 py-2 text-[15px] text-[var(--txt)] outline-none transition-colors placeholder:text-[var(--muted2)] focus:border-pax2-light-blue disabled:text-slate-500'
+const FIELD = 'w-full rounded-lg border border-[var(--border)] bg-pax2-surface px-3 py-2 text-[15px] text-[var(--txt)] outline-none transition-colors placeholder:text-[var(--muted2)] focus:border-pax2-light-blue disabled:text-slate-500'
 
 /** The script's first sentence, as the clip's title until the recorder names it. */
 const titleOf = (script: string) => {
@@ -194,7 +194,7 @@ export function RecordFlow({ script, onDone }: Props) {
           <button type="button" onClick={() => setPrompter(true)} className="flex items-center justify-center gap-2 rounded-full bg-pax2-blue py-3.5 font-medium text-white shadow-lg transition-opacity hover:opacity-90">
             <Video className="size-4" /> Start recording
           </button>
-          <button type="button" onClick={() => file.current?.click()} className="flex items-center gap-3 rounded-2xl border-2 border-dashed border-slate-300 bg-surface/60 px-4 py-3 text-left transition-colors hover:border-pax2-light-blue">
+          <button type="button" onClick={() => file.current?.click()} className="flex items-center gap-3 rounded-2xl border-2 border-dashed border-slate-300 bg-pax2-surface/60 px-4 py-3 text-left transition-colors hover:border-pax2-light-blue">
             <Upload className="size-4 shrink-0 text-pax2-blue" />
             <span className="text-sm text-slate-800">Already recorded it? Choose a file.</span>
             <input ref={file} type="file" accept="video/*" className="hidden" onChange={(e) => e.target.files?.[0] && take(e.target.files[0])} />

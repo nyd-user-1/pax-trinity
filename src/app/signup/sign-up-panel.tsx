@@ -26,11 +26,11 @@ export function SignUpPanel() {
       </div>
       {role === null ? (
         <div className="flex flex-col gap-3">
-          <button type="button" onClick={() => pick("staff")} className="rounded-2xl border border-slate-500 bg-surface px-6 py-5 text-left shadow-e1 transition-shadow hover:shadow-e2">
+          <button type="button" onClick={() => pick("staff")} className="rounded-2xl border border-slate-500 bg-pax2-surface px-6 py-5 text-left shadow-e1 transition-shadow hover:shadow-e2">
             <span className="font-display block text-lg text-pax2-blue">Staff</span>
             <span className="mt-1 block text-sm text-slate-500">I work on PAX.</span>
           </button>
-          <button type="button" onClick={() => pick("partner")} className="rounded-2xl border border-slate-500 bg-surface px-6 py-5 text-left shadow-e1 transition-shadow hover:shadow-e2">
+          <button type="button" onClick={() => pick("partner")} className="rounded-2xl border border-slate-500 bg-pax2-surface px-6 py-5 text-left shadow-e1 transition-shadow hover:shadow-e2">
             <span className="font-display block text-lg text-pax2-blue">Partner</span>
             <span className="mt-1 block text-sm text-slate-500">I make videos — my sign-up connects my channel.</span>
           </button>

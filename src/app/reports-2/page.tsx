@@ -21,7 +21,7 @@ export default function ReportsPage() {
         {all.map((s) => {
           const last = s.waves[s.waves.length - 1].wave
           return (
-            <Link key={s.slug} href={`/reports-2/${s.slug}`} className="group flex flex-col rounded-2xl border border-slate-200 bg-surface p-6 shadow-e1 transition-shadow hover:shadow-e2">
+            <Link key={s.slug} href={`/reports-2/${s.slug}`} className="group flex flex-col rounded-2xl border border-slate-200 bg-pax2-surface p-6 shadow-e1 transition-shadow hover:shadow-e2">
               <h2 className="text-[28px] leading-tight font-semibold tracking-tight text-pax2-blue">{s.name}</h2>
               <p className="mt-1 text-[15px] text-[var(--paper-muted)]">{wavesLine(s.waves.map((w) => w.wave))}</p>
               <ul className="mt-6 flex flex-col gap-3 border-t border-slate-200 pt-4">

@@ -97,7 +97,7 @@ export function ProductShot({ card }: { card: HomeCardData }) {
                   aria-current={i === at}
                   className="flex h-6 items-center px-1"
                 >
-                  <span className={`block h-2.5 rounded-full transition-all duration-300 ease-out ${i === at ? "w-7 bg-surface" : "w-2.5 bg-surface/50 hover:bg-surface/80"}`} />
+                  <span className={`block h-2.5 rounded-full transition-all duration-300 ease-out ${i === at ? "w-7 bg-pax2-surface" : "w-2.5 bg-pax2-surface/50 hover:bg-pax2-surface/80"}`} />
                 </button>
               ))}
             </div>

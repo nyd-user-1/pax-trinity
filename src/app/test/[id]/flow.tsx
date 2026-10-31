@@ -103,7 +103,7 @@ export function Flow({ arm, pid, test, armSrc }: { arm: string; pid: string | nu
 
   if (!entered)
     return (
-      <main className="min-h-dvh bg-surface">
+      <main className="min-h-dvh bg-pax2-surface">
         <div className="mx-auto flex min-h-dvh w-full max-w-[773px] flex-col justify-center px-6 py-10">
           <div className="flex flex-col gap-5 rounded-xl border border-slate-200 p-8">
             <h1 className="text-2xl font-semibold tracking-tight text-pax2-blue">{test.title}</h1>
@@ -127,7 +127,7 @@ export function Flow({ arm, pid, test, armSrc }: { arm: string; pid: string | nu
     at < VIDEO ? test.entry[at] : at === BALLOT ? { key: "ballot", ...test.ballot } : at === COMPREHENSION ? { key: "comprehension", ...test.comprehension } : null
 
   return (
-    <main className="min-h-dvh bg-surface">
+    <main className="min-h-dvh bg-pax2-surface">
       <div className="mx-auto flex w-full max-w-[773px] flex-col gap-6 px-6 py-10">
         <div className="flex items-center justify-between text-xs text-slate-500">
           <span>{test.title}</span>

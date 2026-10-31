@@ -58,7 +58,7 @@ export function Markup({ text }: { text: string }) {
     <div className="flex flex-col gap-1.5 text-sm leading-relaxed text-slate-700">
       {blocks(text).map((b, i) =>
         b.kind === "code" ? (
-          <pre key={i} className="overflow-x-auto rounded-lg border border-slate-200 bg-surface px-3 py-2 font-mono text-[12.5px] leading-relaxed text-slate-800">{b.text}</pre>
+          <pre key={i} className="overflow-x-auto rounded-lg border border-slate-200 bg-pax2-surface px-3 py-2 font-mono text-[12.5px] leading-relaxed text-slate-800">{b.text}</pre>
         ) : b.kind === "quote" ? (
           <blockquote key={i} className="border-l-2 border-slate-300 pl-3 text-slate-600">{b.lines.map((l, j) => <p key={j}>{inline(l, `${i}-${j}-`)}</p>)}</blockquote>
         ) : b.kind === "ul" ? (

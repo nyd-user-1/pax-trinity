@@ -34,7 +34,7 @@ export default async function RespondentPage({ params, searchParams }: Props) {
   const assigned = await armForPid(pid).catch(() => null)
   if (test.status === "closed" || assigned?.closed || (test.status === "draft" && !(await currentUser())?.admin)) {
     return (
-      <main className="min-h-dvh bg-surface">
+      <main className="min-h-dvh bg-pax2-surface">
         <div className="mx-auto flex min-h-dvh w-full max-w-[773px] flex-col justify-center px-6 py-10">
           <div className="flex flex-col gap-3 rounded-xl border border-slate-200 p-8">
             <h1 className="text-2xl font-semibold tracking-tight text-pax2-blue">{test.title}</h1>

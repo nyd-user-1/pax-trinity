@@ -13,6 +13,6 @@ export const TONE_LABEL: Record<Tone, string> = { above: "Above average", below:
 export const toneClasses: Record<Tone, string> = {
   above: "bg-above text-white",
   below: "bg-below text-white",
-  even: "bg-surface text-pax2-blue",
+  even: "bg-pax2-surface text-pax2-blue",
   none: "bg-slate-200 text-slate-600",
 }

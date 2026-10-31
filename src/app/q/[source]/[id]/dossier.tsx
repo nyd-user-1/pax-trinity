@@ -178,7 +178,7 @@ function TrendBars({ points }: { points: Point[] }) {
             <div className={cn("absolute inset-0 rounded-t-[2px]", i === last ? "bg-zinc-800" : "bg-zinc-400")} />
             {p.moe != null && p.moe > 0 && (
               <div
-                className={cn("absolute left-1/2 w-px -translate-x-1/2", i === last ? "bg-surface/60" : "bg-zinc-700/60")}
+                className={cn("absolute left-1/2 w-px -translate-x-1/2", i === last ? "bg-pax2-surface/60" : "bg-zinc-700/60")}
                 style={{ bottom: `${100 - (p.moe / p.v) * 100}%`, height: `${((2 * p.moe) / p.v) * 100}%` }}
               />
             )}
@@ -481,7 +481,7 @@ function Related({ index, source, id, ownRows }: { index: IndexT; source: string
                 </div>
               </div>
             )
-            const dress = "w-52 shrink-0 rounded-xl border bg-surface transition-shadow"
+            const dress = "w-52 shrink-0 rounded-xl border bg-pax2-surface transition-shadow"
             return self ? (
               <div key={key} aria-current="true" className={cn(dress, "ring-1 ring-pax2-light-blue")}>
                 {body}

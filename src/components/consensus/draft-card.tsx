@@ -29,7 +29,7 @@ export function DraftCard() {
             {q.options.length > 0 && (
               <div className="mt-1.5 flex flex-wrap gap-1.5">
                 {q.options.map((option) => (
-                  <span key={option} className="rounded-full border border-pax2-blue/20 bg-surface px-2.5 py-0.5 text-xs font-normal text-slate-600">
+                  <span key={option} className="rounded-full border border-pax2-blue/20 bg-pax2-surface px-2.5 py-0.5 text-xs font-normal text-slate-600">
                     {option}
                   </span>
                 ))}

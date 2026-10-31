@@ -43,7 +43,7 @@ export function LoadData({ standIn, className }: { standIn?: string; className?:
         setOver(false)
         upload(e.dataTransfer.files?.[0])
       }}
-      className={cn("flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed px-6 py-8 text-center transition-colors", over ? "border-pax2-light-blue bg-pax2-lavender/40" : "border-slate-300 bg-surface/60", className)}
+      className={cn("flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed px-6 py-8 text-center transition-colors", over ? "border-pax2-light-blue bg-pax2-lavender/40" : "border-slate-300 bg-pax2-surface/60", className)}
     >
       <span className="flex size-11 items-center justify-center rounded-full bg-pax2-lavender text-pax2-light-blue">
         <Upload className="size-5" />

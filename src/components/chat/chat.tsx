@@ -95,7 +95,7 @@ const footageShow = (model?: string): FootageShow | undefined => (model === 'lib
 const brollOf = (m: { model?: string; content: string }) => (m.model === 'library-broll' ? m.content.replace(/```(pax-broll)?/g, '').trim() : null)
 const TextType = dynamic(() => import('@/components/text-type'), { loading: () => <span className="block h-[65px]" /> })
 // Remotion's Player and the templates load the first time a reply carries a video.
-const VideoBlock = dynamic(() => import('@/components/chat/video-block').then((m) => m.VideoBlock), { ssr: false, loading: () => <div className="aspect-video w-full animate-pulse rounded-xl bg-surface/70" /> })
+const VideoBlock = dynamic(() => import('@/components/chat/video-block').then((m) => m.VideoBlock), { ssr: false, loading: () => <div className="aspect-video w-full animate-pulse rounded-xl bg-pax2-surface/70" /> })
 const READY = ['Ready to make change?', 'Ready to make a video?', 'Ready to make a storyboard?', 'Ready to make a script?', 'Ready to make a difference?', 'Ready. Set. Go.']
 
 const RECORD_OPENER = "I'm ready to make my first video — where do we start?"
@@ -1102,7 +1102,7 @@ export function Chat({ scripts = [], videos = [], shorts = [], compact = false, 
       {/* The whole chat is the drop surface while a shelf tile is held over it, as in Claude's chat. */}
       {dragOver && (
         <div aria-hidden className="pointer-events-none absolute inset-3 z-30 flex items-center justify-center rounded-2xl border-2 border-dashed border-pax2-light-blue bg-pax2-lavender/50 backdrop-blur-[1px]">
-          <span className="flex items-center gap-2 rounded-full bg-surface px-4 py-2 text-sm font-medium text-pax2-blue shadow-e2">
+          <span className="flex items-center gap-2 rounded-full bg-pax2-surface px-4 py-2 text-sm font-medium text-pax2-blue shadow-e2">
             <Paperclip className="h-4 w-4" /> Drop to add to the chat
           </span>
         </div>
@@ -1305,7 +1305,7 @@ export function Chat({ scripts = [], videos = [], shorts = [], compact = false, 
           type="button"
           onClick={() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' })}
           aria-label="Back to the latest"
-          className="absolute bottom-36 left-1/2 z-20 flex h-9 w-9 -translate-x-1/2 items-center justify-center rounded-full border border-[var(--border)] bg-surface text-[var(--muted)] shadow-lg transition-colors hover:text-[var(--txt)]"
+          className="absolute bottom-36 left-1/2 z-20 flex h-9 w-9 -translate-x-1/2 items-center justify-center rounded-full border border-[var(--border)] bg-pax2-surface text-[var(--muted)] shadow-lg transition-colors hover:text-[var(--txt)]"
         >
           <ArrowDown className="h-4 w-4" />
         </button>

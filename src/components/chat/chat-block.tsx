@@ -73,10 +73,10 @@ export function ChatBlock({ path, anchor }: { path: string; anchor: string }) {
         <LayoutGrid className="size-3.5 text-pax2-blue" />
         <span className="font-mono">{key}</span>
         <span className="ml-auto flex items-center gap-1">
-          <button type="button" onClick={() => add({ key, title, path, anchor })} disabled={onShelf} className="rounded-md px-2 py-1 font-medium text-slate-600 transition-colors hover:bg-surface hover:text-pax2-blue disabled:text-slate-400">
+          <button type="button" onClick={() => add({ key, title, path, anchor })} disabled={onShelf} className="rounded-md px-2 py-1 font-medium text-slate-600 transition-colors hover:bg-pax2-surface hover:text-pax2-blue disabled:text-slate-400">
             {onShelf ? "On the shelf" : "Add to Blocks"}
           </button>
-          <button type="button" onClick={() => router.push(`${path}#${anchor}`)} className="flex items-center gap-1 rounded-md px-2 py-1 font-medium text-slate-600 transition-colors hover:bg-surface hover:text-pax2-blue">
+          <button type="button" onClick={() => router.push(`${path}#${anchor}`)} className="flex items-center gap-1 rounded-md px-2 py-1 font-medium text-slate-600 transition-colors hover:bg-pax2-surface hover:text-pax2-blue">
             Open <ArrowUpRight className="size-3.5" />
           </button>
         </span>

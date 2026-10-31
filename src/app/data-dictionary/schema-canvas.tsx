@@ -104,7 +104,7 @@ const nodeTypes = { table: TableNode }
 function KeyChip({ d, big = false, className, style }: { d: KeyData; big?: boolean; className?: string; style?: React.CSSProperties }) {
   const Icon = d.icon
   return (
-    <span title={d.label} style={style} className={cn("relative flex shrink-0 items-center justify-center rounded-full border border-slate-200 bg-surface text-pax2-blue", big ? "size-8" : "size-7", className)}>
+    <span title={d.label} style={style} className={cn("relative flex shrink-0 items-center justify-center rounded-full border border-slate-200 bg-pax2-surface text-pax2-blue", big ? "size-8" : "size-7", className)}>
       <Icon className={big ? "size-4" : "size-3.5"} strokeWidth={2} />
     </span>
   )
@@ -141,7 +141,7 @@ const same = (a: Focus, b: Focus) => JSON.stringify(a) === JSON.stringify(b)
 function Entry({ focus, current, onFocus, sample, children }: { focus: Focus; current: Focus; onFocus: (f: Focus) => void; sample: React.ReactNode; children: React.ReactNode }) {
   const on = same(focus, current)
   return (
-    <button type="button" onClick={() => onFocus(on ? null : focus)} aria-pressed={on} className={cn("-mx-2 flex w-[calc(100%+16px)] items-center gap-2.5 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-surface", on && "bg-surface ring-1 ring-pax2-light-blue")}>
+    <button type="button" onClick={() => onFocus(on ? null : focus)} aria-pressed={on} className={cn("-mx-2 flex w-[calc(100%+16px)] items-center gap-2.5 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-pax2-surface", on && "bg-pax2-surface ring-1 ring-pax2-light-blue")}>
       <span className="flex min-h-8 w-14 shrink-0 items-center justify-center">{sample}</span>
       <span className="min-w-0">{children}</span>
     </button>
@@ -155,7 +155,7 @@ type View = "rows" | "tables" | "keys"
 
 function PanelRow({ icon, label, sub, onClick }: { icon: React.ReactNode; label: string; sub: string; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} className="group flex w-full items-center gap-3 border-b border-slate-200/70 px-6 py-4 text-left transition-colors hover:bg-surface/70">
+    <button type="button" onClick={onClick} className="group flex w-full items-center gap-3 border-b border-slate-200/70 px-6 py-4 text-left transition-colors hover:bg-pax2-surface/70">
       <span className="flex size-4 shrink-0 items-center justify-center text-slate-400 group-hover:text-pax2-blue">{icon}</span>
       <span className="flex-1">
         <span className="block text-[15px] font-medium text-slate-900 group-hover:text-pax2-blue">{label}</span>

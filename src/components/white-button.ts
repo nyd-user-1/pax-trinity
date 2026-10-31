@@ -6,7 +6,7 @@ import { cn } from "@/ui/lib/utils"
  *  and `float` adds the scroll cue's slow drift. Pass extra classes for layout only. */
 export function whiteButton(size: "lg" | "md" | "circle", ...extra: (string | false | undefined)[]) {
   return cn(
-    "inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-slate-400 bg-surface font-medium text-pax2-blue shadow-md outline-none transition-colors hover:border-pax2-blue hover:bg-slate-50 aria-pressed:border-pax2-blue data-[popup-open]:border-pax2-blue disabled:cursor-not-allowed disabled:opacity-60",
+    "inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-slate-400 bg-pax2-surface font-medium text-pax2-blue shadow-md outline-none transition-colors hover:border-pax2-blue hover:bg-slate-50 aria-pressed:border-pax2-blue data-[popup-open]:border-pax2-blue disabled:cursor-not-allowed disabled:opacity-60",
     size === "lg" && "px-7 py-4 text-base",
     size === "md" && "px-5 py-2.5 text-sm",
     size === "circle" && "size-10",

@@ -26,7 +26,7 @@ export function TermTip({ id, children }: { id: string; children: React.ReactNod
       {children}
       <span
         aria-hidden
-        className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-2 block w-72 -translate-x-1/2 rounded-xl border border-[var(--border)] bg-surface p-3 text-left normal-case opacity-0 shadow-xl transition-opacity duration-150 group-hover/term:opacity-100"
+        className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-2 block w-72 -translate-x-1/2 rounded-xl border border-[var(--border)] bg-pax2-surface p-3 text-left normal-case opacity-0 shadow-xl transition-opacity duration-150 group-hover/term:opacity-100"
       >
         <span className="block text-[12px] font-semibold not-italic text-[var(--txt)]">{t.full}</span>
         <span className="mt-1 block text-[12px] font-normal not-italic leading-relaxed text-[var(--muted)]">{t.definition}</span>

@@ -277,7 +277,7 @@ function Card({ n, code, statement, selected, answer, onAnswer, salient, onSalie
                 onClick={() => onAnswer(choice.value)}
                 className={cn(
                   "inline-flex h-9 items-center justify-center gap-1.5 rounded-full border text-sm font-medium transition-colors outline-none focus-visible:ring-3 focus-visible:ring-pax2-light-blue/30",
-                  on ? "border-pax2-blue bg-pax2-blue text-white" : "border-slate-300 bg-surface text-slate-700 hover:border-pax2-blue hover:text-pax2-blue"
+                  on ? "border-pax2-blue bg-pax2-blue text-white" : "border-slate-300 bg-pax2-surface text-slate-700 hover:border-pax2-blue hover:text-pax2-blue"
                 )}
               >
                 {choice.icon}

@@ -27,7 +27,7 @@ export function SignupGate() {
   const next = `?next=${encodeURIComponent(window.location.pathname + window.location.search)}`
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/20 p-4 backdrop-blur-[3px]" onClick={() => setOpen(false)}>
-      <div role="dialog" aria-modal="true" aria-labelledby="signup-gate-title" onClick={(e) => e.stopPropagation()} className="relative flex w-full max-w-sm flex-col items-center gap-3 rounded-2xl bg-surface p-6 text-center shadow-e3 ring-1 ring-slate-200">
+      <div role="dialog" aria-modal="true" aria-labelledby="signup-gate-title" onClick={(e) => e.stopPropagation()} className="relative flex w-full max-w-sm flex-col items-center gap-3 rounded-2xl bg-pax2-surface p-6 text-center shadow-e3 ring-1 ring-slate-200">
         <button type="button" aria-label="Close" onClick={() => setOpen(false)} className="absolute right-3 top-3 inline-flex size-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700">
           <X className="size-4" />
         </button>

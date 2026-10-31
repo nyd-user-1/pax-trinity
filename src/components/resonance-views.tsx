@@ -164,7 +164,7 @@ export function ResonanceCard({ score, factors }: { score: Score; factors: Facto
             {BANDS.map((b) => {
               const fill = Math.max(0, Math.min(1, (v - b.from) / (b.to - b.from)))
               return (
-                <div key={b.name} className="relative h-1.5 overflow-hidden rounded-full bg-surface/85" style={{ flex: b.to - b.from }}>
+                <div key={b.name} className="relative h-1.5 overflow-hidden rounded-full bg-pax2-surface/85" style={{ flex: b.to - b.from }}>
                   <div className="h-full rounded-full" style={{ width: `${fill * 100}%`, background: band.color }} />
                   {gap && Math.min(gap.hi, b.to) > Math.max(gap.lo, b.from) && (
                     <div
@@ -186,7 +186,7 @@ export function ResonanceCard({ score, factors }: { score: Score; factors: Facto
           </div>
         </div>
       </div>
-      <ul className="flex flex-col divide-y divide-slate-100 bg-surface">
+      <ul className="flex flex-col divide-y divide-slate-100 bg-pax2-surface">
         {sorted.map((f) => (
           <li key={f.key} className="flex items-center justify-between gap-4 px-6 py-3.5">
             <span className="flex flex-col">

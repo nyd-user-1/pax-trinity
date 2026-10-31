@@ -116,7 +116,7 @@ export function CommentThread({ videoId, threads }: { videoId: string; threads: 
                         onChange={(e) => setDraft(e.target.value)}
                         placeholder="Add a reply"
                         rows={2}
-                        className="w-full resize-none rounded-xl border border-slate-200 bg-surface px-3 py-2 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-pax2-blue"
+                        className="w-full resize-none rounded-xl border border-slate-200 bg-pax2-surface px-3 py-2 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-pax2-blue"
                       />
                       <div className="flex justify-end gap-2 text-xs">
                         <button type="button" onClick={() => setOpen(null)} className="rounded-full px-3 py-1.5 font-medium text-slate-800 hover:bg-slate-100">

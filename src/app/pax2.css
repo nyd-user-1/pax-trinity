@@ -39,10 +39,11 @@
    (lib/theme.ts). Rather than rewrite each class, Dark swaps the colours the classes point at: PAX's
    own tokens, the shadcn tokens, and Tailwind's slate and gray scales, so the 1,100-odd slate classes
    follow without an edit. The scales are set by role, not flipped: 50–300 are the tints and rules a
-   step above the surface, 400–950 the type, light to lightest. The surface (bg-surface, which every
-   white background became) sits a step above the ground (the mist). text-white stays white, and the
-   night scale (bg-night-*) keeps the few dark chips and scrims dark in both. :root:root.dark outranks
-   the :root:root above. */
+   step above the surface, 400–950 the type, light to lightest. Every white background became
+   bg-pax2-surface: white in Light, a step above the ground (the mist) in Dark. (The design system's
+   bg-surface is another token, a light grey.) text-white stays white, and the night scale
+   (bg-night-*) keeps the few dark chips and scrims dark in both. :root:root.dark outranks the
+   :root:root above. */
 :root:root.dark {
   color-scheme: dark;
   --pax2-blue: #3b82f6;
@@ -114,7 +115,7 @@
 }
 
 @theme inline {
-  --color-surface: var(--pax2-surface);
+  --color-pax2-surface: var(--pax2-surface);
   --color-pax2-blue: var(--pax2-blue);
   --color-pax2-light-blue: var(--pax2-light-blue);
   --color-pax2-lavender: var(--pax2-lavender);

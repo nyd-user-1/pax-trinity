@@ -48,7 +48,7 @@ export function ComposeWindow({ title, onClose, children }: { title: string; onC
 
   if (minimized)
     return createPortal(
-      <div className="fixed right-4 bottom-0 z-50 w-full max-w-xs overflow-hidden rounded-t-2xl border border-slate-200 bg-surface shadow-e3 sm:right-6">{strip}</div>,
+      <div className="fixed right-4 bottom-0 z-50 w-full max-w-xs overflow-hidden rounded-t-2xl border border-slate-200 bg-pax2-surface shadow-e3 sm:right-6">{strip}</div>,
       document.body
     )
 
@@ -59,7 +59,7 @@ export function ComposeWindow({ title, onClose, children }: { title: string; onC
         role="dialog"
         aria-label={title}
         className={cn(
-          "fixed z-50 flex flex-col overflow-hidden border border-slate-200 bg-surface shadow-e3 animate-in fade-in slide-in-from-bottom-4",
+          "fixed z-50 flex flex-col overflow-hidden border border-slate-200 bg-pax2-surface shadow-e3 animate-in fade-in slide-in-from-bottom-4",
           big ? "inset-0 m-auto h-[85vh] max-h-[860px] w-[92vw] max-w-[1200px] rounded-2xl" : "right-4 bottom-0 h-[600px] max-h-[85vh] w-full max-w-[560px] rounded-t-2xl sm:right-6"
         )}
       >

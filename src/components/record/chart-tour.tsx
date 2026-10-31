@@ -45,7 +45,7 @@ export function TourCard({ steps, step, onStep, className }: { steps: TourStep[]
     return () => window.removeEventListener("keydown", key)
   }, [step, steps.length, onStep])
   return (
-    <div onPointerMove={(e) => e.stopPropagation()} className={cn("absolute right-4 top-2 z-20 w-[22rem] max-w-[calc(100%-2rem)] cursor-default rounded-xl border bg-surface p-4 shadow-e2", className)}>
+    <div onPointerMove={(e) => e.stopPropagation()} className={cn("absolute right-4 top-2 z-20 w-[22rem] max-w-[calc(100%-2rem)] cursor-default rounded-xl border bg-pax2-surface p-4 shadow-e2", className)}>
       <button type="button" aria-label="Close the tour" onClick={() => onStep(null)} className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-muted hover:text-foreground">
         <X className="size-4" />
       </button>

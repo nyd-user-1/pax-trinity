@@ -46,7 +46,7 @@ export function DemoAccess() {
   return (
     <div ref={ref} className="fixed bottom-4 right-5 z-40">
       {open && (
-        <div className="absolute bottom-8 right-0 w-80 rounded-2xl border border-slate-200 bg-surface p-4 shadow-e3">
+        <div className="absolute bottom-8 right-0 w-80 rounded-2xl border border-slate-200 bg-pax2-surface p-4 shadow-e3">
           <p className="text-sm font-semibold text-slate-900">Demo access</p>
           <div className="mt-3 flex flex-col divide-y divide-slate-100">
             {DEMO_ACCOUNTS.map((a) => (

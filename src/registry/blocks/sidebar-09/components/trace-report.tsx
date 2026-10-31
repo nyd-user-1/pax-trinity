@@ -37,7 +37,7 @@ function Pile({ marks }: { marks: TraceSource[] }) {
             title={entry.label}
             className={cn(
               "-ml-2 inline-flex size-6 items-center justify-center overflow-hidden rounded-full border-2 border-background text-[9px] font-bold text-white first:ml-0",
-              entry.image ? "bg-surface ring-1 ring-foreground/10" : entry.tone
+              entry.image ? "bg-pax2-surface ring-1 ring-foreground/10" : entry.tone
             )}
           >
             {flag ? (

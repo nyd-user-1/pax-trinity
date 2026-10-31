@@ -192,14 +192,14 @@ export function HousekeepingView() {
           </ThreadChip>
         ))}
         <span className="ml-auto flex gap-1.5">
-          <button type="button" onClick={() => void togglePointer()} className="flex size-8 items-center justify-center rounded-full bg-surface text-pax2-blue shadow-e1 transition-colors hover:bg-pax2-lavender" aria-label="Point at something on the page" title="Point at something on the page">
+          <button type="button" onClick={() => void togglePointer()} className="flex size-8 items-center justify-center rounded-full bg-pax2-surface text-pax2-blue shadow-e1 transition-colors hover:bg-pax2-lavender" aria-label="Point at something on the page" title="Point at something on the page">
             <Crosshair className="size-4" />
           </button>
           <button
             type="button"
             onClick={() => setArchive((a) => !a)}
             aria-pressed={archive}
-            className={cn("flex size-8 items-center justify-center rounded-full shadow-e1 transition-colors", archive ? "bg-pax2-blue text-white" : "bg-surface text-pax2-blue hover:bg-pax2-lavender")}
+            className={cn("flex size-8 items-center justify-center rounded-full shadow-e1 transition-colors", archive ? "bg-pax2-blue text-white" : "bg-pax2-surface text-pax2-blue hover:bg-pax2-lavender")}
             aria-label={archive ? "Back to open messages" : "Archive: resolved messages"}
             title={archive ? "Back to open messages" : "Archive: resolved messages"}
           >
@@ -210,7 +210,7 @@ export function HousekeepingView() {
 
       <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto border-t border-slate-200/70 px-5 py-4">
         {archive && <p className="mb-3 text-xs font-semibold tracking-wide text-slate-500 uppercase">Archive</p>}
-        {error && <p className="mb-3 rounded-lg bg-surface px-3 py-2 text-xs text-pax2-red shadow-e1">{error}</p>}
+        {error && <p className="mb-3 rounded-lg bg-pax2-surface px-3 py-2 text-xs text-pax2-red shadow-e1">{error}</p>}
         {!thread && !error && <Loader2 className="mx-auto mt-6 size-5 animate-spin text-pax2-blue" />}
         {thread && list.length === 0 && (
           <p className="mt-6 text-center text-sm text-slate-500">
@@ -278,10 +278,10 @@ export function HousekeepingView() {
                           setEditing({ ...editing, text: e.target.value })
                           grow(e.target)
                         }}
-                        className={cn("w-full resize-y overflow-hidden rounded-lg border border-slate-200 bg-surface p-2 text-sm outline-none focus:border-pax2-light-blue", editing.field === "prompt" && "font-mono text-[12px]")}
+                        className={cn("w-full resize-y overflow-hidden rounded-lg border border-slate-200 bg-pax2-surface p-2 text-sm outline-none focus:border-pax2-light-blue", editing.field === "prompt" && "font-mono text-[12px]")}
                       />
                       <div className="mt-1 flex justify-end gap-2 text-xs">
-                        <button type="button" onClick={() => setEditing(null)} className="rounded-md px-2 py-1 text-slate-500 hover:bg-surface">
+                        <button type="button" onClick={() => setEditing(null)} className="rounded-md px-2 py-1 text-slate-500 hover:bg-pax2-surface">
                           Cancel
                         </button>
                         <button type="button" onClick={() => void change(m, editing.field === "prompt" ? { prompt: editing.text } : { text: editing.text })} className="rounded-md bg-pax2-blue px-2.5 py-1 font-medium text-white">
@@ -300,7 +300,7 @@ export function HousekeepingView() {
                         className={cn(
                           "mt-1 text-sm whitespace-pre-wrap text-slate-700",
                           resolved && "text-slate-400",
-                          asPrompt && "rounded-lg bg-surface px-2.5 py-2 font-mono text-[12px] leading-relaxed shadow-e1",
+                          asPrompt && "rounded-lg bg-pax2-surface px-2.5 py-2 font-mono text-[12px] leading-relaxed shadow-e1",
                           asPrompt && shown === PROMPT_UNAVAILABLE && "font-sans text-slate-400 italic",
                         )}
                       >
@@ -311,7 +311,7 @@ export function HousekeepingView() {
                   {m.images?.length ? (
                     <div className="mt-2 flex flex-wrap gap-2">
                       {m.images.map((k) => (
-                        <a key={k} href={`/api/housekeeping/image?key=${encodeURIComponent(k)}`} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg border border-slate-200 bg-surface">
+                        <a key={k} href={`/api/housekeeping/image?key=${encodeURIComponent(k)}`} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg border border-slate-200 bg-pax2-surface">
                           {/* eslint-disable-next-line @next/next/no-img-element -- a private screenshot through its signed link */}
                           <img src={`/api/housekeeping/image?key=${encodeURIComponent(k)}`} alt="Screenshot" className="h-24 w-auto max-w-[220px] object-cover" />
                         </a>
@@ -334,7 +334,7 @@ export function HousekeepingView() {
           void addFiles(e.dataTransfer.files)
         }}
       >
-        <div className="rounded-2xl border border-slate-200 bg-surface px-3 pt-2.5 pb-2 shadow-e1 focus-within:border-pax2-light-blue">
+        <div className="rounded-2xl border border-slate-200 bg-pax2-surface px-3 pt-2.5 pb-2 shadow-e1 focus-within:border-pax2-light-blue">
           {shots.length > 0 && (
             <div className="mb-2 flex flex-wrap gap-2">
               {shots.map((s, i) => (
@@ -388,7 +388,7 @@ function ThreadChip({ on, onClick, children }: { on: boolean; onClick: () => voi
       type="button"
       onClick={onClick}
       aria-pressed={on}
-      className={cn("rounded-full px-3 py-1.5 text-xs font-medium transition-[color,background-color,box-shadow]", on ? "bg-surface text-pax2-blue shadow-e1" : "text-slate-500 hover:bg-surface/70 hover:text-pax2-blue")}
+      className={cn("rounded-full px-3 py-1.5 text-xs font-medium transition-[color,background-color,box-shadow]", on ? "bg-pax2-surface text-pax2-blue shadow-e1" : "text-slate-500 hover:bg-pax2-surface/70 hover:text-pax2-blue")}
     >
       {children}
     </button>
@@ -404,7 +404,7 @@ function Chip({ label, on = false, onClick, children }: { label: string; on?: bo
       aria-label={label}
       aria-pressed={on}
       title={label}
-      className={cn("flex h-7 w-9 items-center justify-center rounded-lg shadow-e1 transition-colors", on ? "bg-pax2-blue text-white" : "bg-surface text-pax2-blue hover:bg-pax2-lavender")}
+      className={cn("flex h-7 w-9 items-center justify-center rounded-lg shadow-e1 transition-colors", on ? "bg-pax2-blue text-white" : "bg-pax2-surface text-pax2-blue hover:bg-pax2-lavender")}
     >
       {children}
     </button>
@@ -413,7 +413,7 @@ function Chip({ label, on = false, onClick, children }: { label: string; on?: bo
 
 function IconAction({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button type="button" onClick={onClick} aria-label={label} title={label} className="flex size-6 items-center justify-center rounded-md text-slate-500 hover:bg-surface hover:text-pax2-blue">
+    <button type="button" onClick={onClick} aria-label={label} title={label} className="flex size-6 items-center justify-center rounded-md text-slate-500 hover:bg-pax2-surface hover:text-pax2-blue">
       {children}
     </button>
   )

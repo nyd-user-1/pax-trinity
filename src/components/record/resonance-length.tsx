@@ -149,7 +149,7 @@ function LengthChart({ tour, mark }: { tour: TourStep<Line2> | null; mark?: numb
   const band = bandAt(s)
   const near = bandAt(CROSS.seconds)
   const v = tuned ? [near.outperformShort, near.underperformShort, bandAt(CROSS.seconds - 5).underperformShort, bandAt(CROSS.seconds - 5).outperformShort].find(onMessage) ?? near.outperformShort : s < CROSS.seconds ? band.outperformShort : band.underperformShort
-  const tone = tuned ? "bg-surface text-pax2-blue ring-1 ring-foreground/10" : s < CROSS.seconds ? "bg-pax2-blue text-white" : "bg-pax2-red text-white"
+  const tone = tuned ? "bg-pax2-surface text-pax2-blue ring-1 ring-foreground/10" : s < CROSS.seconds ? "bg-pax2-blue text-white" : "bg-pax2-red text-white"
   return (
     <div onPointerMove={onPointerMove} onPointerDown={onPointerMove} onPointerLeave={() => setHover(null)} className="relative size-full cursor-crosshair touch-pan-y select-none [&_*:focus]:outline-none">
       <div className="pointer-events-none absolute right-4 top-1 z-10 font-mono text-xs tabular-nums text-slate-900">

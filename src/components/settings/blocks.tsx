@@ -11,13 +11,13 @@ import { cn } from "@/ui/lib/utils"
 export const PRIMARY =
   "inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-pax2-blue bg-pax2-blue px-5 py-2 text-sm font-semibold text-white shadow-e1 transition-colors outline-none hover:border-pax2-light-blue hover:bg-pax2-light-blue focus-visible:ring-3 focus-visible:ring-pax2-light-blue/30 disabled:pointer-events-none disabled:opacity-40"
 export const SMALL =
-  "inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-full border border-slate-300 bg-surface px-3 text-[13px] font-medium text-slate-700 shadow-e1 transition-colors outline-none hover:border-pax2-blue hover:text-pax2-blue focus-visible:ring-3 focus-visible:ring-pax2-light-blue/30 [&_svg]:size-3.5"
+  "inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-full border border-slate-300 bg-pax2-surface px-3 text-[13px] font-medium text-slate-700 shadow-e1 transition-colors outline-none hover:border-pax2-blue hover:text-pax2-blue focus-visible:ring-3 focus-visible:ring-pax2-light-blue/30 [&_svg]:size-3.5"
 export const SMALL_PRIMARY =
   "inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-full bg-pax2-blue px-3.5 text-[13px] font-semibold text-white shadow-e1 transition-colors outline-none hover:bg-pax2-light-blue focus-visible:ring-3 focus-visible:ring-pax2-light-blue/30"
 export const ICON_BUTTON =
   "flex size-8 shrink-0 items-center justify-center rounded-full text-slate-400 transition-colors outline-none hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-3 focus-visible:ring-pax2-light-blue/30 data-[popup-open]:bg-slate-100 data-[popup-open]:text-slate-700"
 export const FIELD =
-  "rounded-xl border border-slate-200 bg-surface text-sm text-slate-900 shadow-e1 transition-colors focus-within:border-pax2-light-blue focus-within:ring-3 focus-within:ring-pax2-light-blue/15"
+  "rounded-xl border border-slate-200 bg-pax2-surface text-sm text-slate-900 shadow-e1 transition-colors focus-within:border-pax2-light-blue focus-within:ring-3 focus-within:ring-pax2-light-blue/15"
 
 /** The page's tab row: links, so a tab survives a reload and a shared link; `trailing` sits at its right. */
 export function PageTabs({ tabs, active, trailing }: { tabs: { key: string; label: string; href: string; icon: React.ComponentType<{ className?: string }>; count?: number }[]; active: string; trailing?: React.ReactNode }) {
@@ -95,7 +95,7 @@ export function Block({ title, sub, lead, badge, action, children, className, st
         </div>
         {action}
       </div>
-      <div className={cn("divide-y divide-slate-200 overflow-visible rounded-[14px] border border-slate-200 bg-surface shadow-e1", stretch && "flex flex-1 flex-col")}>{children}</div>
+      <div className={cn("divide-y divide-slate-200 overflow-visible rounded-[14px] border border-slate-200 bg-pax2-surface shadow-e1", stretch && "flex flex-1 flex-col")}>{children}</div>
     </section>
   )
 }
@@ -144,7 +144,7 @@ const TONE: Record<Tone, string> = {
   green: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
   violet: "bg-violet-50 text-violet-700 ring-violet-600/20",
   amber: "bg-amber-50 text-amber-800 ring-amber-600/25",
-  slate: "bg-surface text-slate-600 ring-slate-300",
+  slate: "bg-pax2-surface text-slate-600 ring-slate-300",
   blue: "bg-pax2-lavender text-pax2-blue ring-pax2-blue/20",
 }
 
