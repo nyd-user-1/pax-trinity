@@ -17,6 +17,7 @@ import { cn } from "@/ui/lib/utils"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/ui/components/nova/tooltip"
 import { whiteButton } from "@/components/white-button"
 import { HOUSEKEEPING_OPEN, HousekeepingTool } from "@/components/housekeeping/tool"
+import { LIFT_TOOLS_OPEN } from "@/lib/lift-analyses"
 import { useThemePanel } from "@/components/theme/theme-palette"
 import { STUDIO_OPEN } from "@/lib/studio"
 import { PaneFrame, PaneSync } from "@/components/pane"
@@ -219,9 +220,12 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
     const open = () => (setAside(null), setDiscuss(true))
     window.addEventListener(HOUSEKEEPING_OPEN, open)
     window.addEventListener(STUDIO_OPEN, open)
+    // Lift Analysis' Back, when Tools' cards opened it.
+    window.addEventListener(LIFT_TOOLS_OPEN, open)
     return () => {
       window.removeEventListener(HOUSEKEEPING_OPEN, open)
       window.removeEventListener(STUDIO_OPEN, open)
+      window.removeEventListener(LIFT_TOOLS_OPEN, open)
     }
   }, [])
   // The dragged split is remembered between visits, but a panel always opens at the third.

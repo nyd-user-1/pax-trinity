@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ArrowLeft, ChevronRight, Clapperboard, Crosshair, Loader2, Columns2, Columns3, LayoutGrid, Maximize2, MessageSquareText, MessagesSquare, Palette, SquareDashedMousePointer, Video, Wrench, X } from "lucide-react"
+import { ArrowLeft, ChartColumn, ChevronRight, Clapperboard, Crosshair, Loader2, Columns2, Columns3, LayoutGrid, Maximize2, MessageSquareText, MessagesSquare, Palette, SquareDashedMousePointer, Video, Wrench, X } from "lucide-react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -15,6 +15,7 @@ import { setPageBlockDrag, setShelfDrag } from "@/lib/shelf-drag"
 import { cn } from "@/ui/lib/utils"
 import { whiteButton } from "@/components/white-button"
 import { HOUSEKEEPING_OPEN, takeOpen, togglePointer } from "@/components/housekeeping/tool"
+import { forgetAnalysis, LIFT_ANALYSIS_OPEN, LIFT_TOOLS_OPEN, markFromTools, takeToolsOnCards, useAnalyses, type LiftAnalysis } from "@/lib/lift-analyses"
 import { useThemePanel } from "@/components/theme/theme-palette"
 import { STUDIO_OPEN, takeStudio } from "@/lib/studio"
 
@@ -26,7 +27,7 @@ import { STUDIO_OPEN, takeStudio } from "@/lib/studio"
 // It sits in the shell's right slot in the take panel's frame, so the two read as one panel. It wears the
 // rail's dress (Brendan, 2026-10-29, after America Thinks): the mist ground, its rows the rail's rows.
 
-type View = "welcome" | "blocks" | "chat" | "devtools" | "housekeeping" | "inspector" | "theme" | "studio" | "slack" | "discord"
+type View = "welcome" | "blocks" | "chat" | "devtools" | "lift" | "housekeeping" | "inspector" | "theme" | "studio" | "slack" | "discord"
 
 // Dev Tools (Brendan, 2026-10-30): one row for the admins' tools. Dev Comments is Housekeeping, renamed; the
 // Inspector item opens the inspector dock's two panels here, Classifier and Comments (the admin's own
@@ -57,7 +58,7 @@ let keptSelected: string | null = null
 let keptStudio: string | null = null
 // The service a Slack or Discord view talks to, named by its logo in the header at every level.
 const LOGO: Partial<Record<View, string>> = { slack: "/logos/slack.png", discord: "/logos/discord-icon.svg" }
-const TITLE: Record<View, string> = { welcome: "Tools", blocks: "Blocks", chat: "Chat", devtools: "Dev Tools", housekeeping: "Dev Comments", inspector: "Inspector", theme: "Theme", studio: "Studio", slack: "Slack", discord: "Discord" }
+const TITLE: Record<View, string> = { welcome: "Tools", blocks: "Blocks", chat: "Chat", devtools: "Dev Tools", lift: "Lift Analysis", housekeeping: "Dev Comments", inspector: "Inspector", theme: "Theme", studio: "Studio", slack: "Slack", discord: "Discord" }
 
 function Row({ icon, label, sub, onClick }: { icon: React.ReactNode; label: string; sub?: string; onClick: () => void }) {
   return (
@@ -245,6 +246,68 @@ function BlocksShelf() {
 }
 
 /** `admin` shows the Slack and Discord rows, each with the workspace or server it reaches. */
+/** Tools > Lift Analysis (Brendan, 2026-10-31): the analyses opened on Lift, as the Blocks shelf's plain tiles,
+ *  newest first. A card opens its analysis in this column, its Back returning here. */
+function LiftAnalyses() {
+  const router = useRouter()
+  const path = usePathname()
+  const list = useAnalyses()
+  const box = React.useRef<HTMLDivElement>(null)
+  const [size, setSize] = React.useState({ w: 372, h: 600 })
+  React.useEffect(() => {
+    const el = box.current
+    if (!el) return
+    const ro = new ResizeObserver(([e]) => setSize({ w: e.contentRect.width, h: e.contentRect.height }))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  const cols = Math.min(6, Math.max(3, Math.floor((size.w + GAP) / (MIN_TILE + GAP))))
+  const tileSide = (size.w - GAP * (cols - 1)) / cols
+  const rows = Math.max(Math.ceil(list.length / cols), Math.ceil((size.h + GAP) / (tileSide + GAP)))
+  const open = (a: LiftAnalysis) => {
+    markFromTools()
+    if (path === "/lift") window.dispatchEvent(new CustomEvent(LIFT_ANALYSIS_OPEN, { detail: { source: a.source, at: a.at } }))
+    else router.push(a.href)
+  }
+  return (
+    <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6 pt-1">
+      <div ref={box} className="h-full">
+        {list.length === 0 && <p className="pb-3 text-[13px] text-slate-500">Click a result on Lift to open its analysis.</p>}
+        <div className="grid content-start" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap: GAP }}>
+          {list.map((a) => (
+            <div
+              key={a.href}
+              role="button"
+              tabIndex={0}
+              onClick={() => open(a)}
+              onKeyDown={(e) => e.key === "Enter" && open(a)}
+              aria-label={`Open the analysis of ${a.title}`}
+              className="group relative flex aspect-square cursor-pointer flex-col justify-between overflow-hidden rounded-xl border border-slate-200 bg-pax2-surface p-2.5 shadow-e1 transition-[box-shadow,border-color] hover:border-pax2-blue hover:shadow-e2"
+            >
+              <ChartColumn className="size-4 text-pax2-blue" />
+              <span className="min-w-0">
+                <span className="line-clamp-3 text-[12px] font-semibold leading-snug text-slate-900">{a.title}</span>
+                <span className="mt-0.5 block truncate text-[10px] text-slate-500">{a.sub}</span>
+              </span>
+              <button
+                type="button"
+                onClick={(e) => (e.stopPropagation(), forgetAnalysis(a.href))}
+                aria-label={`Take ${a.title} off the list`}
+                className="absolute right-1.5 top-1.5 flex size-6 items-center justify-center rounded-md text-slate-400 opacity-0 transition-opacity hover:bg-muted hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
+              >
+                <X className="size-3.5" />
+              </button>
+            </div>
+          ))}
+          {Array.from({ length: Math.max(0, rows * cols - list.length) }, (_, i) => (
+            <div key={i} aria-hidden className="aspect-square rounded-xl border border-dashed border-slate-300" />
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function DiscussionPanel({ onClose: close, admin = false }: { onClose: () => void; admin?: boolean }) {
   const { wide, setWide, discussSeed } = useShellPanel()
   const router = useRouter()
@@ -281,6 +344,13 @@ export function DiscussionPanel({ onClose: close, admin = false }: { onClose: ()
     window.addEventListener(STUDIO_OPEN, go)
     return () => window.removeEventListener(STUDIO_OPEN, go)
   }, [admin])
+  // Lift Analysis' Back: open on its cards, now or as the panel mounts.
+  React.useEffect(() => {
+    const go = () => takeToolsOnCards() && setViewState((keptView = "lift"))
+    go()
+    window.addEventListener(LIFT_TOOLS_OPEN, go)
+    return () => window.removeEventListener(LIFT_TOOLS_OPEN, go)
+  }, [])
   // A page asking about itself (the video page's Ask row) opens straight onto the chat.
   React.useEffect(() => {
     if (discussSeed) setViewState((keptView = "chat"))
@@ -327,6 +397,7 @@ export function DiscussionPanel({ onClose: close, admin = false }: { onClose: ()
             <Row icon={<LayoutGrid className="size-4" />} label="Blocks" sub="Shorts and blocks you've saved" onClick={() => setView("blocks")} />
             <Row icon={<MessagesSquare className="size-4" />} label="Chat" sub="Ask about the scores, scripts and results" onClick={() => setView("chat")} />
             {admin && <Row icon={<Wrench className="size-4" />} label="Dev Tools" sub="Comment, inspect, and more" onClick={() => setView("devtools")} />}
+            <Row icon={<ChartColumn className="size-4" />} label="Lift Analysis" sub="The results you've opened on Lift" onClick={() => setView("lift")} />
             {themeRow && <Row icon={<Palette className="size-4" />} label="Theme" sub="Six themes, and every colour in them" onClick={() => setView("theme")} />}
             {admin && <Row icon={<Clapperboard className="size-4" />} label="Studio" sub="Templates, graphics and saved versions" onClick={() => setView("studio")} />}
             <Row icon={<Video className="size-4" />} label="Record" sub="Write a script, record it or upload a video" onClick={() => router.push("/recording")} />
@@ -341,6 +412,7 @@ export function DiscussionPanel({ onClose: close, admin = false }: { onClose: ()
           </div>
         )}
         {view === "blocks" && <BlocksShelf />}
+        {view === "lift" && <LiftAnalyses />}
         {view === "devtools" && admin && (
           <div className="flex flex-col px-3 pt-1">
             <Row icon={<MessageSquareText className="size-4" />} label="Dev Comments" sub="Comments on the app, and direct messages" onClick={() => setView("housekeeping")} />

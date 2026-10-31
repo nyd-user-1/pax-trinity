@@ -31,6 +31,7 @@ import { rowDress } from "../america-thinks/segment-grid"
 import { AboutResult } from "./about-result"
 import { useShellPanel } from "@/components/shell"
 import { PANE_PARAM } from "@/lib/pane"
+import { LIFT_ANALYSIS_OPEN, openToolsOnCards, recordAnalysis, takeFromTools } from "@/lib/lift-analyses"
 import { AD_COLUMNS, AD_INFO, TRAIT_COLUMN, TRAIT_COLUMNS, adOffice, adWhen, adWhere, dimOf, fielding, isPlacebo, metricShort, ordered, periodKey, segKey, segOf, setAds, signed, significance, testOf, TRAIT_GROUPS, treatmentName, valOf, type AdColumn, type AdInfo, type Cell, type Pick } from "./lift-data"
 import { AppealBar, AppealKey, axisOf, Candle, EmotionBar, EmotionKey, heat, HeatKey, sampleEmotions } from "./lift-marks"
 
@@ -134,6 +135,20 @@ export function LiftSurface() {
   const [periodsOff, setPeriodsOff] = React.useState<string[]>(() => link.list("fo"))
   // A linked cell opens once its folder has read: [treatment, metric, segment].
   const [linkedPick, setLinkedPick] = React.useState<string[] | null>(() => (link.list("at").length >= 3 ? link.list("at") : null))
+  // Whether the open analysis came from Tools' Lift Analysis cards: its panel then has a Back to them. A card
+  // from another page arrives through the address; on this page, through LIFT_ANALYSIS_OPEN.
+  const fromTools = React.useRef(false)
+  React.useEffect(() => {
+    if (takeFromTools()) fromTools.current = true
+    const go = (e: Event) => {
+      const { source: at, at: pick } = (e as CustomEvent<{ source: string; at: string[] }>).detail
+      fromTools.current = takeFromTools()
+      if (at in SOURCES) setSource(at)
+      setLinkedPick(pick)
+    }
+    window.addEventListener(LIFT_ANALYSIS_OPEN, go)
+    return () => window.removeEventListener(LIFT_ANALYSIS_OPEN, go)
+  }, [])
   const [sort, setSort] = React.useState<Sort | null>(null)
   const [about, setAbout] = React.useState<Pick | null>(null)
   const [depth, setDepth] = React.useState(PER_READ)
@@ -426,6 +441,7 @@ export function LiftSurface() {
         key: ABOUT_KEY,
         title: "Lift Analysis",
         flush: true,
+        back: fromTools.current ? openToolsOnCards : undefined,
         body: <AboutResult key={`${about.entry}\u0001${about.metric}\u0001${about.seg}`} pick={about} files={files} folder={source} folders={SOURCES} complete={complete} place={place} />,
       })
     else if (aboutShownRef.current) openAside(null)
@@ -435,6 +451,20 @@ export function LiftSurface() {
   React.useEffect(() => {
     if (!aboutShown) setAbout(null)
   }, [aboutShown])
+  // Every analysis opened goes on Tools' Lift Analysis cards (lib/lift-analyses).
+  React.useEffect(() => {
+    if (!about) return
+    const at = [about.option, about.metric, about.seg, fieldingOf(about.entry)]
+    recordAnalysis({
+      href: `/lift?source=${encodeURIComponent(source)}&at=${at.map(linkPart).join(",")}`,
+      source,
+      at,
+      title: treatmentName(about.option),
+      sub: `${metricShort(about.metric)} · ${about.segName} · ${signed(about.cell.lift[7])}`,
+    })
+    // source is the pick's folder at the moment it opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [about])
 
   const download = () => {
     if (!read || !view) return
@@ -861,7 +891,8 @@ export function LiftSurface() {
   // Stable, so a pick re-renders only the rows whose selection changed (the rows are memoized).
   // The same cell again closes the panel.
   const pick = React.useCallback(
-    (ek: string, m: string, s: Seg, c: Cell) => setAbout((prev) => (prev && prev.entry === ek && prev.metric === m && prev.seg === s.key ? null : { option: optionOf(ek), entry: ek, metric: m, seg: s.key, segName: s.name, cell: c })),
+    // A cell's own pick has no Back: only Tools' cards give the panel one.
+    (ek: string, m: string, s: Seg, c: Cell) => ((fromTools.current = false), setAbout((prev) => (prev && prev.entry === ek && prev.metric === m && prev.seg === s.key ? null : { option: optionOf(ek), entry: ek, metric: m, seg: s.key, segName: s.name, cell: c }))),
     []
   )
 
