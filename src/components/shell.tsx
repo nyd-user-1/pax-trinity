@@ -370,7 +370,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
     <div className="flex h-full w-60 flex-col rounded-2xl border border-slate-500 bg-pax2-sidebar px-3 pb-4 shadow-e2">
       {/* The wordmark stands in a header as tall as the main container's and the right panel's, with the same
           shadow under it, so the three header rows line up (Brendan, 2026-10-30). */}
-      <div className="relative z-10 -mx-3 mb-4 flex min-h-[73px] shrink-0 items-center rounded-t-2xl bg-pax2-sidebar px-6 shadow-[0_4px_12px_-8px_rgb(var(--t-shadow-rgb,15_23_42)/0.25)]">
+      <div className="relative z-10 -mx-3 mb-4 flex min-h-[73px] shrink-0 items-center rounded-t-2xl bg-pax2-sidebar px-6 shadow-header">
         <Link href="/" aria-label="Home" className="flex">
           <Wordmark size={20} />
         </Link>
@@ -491,7 +491,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
                 })}
               </nav>
             </header>
-            <div data-chrome className={cn("relative z-10 hidden min-h-[73px] shrink-0 items-center gap-3 bg-pax2-surface px-5 py-4 shadow-[0_4px_12px_-8px_rgb(var(--t-shadow-rgb,15_23_42)/0.25)] md:flex")}>
+            <div data-chrome className={cn("relative z-10 hidden min-h-[73px] shrink-0 items-center gap-3 bg-pax2-surface px-5 py-4 shadow-header md:flex")}>
               <button type="button" onClick={() => setSidebarOpen((v) => !v)} aria-label="Toggle sidebar" className={whiteButton("circle")}>
                 {sidebarOpen ? <PanelLeftClose className="size-4" strokeWidth={2} /> : <PanelLeftOpen className="size-4" strokeWidth={2} />}
               </button>
@@ -503,7 +503,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
               {/* Housekeeping's pointer (Brendan, 2026-10-30): admins comment on any element for the super admin. */}
               {admin && <HousekeepingTool />}
               {/* 44b's DiscussionHeaderButton: the discussion panel opens from every page. */}
-              <button type="button" onClick={() => (setAside(null), setDiscuss((v) => !v))} aria-pressed={discuss} aria-label="Open the discussion" className={whiteButton("circle")}>
+              <button type="button" onClick={() => (setAside(null), setDiscuss((v) => !v))} aria-pressed={discuss} aria-label="Open Tools" className={whiteButton("circle")}>
                 <MessagesSquare className="size-4 fill-pax2-lavender text-pax2-blue" />
               </button>
             </div>
@@ -864,7 +864,7 @@ export function AccountMenu() {
 function AsidePanel({ aside, wide, onWide, onClose }: { aside: Aside; wide: boolean; onWide: (wide: boolean) => void; onClose: () => void }) {
   return (
     <section className="fixed inset-0 z-50 flex flex-col bg-pax2-surface md:static md:z-auto md:h-full md:overflow-hidden md:rounded-2xl md:border md:border-slate-500 md:shadow-e2">
-      <div className="relative z-10 flex min-h-[73px] shrink-0 items-center justify-between gap-3 px-6 py-4 shadow-[0_4px_12px_-8px_rgb(var(--t-shadow-rgb,15_23_42)/0.25)]">
+      <div className="relative z-10 flex min-h-[73px] shrink-0 items-center justify-between gap-3 px-6 py-4 shadow-header">
         <div className="flex min-w-0 items-center gap-2">
           {aside.back && (
             <button type="button" onClick={aside.back} aria-label="Back" className="-ml-2 flex size-9 shrink-0 items-center justify-center rounded-full text-slate-600 hover:bg-pax2-lift hover:text-pax2-blue">

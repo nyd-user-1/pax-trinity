@@ -57,7 +57,7 @@ let keptSelected: string | null = null
 let keptStudio: string | null = null
 // The service a Slack or Discord view talks to, named by its logo in the header at every level.
 const LOGO: Partial<Record<View, string>> = { slack: "/logos/slack.png", discord: "/logos/discord-icon.svg" }
-const TITLE: Record<View, string> = { welcome: "Discussion", blocks: "Blocks", chat: "Chat", devtools: "Dev Tools", housekeeping: "Dev Comments", inspector: "Inspector", theme: "Theme", studio: "Studio", slack: "Slack", discord: "Discord" }
+const TITLE: Record<View, string> = { welcome: "Tools", blocks: "Blocks", chat: "Chat", devtools: "Dev Tools", housekeeping: "Dev Comments", inspector: "Inspector", theme: "Theme", studio: "Studio", slack: "Slack", discord: "Discord" }
 
 function Row({ icon, label, sub, onClick }: { icon: React.ReactNode; label: string; sub?: string; onClick: () => void }) {
   return (
@@ -294,7 +294,7 @@ export function DiscussionPanel({ onClose: close, admin = false }: { onClose: ()
   }
   return (
     <section className="fixed inset-0 z-50 flex flex-col bg-pax2-sidebar md:static md:z-auto md:h-full md:overflow-hidden md:rounded-2xl md:border md:border-slate-500 md:shadow-e2">
-      <div className="relative z-10 flex min-h-[73px] shrink-0 items-center justify-between gap-3 bg-pax2-sidebar px-6 py-4 shadow-[0_4px_12px_-8px_rgb(var(--t-shadow-rgb,15_23_42)/0.25)]">
+      <div className="relative z-10 flex min-h-[73px] shrink-0 items-center justify-between gap-3 bg-pax2-sidebar px-6 py-4 shadow-header">
         <div className="flex min-w-0 items-center gap-2">
           {view !== "welcome" && (
             <button type="button" onClick={() => (sub ? sub.back() : setView(PARENT[view] ?? "welcome"))} aria-label="Back" className="-ml-2 flex size-9 shrink-0 items-center justify-center rounded-full text-slate-600 hover:bg-pax2-lift hover:text-pax2-blue">
