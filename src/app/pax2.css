@@ -76,6 +76,9 @@
   --pax2-shadow-1: 0 1px 2px rgb(var(--t-shadow-rgb) / calc(0.04 * var(--t-shadow))), 0 1px 1px rgb(var(--t-shadow-rgb) / calc(0.03 * var(--t-shadow)));
   --pax2-shadow-2: 0 4px 14px -4px rgb(var(--t-shadow-rgb) / calc(0.1 * var(--t-shadow))), 0 2px 4px -2px rgb(var(--t-shadow-rgb) / calc(0.06 * var(--t-shadow)));
   --pax2-shadow-3: 0 18px 40px -12px rgb(var(--t-shadow-rgb) / calc(0.22 * var(--t-shadow))), 0 6px 12px -6px rgb(var(--t-shadow-rgb) / calc(0.1 * var(--t-shadow)));
+  /* The header rows' one divider (Brendan, 2026-10-31): scaled by the theme's shadow like the cards', so it reads
+     on the darks too; 0.21 x 1.2 is PAX Light's 0.25, and the darks' 5 and 6 reach full black. */
+  --pax2-shadow-header: 0 4px 12px -8px rgb(var(--t-shadow-rgb) / calc(0.21 * var(--t-shadow)));
 
   --background: var(--t-surface);
   --foreground: var(--t-ink);
@@ -170,6 +173,7 @@
   --shadow-e1: var(--pax2-shadow-1);
   --shadow-e2: var(--pax2-shadow-2);
   --shadow-e3: var(--pax2-shadow-3);
+  --shadow-header: var(--pax2-shadow-header);
 }
 
 /* A page open in the second panel (lib/pane.ts) is this app in a frame, <html data-embed>: the shell's

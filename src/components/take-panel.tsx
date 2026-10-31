@@ -27,7 +27,7 @@ export function TakePanel({ title, search, children }: { title: string; search?:
   }, [router])
   return (
     <section className="fixed inset-0 z-50 flex flex-col bg-pax2-mist md:static md:z-auto md:h-full md:overflow-hidden md:rounded-2xl md:border md:border-slate-500 md:shadow-e2">
-      <div className={cn("relative z-10 flex min-h-[73px] shrink-0 items-center justify-between gap-3 bg-pax2-mist px-6 py-4 transition-shadow duration-200", scrolled && "shadow-[0_4px_12px_-8px_rgb(15_23_42/0.25)]")}>
+      <div className={cn("relative z-10 flex min-h-[73px] shrink-0 items-center justify-between gap-3 bg-pax2-mist px-6 py-4 transition-shadow duration-200", scrolled && "shadow-header")}>
         {search ? (
           <button
             type="button"

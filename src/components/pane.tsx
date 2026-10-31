@@ -14,7 +14,7 @@ import type { PanelSize } from "@/components/shell"
 export function PaneFrame({ src, title, nextSize, onSize, onClose, dragging, frameRef }: { src: string; title: string; nextSize: PanelSize; onSize: () => void; onClose: () => void; dragging: boolean; frameRef: React.RefObject<HTMLIFrameElement | null> }) {
   return (
     <section className="fixed inset-0 z-50 flex flex-col bg-pax2-surface md:static md:z-auto md:h-full md:overflow-hidden md:rounded-2xl md:border md:border-slate-500 md:shadow-e2">
-      <div className="relative z-10 flex min-h-[73px] shrink-0 items-center justify-between gap-3 bg-pax2-surface px-6 py-4 shadow-[0_4px_12px_-8px_rgb(var(--t-shadow-rgb,15_23_42)/0.25)]">
+      <div className="relative z-10 flex min-h-[73px] shrink-0 items-center justify-between gap-3 bg-pax2-surface px-6 py-4 shadow-header">
         <p className="truncate font-display text-xl text-slate-900">{title}</p>
         <div className="flex shrink-0 items-center gap-2">
           {/* The icon shows the size the next press goes to: a third, half, then the whole area. */}
