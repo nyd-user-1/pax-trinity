@@ -150,6 +150,7 @@ export function AboutResult({
       ) : (
         <>
           <div className="px-6 pt-4 pb-4">
+            <h4 className="mb-3 text-[13px] font-semibold">Result</h4>
             {control && <Scale control={control[7]} delta={delta} quiet={significance(lift) === false} />}
             <div className={cn("grid grid-cols-[1fr_88px_72px] items-center gap-x-3 gap-y-2.5 text-[13px]", control && "mt-4")}>
               <span />
@@ -195,8 +196,9 @@ export function AboutResult({
             <h4 className="mb-3 text-[13px] font-semibold">Benchmarks</h4>
             {complete ? (
               <div className="flex flex-col gap-2">
-                {pools.map((p) => (
-                  <Benchmark key={p.name} name={p.name} values={p.values} x={delta} moe={lift[9]} context={{ metric: metricShort(pick.metric), segment: pick.segName, geography: place(lift[1]) }} />
+                {/* All tests opens with the panel, its chart showing (Brendan, 2026-10-31). */}
+                {pools.map((p, i) => (
+                  <Benchmark key={p.name} defaultOpen={i === 0} name={p.name} values={p.values} x={delta} moe={lift[9]} context={{ metric: metricShort(pick.metric), segment: pick.segName, geography: place(lift[1]) }} />
                 ))}
               </div>
             ) : (
@@ -384,8 +386,8 @@ function Strength({ z }: { z: number }) {
 
 type Context = { metric: string; segment: string; geography: string }
 
-function Benchmark({ name, values, x, moe, context }: { name: string; values: number[]; x: number; moe: number | null; context: Context }) {
-  const [open, setOpen] = React.useState(false)
+function Benchmark({ name, values, x, moe, context, defaultOpen = false }: { name: string; values: number[]; x: number; moe: number | null; context: Context; defaultOpen?: boolean }) {
+  const [open, setOpen] = React.useState(defaultOpen)
   // Five quintiles need five ads to place among.
   const pct = values.length >= 5 ? percentile(values, x) : null
   const q = pct == null ? null : Math.min(5, Math.floor(pct / 20) + 1)
