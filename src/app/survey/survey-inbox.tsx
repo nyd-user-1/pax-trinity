@@ -141,7 +141,7 @@ export function SurveyInbox({
       </RailGroup>
       <RailGroup>
         {surveys.map((s) => (
-          <RailRow key={s.slug} on={!surface && folder === s.slug} onClick={() => openSurvey(s.slug)} icon={ClipboardList} label={s.title} count={s.statements} />
+          <RailRow key={s.slug} on={!surface && folder === s.slug} onClick={() => openSurvey(s.slug)} pane={`/survey?c=${encodeURIComponent(s.slug)}`} icon={ClipboardList} label={s.title} count={s.statements} />
         ))}
       </RailGroup>
       <RailGroup label="Pretrainings">

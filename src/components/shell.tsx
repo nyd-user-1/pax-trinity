@@ -564,9 +564,11 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
         {/* A video opened beside the discussion: the drawer takes the column above, between the page and
             the discussion, and the discussion keeps its own 420px column on the far right. Close the page
             and the video takes the room that's left. */}
-        {discuss && (panelOpen || !!pane) && (
+        {/* With a video or the second panel in the right column, the discussion, or what a page hands the right
+            panel (Lift's About Result), takes its own 420px column at the far right. */}
+        {(discuss || aside) && (panelOpen || !!pane) && (
           <div className="shrink-0 md:ml-[18px] md:w-[420px]">
-            <DiscussionPanel onClose={() => setDiscuss(false)} />
+            {discuss ? <DiscussionPanel onClose={() => setDiscuss(false)} /> : aside && <AsidePanel aside={aside} wide={false} onWide={() => {}} onClose={() => setAside(null)} />}
           </div>
         )}
       </div>

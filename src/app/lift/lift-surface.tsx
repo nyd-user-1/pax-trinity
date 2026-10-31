@@ -26,6 +26,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components
 import { dimLabel, groupSources, num, type AudienceIndex, type SourceRow } from "../america-thinks/audience-data"
 import { rowDress } from "../america-thinks/segment-grid"
 import { AboutResult } from "./about-result"
+import { useShellPanel } from "@/components/shell"
 import { AD_COLUMNS, AD_INFO, TRAIT_COLUMN, TRAIT_COLUMNS, adOffice, adWhen, adWhere, dimOf, fielding, isPlacebo, metricShort, ordered, periodKey, segKey, segOf, setAds, signed, significance, testOf, TRAIT_GROUPS, treatmentName, valOf, type AdColumn, type AdInfo, type Cell, type Pick } from "./lift-data"
 import { AppealBar, AppealKey, axisOf, Candle, EmotionBar, EmotionKey, heat, HeatKey, sampleEmotions } from "./lift-marks"
 
@@ -95,6 +96,9 @@ const HEAT = "flex h-10 w-full items-center justify-center text-[13px] tabular-n
 
 type Sort = { by: string; dir: 1 | -1 }
 
+/** The right panel's key for About Result. */
+const ABOUT_KEY = "lift:about"
+
 export function LiftSurface() {
   // A shared link's view, read once before the first render (see share).
   const [link] = React.useState(readLink)
@@ -122,11 +126,6 @@ export function LiftSurface() {
   const [linkedPick, setLinkedPick] = React.useState<string[] | null>(() => (link.list("at").length >= 3 ? link.list("at") : null))
   const [sort, setSort] = React.useState<Sort | null>(null)
   const [about, setAbout] = React.useState<Pick | null>(null)
-  // About Result slides in and out: the last pick stays drawn while it slides shut.
-  const [sheet, setSheet] = React.useState<Pick | null>(null)
-  React.useEffect(() => {
-    if (about) setSheet(about)
-  }, [about])
   const [depth, setDepth] = React.useState(PER_READ)
   const [widths, setWidths] = React.useState({ treatment: 220, segment: 170 })
   const [metricWidths, setMetricWidths] = React.useState<Record<string, number>>({})
@@ -404,6 +403,28 @@ export function LiftSurface() {
   const more = React.useCallback(() => setDepth((d) => d + PER_READ), [])
 
   const complete = Object.keys(SOURCES).every((s) => files[s])
+  // About Result opens in the shell's right panel (Brendan, 2026-10-31), in place of the card that floated over
+  // the table: handed again whenever the pick or what it reads changes, taken back when the pick clears, and
+  // closing the panel lets go of the pick.
+  const { openAside, asideKey } = useShellPanel()
+  const aboutShown = asideKey === ABOUT_KEY
+  const aboutShownRef = React.useRef(aboutShown)
+  aboutShownRef.current = aboutShown
+  React.useEffect(() => {
+    if (about)
+      openAside({
+        key: ABOUT_KEY,
+        title: "About Result",
+        flush: true,
+        body: <AboutResult key={`${about.entry}\u0001${about.metric}\u0001${about.seg}`} pick={about} files={files} folder={source} folders={SOURCES} complete={complete} place={place} />,
+      })
+    else if (aboutShownRef.current) openAside(null)
+    // openAside is the shell's; the body is handed again on what it reads.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [about, files, source, complete, place])
+  React.useEffect(() => {
+    if (!aboutShown) setAbout(null)
+  }, [aboutShown])
 
   const download = () => {
     if (!read || !view) return
@@ -467,7 +488,7 @@ export function LiftSurface() {
     <BankRail title="Lift">
       <RailGroup label="Folders">
         {Object.entries(SOURCES).map(([key, name]) => (
-          <RailRow key={key} on={source === key} onClick={() => openFolder(key)} icon={Folder} label={name} count={questions.filter((q) => q.source === key).length || null} />
+          <RailRow key={key} on={source === key} onClick={() => openFolder(key)} pane={`/lift?source=${encodeURIComponent(key)}`} icon={Folder} label={name} count={questions.filter((q) => q.source === key).length || null} />
         ))}
       </RailGroup>
     </BankRail>
@@ -1117,16 +1138,6 @@ export function LiftSurface() {
             {table}
             {view && !shown.length && (
               <p className="p-6 text-center text-sm text-muted-foreground">{read && read.options.length && !chosen.length ? "No treatments picked — choose one under Treatments." : "Nothing on file."}</p>
-            )}
-          </div>
-          {/* About Result in the house drawer's dress (the shell's Discussion panel): a card floating over the table at
-              the right, 18px in from the edges, sliding in and out on its transform. */}
-          <div
-            className={cn("absolute inset-y-[18px] right-[18px] z-20 w-[min(400px,calc(100%-36px))] transition-transform duration-300 ease-in-out", about ? "translate-x-0" : "pointer-events-none translate-x-[calc(100%+18px)]")}
-            onTransitionEnd={(e) => e.target === e.currentTarget && !about && setSheet(null)}
-          >
-            {(about ?? sheet) && (
-              <AboutResult key={`${(about ?? sheet)!.entry}\u0001${(about ?? sheet)!.metric}\u0001${(about ?? sheet)!.seg}`} pick={(about ?? sheet)!} files={files} folder={source} folders={SOURCES} complete={complete} place={place} onClose={() => setAbout(null)} />
             )}
           </div>
         </div>

@@ -118,8 +118,8 @@ export function SourceRail({
     <BankRail header={search}>
       <RailGroup>
         <RailRow href="/constructs" icon={Shapes} label="Constructs" />
-        <RailRow on={topic === FAVORITES} onClick={() => onTopic(FAVORITES)} icon={Star} label="Favorites" count={favorites} />
-        <RailRow on={topic === IMPORTANT} onClick={() => onTopic(IMPORTANT)} icon={Flag} label="Important" count={important} />
+        <RailRow on={topic === FAVORITES} onClick={() => onTopic(FAVORITES)} pane={`/america-thinks?topic=${FAVORITES}`} icon={Star} label="Favorites" count={favorites} />
+        <RailRow on={topic === IMPORTANT} onClick={() => onTopic(IMPORTANT)} pane={`/america-thinks?topic=${IMPORTANT}`} icon={Flag} label="Important" count={important} />
       </RailGroup>
       <RailGroup label="Index">
         {topics.map((t) => (
@@ -127,6 +127,7 @@ export function SourceRail({
             key={t.topic}
             on={topic === t.topic}
             onClick={() => onTopic(t.topic)}
+            pane={`/america-thinks?topic=${encodeURIComponent(t.topic)}`}
             icon={TOPIC_ICONS[t.topic]}
             label={t.topic}
             count={t.count}
@@ -139,7 +140,7 @@ export function SourceRail({
       <RailGroup label="Data" collapsible defaultOpen={source != null}>
         <RailRow href="/electorate" icon={UsersRound} label="Electorate" />
         {groups.map((g) => (
-          <RailRow key={g.source} on={source === g.source} onClick={() => onSource(g.source)} icon={Database} label={shortSource(g.source)} count={SEGMENT_SEED[g.source]} />
+          <RailRow key={g.source} on={source === g.source} onClick={() => onSource(g.source)} pane={`/america-thinks?source=${encodeURIComponent(g.source)}`} icon={Database} label={shortSource(g.source)} count={SEGMENT_SEED[g.source]} />
         ))}
       </RailGroup>
     </BankRail>

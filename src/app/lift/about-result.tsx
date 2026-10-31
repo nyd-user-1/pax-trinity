@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import dynamic from "next/dynamic"
-import { Check, ChartColumn, ChevronDown, CircleHelp, Loader2, X } from "lucide-react"
+import { Check, ChartColumn, ChevronDown, CircleHelp, Loader2 } from "lucide-react"
 
 import { Reveal } from "@/components/reveal"
 import { cn } from "@/lib/utils"
@@ -58,7 +58,6 @@ export function AboutResult({
   folders,
   complete,
   place,
-  onClose,
 }: {
   pick: Pick
   /** Every folder read so far, by source; the pick is in `folder`. */
@@ -68,7 +67,6 @@ export function AboutResult({
   folders: Record<string, string>
   complete: boolean
   place: (code: string) => string
-  onClose: () => void
 }) {
   const [tab, setTab] = React.useState<"analytics" | "second">("analytics")
   // An archive ad has no open-ends; its second tab is its coded traits (Brendan, 2026-10-29).
@@ -109,15 +107,8 @@ export function AboutResult({
   }, [lift])
 
   return (
-    <aside className="flex h-full w-full flex-col overflow-y-auto rounded-2xl border border-slate-500 bg-background shadow-e2">
-      <div className="flex items-center justify-between px-4 pt-4 pb-3">
-        <h3 className="text-sm font-semibold">About Result</h3>
-        <button type="button" onClick={onClose} aria-label="Close" className="text-muted-foreground hover:text-foreground">
-          <X className="size-4" />
-        </button>
-      </div>
-
-      <div className="px-4">
+    <div className="flex w-full flex-col pt-4">
+      <div className="px-6">
         <div className="grid grid-cols-2 rounded-md bg-muted p-0.5 text-xs">
           {(["analytics", "second"] as const).map((t) => (
             <button
@@ -137,11 +128,11 @@ export function AboutResult({
         ad ? (
           <AdTraits ad={ad} />
         ) : (
-          <p className="px-4 py-6 text-center text-sm text-muted-foreground">Nothing on file.</p>
+          <p className="px-6 py-6 text-center text-sm text-muted-foreground">Nothing on file.</p>
         )
       ) : (
         <>
-          <div className="px-4 pt-4 pb-4">
+          <div className="px-6 pt-4 pb-4">
             {control && <Scale control={control[7]} delta={delta} quiet={significance(lift) === false} />}
             <div className={cn("grid grid-cols-[1fr_88px_72px] items-center gap-x-3 gap-y-2.5 text-[13px]", control && "mt-4")}>
               <span />
@@ -183,7 +174,7 @@ export function AboutResult({
             </div>
           </div>
 
-          <section className="border-t px-4 py-4">
+          <section className="border-t px-6 py-4">
             <h4 className="mb-3 text-[13px] font-semibold">Benchmarks</h4>
             {complete ? (
               <div className="flex flex-col gap-2">
@@ -199,7 +190,7 @@ export function AboutResult({
             )}
           </section>
 
-          <section className="border-t px-4 py-4">
+          <section className="border-t px-6 py-4">
             <div className="mb-2 flex items-center justify-between">
               <h4 className="text-[13px] font-semibold">Compare Rank</h4>
               <Help text="Every treatment in the same test on this metric and segment, by impact. Difference is its impact less this one's." />
@@ -220,7 +211,7 @@ export function AboutResult({
             })}
           </section>
 
-          <div className="mt-auto border-t px-4 py-3 text-[11.5px] leading-5 text-muted-foreground">
+          <div className="mt-auto border-t px-6 py-3 text-[11.5px] leading-5 text-muted-foreground">
             <p>
               {place(lift[1])} · {fielding(lift[2], lift[3])}
             </p>
@@ -246,7 +237,7 @@ export function AboutResult({
           </div>
         </>
       )}
-    </aside>
+    </div>
   )
 }
 
@@ -377,7 +368,7 @@ function Help({ text }: { text: string }) {
  *  and the eight emotions' ratings, the archive coders' (0 to 1, full strength at 0.5). */
 function AdTraits({ ad }: { ad: AdInfo }) {
   return (
-    <div className="px-4 pt-3 pb-4 text-[13px]">
+    <div className="px-6 pt-3 pb-4 text-[13px]">
       <dl className="grid grid-cols-[auto_1fr] gap-x-4">
         {(
           [

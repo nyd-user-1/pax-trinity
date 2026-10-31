@@ -2,11 +2,13 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { ChevronDown, EllipsisVerticalIcon, type LucideIcon } from "lucide-react"
+import { ArrowUpRight, ChevronDown, EllipsisVerticalIcon, type LucideIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@govblock/ui/components/ny4/dropdown-menu"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@govblock/ui/components/ny4/tooltip"
+import { useShellPanel } from "@/components/shell"
 import { SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader } from "@govblock/ui/components/ny4/sidebar"
 
 // The bank's rail, in the shell menu's dress: a header (a title, or the
@@ -67,6 +69,7 @@ export function RailRow({
   dim,
   menu,
   drop,
+  pane,
 }: {
   on?: boolean
   onClick?: () => void
@@ -81,8 +84,12 @@ export function RailRow({
   menu?: React.ReactNode
   /** A drop target: an item dragged with this data type lands here (the Inbox's thread onto a folder). */
   drop?: { type: string; onDrop: (value: string) => void }
+  /** The address the row's content opens at in the second panel (lib/pane.ts); a link's is its href. */
+  pane?: string
 }) {
   const [menuOpen, setMenuOpen] = React.useState(false)
+  const { openPane } = useShellPanel()
+  const paneHref = pane ?? href
   const [over, setOver] = React.useState(false)
   const dress = cn(
     "group relative flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm outline-none transition-[color,background-color,box-shadow]",
@@ -115,7 +122,7 @@ export function RailRow({
       )}
       <span className={cn("min-w-0 flex-1 truncate", dim && !on && "text-slate-400")}>{label}</span>
       {count != null && (
-        <span className={cn("shrink-0 text-xs text-slate-400 tabular-nums", menu && "group-hover/rail:invisible group-has-focus-visible/rail:invisible", menu && menuOpen && "invisible")}>
+        <span className={cn("shrink-0 text-xs text-slate-400 tabular-nums", (menu || paneHref) && "group-hover/rail:invisible group-has-focus-visible/rail:invisible", menu && menuOpen && "invisible")}>
           {count.toLocaleString("en-US")}
         </span>
       )}
@@ -130,11 +137,33 @@ export function RailRow({
       {inner}
     </button>
   )
-  if (!menu) return row
-  // The kebab stands beside the row, not inside it: a button may not hold a button.
+  // On hover, the row's content opens in the second panel, as the sidebar's rows do (Brendan, 2026-10-31).
+  // data-chrome: inside the panel's own frame it is hidden (pax2.css).
+  const arrow = paneHref && (
+    <TooltipProvider delayDuration={0}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            data-chrome
+            aria-label={`Open ${label} in panel 2`}
+            onClick={(event) => (event.stopPropagation(), openPane(paneHref))}
+            className={cn("absolute top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 opacity-0 transition-opacity hover:bg-pax2-lift hover:text-pax2-blue focus-visible:opacity-100 group-hover/rail:opacity-100", menu ? "right-9" : "right-1.5")}
+          >
+            <ArrowUpRight className="size-4" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent>Panel 2</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  )
+  if (!menu && !arrow) return row
+  // The kebab and the arrow stand beside the row, not inside it: a button may not hold a button.
   return (
     <div className="group/rail relative">
       {row}
+      {arrow}
+      {menu && (
       <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
         <DropdownMenuTrigger asChild>
           <Button
@@ -152,6 +181,7 @@ export function RailRow({
           {menu}
         </DropdownMenuContent>
       </DropdownMenu>
+      )}
     </div>
   )
 }
