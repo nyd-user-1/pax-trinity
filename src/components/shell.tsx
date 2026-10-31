@@ -67,6 +67,10 @@ const NAV_TREE: (NavLink | NavGroup)[] = [
   { label: "Admin", icon: ShieldCheck, admin: true, children: ADMIN.filter((l) => LIVE.has(l.href)) },
 ]
 
+// A partner's own page (Brendan, 2026-10-31): their Delivery Board, in the main list A to Z, since the
+// Admin group never shows to them.
+const PARTNER_TREE: (NavLink | NavGroup)[] = NAV_TREE.flatMap((n) => ("href" in n && n.href === "/clips" ? [n, ADMIN[0]] : [n]))
+
 // The product's pages, in order: the search's list and the phone's strip.
 const NAV: NavLink[] = NAV_TREE.filter((n) => !("children" in n) || n.label !== "Admin").flatMap((n) => ("children" in n ? n.children : [n]))
 
@@ -127,7 +131,7 @@ export type PanelSize = "third" | "half" | "full" | "custom"
 const PanelCtx = React.createContext<PanelState>({ setOpen: () => {}, wide: false, setWide: () => {}, size: "third", nextSize: "half", cycleSize: () => {}, panelOpen: false, sidebarOpen: false, toggleSidebar: () => {}, discuss: false, toggleDiscuss: () => {}, openAside: () => {}, asideKey: null, askAbout: () => {}, discussSeed: null, admin: false, openPane: () => {} })
 export const useShellPanel = () => React.useContext(PanelCtx)
 
-export function Shell({ children, drawer, signedIn = false, admin = false }: { children: React.ReactNode; drawer: React.ReactNode; signedIn?: boolean; admin?: boolean }) {
+export function Shell({ children, drawer, signedIn = false, admin = false, partner = false }: { children: React.ReactNode; drawer: React.ReactNode; signedIn?: boolean; admin?: boolean; /** A partner's account: their Delivery Board joins the list. */ partner?: boolean }) {
   const path = usePathname()
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = React.useState(false)
@@ -285,7 +289,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
   const [openGroups, setOpenGroups] = React.useState<string[]>([])
   const toggleGroup = (label: string) => setOpenGroups((g) => (g.includes(label) ? g.filter((x) => x !== label) : [...g, label]))
   // The switcher and the header search offer only pages that exist (Brendan, 2026-10-25): the LIVE set, once per address.
-  const findable = React.useMemo(() => [...new Map([...NAV, ...(admin ? ADMIN : [])].filter((l) => LIVE.has(l.href)).map((l) => [l.href, l])).values()], [admin])
+  const findable = React.useMemo(() => [...new Map([...NAV, ...(admin || partner ? [ADMIN[0]] : []), ...(admin ? ADMIN : [])].filter((l) => LIVE.has(l.href)).map((l) => [l.href, l])).values()], [admin, partner])
   // The front door (landing, record entry, sign-in) is full bleed; the recording flow, from /recording on, sits in the shell.
   // /signup and /signin are the landing's first screen with a form in place of the hero, sidebar and all.
   // Trinity's front door lives inside the shell; only the auth screens stay full bleed.
@@ -387,7 +391,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
       {/* A group row folds its pages open and shut; open, they hang off it on the comment thread's tree
           lines: the trunk down from the group's icon, a rounded elbow turning into each page. */}
       <nav className="-mx-1 flex shrink-0 flex-col gap-0.5 overflow-y-auto px-1 max-h-[55%]">
-        {NAV_TREE.map((n) => {
+        {(partner && !admin ? PARTNER_TREE : NAV_TREE).map((n) => {
           if (!("children" in n)) return item(n.href, n.label, n.icon)
           if (n.admin && !admin) return null
           const subs = n.children

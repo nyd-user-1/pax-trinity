@@ -8,6 +8,7 @@ import { DevInspector } from "@/components/dev/inspector"
 import { THEME_SCRIPT } from "@/lib/theme"
 import { EMBED_SCRIPT } from "@/lib/pane"
 import { currentUser } from "@/lib/auth"
+import { memberByEmail } from "@/lib/roles"
 
 const sans = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-sans" })
 const mono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" })
@@ -31,7 +32,7 @@ export default async function RootLayout({ children, drawer }: LayoutProps<"/">)
       </head>
       <body className="min-h-dvh font-sans text-foreground antialiased">
         <LoadCurtainGate />
-        <Shell drawer={drawer} signedIn={!!user} admin={!!user?.admin}>
+        <Shell drawer={drawer} signedIn={!!user} admin={!!user?.admin} partner={!!user && memberByEmail(user.email)?.role === "partner"}>
           {children}
         </Shell>
         {/* GovBlock's inspector dock, bottom right, for admins (beside Housekeeping's pointer, to compare). */}
