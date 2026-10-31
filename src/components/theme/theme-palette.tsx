@@ -1,9 +1,10 @@
 "use client"
 
 import * as React from "react"
-import { Check, Copy, RotateCcw, X } from "lucide-react"
+import { Check, Copy, Palette, RotateCcw, X } from "lucide-react"
 
 import { cn } from "@/ui/lib/utils"
+import { whiteButton } from "@/components/white-button"
 import { PANEL_KEY, THEMES, TOKENS, themeOf, themeVars, type Custom, type GridColorKey, type NumberKey, type Theme, type TokenKey } from "@/lib/theme"
 import { applyTheme, savedCustom, savedThemeName } from "@/lib/theme-client"
 
@@ -112,16 +113,12 @@ export function ThemePalette() {
     e.currentTarget.releasePointerCapture(e.pointerId)
   }
 
+  // The palette in the header buttons' dress (whiteButton's circle, the icon in their navy with the
+  // discussion icon's pale fill), so it reads as one of them.
   if (!open) {
     return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-label="Open the theme panel"
-        title="Theme"
-        className="fixed right-4 bottom-4 z-[60] flex size-12 items-center justify-center rounded-2xl border border-slate-300 bg-pax2-raised text-2xl shadow-e3 transition-transform hover:scale-105"
-      >
-        🎨
+      <button type="button" onClick={() => setOpen(true)} aria-label="Open the theme panel" title="Theme" className={whiteButton("circle", "fixed right-4 bottom-4 z-[60]")}>
+        <Palette className="size-4" style={{ color: "#033882", fill: "#dbe7fa" }} />
       </button>
     )
   }
