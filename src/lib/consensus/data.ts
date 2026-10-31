@@ -109,6 +109,16 @@ export function consensusOn(s: Statement): "agree" | "disagree" | null {
   return null
 }
 
+/** The two rules for consensus, to road-test side by side at the survey's end (Brendan, 2026-10-31): Trinity's
+ *  consensusOn, and the nysgpt home page's walkthrough (nysgpt app/illustrations/Consensus.tsx), which is
+ *  GovBlock's test for agreement: every opinion group agreeing at 7 in 10 or more, so the least agreeable group
+ *  decides and a big group cannot carry a small one. The walkthrough counts agreement only. */
+export type ConsensusRule = "trinity" | "walkthrough"
+export const WALKTHROUGH_BAR = 70
+
+/** The walkthrough's test: does every group (of five votes or more) agree at 70% or more? */
+export const everyGroupAgrees = (s: Statement) => agreement(s) >= WALKTHROUGH_BAR
+
 /** Statements everyone agrees on, strongest first: consensus to agree, by the least agreeable group. */
 export function consensusStatements(c: Conversation, limit = 6) {
   return [...c.statements]

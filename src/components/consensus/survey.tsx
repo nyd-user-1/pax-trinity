@@ -4,10 +4,11 @@ import * as React from "react"
 
 import { Check, Info, Minus, X } from "lucide-react"
 
-import { Block, FIELD, SMALL, SMALL_PRIMARY } from "@/components/settings/blocks"
+import { Badge, Block, Fact, FIELD, SMALL, SMALL_PRIMARY } from "@/components/settings/blocks"
 import { Toggle } from "@/components/settings/controls"
 import { StatementCard } from "@/components/consensus/status-bars"
-import { consensusOn, emergedStatements, type Conversation, type Statement } from "@/lib/consensus/data"
+import { consensusOn, emergedStatements, everyGroupAgrees, share, WALKTHROUGH_BAR, type ConsensusRule, type Conversation, type Statement } from "@/lib/consensus/data"
+import { ViewToggle } from "@/components/bank/pane-bars"
 import { questionCode } from "@/components/consensus/question-code"
 import { SLIDE } from "@/lib/motion"
 import { cn } from "@/lib/utils"
@@ -31,17 +32,23 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components
 // (2026-10-30): Question and its number on the frame; inside, the statement,
 // the three answers and the mark that it matters, then the question's code
 // (question-code.ts). The card in focus wears a blue rule, and an answer
-// moves it on to the next question still unanswered. A row whose cards
-// are both answered closes with the slide run backwards (lib/motion.ts): it
-// dissolves as its height eases shut, and the next row rises into its place,
-// so the survey visibly moves on (Brendan, 2026-10-30). Once every row has
-// closed, the survey's results open in its place (the count above already
-// reads every one answered), only the questions
-// consensus emerged on (lib/consensus/data.ts consensusOn), each beside the
-// reader's own answer. Voting is local here, against the published
-// conversations.
+// moves it on to the next question still unanswered. An answered card leaves
+// on its own (Brendan, 2026-10-31; before, a row waited for both its cards): a
+// beat to see the pick, a fade, and the cards after it each move up one place
+// in reading order, the second column's into the first and the next row's
+// first up into the second column, with the slide's timing (lib/motion.ts).
+// Once every card has gone, the survey's results open in its place, under a
+// switch between two rules for consensus (lib/consensus/data.ts): Trinity's
+// (only the questions consensus emerged on, each beside the reader's own
+// answer) and the nysgpt walkthrough's (every question, those every group
+// agrees on first, each group's agreement in ten). Voting is local here,
+// against the published conversations.
 
 type Answer = "agree" | "disagree" | "pass"
+
+// An answered card: a beat to see the pick, then its fade.
+const BEAT_MS = 350
+const FADE_MS = 200
 
 const CHOICES: { value: Answer; label: string; icon: React.ReactNode }[] = [
   { value: "agree", label: "Agree", icon: <Check className="size-4" /> },
@@ -66,37 +73,62 @@ export function Survey({ conversation, survey }: { conversation: Conversation; s
   const [active, setActive] = React.useState<number | null>(null)
   // An answer, then the blue rule on the earliest question still unanswered: the next one when they are
   // taken in order, and one skipped in the row when they are not.
+  // Cards fading out, and cards gone; reviewing, every card stays to change an answer.
+  const [leaving, setLeaving] = React.useState<Set<number>>(new Set())
+  const [gone, setGone] = React.useState<Set<number>>(new Set())
+  const [review, setReview] = React.useState(false)
+  const timers = React.useRef(new Map<number, number>())
+  const cards = React.useRef(new Map<number, HTMLElement>())
+  // Where each card stood before one left, for the move into its new place.
+  const before = React.useRef<Map<number, DOMRect> | null>(null)
   const answer = (tid: number, a: Answer) => {
     const next = { ...answers, [tid]: a }
     setAnswers(next)
     setActive(queue.find((st) => !next[st.tid])?.tid ?? null)
+    if (review || timers.current.has(tid)) return
+    // A beat to see the pick, then the fade, then the card goes and the rest move up.
+    timers.current.set(
+      tid,
+      window.setTimeout(() => {
+        setLeaving((prev) => new Set(prev).add(tid))
+        timers.current.set(
+          tid,
+          window.setTimeout(() => {
+            timers.current.delete(tid)
+            before.current = new Map([...cards.current].map(([id, el]) => [id, el.getBoundingClientRect()]))
+            setLeaving((prev) => {
+              const left = new Set(prev)
+              left.delete(tid)
+              return left
+            })
+            setGone((prev) => new Set(prev).add(tid))
+          }, FADE_MS)
+        )
+      }, BEAT_MS)
+    )
   }
-  // Two cards a row; a finished row closes a beat after its last answer, so the pick is seen first.
-  const rows = React.useMemo(() => Array.from({ length: Math.ceil(queue.length / 2) }, (_, r) => queue.slice(r * 2, r * 2 + 2)), [queue])
-  const [closed, setClosed] = React.useState<Set<number>>(new Set())
-  // Reviewing, every row stays open to change an answer.
-  const [review, setReview] = React.useState(false)
-  const timers = React.useRef(new Map<number, number>())
-  React.useEffect(() => {
-    if (review) return
-    rows.forEach((row, r) => {
-      if (closed.has(r) || timers.current.has(r) || !row.every((st) => answers[st.tid])) return
-      timers.current.set(
-        r,
-        window.setTimeout(() => {
-          timers.current.delete(r)
-          setClosed((prev) => new Set(prev).add(r))
-        }, 450)
-      )
-    })
-  }, [answers, rows, closed, review])
+  // FLIP: each card that moved starts where it stood and slides to its new place.
+  React.useLayoutEffect(() => {
+    const was = before.current
+    before.current = null
+    if (!was || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
+    for (const [id, el] of cards.current) {
+      const from = was.get(id)
+      if (!from) continue
+      const to = el.getBoundingClientRect()
+      const dx = from.left - to.left
+      const dy = from.top - to.top
+      if (dx || dy) el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "translate(0, 0)" }], { duration: 300, easing: "ease-in-out" })
+    }
+  }, [gone])
   React.useEffect(() => {
     const t = timers.current
     return () => t.forEach((id) => window.clearTimeout(id))
   }, [])
-  // The results open once the last row has closed, and stay, under the open rows, while answers are reviewed.
+  // The results open once the last card has gone, and stay, under the cards, while answers are reviewed.
   const answered = queue.length > 0 && queue.every((st) => answers[st.tid])
-  const done = answered && (review || closed.size === rows.length)
+  const done = answered && (review || gone.size === queue.length)
+  const [rule, setRule] = useRule()
 
   return (
     <div className="space-y-6">
@@ -115,43 +147,42 @@ export function Survey({ conversation, survey }: { conversation: Conversation; s
         </div>
       </div>
 
-      {/* Each row in a clip that eases from its height to none while the row fades: the slide, backwards. */}
-      <div>
-        {rows.map((row, r) => {
-          const shut = closed.has(r)
-          return (
-            <div key={row[0]!.tid} inert={shut} aria-hidden={shut || undefined} className={cn("grid transition-[grid-template-rows,opacity]", SLIDE, shut ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100")}>
-              <div className="-mx-2 min-h-0 overflow-hidden px-2">
-                <div className="grid items-stretch gap-5 pb-5 md:grid-cols-2">
-                  {row.map((statement) => {
-                    const n = queue.indexOf(statement) + 1
-                    return (
-                      <div key={statement.tid} className="h-full" onPointerDownCapture={() => setActive(statement.tid)} onFocusCapture={() => setActive(statement.tid)}>
-                        <Card
-                          n={n}
-                          code={questionCode(survey, n)}
-                          statement={statement}
-                          selected={active === statement.tid}
-                          answer={answers[statement.tid]}
-                          onAnswer={(a) => answer(statement.tid, a)}
-                          salient={salient.has(statement.tid)}
-                          onSalient={() =>
-                            setSalient((prev) => {
-                              const next = new Set(prev)
-                              if (next.has(statement.tid)) next.delete(statement.tid)
-                              else next.add(statement.tid)
-                              return next
-                            })
-                          }
-                        />
-                      </div>
-                    )
-                  })}
-                </div>
+      <div className="grid items-stretch gap-5 md:grid-cols-2">
+        {queue
+          .filter((statement) => !gone.has(statement.tid))
+          .map((statement) => {
+            const n = queue.indexOf(statement) + 1
+            return (
+              <div
+                key={statement.tid}
+                ref={(el) => {
+                  if (el) cards.current.set(statement.tid, el)
+                  else cards.current.delete(statement.tid)
+                }}
+                className={cn("h-full transition-opacity duration-200 ease-out", leaving.has(statement.tid) && "pointer-events-none opacity-0")}
+                onPointerDownCapture={() => setActive(statement.tid)}
+                onFocusCapture={() => setActive(statement.tid)}
+              >
+                <Card
+                  n={n}
+                  code={questionCode(survey, n)}
+                  statement={statement}
+                  selected={active === statement.tid}
+                  answer={answers[statement.tid]}
+                  onAnswer={(a) => answer(statement.tid, a)}
+                  salient={salient.has(statement.tid)}
+                  onSalient={() =>
+                    setSalient((prev) => {
+                      const next = new Set(prev)
+                      if (next.has(statement.tid)) next.delete(statement.tid)
+                      else next.add(statement.tid)
+                      return next
+                    })
+                  }
+                />
               </div>
-            </div>
-          )
-        })}
+            )
+          })}
       </div>
 
       {done && (
@@ -161,12 +192,14 @@ export function Survey({ conversation, survey }: { conversation: Conversation; s
             survey={survey}
             queue={queue}
             answers={answers}
+            rule={rule}
+            onRule={setRule}
             onReview={
               review
                 ? undefined
                 : () => {
                     setReview(true)
-                    setClosed(new Set())
+                    setGone(new Set())
                   }
             }
           />
@@ -211,19 +244,50 @@ const ANSWER_LABEL: Record<Answer, string> = { agree: "Agree", disagree: "Disagr
 
 /** The survey's results at its end: only the questions consensus emerged on, strongest first, each with
  *  the reader's own answer beside the room's; or, where none did, a line that says so. */
-function Emerged({ conversation, survey, queue, answers, onReview }: { conversation: Conversation; survey: number; queue: Statement[]; answers: Record<number, Answer>; onReview?: () => void }) {
+function Emerged({
+  conversation,
+  survey,
+  queue,
+  answers,
+  rule,
+  onRule,
+  onReview,
+}: {
+  conversation: Conversation
+  survey: number
+  queue: Statement[]
+  answers: Record<number, Answer>
+  rule: ConsensusRule
+  onRule: (r: ConsensusRule) => void
+  onReview?: () => void
+}) {
   const emerged = emergedStatements(conversation).filter((s) => queue.includes(s))
   return (
     <section className="space-y-4">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <h3 className="text-base font-semibold text-slate-900">Where consensus emerged</h3>
-        {onReview && (
-          <button type="button" onClick={onReview} className={SMALL}>
-            Review my answers
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {/* The two rules, to road-test one after the other (Brendan, 2026-10-31); the pick is kept in this browser. */}
+          <span title={rule === "trinity" ? "Most of the room on one side, and no opinion group's majority on the other" : `Every opinion group agreeing at ${WALKTHROUGH_BAR}% or more: the least agreeable group decides`}>
+            <ViewToggle
+              views={[
+                { value: "trinity" as const, label: "Trinity" },
+                { value: "walkthrough" as const, label: "Walkthrough" },
+              ]}
+              value={rule}
+              onChange={onRule}
+            />
+          </span>
+          {onReview && (
+            <button type="button" onClick={onReview} className={SMALL}>
+              Review my answers
+            </button>
+          )}
+        </div>
       </div>
-      {emerged.length ? (
+      {rule === "walkthrough" ? (
+        <Walkthrough conversation={conversation} survey={survey} queue={queue} answers={answers} />
+      ) : emerged.length ? (
         emerged.map((s) => {
           const n = queue.indexOf(s) + 1
           const mine = answers[s.tid]
@@ -236,6 +300,77 @@ function Emerged({ conversation, survey, queue, answers, onReview }: { conversat
       )}
     </section>
   )
+}
+
+/** The nysgpt walkthrough's results (its app/illustrations/Consensus.tsx), on this survey's votes: every question,
+ *  those every group agrees on first (in the order they were asked), each marked as the walkthrough marks them
+ *  and showing each group's agreement as ten people, filled for each who agrees. */
+function Walkthrough({ conversation, survey, queue, answers }: { conversation: Conversation; survey: number; queue: Statement[]; answers: Record<number, Answer> }) {
+  const record = [...queue.filter(everyGroupAgrees), ...queue.filter((s) => !everyGroupAgrees(s))]
+  const agreed = queue.filter(everyGroupAgrees).length
+  const groups = conversation.groups
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-slate-600">
+        Every group agrees on {agreed} of {queue.length}.
+      </p>
+      {record.map((s) => {
+        const n = queue.indexOf(s) + 1
+        const all = everyGroupAgrees(s)
+        const mine = answers[s.tid]
+        return (
+          <Block key={s.tid} title={<span className="font-medium">{`Question ${n}`}</span>} badge={<Badge tone={all ? "blue" : "slate"}>{all ? (groups.length === 2 ? "Both agree" : "Every group agrees") : "Split"}</Badge>}>
+            <div className="flex flex-col gap-4 px-4 py-5 sm:px-5">
+              <p className={cn("text-[17px] leading-snug text-balance", all ? "text-slate-900" : "text-slate-500")}>{s.text}</p>
+              <div className="flex flex-wrap gap-x-6 gap-y-2">
+                {groups.map((g, i) => {
+                  const t = s.byGroup[String(g.id)]
+                  const inTen = t && t.seen ? Math.round(share(t).agree / 10) : null
+                  return <Ten key={g.id} name={`Group ${String.fromCharCode(65 + g.id)}`} tone={i} agree={inTen} />
+                })}
+              </div>
+            </div>
+            {mine && <Fact label="Your answer">{ANSWER_LABEL[mine]}</Fact>}
+            <p className="px-4 py-3 text-[13px] text-slate-500 tabular-nums sm:px-5">{questionCode(survey, n)}</p>
+          </Block>
+        )
+      })}
+    </div>
+  )
+}
+
+// The walkthrough's group colours: its blue and red, then the theme's further accents.
+const GROUP_TONE = ["bg-pax2-blue", "bg-pax2-red", "bg-amber-500", "bg-emerald-600", "bg-violet-600"]
+
+/** One group as ten people, filled for each who agrees (the walkthrough's Ten). */
+function Ten({ name, tone, agree }: { name: string; tone: number; agree: number | null }) {
+  return (
+    <span className="flex items-center gap-2 text-xs text-slate-500">
+      <span className="w-14 shrink-0 font-medium text-slate-700">{name}</span>
+      <span className="flex gap-0.5" role="img" aria-label={agree == null ? `${name}: too few votes` : `${agree} in 10 of ${name} agree`}>
+        {Array.from({ length: 10 }, (_, k) => (
+          <span key={k} className={cn("size-2 rounded-full border border-slate-300", agree != null && k < agree && cn(GROUP_TONE[tone % GROUP_TONE.length], "border-transparent"))} />
+        ))}
+      </span>
+      <span className="tabular-nums">{agree == null ? "—" : `${agree} in 10`}</span>
+    </span>
+  )
+}
+
+const RULE_KEY = "consensus:rule"
+/** The results' rule, kept in this browser so a reload keeps the one being tested. */
+function useRule() {
+  const [rule, setRule] = React.useState<ConsensusRule>("trinity")
+  React.useEffect(() => {
+    if (localStorage.getItem(RULE_KEY) === "walkthrough") setRule("walkthrough")
+  }, [])
+  const set = (r: ConsensusRule) => {
+    setRule(r)
+    try {
+      localStorage.setItem(RULE_KEY, r)
+    } catch {}
+  }
+  return [rule, set] as const
 }
 
 /** Opens its content with the slide, forwards: from no height to its own, fading in. */
