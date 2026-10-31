@@ -1,5 +1,5 @@
 import * as React from "react"
-import { AbsoluteFill, Easing, Img, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from "remotion"
+import { AbsoluteFill, Audio, Easing, Img, interpolate, Sequence, spring, staticFile, useCurrentFrame, useVideoConfig } from "remotion"
 import { loadFont } from "@remotion/google-fonts/Inter"
 
 // /docs' guide videos (Brendan, 2026-10-31): a title card, then each step's screenshot in a window, the camera
@@ -10,7 +10,11 @@ import { loadFont } from "@remotion/google-fonts/Inter"
 const { fontFamily } = loadFont("normal", { weights: ["400", "500", "600", "700"], subsets: ["latin"] })
 
 export type GuideStep = { img: string; caption: string; focus: [number, number, number, number] | null; click: boolean }
-export type GuideProps = { title: string; subtitle?: string; steps: GuideStep[] }
+/** `narration` (Brendan, 2026-10-31): the narrator's lines as audio files, the title's and each step's; `frames`
+ *  each step's length and `titleFrames` the title card's, stretched to fit what is said. */
+export type GuideProps = { title: string; subtitle?: string; steps: GuideStep[]; narration?: { intro?: string; steps: (string | null)[] }; frames?: number[]; titleFrames?: number }
+/** A narrated line starts this many frames into its step, as its caption arrives. */
+export const SPEAK_AT = 8
 
 export const FPS = 30
 export const TITLE = 60
@@ -73,16 +77,19 @@ function Cursor({ x, y, press }: { x: number; y: number; press: number }) {
   )
 }
 
-export function Guide({ title, subtitle, steps }: GuideProps) {
+export function Guide({ title, subtitle, steps, narration, frames, titleFrames = TITLE }: GuideProps) {
   const frame = useCurrentFrame()
   const { durationInFrames } = useVideoConfig()
   const cams = steps.map((s) => camera(s.focus))
+  const lengths = steps.map((_, k) => frames?.[k] ?? STEP)
+  const starts = lengths.map((_, k) => lengths.slice(0, k).reduce((a, b) => a + b, 0))
 
   // The title card, then the steps.
-  const titleOut = interpolate(frame, [TITLE - 12, TITLE], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
-  const f = frame - TITLE
-  const i = Math.max(0, Math.min(steps.length - 1, Math.floor(f / STEP)))
-  const at = f - i * STEP
+  const titleOut = interpolate(frame, [titleFrames - 12, titleFrames], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+  const f = frame - titleFrames
+  let i = 0
+  for (let k = 0; k < steps.length; k++) if (f >= starts[k]!) i = k
+  const at = f - starts[i]!
   const step = steps[i]!
   const move = f < 0 ? 0 : spring({ frame: at, fps: FPS, config: { damping: 200 }, durationInFrames: 28 })
   const cam = i === 0 ? mix({ z: 1, left: 0, top: 0 }, cams[0]!, move) : mix(cams[i - 1]!, cams[i]!, move)
@@ -103,6 +110,18 @@ export function Guide({ title, subtitle, steps }: GuideProps) {
 
   return (
     <AbsoluteFill style={{ fontFamily, background: "linear-gradient(160deg, #f5f7fb 0%, #e3e9f1 100%)" }}>
+      {narration?.intro && (
+        <Sequence from={6}>
+          <Audio src={staticFile(narration.intro)} />
+        </Sequence>
+      )}
+      {narration?.steps.map((a, k) =>
+        a ? (
+          <Sequence key={k} from={titleFrames + starts[k]! + SPEAK_AT}>
+            <Audio src={staticFile(a)} />
+          </Sequence>
+        ) : null
+      )}
       {f >= 0 && (
         <AbsoluteFill style={{ opacity: end }}>
           <div style={{ position: "absolute", left: WIN_X, top: WIN_Y, width: WIN_W, height: WIN_H, borderRadius: 18, overflow: "hidden", background: "#fff", border: "1px solid #dce3ec", boxShadow: "0 30px 70px -24px rgba(15,23,42,.35), 0 8px 18px -10px rgba(15,23,42,.2)" }}>

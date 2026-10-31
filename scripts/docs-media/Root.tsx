@@ -30,7 +30,7 @@ export function Root() {
       fps={FPS}
       durationInFrames={TITLE + 60 + OUTRO}
       defaultProps={SAMPLE_REC}
-      calculateMetadata={({ props }) => ({ durationInFrames: TITLE + props.segments.reduce((n, s) => n + frames(s), 0) + OUTRO })}
+      calculateMetadata={({ props }) => ({ durationInFrames: (props.titleFrames ?? TITLE) + props.segments.reduce((n, s) => n + frames(s), 0) + OUTRO })}
     />
     <Composition
       id="Guide"
@@ -40,7 +40,7 @@ export function Root() {
       fps={FPS}
       durationInFrames={TITLE + STEP + OUTRO}
       defaultProps={SAMPLE}
-      calculateMetadata={({ props }) => ({ durationInFrames: TITLE + Math.max(1, props.steps.length) * STEP + OUTRO })}
+      calculateMetadata={({ props }) => ({ durationInFrames: (props.titleFrames ?? TITLE) + (props.frames ? props.frames.reduce((a, b) => a + b, 0) : Math.max(1, props.steps.length) * STEP) + OUTRO })}
     />
     </>
   )

@@ -1,5 +1,5 @@
 import * as React from "react"
-import { AbsoluteFill, interpolate, OffthreadVideo, Series, staticFile, useCurrentFrame, useVideoConfig } from "remotion"
+import { AbsoluteFill, Audio, interpolate, OffthreadVideo, Sequence, Series, staticFile, useCurrentFrame, useVideoConfig } from "remotion"
 import { loadFont } from "@remotion/google-fonts/Inter"
 
 import { FPS, H, OUTRO, TITLE, W } from "./Guide"
@@ -9,8 +9,9 @@ import { FPS, H, OUTRO, TITLE, W } from "./Guide"
 
 const { fontFamily } = loadFont("normal", { weights: ["400", "500", "600", "700"], subsets: ["latin"] })
 
-export type Segment = { from: number; to: number; rate: number; caption: string }
-export type RecordingProps = { title: string; subtitle?: string; src: string; segments: Segment[] }
+/** `audio`: the narrator's line for the segment (Brendan, 2026-10-31); its rate is slowed, where need be, to fit it. */
+export type Segment = { from: number; to: number; rate: number; caption: string; audio?: string }
+export type RecordingProps = { title: string; subtitle?: string; src: string; segments: Segment[]; intro?: string; titleFrames?: number }
 
 export const frames = (s: Segment) => Math.round(((s.to - s.from) * FPS) / s.rate)
 
@@ -34,17 +35,21 @@ function Caption({ n, of, text }: { n: number; of: number; text: string }) {
   )
 }
 
-export function Recording({ title, subtitle, src, segments }: RecordingProps) {
+export function Recording({ title, subtitle, src, segments, intro, titleFrames = TITLE }: RecordingProps) {
   const frame = useCurrentFrame()
   const { durationInFrames } = useVideoConfig()
-  const titleOut = interpolate(frame, [TITLE - 12, TITLE], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+  const titleOut = interpolate(frame, [titleFrames - 12, titleFrames], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
   const end = interpolate(frame, [durationInFrames - OUTRO, durationInFrames - 1], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
   return (
     <AbsoluteFill style={{ fontFamily, background: "linear-gradient(160deg, #f5f7fb 0%, #e3e9f1 100%)" }}>
       <AbsoluteFill style={{ opacity: end }}>
         <Series>
-          <Series.Sequence durationInFrames={TITLE}>
-            <span />
+          <Series.Sequence durationInFrames={titleFrames}>
+            {intro && (
+              <Sequence from={6}>
+                <Audio src={staticFile(intro)} />
+              </Sequence>
+            )}
           </Series.Sequence>
           {segments.map((s, i) => (
             <Series.Sequence key={i} durationInFrames={frames(s)}>
@@ -52,6 +57,11 @@ export function Recording({ title, subtitle, src, segments }: RecordingProps) {
                 <OffthreadVideo src={staticFile(src)} startFrom={Math.round(s.from * FPS)} endAt={Math.round(s.to * FPS)} playbackRate={s.rate} muted style={{ width: WIN_W, height: WIN_H }} />
               </div>
               <Caption n={i + 1} of={segments.length} text={s.caption} />
+              {s.audio && (
+                <Sequence from={8}>
+                  <Audio src={staticFile(s.audio)} />
+                </Sequence>
+              )}
             </Series.Sequence>
           ))}
           <Series.Sequence durationInFrames={OUTRO}>

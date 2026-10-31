@@ -44,3 +44,18 @@ npx remotion render scripts/docs-media/index.ts ClipCut $M/edits/dustin-cut.mp4 
 ```
 
 The first two (Dustin Cathcart and Danielle Allen, Massachusetts Wave 1) are at the CDN's `docs/edits/`.
+
+## Narration
+
+`capture/narrate.mjs` voices each video's title and captions with Amazon Polly's neural voices (in the old AWS
+account: the new account's organization policy denies Polly), measures each line, and writes the props that
+stretch a step or slow a segment until its line is said: `voice/props/<video>.<voice>.json`.
+
+```
+node capture/narrate.mjs Ruth,Matthew
+npx remotion render scripts/docs-media/index.ts Guide $M/narrated/guide-tools.mp4 --props=$M/voice/props/guide-tools.ruth.json --public-dir=$M --codec=h264 --crf=24
+```
+
+The first narrator in `src/lib/docs/media.ts` NARRATORS is the default, uploaded as `<video>.mp4`; each other as
+`<video><suffix>.mp4` (`.matthew.mp4`). The docs' player offers them as Narrator. ElevenLabs' voices (Sarah first)
+join the same way once the key has characters: add the voice to narrate.mjs and NARRATORS.

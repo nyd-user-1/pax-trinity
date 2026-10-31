@@ -10,6 +10,14 @@ export const shot = (name: string, alt: string) => `![${alt}](${DOCS_MEDIA}/shot
 /** A video, as markdown the docs draw as a player; its poster is the same name as a .jpg. */
 export const video = (name: string, alt: string) => `![${alt}](${DOCS_MEDIA}/videos/${name}.mp4)`
 
+/** The narrators each video is rendered in (Brendan, 2026-10-31): Amazon Polly's neural voices for now, the first
+ *  the default (<name>.mp4), each other <name><suffix>.mp4. ElevenLabs' Sarah joins at the front once its key has
+ *  the characters (scripts/docs-media/capture/narrate.mjs). */
+export const NARRATORS: { id: string; label: string; suffix: string }[] = [
+  { id: "ruth", label: "Ruth", suffix: "" },
+  { id: "matthew", label: "Matthew", suffix: ".matthew" },
+]
+
 /** The guide videos, for Video guides and each article that plays one. */
 export const GUIDES: { name: string; title: string; summary: string; article: string }[] = [
   { name: "guide-lift-analysis", title: "Read a result in Lift", summary: "Open a lift, read its analysis, and step through the table.", article: "lift-analysis" },

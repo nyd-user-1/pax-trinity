@@ -4,6 +4,7 @@ import ReactMarkdown, { type Components } from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { Lightbulb } from "lucide-react"
 
+import { NarratedVideo } from "@/components/docs/narrated-video"
 import { headingId } from "@/lib/docs"
 
 // A doc's markdown, rendered on the server so the article ships no script, in the help center's dress (Notion's,
@@ -16,17 +17,13 @@ const text = (children: React.ReactNode): string =>
     .join("")
 
 function Figure({ src, alt }: { src: string; alt: string }) {
-  const isVideo = /\.mp4$/i.test(src)
+  // A video is narrated, with its narrator's menu (narrated-video.tsx).
+  if (/\.mp4$/i.test(src)) return <NarratedVideo src={src} alt={alt} />
   return (
     <figure className="my-8">
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-pax2-surface shadow-e2">
-        {isVideo ? (
-          // eslint-disable-next-line jsx-a11y/media-has-caption
-          <video src={src} poster={src.replace(/\.mp4$/i, ".jpg")} controls playsInline preload="none" className="block aspect-[16/10] w-full bg-slate-100" />
-        ) : (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={src} alt={alt} loading="lazy" className="block w-full" />
-        )}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={src} alt={alt} loading="lazy" className="block w-full" />
       </div>
       {alt && <figcaption className="mt-2.5 text-center text-[13px] text-slate-500">{alt}</figcaption>}
     </figure>
