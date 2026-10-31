@@ -170,8 +170,10 @@ export function CardTools({
   return (
     <div ref={root} className={cn("flex items-center gap-1", className)}>
       {children}
-      {/* Code/hq's row kebab, in PAX's light dress (components/kebab-menu.tsx). */}
-      <KebabMenu label="Block options" trigger={<EllipsisVerticalIcon className="size-4" />} triggerClassName="inline-flex size-8 items-center justify-center rounded-md text-slate-800 outline-none hover:bg-muted hover:text-foreground aria-expanded:bg-muted">
+      {/* Code/hq's row kebab, in PAX's light dress (components/kebab-menu.tsx). Its hover is a touch of the ink
+          over whatever it sits on (Brendan, 2026-10-31): a step down on the lights, up on the darks, and seen on
+          any ground; bg-muted, the tint, vanished on the tint frames of /models' cards. */}
+      <KebabMenu label="Block options" trigger={<EllipsisVerticalIcon className="size-4" />} triggerClassName="inline-flex size-8 items-center justify-center rounded-md text-slate-800 outline-none hover:bg-foreground/8 hover:text-foreground aria-expanded:bg-foreground/8">
         {!panel && <MenuRow icon={<PinIcon />} label="Pin to top" disabled={!pinTop || pinTop.first} onClick={() => pinTop?.pin()} />}
         {!panel && <MenuRow icon={<StarIcon className={fav ? "fill-amber-400 text-amber-400" : undefined} />} label={fav ? "Unfavorite" : "Favorite"} disabled={!key} onClick={() => key && toggleFav(key)} />}
         <MenuRow icon={<LayoutGridIcon />} label={onShelf ? "Remove from Blocks" : "Add to Blocks"} checked={onShelf} disabled={!key || !title} onClick={() => key && title && anchor && (onShelf ? shelf.remove(key) : shelf.add({ key, title, path, anchor }))} />

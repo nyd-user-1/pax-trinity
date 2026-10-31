@@ -100,7 +100,7 @@ export function MainBlock({ title, children, search, searchValue, onSearch, tool
             <CardTools rows={rows} name={name ?? title.toLowerCase()} views={views} view={view} onView={onView} size={size} onSize={panel ? undefined : setSize} panel={panel} menuItems={menuItems} title={title || undefined} anchor={title || id ? (id ?? slug(title)) : undefined}>
               {actions}
               {!panel && (
-                <button type="button" aria-label={size === "half" ? `Full view ${title}` : `Half view ${title}`} onClick={() => setSize(size === "half" ? "full" : "half")} className="inline-flex size-8 items-center justify-center rounded-md text-slate-800 hover:bg-muted hover:text-foreground">
+                <button type="button" aria-label={size === "half" ? `Full view ${title}` : `Half view ${title}`} onClick={() => setSize(size === "half" ? "full" : "half")} className="inline-flex size-8 items-center justify-center rounded-md text-slate-800 hover:bg-foreground/8 hover:text-foreground">
                   <ChevronDown className={cn("size-4 transition-transform", size === "full" && "rotate-180")} />
                 </button>
               )}
