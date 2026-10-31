@@ -155,7 +155,7 @@ export function ViewToggle<V extends string>({ views, value, onChange }: { views
             className={cn(
               "relative rounded-md py-1 transition-colors",
               Icon ? "px-2" : "px-2.5",
-              on ? (rail ? "bg-pax2-lift font-semibold text-pax2-blue shadow-e1" : "bg-pax2-mist font-semibold text-pax2-blue") : "text-muted-foreground hover:text-foreground"
+              on ? (rail ? "bg-pax2-raised font-semibold text-pax2-blue shadow-e1" : "bg-pax2-mist font-semibold text-pax2-blue") : "text-muted-foreground hover:text-foreground"
             )}
           >
             {Icon ? <Icon className="size-4" /> : v.label}
