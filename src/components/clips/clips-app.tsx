@@ -3,7 +3,7 @@
 import * as React from "react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
-import { CameraIcon, LayoutGridIcon, LockIcon, PlaySquareIcon, RefreshCwIcon } from "lucide-react"
+import { CameraIcon, ChevronLeftIcon, ChevronRightIcon, LayoutGridIcon, LockIcon, PlaySquareIcon, RefreshCwIcon } from "lucide-react"
 
 import { Button } from "@govblock/ui/components/nova/button"
 import { Drawer, DrawerContent, DrawerTitle } from "@govblock/ui/components/nova/drawer"
@@ -322,6 +322,16 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
       </button>
     </div>
   )
+  // The header's chevrons step through the clips shown (Brendan, 2026-10-31), wrapping at the ends: in the grid the
+  // picked tile takes the blue border and comes into view; in the feed the clip scrolls in and plays.
+  const step = (d: 1 | -1) => {
+    if (!clips.length) return
+    const i = clips.findIndex((c) => c.id === activeId)
+    const next = clips[(i + d + clips.length) % clips.length]
+    setActiveId(next.id)
+    const el = document.querySelector(view === "grid" ? `[data-tile="${CSS.escape(next.id)}"]` : `[data-id="${CSS.escape(next.id)}"]`)
+    el?.scrollIntoView({ behavior: "smooth", block: view === "grid" ? "nearest" : "start" })
+  }
   const creatorLabel = creator === "all" ? "All clips" : creator === "you" ? "Your library" : (CREATORS.find((c) => c.id === creator)?.name ?? creator)
 
   return (
@@ -388,6 +398,12 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
                   <button type="button" aria-label="Refresh" title="Refresh" onClick={refresh} className="-ml-1 inline-flex size-8 items-center justify-center rounded-md text-slate-800 hover:bg-foreground/8 hover:text-foreground">
                     <RefreshCwIcon className={cn("size-3.5", refreshing && "animate-spin")} />
                   </button>
+                  <button type="button" aria-label="Previous clip" title="Previous clip" disabled={!clips.length} onClick={() => step(-1)} className="inline-flex size-8 items-center justify-center rounded-md text-slate-800 hover:bg-foreground/8 hover:text-foreground disabled:opacity-40">
+                    <ChevronLeftIcon className="size-4" />
+                  </button>
+                  <button type="button" aria-label="Next clip" title="Next clip" disabled={!clips.length} onClick={() => step(1)} className="-ml-1 inline-flex size-8 items-center justify-center rounded-md text-slate-800 hover:bg-foreground/8 hover:text-foreground disabled:opacity-40">
+                    <ChevronRightIcon className="size-4" />
+                  </button>
                 </>
               }
             >
@@ -422,7 +438,7 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
                   </Empty>
                 ) : view === "grid" ? (
                   <div className="scrollbar-none min-h-0 flex-1 overflow-y-auto rounded-lg">
-                    <Grid clips={shown} onOpen={goToPost} />
+                    <Grid clips={shown} onOpen={goToPost} activeId={activeId} />
                   </div>
                 ) : (
                   <Feed clips={shown} activeId={activeId} onActive={setActiveId} muted={muted} onMuted={setMuted} reactions={reactions} className={cn(FEED_HEIGHT[frame], "md:h-auto md:min-h-0 md:flex-1")} />

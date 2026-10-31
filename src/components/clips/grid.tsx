@@ -18,13 +18,14 @@ const CompositionThumb = dynamic(() => import("./composition-player").then((m) =
 // sit top left, the play count and the caption sit at the foot, with the
 // hairline gaps Instagram uses.
 
-export function Grid({ clips, onOpen, className }: { clips: Clip[]; onOpen: (clip: Clip) => void; className?: string }) {
+/** `activeId`: the clip the page has picked (the header's chevrons step it), which wears the 1px blue border hover gives any tile. */
+export function Grid({ clips, onOpen, activeId, className }: { clips: Clip[]; onOpen: (clip: Clip) => void; activeId?: string | null; className?: string }) {
   return (
     // As many columns as fit at 240px or more (Brendan, 2026-10-31): three in the page's usual width, two and
     // then one as the column narrows, more when it is wide.
     <div className={cn("grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-0.5", className)}>
       {clips.map((clip) => (
-        <button key={clip.id} type="button" onClick={() => onOpen(clip)} className="group @container/tile relative aspect-[9/16] overflow-hidden bg-black text-left text-white" aria-label={clip.title}>
+        <button key={clip.id} type="button" data-tile={clip.id} aria-current={clip.id === activeId || undefined} onClick={() => onOpen(clip)} className="group @container/tile relative aspect-[9/16] overflow-hidden bg-black text-left text-white" aria-label={clip.title}>
           {clip.composition ? (
             <div className="size-full transition-transform duration-300 group-hover:scale-[1.03]">
               <CompositionThumb composition={clip.composition} />
@@ -63,6 +64,8 @@ export function Grid({ clips, onOpen, className }: { clips: Clip[]; onOpen: (cli
               <LockIcon className="size-3" />
             </span>
           )}
+          {/* The 1px blue border (Brendan, 2026-10-31): on hover, and on the clip picked. Drawn over the video. */}
+          <span aria-hidden className={cn("pointer-events-none absolute inset-0 z-10 border transition-colors", clip.id === activeId ? "border-pax2-light-blue" : "border-transparent group-hover:border-pax2-light-blue")} />
         </button>
       ))}
     </div>
