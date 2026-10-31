@@ -31,7 +31,6 @@ import {
 } from "lucide-react"
 
 import { BankRail, RailGroup, RailRow } from "@/components/bank/bank-rail"
-import { DropdownMenuItem } from "@govblock/ui/components/ny4/dropdown-menu"
 
 import { SEGMENT_SEED, shortSource, UNTAGGED, type SourceGroup } from "./audience-data"
 
@@ -121,7 +120,7 @@ export function SourceRail({
         <RailRow on={topic === FAVORITES} onClick={() => onTopic(FAVORITES)} pane={`/america-thinks?topic=${FAVORITES}`} icon={Star} label="Favorites" count={favorites} />
         <RailRow on={topic === IMPORTANT} onClick={() => onTopic(IMPORTANT)} pane={`/america-thinks?topic=${IMPORTANT}`} icon={Flag} label="Important" count={important} />
       </RailGroup>
-      <RailGroup label="Index">
+      <RailGroup label="Index" collapsible maxRows={10}>
         {topics.map((t) => (
           <RailRow
             key={t.topic}
@@ -132,12 +131,11 @@ export function SourceRail({
             label={t.topic}
             count={t.count}
             dim={t.topic === UNTAGGED}
-            menu={<DropdownMenuItem disabled>{t.count.toLocaleString("en-US")} questions</DropdownMenuItem>}
           />
         ))}
       </RailGroup>
       {/* Shut by default; open on arrival when the address opened a folder (/electorate's links do). */}
-      <RailGroup label="Data" collapsible defaultOpen={source != null}>
+      <RailGroup label="Data" collapsible defaultOpen={source != null} maxRows={10}>
         <RailRow href="/electorate" icon={UsersRound} label="Electorate" />
         {groups.map((g) => (
           <RailRow key={g.source} on={source === g.source} onClick={() => onSource(g.source)} pane={`/america-thinks?source=${encodeURIComponent(g.source)}`} icon={Database} label={shortSource(g.source)} count={SEGMENT_SEED[g.source]} />

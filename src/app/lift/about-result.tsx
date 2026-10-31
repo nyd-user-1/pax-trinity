@@ -7,7 +7,7 @@ import { Check, ChartColumn, ChevronDown, CircleHelp, Loader2 } from "lucide-rea
 import { Reveal } from "@/components/reveal"
 import { cn } from "@/lib/utils"
 import { RESULT_SETS } from "@/lib/results"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/ny4/tooltip"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@govblock/ui/components/ny4/tooltip"
 
 import { num, type SourceRow } from "../america-thinks/audience-data"
 import { AD_INFO, adOffice, adWhen, adWhere, fielding, levelOf, metricShort, periodKey, POINT_LEFT, POINT_RIGHT, segOf, signed, significance, testOf, TRAIT_GROUPS, treatmentName, type AdInfo, type Pick } from "./lift-data"
@@ -107,6 +107,8 @@ export function AboutResult({
   }, [lift])
 
   return (
+    // Its own tooltip provider: in the shell's right panel it stands outside Lift's (the panel crashed on a Tooltip without one).
+    <TooltipProvider delayDuration={0}>
     <div className="flex w-full flex-col pt-4">
       <div className="px-6">
         <div className="grid grid-cols-2 rounded-md bg-muted p-0.5 text-xs">
@@ -238,6 +240,7 @@ export function AboutResult({
         </>
       )}
     </div>
+    </TooltipProvider>
   )
 }
 

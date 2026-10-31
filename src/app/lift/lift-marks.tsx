@@ -57,8 +57,10 @@ export function Candle({ cell, axis, scale, baseTitle }: { cell: Cell; axis: num
 export function heat(v: number, center: number, extent: number) {
   const t = extent > 0 ? (v - center) / extent : 0
   const step = Math.min(4, Math.round(Math.abs(t) * 4))
-  if (step === 0) return "#f0efec"
-  return `color-mix(in oklab, var(${t > 0 ? "--pax2-light-blue" : "--pax2-red"}) ${[0, 16, 28, 40, 52][step]}%, white)`
+  // Mixed from the raised colour (white on the light themes, a step up on the darks), so the cells' type, the
+  // theme's ink, reads on every theme (Brendan, 2026-10-31: on the darks the white-mixed cells hid it).
+  if (step === 0) return "color-mix(in oklab, var(--t-ink, #0f172a) 7%, var(--pax2-raised))"
+  return `color-mix(in oklab, var(${t > 0 ? "--pax2-light-blue" : "--pax2-red"}) ${[0, 16, 28, 40, 52][step]}%, var(--pax2-raised))`
 }
 
 /** The heatmap's key: the scale's two arms around its gray center. */

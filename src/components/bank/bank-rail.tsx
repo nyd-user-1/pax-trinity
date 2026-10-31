@@ -2,20 +2,22 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { ArrowUpRight, ChevronDown, EllipsisVerticalIcon, type LucideIcon } from "lucide-react"
+import { ArrowUpRight, ChevronDown, EllipsisVertical, Link2, PanelRight, Star, type LucideIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
-import { Button } from "@govblock/ui/components/nova/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@govblock/ui/components/ny4/dropdown-menu"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@govblock/ui/components/ny4/tooltip"
 import { useShellPanel } from "@/components/shell"
+import { KebabMenu, MenuFoot, MenuHeader, MenuRow, MenuSeparator } from "@/components/kebab-menu"
+import { useNavFavorites } from "@/lib/nav-favorites"
 import { SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader } from "@govblock/ui/components/ny4/sidebar"
 
 // The bank's rail, in the shell menu's dress: a header (a title, or the
 // surface's own — /audience's search), groups of rows, each row a topic or a
 // folder with its count at the right — the open one on the white ground with
-// the left bar. A row with a menu swaps its count for a kebab on hover, the
-// card list's swap; a group can fold shut under its label.
+// the left bar. A row with an address swaps its count on hover for the
+// sidebar's own: the Panel 2 arrow and the kebab with the sidebar's items
+// (Brendan, 2026-10-31); a group can fold shut under its label, and a long one
+// scrolls past its first rows.
 
 export function BankRail({ title, header, children }: { title?: string; header?: React.ReactNode; children: React.ReactNode }) {
   return (
@@ -34,7 +36,11 @@ export function BankRail({ title, header, children }: { title?: string; header?:
   )
 }
 
-export function RailGroup({ label, collapsible = false, defaultOpen = true, children }: { label?: string; collapsible?: boolean; defaultOpen?: boolean; children: React.ReactNode }) {
+/** The group a row sits in, named at the foot of the row's menu. */
+const GroupLabel = React.createContext<string | undefined>(undefined)
+
+/** `maxRows`: past that many rows the group scrolls (America Thinks' Index, Brendan 2026-10-31). */
+export function RailGroup({ label, collapsible = false, defaultOpen = true, maxRows, children }: { label?: string; collapsible?: boolean; defaultOpen?: boolean; maxRows?: number; children: React.ReactNode }) {
   const [open, setOpen] = React.useState(defaultOpen)
   const shown = !collapsible || open
   return (
@@ -52,7 +58,10 @@ export function RailGroup({ label, collapsible = false, defaultOpen = true, chil
         ))}
       {shown && (
         <SidebarGroupContent>
-          <nav className="flex flex-col gap-0.5 px-1">{children}</nav>
+          {/* A row is 36px with a 2px gap. */}
+          <nav className={cn("flex flex-col gap-0.5 px-1", maxRows && "overflow-y-auto")} style={maxRows ? { maxHeight: maxRows * 38 } : undefined}>
+            <GroupLabel.Provider value={label}>{children}</GroupLabel.Provider>
+          </nav>
         </SidebarGroupContent>
       )}
     </SidebarGroup>
@@ -67,7 +76,6 @@ export function RailRow({
   label,
   count,
   dim,
-  menu,
   drop,
   pane,
 }: {
@@ -80,16 +88,16 @@ export function RailRow({
   count?: number | null
   /** The quiet row, the untagged remainder's dress. */
   dim?: boolean
-  /** The row kebab's items; present, the count gives way to the kebab on hover. */
-  menu?: React.ReactNode
   /** A drop target: an item dragged with this data type lands here (the Inbox's thread onto a folder). */
   drop?: { type: string; onDrop: (value: string) => void }
   /** The address the row's content opens at in the second panel (lib/pane.ts); a link's is its href. */
   pane?: string
 }) {
-  const [menuOpen, setMenuOpen] = React.useState(false)
   const { openPane } = useShellPanel()
+  const { favs, toggle: toggleFav } = useNavFavorites()
+  const group = React.useContext(GroupLabel)
   const paneHref = pane ?? href
+  const fav = !!paneHref && favs.includes(paneHref)
   const [over, setOver] = React.useState(false)
   const dress = cn(
     "group relative flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm outline-none transition-[color,background-color,box-shadow]",
@@ -122,7 +130,7 @@ export function RailRow({
       )}
       <span className={cn("min-w-0 flex-1 truncate", dim && !on && "text-slate-400")}>{label}</span>
       {count != null && (
-        <span className={cn("shrink-0 text-xs text-slate-400 tabular-nums", (menu || paneHref) && "group-hover/rail:invisible group-has-focus-visible/rail:invisible", menu && menuOpen && "invisible")}>
+        <span className={cn("shrink-0 text-xs text-slate-400 tabular-nums", paneHref && "group-hover/rail:invisible group-has-focus-visible/rail:invisible group-has-[[aria-expanded=true]]/rail:invisible")}>
           {count.toLocaleString("en-US")}
         </span>
       )}
@@ -137,51 +145,36 @@ export function RailRow({
       {inner}
     </button>
   )
-  // On hover, the row's content opens in the second panel, as the sidebar's rows do (Brendan, 2026-10-31).
-  // data-chrome: inside the panel's own frame it is hidden (pax2.css).
-  const arrow = paneHref && (
-    <TooltipProvider delayDuration={0}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <button
-            type="button"
-            data-chrome
-            aria-label={`Open ${label} in panel 2`}
-            onClick={(event) => (event.stopPropagation(), openPane(paneHref))}
-            className={cn("absolute top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 opacity-0 transition-opacity hover:bg-pax2-lift hover:text-pax2-blue focus-visible:opacity-100 group-hover/rail:opacity-100", menu ? "right-9" : "right-1.5")}
-          >
-            <ArrowUpRight className="size-4" />
-          </button>
-        </TooltipTrigger>
-        <TooltipContent>Panel 2</TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  )
-  if (!menu && !arrow) return row
-  // The kebab and the arrow stand beside the row, not inside it: a button may not hold a button.
+  if (!paneHref) return row
+  // On hover, the sidebar's own controls (Brendan, 2026-10-31): the Panel 2 arrow, then the kebab with the
+  // sidebar's items. They stand beside the row, not inside it: a button may not hold a button. data-chrome:
+  // inside the second panel's frame they are hidden (pax2.css).
+  const ICON = "flex size-7 items-center justify-center rounded-lg text-slate-400 opacity-0 transition-opacity hover:bg-pax2-lift hover:text-pax2-blue focus-visible:opacity-100 group-hover/rail:opacity-100"
   return (
     <div className="group/rail relative">
       {row}
-      {arrow}
-      {menu && (
-      <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={`${label} options`}
-            onClick={(event) => event.stopPropagation()}
-            className={cn("absolute top-1/2 right-1.5 size-7 -translate-y-1/2 opacity-0 group-hover/rail:opacity-100 focus-visible:opacity-100", menuOpen && "opacity-100")}
-          >
-            <EllipsisVerticalIcon className="size-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        {/* The menu portals out; its clicks stop here. */}
-        <DropdownMenuContent align="start" className="w-max min-w-44" onClick={(event) => event.stopPropagation()}>
-          {menu}
-        </DropdownMenuContent>
-      </DropdownMenu>
-      )}
+      <span data-chrome className="absolute top-1/2 right-1.5 flex -translate-y-1/2 items-center">
+        {fav && <Star aria-label="Favorite" className="mr-1 size-3 fill-amber-400 text-amber-400" />}
+        <TooltipProvider delayDuration={0}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button type="button" aria-label={`Open ${label} in panel 2`} onClick={(event) => (event.stopPropagation(), openPane(paneHref))} className={ICON}>
+                <ArrowUpRight className="size-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Panel 2</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        <KebabMenu label={`${label} options`} align="left" width="w-56" trigger={<EllipsisVertical className="size-4" />} triggerClassName={cn(ICON, "aria-expanded:bg-pax2-lift aria-expanded:opacity-100")}>
+          <MenuHeader text={paneHref} copy={paneHref} />
+          <MenuSeparator />
+          <MenuRow icon={<Star className={fav ? "fill-amber-400 text-amber-400" : undefined} />} label={fav ? "Unfavorite" : "Favorite"} onClick={() => toggleFav(paneHref)} />
+          <MenuRow icon={<PanelRight />} label="Open in panel" onClick={() => openPane(paneHref)} />
+          <MenuRow icon={<Link2 />} label="Copy link" onClick={() => void navigator.clipboard.writeText(`${window.location.origin}${paneHref}`)} />
+          <MenuSeparator />
+          <MenuFoot title={label} sub={group} />
+        </KebabMenu>
+      </span>
     </div>
   )
 }
