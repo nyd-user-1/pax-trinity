@@ -17,6 +17,8 @@ import { snippetOf } from "../q/[source]/[id]/headline"
 import { QuestionTable } from "./question-table"
 import { SegmentGrid } from "./segment-grid"
 import { consensusHref } from "@/lib/survey-links"
+import { useShellPanel } from "@/components/shell"
+import { isEmbedded } from "@/lib/pane"
 
 // /audience — the audience database wearing the Agentic Inbox's frame whole,
 // the Gmail recreate repurposed (Brendan, 2026-10-26; it took the /audience
@@ -249,6 +251,25 @@ export function AudienceInbox() {
     // A picked value belongs to the question it was picked on.
     setAbout(null)
   }
+  // A right-click on a question opens it in the second panel (Brendan, 2026-10-31), on its address: the rail's
+  // folder or topic and ?open=, which the page reads once the index is in. Inside the panel, the browser's menu.
+  const { openPane } = useShellPanel()
+  const openAside = (id: string) => {
+    const at = new URLSearchParams()
+    if (source) at.set("source", source)
+    else if (topic) at.set("topic", topic)
+    at.set("open", id)
+    openPane(`/america-thinks?${at}`)
+  }
+  const openedFromAddress = React.useRef(false)
+  React.useEffect(() => {
+    if (!index || openedFromAddress.current) return
+    openedFromAddress.current = true
+    const id = new URLSearchParams(window.location.search).get("open")
+    if (id) open(id, "none")
+    // open only sets state; reading it once the index is in is the whole point.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index])
   const toggle = (set: React.Dispatch<React.SetStateAction<string[]>>, id: string) => set((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
   // A row's box: a column in or out, the list staying as it is.
   const pickColumn = (id: string) => setColumns((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : prev.length >= MAX_COLS ? prev : [...prev, id]))
@@ -426,6 +447,7 @@ export function AudienceInbox() {
       card={s === "vertical" ? cardOf : (id) => ({ ...cardOf(id), chip: null })}
       selected={tableMetric}
       onOpen={open}
+      onOpenAside={isEmbedded() ? undefined : openAside}
       onVisible={readAhead}
       split={s}
       onSplit={setSplit}

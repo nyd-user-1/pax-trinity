@@ -75,6 +75,7 @@ export function CardList({
   card,
   selected,
   onOpen,
+  onOpenAside,
   onVisible,
   split,
   onSplit,
@@ -93,6 +94,8 @@ export function CardList({
   card: (id: string) => Card
   selected: string | null
   onOpen: (id: string) => void
+  /** A right-click on a row: opens the item in the second panel (lib/pane.ts). Shift keeps the browser's menu. */
+  onOpenAside?: (id: string) => void
   /** Told the ids the list renders (its window), as the window changes — memoize it. */
   onVisible?: (ids: string[]) => void
   split: Split
@@ -303,6 +306,14 @@ export function CardList({
                   stacked ? "py-2.5" : "h-10 items-center"
                 )}
                 onClick={() => onOpen(id)}
+                onContextMenu={
+                  onOpenAside &&
+                  ((event) => {
+                    if (event.shiftKey) return
+                    event.preventDefault()
+                    onOpenAside(id)
+                  })
+                }
               >
                 {railTone && active && <span aria-hidden className="absolute top-1/2 left-0 h-4 w-[3px] -translate-y-1/2 rounded-full bg-pax2-light-blue" />}
                 {stacked ? (

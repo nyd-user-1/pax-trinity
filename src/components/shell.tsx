@@ -19,7 +19,7 @@ import { HOUSEKEEPING_OPEN, HousekeepingTool } from "@/components/housekeeping/t
 import { useThemePanel } from "@/components/theme/theme-palette"
 import { STUDIO_OPEN } from "@/lib/studio"
 import { PaneFrame, PaneSync } from "@/components/pane"
-import { PANE_MESSAGE } from "@/lib/pane"
+import { PANE_MESSAGE, isEmbedded, isPanePath } from "@/lib/pane"
 import { useThemeFollow } from "@/lib/theme-client"
 import type { ChipOffer } from "@/lib/question-resolver"
 
@@ -166,6 +166,25 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
   }, [])
   // A theme picked in another tab, or around the panel's frame, repaints this one.
   useThemeFollow()
+  // What a click opens in the main container a right-click opens in the second panel (Brendan, 2026-10-31):
+  // any of this app's links, anywhere around the panel. Shift with the right-click keeps the browser's own
+  // menu. Inside the panel's frame the browser's menu stays. Rows that open without a link pass their own
+  // address to openPane (America Thinks' questions).
+  React.useEffect(() => {
+    if (isEmbedded()) return
+    const on = (e: MouseEvent) => {
+      if (e.shiftKey || e.defaultPrevented) return
+      const a = (e.target as Element | null)?.closest?.("a[href]") as HTMLAnchorElement | null
+      if (!a || a.target === "_blank" || a.hasAttribute("download") || a.getAttribute("href")?.startsWith("#")) return
+      const url = new URL(a.href, window.location.href)
+      const href = url.pathname + url.search + url.hash
+      if (url.origin !== window.location.origin || !isPanePath(href)) return
+      e.preventDefault()
+      openPane(href)
+    }
+    document.addEventListener("contextmenu", on)
+    return () => document.removeEventListener("contextmenu", on)
+  }, [openPane])
   const animKey = React.useRef("Scored")
   const panel = React.useMemo<PanelState>(
     () => ({
