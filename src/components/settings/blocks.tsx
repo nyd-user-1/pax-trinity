@@ -80,10 +80,11 @@ export function PageRail({ tabs, active, label }: { tabs: { key: string; label: 
 
 /** The reference block: a title on the slate-50 frame, the rows in a white card inside it. `stretch` fills
  *  its grid cell, the white card taking the slack, so blocks in one row end level whatever they hold.
- *  `selected` draws the frame's 1px rule in blue, for the block in focus. */
-export function Block({ title, sub, lead, badge, action, children, className, stretch, selected }: { title: React.ReactNode; sub?: React.ReactNode; lead?: React.ReactNode; badge?: React.ReactNode; action?: React.ReactNode; children: React.ReactNode; className?: string; stretch?: boolean; selected?: boolean }) {
+ *  `selected` draws the frame's 1px rule in blue, for the block in focus. `id` is its anchor, for a three-dot
+ *  menu's Favorite and Add to Blocks; data-block lets that menu's Ask PAX read the block's text. */
+export function Block({ title, sub, lead, badge, action, children, className, stretch, selected, id }: { title: React.ReactNode; sub?: React.ReactNode; lead?: React.ReactNode; badge?: React.ReactNode; action?: React.ReactNode; children: React.ReactNode; className?: string; stretch?: boolean; selected?: boolean; id?: string }) {
   return (
-    <section className={cn("rounded-[18px] border bg-slate-50 p-1 shadow-e1 transition-colors", selected ? "border-pax2-light-blue" : "border-slate-200", stretch && "flex h-full flex-col", className)}>
+    <section id={id} data-block="" className={cn("scroll-mt-20 rounded-[18px] border bg-slate-50 p-1 shadow-e1 transition-colors", selected ? "border-pax2-light-blue" : "border-slate-200", stretch && "flex h-full flex-col", className)}>
       <div className="flex items-center gap-3 px-4 pt-2.5 pb-3 sm:px-5">
         {lead}
         <div className="min-w-0 flex-1">

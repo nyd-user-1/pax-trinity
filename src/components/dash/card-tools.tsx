@@ -53,13 +53,21 @@ export function CardAnchor({ children, id, className }: { children: string; id?:
   )
 }
 
+/** A block outside MainBlock and the ordered columns: gone from its page once its menu's Delete puts it on
+ *  the Blocks shelf, back when it is opened there. */
+export function UnlessDeleted({ anchor, children }: { anchor: string; children: React.ReactNode }) {
+  const path = usePathname()
+  const { hidden } = useHiddenBlocks()
+  return hidden.includes(`${path}#${anchor}`) ? null : children
+}
+
 /** Opens the side panel's chat with the block around `from` as its context: the block's content, read off
  *  the screen at the click. */
 function useAskBlock(from: React.RefObject<HTMLElement | null>, title?: string) {
   const { askAbout } = useShellPanel()
   const path = usePathname()
   return () => {
-    const card = from.current?.closest<HTMLElement>('[data-slot="card"]')
+    const card = from.current?.closest<HTMLElement>('[data-slot="card"], [data-block]')
     const name = title ?? card?.querySelector('[data-slot="card-title"]')?.textContent ?? "this block"
     const text = (card?.innerText ?? "").replace(/\n{3,}/g, "\n\n").slice(0, 8000)
     askAbout({ context: () => `ACTIVE CONTEXT — the user is asking about the block "${name}" on ${path}. What the block shows on screen:\n${text}` })

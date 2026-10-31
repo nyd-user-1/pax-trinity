@@ -1,5 +1,6 @@
 import { Clapperboard, MessageSquareText, Sparkles } from "lucide-react"
 
+import { CardTools, UnlessDeleted } from "@/components/dash/card-tools"
 import { PaxMark } from "@/components/pax-mark"
 import { Badge, Block, Fact, PageTabs, Passage } from "@/components/settings/blocks"
 import { LLM_CARDS, ORIGINAL_CARDS, PAX_SERIES, VISUAL_CARDS, type CommercialCard } from "@/lib/model-cards"
@@ -39,15 +40,22 @@ const PaxTile = () => (
   </span>
 )
 
+// A card's anchor, from its name: the LLMs' ids (us.amazon.nova-pro-v1:0) don't make one.
+const anchorOf = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")
+
+/** A model's card, with the standard three-dot menu in its top right (Brendan, 2026-10-31). */
 function ModelCard({ m, short }: { m: CommercialCard; short: boolean }) {
+  const anchor = anchorOf(m.name)
   return (
-    <Block stretch className="lift" title={m.name} sub={m.maker} lead={<Logo src={m.logo} />} badge={m.badge && <Badge tone={m.badge.tone}>{m.badge.label}</Badge>}>
-      {m.facts.map(([label, value]) => (
-        <Fact key={label} label={label} mono={label === "Model ID"}>
-          {label === "Model ID" && short ? <span title={value}>{shortId(value)}</span> : value}
-        </Fact>
-      ))}
-    </Block>
+    <UnlessDeleted anchor={anchor}>
+      <Block stretch id={anchor} className="lift" title={m.name} sub={m.maker} lead={<Logo src={m.logo} />} badge={m.badge && <Badge tone={m.badge.tone}>{m.badge.label}</Badge>} action={<CardTools title={m.name} anchor={anchor} className="self-start" />}>
+        {m.facts.map(([label, value]) => (
+          <Fact key={label} label={label} mono={label === "Model ID"}>
+            {label === "Model ID" && short ? <span title={value}>{shortId(value)}</span> : value}
+          </Fact>
+        ))}
+      </Block>
+    </UnlessDeleted>
   )
 }
 
