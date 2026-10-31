@@ -1,11 +1,14 @@
 "use client"
 
 import * as React from "react"
+import { ChevronDown } from "lucide-react"
 
+import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@govblock/ui/components/ny4/dropdown-menu"
 import { NARRATORS } from "@/lib/docs/media"
 
 /** A docs video and its narrator (Brendan, 2026-10-31): each voice is its own render, <name><suffix>.mp4; picking
- *  another swaps the file and carries on from the same moment, playing if it was. */
+ *  another swaps the file and carries on from the same moment, playing if it was. The menu is the app's own, never
+ *  the browser's select. */
 export function NarratedVideo({ src, alt }: { src: string; alt: string }) {
   const base = src.replace(/\.mp4$/i, "")
   const [voice, setVoice] = React.useState(NARRATORS[0]!.id)
@@ -43,16 +46,24 @@ export function NarratedVideo({ src, alt }: { src: string; alt: string }) {
       <figcaption className="mt-2.5 flex items-center justify-between gap-4 text-[13px] text-slate-500">
         <span>{alt}</span>
         {NARRATORS.length > 1 && (
-          <label className="flex shrink-0 items-center gap-2">
-            Narrator
-            <select value={voice} onChange={(e) => pick(e.target.value)} className="rounded-md border border-slate-200 bg-pax2-surface px-2 py-1 text-[13px] text-slate-700 outline-none focus:border-pax2-light-blue">
-              {NARRATORS.map((n) => (
-                <option key={n.id} value={n.id}>
-                  {n.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button type="button" className="flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-[13px] text-slate-500 outline-none hover:bg-foreground/8 hover:text-slate-900 aria-expanded:bg-foreground/8">
+                Narrator: <span className="font-medium text-slate-800">{narrator.label}</span>
+                <ChevronDown aria-hidden className="size-3.5" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-max min-w-44">
+              <DropdownMenuRadioGroup value={voice} onValueChange={pick}>
+                {NARRATORS.map((n) => (
+                  <DropdownMenuRadioItem key={n.id} value={n.id}>
+                    <span className="flex-1">{n.label}</span>
+                    <span className="ml-4 text-xs text-muted-foreground">{n.provider}</span>
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </figcaption>
     </figure>

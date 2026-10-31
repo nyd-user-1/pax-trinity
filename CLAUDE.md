@@ -1,6 +1,6 @@
 # pax-trinity
 
-Follow AGENTS.md: no lead-in paragraphs under titles, no "→" in the UI, and this:
+Follow AGENTS.md: no lead-in paragraphs under titles, no "→" in the UI, no browser dropdowns (the app's own menus only), and this:
 
 ## Test in code, not in a browser
 

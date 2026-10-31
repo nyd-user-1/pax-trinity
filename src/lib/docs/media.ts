@@ -10,12 +10,14 @@ export const shot = (name: string, alt: string) => `![${alt}](${DOCS_MEDIA}/shot
 /** A video, as markdown the docs draw as a player; its poster is the same name as a .jpg. */
 export const video = (name: string, alt: string) => `![${alt}](${DOCS_MEDIA}/videos/${name}.mp4)`
 
-/** The narrators each video is rendered in (Brendan, 2026-10-31): Amazon Polly's neural voices for now, the first
- *  the default (<name>.mp4), each other <name><suffix>.mp4. ElevenLabs' Sarah joins at the front once its key has
- *  the characters (scripts/docs-media/capture/narrate.mjs). */
-export const NARRATORS: { id: string; label: string; suffix: string }[] = [
-  { id: "ruth", label: "Ruth", suffix: "" },
-  { id: "matthew", label: "Matthew", suffix: ".matthew" },
+/** The narrators each video is rendered in (Brendan, 2026-10-31), the first the default: ElevenLabs' Sarah, then
+ *  Amazon Polly's Ruth and Matthew, each <name><suffix>.mp4 (a voice's own name, so a browser never replays a file
+ *  cached before it was narrated). More of ElevenLabs' voices (Brian…) join once its plan has the characters
+ *  (scripts/docs-media/capture/narrate.mjs). */
+export const NARRATORS: { id: string; label: string; provider: string; suffix: string }[] = [
+  { id: "sarah", label: "Sarah", provider: "ElevenLabs", suffix: ".sarah" },
+  { id: "ruth", label: "Ruth", provider: "Polly", suffix: ".ruth" },
+  { id: "matthew", label: "Matthew", provider: "Polly", suffix: ".matthew" },
 ]
 
 /** The guide videos, for Video guides and each article that plays one. */
