@@ -235,7 +235,7 @@ export function CardList({
         {error && <p className="p-6 text-center text-sm text-pax2-red">The data did not load: {error}</p>}
         {!error && loading && <p className="p-6 text-center text-sm text-muted-foreground">Reading the index…</p>}
         {!error && !loading && ids.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">{empty}</p>}
-        <ul className={railTone ? "flex flex-col gap-0.5 p-2" : "divide-y"}>
+        <ul className={railTone ? "flex flex-col" : "divide-y"}>
           {listed.map((id) => {
             const c = card(id)
             const active = selected === id
@@ -276,8 +276,12 @@ export function CardList({
                   "group/row relative flex cursor-pointer gap-3 text-sm",
                   railTone
                     ? cn(
-                        "rounded-xl px-3 transition-[color,background-color,box-shadow]",
-                        active ? "bg-pax2-raised text-pax2-blue shadow-e1" : "text-slate-600 hover:bg-pax2-raised/70 hover:text-pax2-blue hover:shadow-e1"
+                        // Square and edge to edge, lifting as the Data view's rows do (Brendan, 2026-10-31): the
+                        // one-line rows and the folded cards both.
+                        "px-5 transition-[color,background-color,box-shadow]",
+                        active
+                          ? "z-10 bg-pax2-raised text-pax2-blue shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]"
+                          : "text-slate-600 hover:z-10 hover:bg-pax2-raised hover:text-pax2-blue hover:shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]"
                       )
                     : cn(
                         "px-4 transition-[background-color,box-shadow] hover:z-10 hover:bg-accent/60 hover:shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]",
