@@ -218,6 +218,8 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
   const open = panelOpen || discuss || !!aside || !!pane
   // What a page handed the panel belongs to that page.
   React.useEffect(() => (setAside(null), setSeed(null)), [path])
+  // A new page closes the sidebar (Brendan, 2026-10-31): opened to pick a page, it shuts once one is picked.
+  React.useEffect(() => setSidebarOpen(false), [path])
   // Every panel opens at the one-third view, 420px (Brendan's rule, 2026-10-20); a drag resizes it after.
   // A video opening or closing beside the discussion counts: each lands at the third.
   React.useEffect(() => {
