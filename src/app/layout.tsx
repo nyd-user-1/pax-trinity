@@ -5,6 +5,7 @@ import "@/ui/styles/globals.css"
 import { LoadCurtainGate } from "@/components/load-curtain-gate"
 import { Shell } from "@/components/shell"
 import { DevInspector } from "@/components/dev/inspector"
+import { THEME_SCRIPT } from "@/lib/theme"
 import { currentUser } from "@/lib/auth"
 
 const sans = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-sans" })
@@ -18,8 +19,10 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children, drawer }: LayoutProps<"/">) {
   const user = await currentUser()
   return (
-    <html lang="en" className={`${sans.variable} ${mono.variable}`}>
+    // The theme's class on <html> is set before paint by THEME_SCRIPT, so the server's class list differs by design.
+    <html lang="en" className={`${sans.variable} ${mono.variable}`} suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         {/* Every card's thumbnail comes from YouTube's image host; the handshake happens once, early. */}
         <link rel="preconnect" href="https://i.ytimg.com" />
       </head>

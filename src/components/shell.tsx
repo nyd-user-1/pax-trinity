@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { ArrowLeft, BadgeCheck, Bell, BookA, BookOpen, Boxes, ChevronDown, Clapperboard, ChevronUp, ChevronsUpDown, ClipboardList, Columns2, Columns3, EllipsisVertical, ExternalLink, FileText, Film, FlaskConical, Gauge, House, Inbox, LayoutDashboard, Link2, ListChecks, LogIn, LogOut, MessagesSquare, PanelLeftClose, PanelLeftOpen, Puzzle, Search, Settings, Shield, ShieldCheck, SlidersHorizontal, Star, User2, Users, Video, Vote, X } from "lucide-react"
+import { ArrowLeft, BadgeCheck, Bell, BookA, BookOpen, Boxes, ChevronDown, ChevronUp, ChevronsUpDown, Clapperboard, ClipboardList, Columns2, Columns3, EllipsisVertical, ExternalLink, FileText, Film, FlaskConical, Gauge, House, Inbox, LayoutDashboard, Link2, ListChecks, LogIn, LogOut, MessagesSquare, Palette, PanelLeftClose, PanelLeftOpen, Puzzle, Search, Settings, Shield, ShieldCheck, SlidersHorizontal, Star, User2, Users, Video, Vote, X } from "lucide-react"
 
 import dynamic from "next/dynamic"
 import { SidebarChats } from "@/components/sidebar-chats"
@@ -16,6 +16,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { cn } from "@/ui/lib/utils"
 import { whiteButton } from "@/components/white-button"
 import { HOUSEKEEPING_OPEN, HousekeepingTool } from "@/components/housekeeping/tool"
+import { ThemePalette, useThemePanel } from "@/components/theme/theme-palette"
 import { STUDIO_OPEN } from "@/lib/studio"
 import type { ChipOffer } from "@/lib/question-resolver"
 
@@ -356,6 +357,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
     return (
       <PanelCtx.Provider value={panel}>
       <CommandKHost />
+      <ThemeLayer />
         <div className="min-h-dvh bg-white">{children}</div>
         {/* The sidebar slides in for everyone (PAX in the landing header calls it); the discussion is for the signed in. */}
         <div aria-hidden onClick={() => (setSidebarOpen(false), setDiscuss(false))} className={cn("fixed inset-0 z-40 bg-slate-900/20 transition-opacity duration-300", sidebarOpen || discuss ? "opacity-100" : "pointer-events-none opacity-0")} />
@@ -382,6 +384,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
   return (
     <PanelCtx.Provider value={panel}>
       <CommandKHost />
+      <ThemeLayer />
       <div className="flex min-h-dvh md:h-dvh md:overflow-hidden md:bg-slate-200/60 md:p-[18px]">
         <div className={cn("hidden shrink-0 overflow-hidden transition-[width,margin] duration-300 ease-in-out md:block", sidebarOpen ? "md:mr-[18px] md:w-60" : "md:w-0")}>
           {sidebar}
@@ -648,6 +651,12 @@ function HeaderSearch({ items }: { items: { href: string; label: string; icon: t
 }
 
 
+/** The palette in the lower-right corner while the account menu's Theme switch is on (components/theme). */
+function ThemeLayer() {
+  const [on] = useThemePanel()
+  return on ? <ThemePalette /> : null
+}
+
 // leuk's AccountMenu (components/shell/account-menu.tsx): the UserChip at the foot of the
 // sidebar, opening upward to the identity header and Log out.
 type User = { name: string; email: string }
@@ -671,6 +680,7 @@ export function AccountMenu() {
   const router = useRouter()
   const path = usePathname()
   const [user, setUser] = React.useState<User | null | undefined>(undefined)
+  const [themePanel, setThemePanel] = useThemePanel()
   // /settings' tabs, as the account menu opens them; General has the bare address.
   const openSettings = (tab: string) => router.push(tab === "general" ? "/settings" : `/settings?tab=${tab}`)
   React.useEffect(() => {
@@ -748,6 +758,14 @@ export function AccountMenu() {
         </DropdownMenuSub>
         <DropdownMenuItem onClick={() => router.push("/docs")} className={item}>
           <BookOpen /> Docs
+        </DropdownMenuItem>
+        {/* Theme (Brendan, 2026-10-30): a switch, the menu staying open; on, the palette sits in the page's lower-right corner. */}
+        <DropdownMenuItem closeOnClick={false} onClick={() => setThemePanel(!themePanel)} className={item}>
+          <Palette /> Theme
+          <span aria-hidden className={cn("ml-auto inline-flex h-4 w-7 shrink-0 items-center rounded-full p-0.5 transition-colors", themePanel ? "bg-pax2-light-blue" : "bg-slate-300")}>
+            <span className={cn("size-3 rounded-full bg-white shadow-sm transition-transform", themePanel && "translate-x-3")} />
+          </span>
+          <span className="sr-only">{themePanel ? "on" : "off"}</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => router.push("/models")} className={item}>
