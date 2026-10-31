@@ -24,7 +24,6 @@ const DensityChart = dynamic(() => import("./density-chart").then((m) => m.Densi
 // the metric's ads, the test's own); and the test's treatments ranked. A
 // figure the export does not carry reads as a dash.
 
-const ORDINAL = ["1st", "2nd", "3rd", "4th", "5th"]
 const QUINTILE = ["bg-red-500", "bg-orange-400", "bg-yellow-400", "bg-green-500", "bg-green-700"]
 
 /** Where x falls among values: the percent below it, ties counted half (audience/api.py's place_lift). */
@@ -107,6 +106,34 @@ export function AboutResult({
     }
   }, [lift])
 
+  // The result's source lines (Brendan, 2026-10-31): off the Analytics tab, at the foot of the second tab.
+  const footnote = (
+    <div className="mt-auto border-t px-6 py-3 text-[11.5px] leading-5 text-muted-foreground">
+      <p>
+        {place(lift[1])} · {fielding(lift[2], lift[3])}
+      </p>
+      {register && (
+        <>
+          {register.arm && <p>{register.arm}</p>}
+          {register.pairings.map((line) => (
+            <p key={line} className="mt-1">
+              {line}
+            </p>
+          ))}
+        </>
+      )}
+      {lift[4] !== treatmentName(lift[4] ?? "") && <p>{lift[4]}</p>}
+      {lift[12] &&
+        (lift[12].startsWith("http") ? (
+          <a href={lift[12]} target="_blank" rel="noreferrer" className="break-all underline-offset-2 hover:underline">
+            {lift[12]}
+          </a>
+        ) : (
+          <p className="break-all">{lift[12]}</p>
+        ))}
+    </div>
+  )
+
   return (
     // Its own tooltip provider: in the shell's right panel it stands outside Lift's (the panel crashed on a Tooltip without one).
     <TooltipProvider delayDuration={0}>
@@ -130,8 +157,12 @@ export function AboutResult({
 
       {tab === "second" ? (
         ad ? (
-          <AdTraits ad={ad} />
+          <>
+            <AdTraits ad={ad} />
+            {footnote}
+          </>
         ) : (
+          <>
           <Explainer
             name={treatmentName(lift[4] ?? "")}
             metric={metricShort(pick.metric)}
@@ -147,6 +178,8 @@ export function AboutResult({
             ranked={ranked}
             self={lift[4]}
           />
+          {footnote}
+          </>
         )
       ) : (
         <>
@@ -197,9 +230,10 @@ export function AboutResult({
             <h4 className="mb-3 text-[13px] font-semibold">Benchmarks</h4>
             {complete ? (
               <div className="flex flex-col gap-2">
-                {/* All tests opens with the panel, its chart showing (Brendan, 2026-10-31). */}
-                {pools.map((p, i) => (
-                  <Benchmark key={p.name} defaultOpen={i === 0} name={p.name} values={p.values} x={delta} moe={lift[9]} context={{ metric: metricShort(pick.metric), segment: pick.segName, geography: place(lift[1]) }} />
+                {/* A nested pool the size of the one before it is the same pool (Tests, when the Archive holds none
+                    of the metric), so it is shown once (Brendan, 2026-10-31). */}
+                {pools.filter((p, i) => p.values.length !== pools[i - 1]?.values.length).map((p) => (
+                  <Benchmark key={p.name} name={p.name} values={p.values} x={delta} moe={lift[9]} context={{ metric: metricShort(pick.metric), segment: pick.segName, geography: place(lift[1]) }} />
                 ))}
               </div>
             ) : (
@@ -231,30 +265,6 @@ export function AboutResult({
             })}
           </section>
 
-          <div className="mt-auto border-t px-6 py-3 text-[11.5px] leading-5 text-muted-foreground">
-            <p>
-              {place(lift[1])} · {fielding(lift[2], lift[3])}
-            </p>
-            {register && (
-              <>
-                {register.arm && <p>{register.arm}</p>}
-                {register.pairings.map((line) => (
-                  <p key={line} className="mt-1">
-                    {line}
-                  </p>
-                ))}
-              </>
-            )}
-            {lift[4] !== treatmentName(lift[4] ?? "") && <p>{lift[4]}</p>}
-            {lift[12] &&
-              (lift[12].startsWith("http") ? (
-                <a href={lift[12]} target="_blank" rel="noreferrer" className="break-all underline-offset-2 hover:underline">
-                  {lift[12]}
-                </a>
-              ) : (
-                <p className="break-all">{lift[12]}</p>
-              ))}
-          </div>
         </>
       )}
     </div>
@@ -413,8 +423,9 @@ function Strength({ z }: { z: number }) {
 
 type Context = { metric: string; segment: string; geography: string }
 
-function Benchmark({ name, values, x, moe, context, defaultOpen = false }: { name: string; values: number[]; x: number; moe: number | null; context: Context; defaultOpen?: boolean }) {
-  const [open, setOpen] = React.useState(defaultOpen)
+/** A benchmark (Brendan, 2026-10-31): shut, its head and the curve; open, the figures and the set below them. */
+function Benchmark({ name, values, x, moe, context }: { name: string; values: number[]; x: number; moe: number | null; context: Context }) {
+  const [open, setOpen] = React.useState(false)
   // Five quintiles need five ads to place among.
   const pct = values.length >= 5 ? percentile(values, x) : null
   const q = pct == null ? null : Math.min(5, Math.floor(pct / 20) + 1)
@@ -424,15 +435,12 @@ function Benchmark({ name, values, x, moe, context, defaultOpen = false }: { nam
         <ChartColumn aria-hidden className="size-4 shrink-0 text-muted-foreground" />
         <span className="min-w-0 flex-1 text-[13px] font-medium">{name}</span>
         {q != null ? (
-          <span className="flex shrink-0 flex-col items-end gap-0.5">
-            <span className="text-[13px]">{q === 5 ? "Top" : ORDINAL[q - 1]} Quintile</span>
-            <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground tabular-nums">
-              {(q - 1) * 20} – {q * 20}%
-              <span className="flex gap-[1.5px]">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <span key={i} className={cn("h-2.5 w-[3px] rounded-[1px]", i <= q ? QUINTILE[q - 1] : "bg-muted-foreground/20")} />
-                ))}
-              </span>
+          <span className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground tabular-nums">
+            {(q - 1) * 20} – {q * 20}%
+            <span className="flex gap-[1.5px]">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <span key={i} className={cn("h-2.5 w-[3px] rounded-[1px]", i <= q ? QUINTILE[q - 1] : "bg-muted-foreground/20")} />
+              ))}
             </span>
           </span>
         ) : (
@@ -440,9 +448,13 @@ function Benchmark({ name, values, x, moe, context, defaultOpen = false }: { nam
         )}
         <ChevronDown aria-hidden className={cn("size-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")} />
       </button>
+      {pct != null && (
+        <div className={cn("border-t px-3 pt-3", open ? "pb-0" : "pb-2.5")}>
+          <DensityChart values={values} x={x} moe={moe} />
+        </div>
+      )}
       {open && values.length > 0 && (
-        <div className="border-t px-3 pt-3 pb-2.5">
-          {pct != null && <DensityChart values={values} x={x} moe={moe} />}
+        <div className={cn("px-3 pb-2.5", pct == null && "border-t pt-1")}>
           <dl className="mt-2 grid grid-cols-[1fr_auto] gap-x-3 text-[13px]">
             <dt className="border-b py-2">Impact from Treatment</dt>
             <dd className="border-b py-2 text-right tabular-nums">
