@@ -66,7 +66,7 @@ function Row({ icon, label, sub, onClick }: { icon: React.ReactNode; label: stri
       onClick={onClick}
       className="group flex w-full items-center gap-3 border-b border-slate-200 px-3 py-3 text-left transition-[color,background-color] hover:bg-pax2-lift/70"
     >
-      <span className="flex size-4 shrink-0 items-center justify-center text-slate-500 transition-colors group-hover:text-pax2-blue [&_svg]:fill-pax2-lavender [&_svg]:transition-colors">{icon}</span>
+      <span className="flex size-4 shrink-0 items-center justify-center text-slate-500 transition-colors group-hover:text-pax2-blue [&_svg]:fill-pax2-raised [&_svg]:transition-colors group-hover:[&_svg]:fill-pax2-lavender">{icon}</span>
       <span className="flex-1">
         <span className="block text-[15px] font-medium text-slate-600 group-hover:text-pax2-blue">{label}</span>
         {sub && <span className="block text-xs text-slate-400">{sub}</span>}

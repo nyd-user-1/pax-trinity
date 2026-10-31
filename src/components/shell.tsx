@@ -266,7 +266,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
       <>
         {on && <span aria-hidden className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-pax2-light-blue" />}
         <Icon
-          className={cn(small ? "size-3.5" : "size-[18px]", "icon-pop shrink-0 fill-pax2-lavender transition-colors", on ? "text-pax2-blue" : "group-hover:text-pax2-blue")}
+          className={cn(small ? "size-3.5" : "size-[18px]", "icon-pop shrink-0 transition-colors", on ? "fill-pax2-lavender text-pax2-blue" : "fill-pax2-raised group-hover:fill-pax2-lavender group-hover:text-pax2-blue")}
           strokeWidth={on ? 2.25 : 1.75}
         />
         {label}
@@ -337,7 +337,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
                   holds ? "font-semibold text-pax2-blue" : "text-slate-500",
                 )}
               >
-                <n.icon className={cn("icon-pop size-[18px] shrink-0 fill-pax2-lavender transition-colors", holds ? "text-pax2-blue" : "group-hover:text-pax2-blue")} strokeWidth={holds ? 2.25 : 1.75} />
+                <n.icon className={cn("icon-pop size-[18px] shrink-0 transition-colors", holds ? "fill-pax2-lavender text-pax2-blue" : "fill-pax2-raised group-hover:fill-pax2-lavender group-hover:text-pax2-blue")} strokeWidth={holds ? 2.25 : 1.75} />
                 <span className="flex-1">{n.label}</span>
                 <Chevron className="size-4 shrink-0 text-slate-400 transition-colors group-hover:text-pax2-blue" />
               </button>
