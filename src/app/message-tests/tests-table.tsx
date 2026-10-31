@@ -5,6 +5,7 @@ import Link from "next/link"
 
 import { TableBlock } from "@/components/blocks"
 import type { Status } from "@/lib/tests/types"
+import { newTestHref, testHref } from "@/lib/survey-links"
 import { buttonVariants } from "@/ui/components/nova/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/ui/components/nova/table"
 
@@ -41,7 +42,7 @@ export function TestsTable({ tests, reachable }: { tests: Row[]; reachable: bool
         name="message-tests"
         rows={tests.map((t) => ({ id: t.id, title: t.title, status: t.status, arms: t.arms, completes: done[t.id] ?? "", target: t.targetPerArm * t.arms }))}
         actions={
-          <Link href="/message-tests/new" className={buttonVariants({ size: "sm" })}>
+          <Link href={newTestHref()} className={buttonVariants({ size: "sm" })}>
             New test
           </Link>
         }
@@ -60,7 +61,7 @@ export function TestsTable({ tests, reachable }: { tests: Row[]; reachable: bool
             {tests.map((t) => (
               <TableRow key={t.id}>
                 <TableCell className="py-2.5">
-                  <Link href={`/message-tests/${t.id}`} className="block truncate font-semibold text-slate-900 hover:text-pax2-blue">
+                  <Link href={testHref(t.id)} className="block truncate font-semibold text-slate-900 hover:text-pax2-blue">
                     {t.title || t.id}
                   </Link>
                   <p className="truncate font-mono text-xs text-slate-400">{t.id}</p>

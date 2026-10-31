@@ -6,6 +6,7 @@ import Link from "next/link"
 import { CardBlock } from "@/components/blocks"
 import { PUBLISHED } from "@/components/clips/store"
 import { formatEntry, formatSingle } from "@/lib/tests/text"
+import { testHref, testsHref } from "@/lib/survey-links"
 import { PID, PLACEBO, STATUSES, type TestRecord } from "@/lib/tests/types"
 import { Button, buttonVariants } from "@/ui/components/nova/button"
 import { Textarea } from "@/ui/components/nova/textarea"
@@ -178,7 +179,7 @@ export function SetupForm({ mode, initial, recorded = NONE }: { mode: "create" |
         <Button type="submit" disabled={pending}>
           {pending ? "Saving…" : mode === "create" ? "Create test" : "Save"}
         </Button>
-        <Link href={mode === "create" ? "/message-tests" : `/message-tests/${initial.id}`} className={buttonVariants({ variant: "ghost" })}>
+        <Link href={mode === "create" ? testsHref() : testHref(initial.id)} className={buttonVariants({ variant: "ghost" })}>
           Cancel
         </Link>
       </div>

@@ -4,7 +4,7 @@
 // survey commits, and the pages themselves. What is not built is said as not built; revise this as the
 // pages change, the way the home page's box guides are revised.
 
-const WRITTEN = `The pages and their paths, the only links to write for them: Chat /chat, Clips /clips, Tests /message-tests (message tests; under Admin in the sidebar, admins only), Survey /survey, Inbox /inbox, America Thinks /america-thinks, Constructs /constructs, Consensus /consensus, Lift /lift, Reports /reports, Report 2 /reports-2.
+const WRITTEN = `The pages and their paths, the only links to write for them: Chat /chat, Clips /clips, Survey /survey (and inside it Consensus's Questions /survey?s=questions, Surveys /survey?s=surveys, Results /survey?s=results and Admin /survey?s=admin, and the message tests at /survey?s=tests, admins only), Inbox /inbox, America Thinks /america-thinks, Constructs /constructs, Lift /lift, Reports /reports, Report 2 /reports-2.
 
 The loop: a video is made in Chat (a script written with you, then recorded on camera in the chat) or filed in Clips. A message test shows a randomized panel one video or a placebo and then asks how they would vote; a survey asks questions with no video. The Inbox's Pollster fields either one to a contact group, reminds whoever has not finished, and closes it at its quota or its deadline. When a test closes, the completion hook weights the respondents to the population's targets and computes each video's lift against the placebo. The result reads in Lift, on the video's panel in Clips, and in Reports, but a newly computed result reaches those pages only once it is published, a step run by hand today; until then the Pollster's readout mail carries it.
 

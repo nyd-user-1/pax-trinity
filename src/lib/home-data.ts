@@ -5,6 +5,7 @@
  */
 
 import { API_SAMPLES } from "./api-samples";
+import { consensusHref } from "./survey-links";
 
 export type HomeCardData = {
   /** Empty for a tool with no public page: the cell renders, but goes nowhere. */
@@ -784,7 +785,7 @@ export const PAX_BOXES: HomeCardData[] = [
       steps: ["Open Clips; the first clip plays, and the Partners block down the left lists every video.", "Switch between the feed and the grid with the two buttons at the top.", "Narrow to one desk from the Partners block's menu: PAX, Voter Freedom, Unite America or Yes on 3.", "Search by title in Search clips.", "Open a clip's report panel for its tested lift against the placebo; an untested clip says so.", "Download the list of clips from the Partners block's menu.", "Sign in to like, save, comment, record or upload."],
       gaps: ["A clip cannot be sent to a message test from here; a test's arms are chosen on its setup page.", "Comments, likes and saves stay in the browser that made them; other readers do not see them.", "The review thread's edit notes are a fixed sample, not a live log."],
     } },
-  { href: "/consensus", title: "Consensus", accent: "", tag: "Tool", value: 0, unit: "",
+  { href: consensusHref("questions"), title: "Consensus", accent: "", tag: "Tool", value: 0, unit: "",
     body: "The loudest voice in the room is rarely its majority. People agree or disagree with short statements one at a time, and I find the opinion groups in the votes, so you see where your coalition already agrees and where it splits before you take a position.",
     guide: {
       about: "Opinion gathered one statement at a time: agree, disagree or pass, with the opinion groups found in the votes rather than in who spoke loudest. One page holds the surveys, the voting card, the results and, for admins, the admin view.",

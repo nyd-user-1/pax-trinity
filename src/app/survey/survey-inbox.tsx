@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { ClipboardList, FileText, FlaskConical } from "lucide-react"
+import { ChartColumn, ClipboardCheck, ClipboardList, FileText, FlaskConical, MessagesSquare, Plus, Shield, Vote } from "lucide-react"
 
 import { BankFrame, BankSplit } from "@/components/bank/bank-frame"
 import { BankRail, RailGroup, RailRow } from "@/components/bank/bank-rail"
@@ -12,6 +12,7 @@ import { SplitBar, SplitLegend } from "@/components/consensus/split-bar"
 import { agreement, consensusStatements, divisiveness, divisiveStatements, share, type Conversation, type Statement } from "@/lib/consensus/data"
 import { readDraft, type SurveyDraft } from "@/lib/consensus/draft"
 import { fmtNumber } from "@/lib/format"
+import { consensusHref, newTestHref, testsHref, type Surface } from "@/lib/survey-links"
 import { SURVEYS } from "@/lib/surveys/catalog"
 
 // /survey — the second consensus experience on /audience's anatomy: the
@@ -21,12 +22,15 @@ import { SURVEYS } from "@/lib/surveys/catalog"
 // the open question's results in the pane — the split everyone gave, then
 // each opinion group's. A card's chip is the report's own read: Agreement
 // and Split are the Results tab's top six of each, Held back a moderator's.
+// Since 2026-10-31 (Brendan) the rail also holds Consensus (Questions, Surveys,
+// Results, Admin) and, for admins, the message tests: each row opens its page
+// here, rendered by the server (surfaces.tsx), in place of the list.
 
 export type SurveyMeta = { slug: string; title: string; statements: number }
 
 const DRAFT = "draft"
 
-export function SurveyInbox({ surveys, open }: { surveys: SurveyMeta[]; open: Conversation | null }) {
+export function SurveyInbox({ surveys, open, admin, surface, page }: { surveys: SurveyMeta[]; open: Conversation | null; admin: boolean; surface: Surface | null; page: React.ReactNode }) {
   const router = useRouter()
   const [draft, setDraft] = React.useState<SurveyDraft | null>(null)
   // The open folder: a survey's slug (the server's open one) or the draft.
@@ -84,7 +88,8 @@ export function SurveyInbox({ surveys, open }: { surveys: SurveyMeta[]; open: Co
 
   const openSurvey = (slug: string) => {
     setFolder(slug)
-    if (slug !== open?.slug) router.push(`/survey?c=${encodeURIComponent(slug)}`, { scroll: false })
+    // From one of the rail's pages, a folder brings the inbox back.
+    if (surface || slug !== open?.slug) router.push(`/survey?c=${encodeURIComponent(slug)}`, { scroll: false })
   }
 
   const folderName = onDraft ? (draft?.title ?? "Draft survey") : (open?.title ?? "")
@@ -97,16 +102,37 @@ export function SurveyInbox({ surveys, open }: { surveys: SurveyMeta[]; open: Co
       </RailGroup>
       <RailGroup>
         {surveys.map((s) => (
-          <RailRow key={s.slug} on={folder === s.slug} onClick={() => openSurvey(s.slug)} icon={ClipboardList} label={s.title} count={s.statements} />
+          <RailRow key={s.slug} on={!surface && folder === s.slug} onClick={() => openSurvey(s.slug)} icon={ClipboardList} label={s.title} count={s.statements} />
         ))}
       </RailGroup>
       <RailGroup label="Pretrainings">
         {draft?.questions.length ? (
-          <RailRow on={onDraft} onClick={() => setFolder(DRAFT)} icon={FlaskConical} label={draft.title} count={draft.questions.length} />
+          <RailRow
+            on={!surface && onDraft}
+            onClick={() => {
+              setFolder(DRAFT)
+              if (surface) router.push("/survey", { scroll: false })
+            }}
+            icon={FlaskConical}
+            label={draft.title}
+            count={draft.questions.length}
+          />
         ) : (
           <p className="px-3 py-2 text-sm text-slate-400">None yet</p>
         )}
       </RailGroup>
+      <RailGroup label="Consensus">
+        <RailRow href={consensusHref("questions", open?.slug)} on={surface === "questions"} icon={Vote} label="Questions" />
+        <RailRow href={consensusHref("surveys")} on={surface === "surveys"} icon={MessagesSquare} label="Surveys" />
+        <RailRow href={consensusHref("results", open?.slug)} on={surface === "results"} icon={ChartColumn} label="Results" />
+        {admin && <RailRow href={consensusHref("admin", open?.slug)} on={surface === "admin"} icon={Shield} label="Admin" />}
+      </RailGroup>
+      {admin && (
+        <RailGroup label="Tests">
+          <RailRow href={testsHref()} on={surface === "tests" || surface === "test" || surface === "edit-test"} icon={ClipboardCheck} label="All tests" />
+          <RailRow href={newTestHref()} on={surface === "new-test"} icon={Plus} label="New test" />
+        </RailGroup>
+      )}
     </BankRail>
   )
 
@@ -160,7 +186,15 @@ export function SurveyInbox({ surveys, open }: { surveys: SurveyMeta[]; open: Co
 
   return (
     <BankFrame rail={rail} crumb="Survey" search={{ query, onQuery: setQuery, placeholder: "Search questions" }}>
-      {selected ? <BankSplit list={list("vertical")} pane={pane} /> : <BankSplit list={list(split)} pane={split === "vertical" && pane} fold={{ size: 420, min: 320, max: 640 }} />}
+      {page ? (
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="mx-auto w-full max-w-[920px] px-5 py-6 md:px-8 md:py-8">{page}</div>
+        </div>
+      ) : selected ? (
+        <BankSplit list={list("vertical")} pane={pane} />
+      ) : (
+        <BankSplit list={list(split)} pane={split === "vertical" && pane} fold={{ size: 420, min: 320, max: 640 }} />
+      )}
     </BankFrame>
   )
 }

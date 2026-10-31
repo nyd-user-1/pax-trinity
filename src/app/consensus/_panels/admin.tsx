@@ -6,6 +6,7 @@ import { surveyCode } from "@/components/consensus/question-code"
 import { Block } from "@/components/settings/blocks"
 import { share, type Conversation } from "@/lib/consensus/data"
 import { fmtNumber } from "@/lib/format"
+import { consensusHref } from "@/lib/survey-links"
 
 // The Admin tab — building and watching a conversation, for admins only.
 //
@@ -53,9 +54,9 @@ export function AdminPanel({ conversation: c, survey }: { conversation: Conversa
         </Block>
         <p className="text-sm text-muted-foreground">
           Voting happens on the{" "}
-          <Link href={`/consensus?c=${c.slug}`}>questions</Link>; the
+          <Link href={consensusHref("questions", c.slug)}>questions</Link>; the
           findings are in the{" "}
-          <Link href={`/consensus?tab=results&c=${c.slug}`}>results</Link>.
+          <Link href={consensusHref("results", c.slug)}>results</Link>.
         </p>
       </section>
 

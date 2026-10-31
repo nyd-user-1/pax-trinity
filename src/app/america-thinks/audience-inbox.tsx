@@ -16,6 +16,7 @@ import { FAVORITES, IMPORTANT, SourceRail } from "./source-rail"
 import { snippetOf } from "../q/[source]/[id]/headline"
 import { QuestionTable } from "./question-table"
 import { SegmentGrid } from "./segment-grid"
+import { consensusHref } from "@/lib/survey-links"
 
 // /audience — the audience database wearing the Agentic Inbox's frame whole,
 // the Gmail recreate repurposed (Brendan, 2026-10-26; it took the /audience
@@ -487,7 +488,7 @@ export function AudienceInbox() {
       <span>
         In the survey draft: {drafted} {drafted === 1 ? "question" : "questions"}
       </span>
-      <Link href="/consensus?tab=admin&c=audience-draft" className="font-medium text-background/80 hover:text-background">
+      <Link href={consensusHref("admin", "audience-draft")} className="font-medium text-background/80 hover:text-background">
         View
       </Link>
     </div>

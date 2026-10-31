@@ -19,22 +19,17 @@ const expiresSoon = (token: string) => {
 // Old addresses that now live elsewhere. Answered here, before any render, so the browser gets one
 // redirect instead of a rendered shell that redirects itself (the page files keep the same mapping).
 function alias(path: string, q: URLSearchParams): string | null {
-  // The 2026-10-27 consolidation: /inbox-2 took the /audience address, the
-  // reference pages became /data-dictionary's tabs, and consensus became one
-  // page whose tabs the old sub-routes open.
+  // The 2026-10-27 consolidation: /inbox-2 took the /audience address and the
+  // reference pages became /data-dictionary's tabs. (Consensus moved into /survey
+  // on 2026-10-31, its old addresses dropped: nothing public links to them.)
   if (path === "/inbox-2") return `/america-thinks${q.size ? `?${q}` : ""}`
   if (path === "/glossary" || path === "/schema" || path === "/erd") return `/data-dictionary?tab=${path.slice(1)}`
-  const consensusTab = ({ "/consensus/survey": "questions", "/questions": "questions", "/consensus/report": "results", "/consensus/admin": "admin" } as Record<string, string>)[path]
-  if (consensusTab) {
-    const c = q.get("c")
-    return `/consensus?tab=${consensusTab}${c ? `&c=${encodeURIComponent(c)}` : ""}`
-  }
   return null
 }
 
 // Pages that send a signed-out reader to /signin. With no session and no refresh cookie the answer is
 // known before render, so the redirect happens here (each page still checks for itself).
-const GATED = ["/signup/welcome", "/message-tests", "/dashboard", "/studio"]
+const GATED = ["/signup/welcome", "/dashboard", "/studio"]
 const gated = (path: string) => GATED.some((g) => path === g || path.startsWith(`${g}/`))
 
 export async function proxy(req: NextRequest) {

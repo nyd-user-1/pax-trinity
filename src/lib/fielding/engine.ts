@@ -59,7 +59,7 @@ export async function startFielding(o: { type: "test" | "survey"; target: string
     const test = await getTest(o.target)
     if (!test) throw new Error(`No test ${o.target}.`)
     // The test's own state is its owner's, set and validated in /message-tests; a fielding only reads it.
-    if (test.status !== "fielding") throw new Error(`${test.title} is ${test.status}; set it to fielding in /message-tests first.`)
+    if (test.status !== "fielding") throw new Error(`${test.title} is ${test.status}; set it to fielding in Survey's Tests first.`)
     if (test.arms.length < 2 || !test.arms.includes(PLACEBO)) throw new Error(`${test.title} needs the placebo and at least one cut.`)
     title = test.title
     arms = test.arms

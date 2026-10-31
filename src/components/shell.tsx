@@ -31,16 +31,16 @@ const DiscussionPanel = dynamic(() => import("@/components/discussion-panel").th
 // as a route, off the sidebar.
 // The pages trinity keeps (the 2026-10-27 kill list, /reports since): every other destination renders in place but
 // goes nowhere. /changelog is unpublished pending Brendan's word, reachable by URL alone.
-const LIVE = new Set(["/", "/chat", "/clips", "/america-thinks", "/inbox", "/survey", "/consensus", "/lift", "/reports", "/message-tests", "/dashboard", "/data-dictionary", "/studio", "/signin", "/signup"])
+const LIVE = new Set(["/", "/chat", "/clips", "/america-thinks", "/inbox", "/survey", "/lift", "/reports", "/dashboard", "/data-dictionary", "/studio", "/signin", "/signup"])
 
 type NavLink = { href: string; label: string; icon: typeof House }
 type NavGroup = { label: string; icon: typeof House; children: NavLink[]; admin?: boolean }
 // A to Z (Brendan, 2026-10-23, again 2026-10-29); the Admin group holds the foot.
 // Dashboard joined, and Message tests became Tests (Brendan, 2026-10-29). Studio joined (Brendan, 2026-10-30).
+// Tests moved into Survey's inbox, as Consensus did (Brendan, 2026-10-31).
 const ADMIN = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/studio", label: "Studio", icon: Clapperboard },
-  { href: "/message-tests", label: "Tests", icon: ClipboardList },
 ]
 // lucide's Inbox with its two shapes in the other order: lucide draws the notch, then the tray over it,
 // so the two-tone fill covered the notch's line. Here the tray goes first and the notch's line on top.
@@ -53,7 +53,6 @@ const NAV_TREE: (NavLink | NavGroup)[] = [
   { href: "/america-thinks", label: "America Thinks", icon: Users },
   { href: "/chat", label: "Chat", icon: MessagesSquare },
   { href: "/clips", label: "Clips", icon: Film },
-  { href: "/consensus", label: "Consensus", icon: Vote },
   { href: "/data-dictionary", label: "Data dictionary", icon: BookA },
   { href: "/inbox", label: "Inbox", icon: InboxTray },
   { href: "/lift", label: "Lift", icon: FlaskConical },
@@ -71,7 +70,6 @@ const TITLES: [string, string][] = [
   ["/v/", "Video"],
   ["/america-thinks", "America Thinks"],
   ["/data-dictionary", "Data dictionary"],
-  ["/message-tests", "Tests"],
   ["/q/", "Question"],
   ["/reports-2", "Report 2"],
   ["/constructs", "Constructs"],

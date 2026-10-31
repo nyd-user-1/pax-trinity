@@ -6,6 +6,7 @@ import { redirect } from "next/navigation"
 import { PUBLISHED } from "@/components/clips/catalog"
 import { currentUser, forbidDemo } from "@/lib/auth"
 import { armRecordings } from "@/lib/clips/recorded"
+import { testHref } from "@/lib/survey-links"
 import { completeTest } from "@/lib/results/complete"
 import { getTest, saveTest } from "@/lib/tests/store"
 import { parseEntry, parseSingle } from "@/lib/tests/text"
@@ -68,8 +69,8 @@ export async function saveTestAction(_prev: SaveState, form: FormData): Promise<
     const name = (err as Error).name
     return { errors: [name === "ConditionalCheckFailedException" ? `A test with the id ${record.id} already exists.` : `The tests table could not be written (${name}).`] }
   }
-  revalidatePath("/message-tests")
-  redirect(`/message-tests/${record.id}`)
+  revalidatePath("/survey")
+  redirect(testHref(record.id))
 }
 
 /** Move a test between draft, fielding and closed from its page. */
@@ -92,7 +93,6 @@ export async function setStatusAction(id: string, status: Status): Promise<SaveS
       console.error("completeTest failed on close", (err as Error).message)
     }
   }
-  revalidatePath("/message-tests")
-  revalidatePath(`/message-tests/${id}`)
+  revalidatePath("/survey")
   return { errors: [] }
 }

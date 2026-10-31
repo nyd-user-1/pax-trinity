@@ -6,7 +6,7 @@ export const GETTING_STARTED: Doc[] = [
     title: "The loop",
     section: "Getting started",
     body: `1. **Make a video.** Write a script with me in [Chat](/chat) and record it on camera there, or record one in [Clips](/clips).
-2. **Test it.** A message test shows a randomized panel either one video or a placebo, then asks how they would vote. The staff set tests up in [Tests](/message-tests).
+2. **Test it.** A message test shows a randomized panel either one video or a placebo, then asks how they would vote. The staff set tests up in [Tests](/survey?s=tests), in Survey.
 3. **Field it.** The Pollster in the [Inbox](/inbox) mails each person in a contact group a link of their own, reminds whoever hasn't finished, and closes the test at its quota or its deadline.
 4. **Compute the lift.** When a test closes, I weight the respondents to the population's targets and compute each video's lift against the placebo.
 5. **Read it.** The result reads in [Lift](/lift), on the video's panel in Clips, and in [Reports](/reports). A new result reaches those pages once it's published, a step run by hand today; until then the Pollster's readout mail carries it.
@@ -64,8 +64,8 @@ Skip **Sign up**: your email already has an account, and sign-up will say so.
 
 ## What staff see
 
-- **Admin** in the sidebar, holding [Dashboard](/dashboard) and [Tests](/message-tests).
-- The **Admin** tab in [Consensus](/consensus), and the **Schema** and **ERD** tabs in the [Data dictionary](/data-dictionary).
+- **Admin** in the sidebar, holding [Dashboard](/dashboard) and [Studio](/studio).
+- In [Survey](/survey), the message [Tests](/survey?s=tests) and Consensus's [Admin](/survey?s=admin); the **Schema** and **ERD** tabs in the [Data dictionary](/data-dictionary).
 - Sending from the [Inbox](/inbox), including **New test** and **New survey**, the requests that start the Pollster on a fielding.`,
   },
   {

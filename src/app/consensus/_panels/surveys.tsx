@@ -5,6 +5,7 @@ import { surveyCode } from "@/components/consensus/question-code"
 import { Block, Fact, SMALL, Tile } from "@/components/settings/blocks"
 import { type Conversation } from "@/lib/consensus/data"
 import { fmtNumber } from "@/lib/format"
+import { consensusHref } from "@/lib/survey-links"
 
 // The Surveys tab — the conversations, as a directory.
 //
@@ -26,10 +27,10 @@ export function SurveysPanel({ all, admin }: { all: Conversation[]; admin: boole
             sub={c.topic || undefined}
             action={
               <span className="flex shrink-0 gap-1.5">
-                <Link href={`/consensus?c=${c.slug}`} className={SMALL}>
+                <Link href={consensusHref("questions", c.slug)} className={SMALL}>
                   Vote
                 </Link>
-                <Link href={`/consensus?tab=results&c=${c.slug}`} className={SMALL}>
+                <Link href={consensusHref("results", c.slug)} className={SMALL}>
                   Results
                 </Link>
               </span>

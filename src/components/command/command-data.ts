@@ -33,6 +33,8 @@ import {
   type LucideIcon,
 } from "lucide-react"
 
+import { consensusHref, newTestHref, testHref, testsHref } from "@/lib/survey-links"
+
 // The ⌘K palette's catalog (Brendan, 2026-10-29): every kind of thing Trinity holds, so the palette can be
 // judged against every scenario before it is wired. Unwired on purpose: these are stand-ins written in the
 // shapes the real surfaces use (a question's wording and source, a clip's partner and length, a test's
@@ -109,14 +111,14 @@ export const ITEMS: CommandItem[] = [
   r("page", "America Thinks", "What America thinks, question by question", "/america-thinks", "audience normative database"),
   r("page", "Chat", "Ask, write a script, record", "/chat"),
   r("page", "Clips", "The partners' library", "/clips", "videos"),
-  r("page", "Consensus", "Statements voted agree, disagree or pass", "/consensus"),
+  r("page", "Consensus", "Statements voted agree, disagree or pass", consensusHref("questions")),
   r("page", "Constructs", "One idea across sources", "/constructs"),
   r("page", "Data dictionary", "Every table and field", "/data-dictionary"),
   r("page", "Electorate", "Massachusetts registration and turnout", "/electorate"),
   r("page", "Dashboard", "Admin", "/dashboard", "delivery board worklogs"),
   r("page", "Inbox", "The Pollster, the Analyst and the Assistant", "/inbox", "mail agents"),
   r("page", "Lift", "Every lift against its placebo", "/lift", "results benchmarks"),
-  r("page", "Tests", "Admin", "/message-tests", "message tests setup field kit"),
+  r("page", "Tests", "Survey", testsHref(), "message tests setup field kit"),
   r("page", "Reports", "Every report as a card", "/reports"),
   r("page", "Studio", "Admin", "/studio", "remotion video templates graphics versions"),
   r("page", "Survey", "Toplines and consensus surveys", "/survey"),
@@ -124,7 +126,7 @@ export const ITEMS: CommandItem[] = [
   // Commands
   r("command", "New Chat", "Chat", "/chat"),
   r("command", "Record a Video", "Chat · record mode", "/chat?record=1", "camera teleprompter"),
-  r("command", "New Test", "Tests", "/message-tests/new", "message test"),
+  r("command", "New Test", "Tests", newTestHref(), "message test"),
   r("command", "New Survey", "Inbox · to the Pollster"),
   r("command", "Field a Test", "Inbox · to a contact group"),
   r("command", "Make a Question Card", "Consensus · from the results"),
@@ -185,8 +187,8 @@ export const ITEMS: CommandItem[] = [
   r("ad", "Ad 1187", "Archive · favorability −0.8 pp · testimonial"),
 
   // Message tests
-  r("test", "Massachusetts Wave 3", "ma-wave-3 · fielding · 7 arms", "/message-tests/ma-wave-3"),
-  r("test", "A short survey", "open-primaries-1 · fielding · 5 arms · 500 an arm", "/message-tests/open-primaries-1"),
+  r("test", "Massachusetts Wave 3", "ma-wave-3 · fielding · 7 arms", testHref("ma-wave-3")),
+  r("test", "A short survey", "open-primaries-1 · fielding · 5 arms · 500 an arm", testHref("open-primaries-1")),
   r("test", "Massachusetts Wave 4", "Draft · 4 arms"),
 
   // Surveys
