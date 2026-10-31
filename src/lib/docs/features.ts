@@ -176,13 +176,13 @@ Votes cast on the voting card aren't recorded yet.`,
 
 ## Reading a lift
 
-Rows are treatments and columns their outcomes: Support, Comprehension and Emotional Response for the tests, favorability and vote choice for the Archive. The placebo's level sits at zero, a bar runs from it to the lift in percentage points, its tip points the way the treatment moved, and the number sits past the tip. A lift that doesn't clear its test is gray. Its margin, a 90% interval, reads in About Result; a margin that crosses zero means the test couldn't tell the effect from none.
+Rows are treatments and columns their outcomes: Support, Comprehension and Emotional Response for the tests, favorability and vote choice for the Archive. The placebo's level sits at zero, a bar runs from it to the lift in percentage points, its tip points the way the treatment moved, and the number sits past the tip. A lift that doesn't clear its test is gray. Its margin, a 90% interval, reads in Lift Analysis; a margin that crosses zero means the test couldn't tell the effect from none.
 
 **Bars** or **Heatmap** switch the view. Treatments, Metrics, Segments and Filter choose what shows, a column head sorts by it, **Share** copies a link to the exact view, and the CSV downloads it.
 
-## About Result
+## Lift Analysis
 
-Click a lift to open it beside the table: the lift, its margin, the respondents and the study, then the lift on three benchmarks for the same outcome and segment (every test on file, the folder's own, and this test), with a density chart showing where it falls. A Tests lift also shows what's on file about the arm: its producer, length, note, and the wave's pairings that name it.
+Click a lift to open it beside the table: the lift, its margin, the respondents and the study, then the lift on three benchmarks for the same outcome and segment (every test on file, the folder's own, and this test), with a density chart showing where it falls. A Tests lift also shows what's on file about the arm: its producer, length, note, and the wave's pairings that name it. Its second tab, Explainer, says the same in sentences: the effect, its interval and whether it clears zero, where the benchmarks place it, and its rank in the test. An Archive ad's second tab is its coded Traits.
 
 ## Resonance
 

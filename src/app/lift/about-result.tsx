@@ -16,7 +16,8 @@ import { APPEALS } from "./lift-marks"
 // ECharts loads only when a benchmark card opens.
 const DensityChart = dynamic(() => import("./density-chart").then((m) => m.DensityChart), { ssr: false, loading: () => <div className="h-[92px]" /> })
 
-// Swayable's About Result (Brendan, 2026-10-28): Analytics and Open-ends; the
+// Lift Analysis, Swayable's About Result (Brendan, 2026-10-28; renamed 2026-10-31): Analytics and, where a
+// result has no open-ends (none has yet), an Explainer that says in sentences what Analytics shows; the
 // result on a 0–100 line from its control group's level; the treatment and
 // control groups' means and sizes, the impact with its strength and its
 // interval; three benchmarks, each a quintile of a pool of lifts (every ad,
@@ -120,7 +121,7 @@ export function AboutResult({
               onClick={() => setTab(t)}
               className={cn("rounded-[5px] py-1 transition-colors", tab === t ? "bg-background font-medium shadow-sm" : "text-muted-foreground hover:text-foreground")}
             >
-              {t === "analytics" ? "Analytics" : ad ? "Traits" : "Open-ends"}
+              {t === "analytics" ? "Analytics" : ad ? "Traits" : "Explainer"}
             </button>
           ))}
         </div>
@@ -130,7 +131,21 @@ export function AboutResult({
         ad ? (
           <AdTraits ad={ad} />
         ) : (
-          <p className="px-6 py-6 text-center text-sm text-muted-foreground">Nothing on file.</p>
+          <Explainer
+            name={treatmentName(lift[4] ?? "")}
+            metric={metricShort(pick.metric)}
+            segment={pick.segName}
+            delta={delta}
+            moe={lift[9]}
+            z={z}
+            level={level}
+            control={control}
+            n={lift[11] ?? null}
+            nControl={control?.[11] ?? null}
+            pools={complete ? pools : null}
+            ranked={ranked}
+            self={lift[4]}
+          />
         )
       ) : (
         <>
@@ -241,6 +256,83 @@ export function AboutResult({
       )}
     </div>
     </TooltipProvider>
+  )
+}
+
+const points = (x: number) => `${num(Math.abs(x))} ${num(Math.abs(x)) === "1" ? "point" : "points"}`
+const listed = (xs: string[]) => (xs.length < 3 ? xs.join(" and ") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`)
+
+/** The second tab where a result has no open-ends (Brendan, 2026-10-31): what Analytics shows, in sentences, from
+ *  the same figures (the means, the impact and its interval, the benchmarks, the test's ranking). */
+function Explainer({
+  name,
+  metric,
+  segment,
+  delta,
+  moe,
+  z,
+  level,
+  control,
+  n,
+  nControl,
+  pools,
+  ranked,
+  self,
+}: {
+  name: string
+  metric: string
+  segment: string
+  delta: number
+  moe: number | null
+  z: number | null
+  level: SourceRow | null | undefined
+  control: SourceRow | null | undefined
+  n: number | null
+  nControl: number | null
+  /** Null while the folders are still being read. */
+  pools: { name: string; values: number[] }[] | null
+  ranked: SourceRow[]
+  self: string | null
+}) {
+  const who = segment === "Everyone" ? "everyone" : segment
+  const moved = delta === 0 ? `left ${metric} unchanged among ${who}` : `${delta > 0 ? "raised" : "lowered"} ${metric} by ${points(delta)} among ${who}`
+  const paras: string[] = []
+
+  const sample = n != null ? ` ${num(n, 0)} people saw it${nControl != null ? `; ${num(nControl, 0)} were in the control group` : ""}.` : ""
+  paras.push(control && level ? `${name} ${moved}: ${levelOf(control)} in the control group, ${levelOf(level)} among those who saw it.${sample}` : `${name} ${moved}.${sample}`)
+
+  if (moe != null) {
+    const lo = delta - moe
+    const hi = delta + moe
+    const p = z != null ? pOf(z) : null
+    paras.push(
+      lo <= 0 && hi >= 0
+        ? `At 90% confidence the effect lies between ${signed(lo)} and ${signed(hi)} points. That range includes zero, so the test can't tell this effect from none.`
+        : `At 90% confidence the effect lies between ${signed(lo)} and ${signed(hi)} points. The whole range is ${delta > 0 ? "above" : "below"} zero${p != null ? ` (p ${p < 0.001 ? "< 0.001" : `= ${p.toFixed(3)}`})` : ""}, so chance is an unlikely explanation.`
+    )
+  }
+
+  // Five results are the fewest the benchmarks place among, as on the Analytics tab. The pools nest, so one the
+  // size of the pool before it is the same pool (the Archive holds no Support): it is said once.
+  const placed = (pools ?? []).filter((b, i, all) => b.values.length >= 5 && b.values.length !== all[i - 1]?.values.length).map((b) => `${Math.round(percentile(b.values, delta))}% of the ${num(b.values.length, 0)} in ${b.name === "All tests" ? "all tests" : b.name === "This test" ? "this test" : b.name}`)
+  if (placed.length) paras.push(`Against other results on ${metric} among ${who}, it's ahead of ${listed(placed)}.`)
+
+  const at = ranked.findIndex((r) => r[4] === self)
+  if (ranked.length > 1 && at >= 0) {
+    const nameOf = (r: SourceRow) => treatmentName(r[4] ?? "")
+    paras.push(
+      at === 0
+        ? `It's the strongest of the ${ranked.length} treatments in this test, ${points(delta - ranked[1][7])} ahead of ${nameOf(ranked[1])}.`
+        : `It ranks ${at + 1} of ${ranked.length} treatments in this test; ${nameOf(ranked[0])} leads it by ${points(ranked[0][7] - delta)}.`
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-3 px-6 py-4 text-[13px] leading-6">
+      {paras.map((t) => (
+        <p key={t}>{t}</p>
+      ))}
+    </div>
   )
 }
 

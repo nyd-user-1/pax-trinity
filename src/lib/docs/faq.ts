@@ -91,7 +91,7 @@ A lift is **detectable** when it meets the study's stated threshold against the 
 
 ## The margin
 
-In About Result, a lift's margin is a 90% interval. A margin that crosses zero means the test couldn't tell the effect from none.
+In Lift Analysis, a lift's margin is a 90% interval. A margin that crosses zero means the test couldn't tell the effect from none.
 
 ## The RCT badge
 

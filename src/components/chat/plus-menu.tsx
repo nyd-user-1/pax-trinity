@@ -41,7 +41,7 @@ const ONBOARDING_QUESTIONS = [
   'What is a construct?',
   'How does Consensus turn a conversation into questions I can test?',
   'How do I read a lift and its margin in Lift?',
-  'What are the benchmarks in About Result comparing my lift to?',
+  'What are the benchmarks in Lift Analysis comparing my lift to?',
   'What is a Resonance score?',
   'What is the difference between Reports and Report 2?',
   'What does "detectable" mean in a report?',
