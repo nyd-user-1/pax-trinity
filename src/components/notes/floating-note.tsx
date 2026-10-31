@@ -22,6 +22,7 @@ export function FloatingNote({ rect, id: firstId, body: firstBody, onClose }: { 
   // The last save failed: the next keystroke tries again.
   const [failed, setFailed] = React.useState(false)
   const [pos, setPos] = React.useState({ left: rect.x, top: rect.y })
+  const [size, setSize] = React.useState({ w: rect.w, h: rect.h })
   const editor = useTaskEditor({ value: firstBody, onChange: setBody, placeholder: "Write a note…" })
   React.useEffect(() => {
     editor?.commands.focus("end")
@@ -69,9 +70,30 @@ export function FloatingNote({ rect, id: firstId, body: firstBody, onClose }: { 
     },
     onPointerMove: (e: React.PointerEvent) => {
       if (!drag.current) return
-      setPos({ left: Math.max(8, Math.min(e.clientX - drag.current.dx, window.innerWidth - rect.w - 8)), top: Math.max(8, Math.min(e.clientY - drag.current.dy, window.innerHeight - rect.h - 8)) })
+      setPos({ left: Math.max(8, Math.min(e.clientX - drag.current.dx, window.innerWidth - size.w - 8)), top: Math.max(8, Math.min(e.clientY - drag.current.dy, window.innerHeight - size.h - 8)) })
     },
     onPointerUp: () => void (drag.current = null),
+  }
+
+  // The bottom-right corner resizes the card in proportion (Brendan, 2026-10-31), no smaller than 300 by 240 and
+  // no larger than the window has room for.
+  const from = React.useRef<{ x: number; y: number; w: number; h: number } | null>(null)
+  const corner = {
+    onPointerDown: (e: React.PointerEvent) => {
+      e.preventDefault()
+      e.currentTarget.setPointerCapture(e.pointerId)
+      from.current = { x: e.clientX, y: e.clientY, w: size.w, h: size.h }
+    },
+    onPointerMove: (e: React.PointerEvent) => {
+      const f = from.current
+      if (!f) return
+      const scale = ((f.w + e.clientX - f.x) / f.w + (f.h + e.clientY - f.y) / f.h) / 2
+      const least = Math.max(300 / f.w, 240 / f.h)
+      const most = Math.min((window.innerWidth - 8 - pos.left) / f.w, (window.innerHeight - 8 - pos.top) / f.h)
+      const s = Math.max(least, Math.min(scale, most))
+      setSize({ w: Math.round(f.w * s), h: Math.round(f.h * s) })
+    },
+    onPointerUp: () => void (from.current = null),
   }
 
   return createPortal(
@@ -80,7 +102,7 @@ export function FloatingNote({ rect, id: firstId, body: firstBody, onClose }: { 
       data-note
       role="dialog"
       aria-label="Note"
-      style={{ left: pos.left, top: pos.top, width: rect.w, height: rect.h }}
+      style={{ left: pos.left, top: pos.top, width: size.w, height: size.h }}
       className="fixed z-[55] flex flex-col rounded-[18px] border border-slate-200 bg-slate-50 p-1 shadow-e3"
     >
       <div className="flex shrink-0 items-center gap-1.5 pt-1.5 pr-1.5 pb-2 pl-2">
@@ -112,6 +134,7 @@ export function FloatingNote({ rect, id: firstId, body: firstBody, onClose }: { 
           <TaskSurface editor={editor} className="min-h-full [&_.ProseMirror]:min-h-full" />
         </div>
       </div>
+      <span {...corner} aria-label="Resize" className="absolute right-0 bottom-0 size-4 cursor-nwse-resize touch-none" />
     </div>,
     document.body,
   )
