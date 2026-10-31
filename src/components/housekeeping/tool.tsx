@@ -230,7 +230,6 @@ export function HousekeepingTool() {
   return (
     <>
       {shown && (
-        // Pressed, its border and ring are the theme's green (Brendan, 2026-10-31).
         <button
           type="button"
           data-sonar-exempt
@@ -238,7 +237,7 @@ export function HousekeepingTool() {
           aria-pressed={on}
           aria-label={on ? "Turn sonar off" : "Turn sonar on"}
           title={on ? "Turn sonar off" : "Turn sonar on"}
-          className={whiteButton("circle", on && "ring-2 ring-above aria-pressed:border-above hover:border-above")}
+          className={whiteButton("circle", on && "ring-2 ring-pax2-light-blue")}
         >
           <Crosshair className="size-4 text-pax2-blue" />
         </button>
