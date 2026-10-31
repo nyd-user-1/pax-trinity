@@ -41,7 +41,7 @@ const PaxTile = () => (
 
 function ModelCard({ m, short }: { m: CommercialCard; short: boolean }) {
   return (
-    <Block stretch title={m.name} sub={m.maker} lead={<Logo src={m.logo} />} badge={m.badge && <Badge tone={m.badge.tone}>{m.badge.label}</Badge>}>
+    <Block stretch className="lift" title={m.name} sub={m.maker} lead={<Logo src={m.logo} />} badge={m.badge && <Badge tone={m.badge.tone}>{m.badge.label}</Badge>}>
       {m.facts.map(([label, value]) => (
         <Fact key={label} label={label} mono={label === "Model ID"}>
           {label === "Model ID" && short ? <span title={value}>{shortId(value)}</span> : value}
