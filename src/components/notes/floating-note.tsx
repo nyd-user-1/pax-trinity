@@ -2,11 +2,13 @@
 
 import * as React from "react"
 import { createPortal } from "react-dom"
-import { Copy, Download, EllipsisVertical, GripVertical, MessagesSquare, Star, Trash2, X } from "lucide-react"
+import { ArrowUp, ChevronsUpDown, Copy, Download, EllipsisVertical, GripVertical, LayoutGrid, Loader2, MessagesSquare, Star, StickyNote, Trash2, X } from "lucide-react"
 
 import { createMyNote, removeNote, saveNote } from "@/app/note-actions"
 import { KebabMenu, MenuFlyout, MenuFoot, MenuRow, MenuSeparator } from "@/components/kebab-menu"
 import { useShellPanel } from "@/components/shell"
+import { MarkdownContent } from "@/components/chat/markdown"
+import { useShelf } from "@/lib/home-blocks"
 import { NOTES_CHANGED, useNoteFavorites } from "@/lib/drawn-notes"
 import { TaskSurface, TaskToolbar, useTaskEditor } from "@/registry/blocks/sidebar-09/components/rich-body"
 
@@ -30,6 +32,52 @@ export function FloatingNote({ rect, id: firstId, body: firstBody, onClose }: { 
   const editor = useTaskEditor({ value: firstBody, onChange: setBody, placeholder: "Write a note…" })
   const { askAbout } = useShellPanel()
   const { favs, toggle: toggleFav } = useNoteFavorites()
+  const shelf = useShelf()
+
+  // The card is a note or a chat (Brendan, 2026-10-31), switched from its header. The chat talks to PAX through
+  // /api/chat with the note as its context; Shift Enter or the send button sends, the reply streaming in.
+  const [mode, setMode] = React.useState<"note" | "chat">("note")
+  const [chat, setChat] = React.useState<{ role: "user" | "assistant"; content: string }[]>([])
+  const [ask, setAsk] = React.useState("")
+  const [busy, setBusy] = React.useState(false)
+  const asker = useTaskEditor({ value: ask, onChange: setAsk, placeholder: "Ask PAX…" })
+  const log = React.useRef<HTMLDivElement>(null)
+  React.useEffect(() => {
+    if (mode === "chat") asker?.commands.focus("end")
+    else editor?.commands.focus("end")
+  }, [mode, asker, editor])
+  React.useEffect(() => {
+    log.current?.scrollTo({ top: log.current.scrollHeight })
+  }, [chat])
+  const send = async () => {
+    const text = ask.trim()
+    if (!text || busy) return
+    const history = [...chat, { role: "user" as const, content: text }]
+    setChat([...history, { role: "assistant", content: "" }])
+    setAsk("")
+    setBusy(true)
+    const last = (f: (content: string) => string) => setChat((c) => c.map((m, i) => (i === c.length - 1 ? { ...m, content: f(m.content) } : m)))
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: history, ...(body.trim() ? { systemContext: `The reader's note, which this chat sits beside:\n\n${body}` } : {}) }),
+      })
+      if (!res.ok || !res.body) return last(() => "Something went wrong. Please try again.")
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      for (;;) {
+        const { done, value } = await reader.read()
+        if (done) break
+        const chunk = decoder.decode(value, { stream: true })
+        last((c) => c + chunk)
+      }
+    } catch {
+      last((c) => c || "Something went wrong. Please try again.")
+    } finally {
+      setBusy(false)
+    }
+  }
   const download = (ext: "md" | "txt") => {
     const text = ext === "md" ? body : body.replace(/\*\*|__|`/g, "").replace(/^(#+|>)\s?/gm, "")
     const a = document.createElement("a")
@@ -121,12 +169,42 @@ export function FloatingNote({ rect, id: firstId, body: firstBody, onClose }: { 
         <span {...grip} aria-label="Move" title="Move" className="flex size-6 shrink-0 cursor-grab touch-none items-center justify-center text-slate-400 active:cursor-grabbing">
           <GripVertical className="size-4" />
         </span>
-        <h3 className="min-w-0 flex-1 text-[15px] font-semibold text-slate-900">Note</h3>
+        {/* The header as lucide.dev's titles (dash/card-tools.tsx CardAnchor): the muted ground on hover, and at its
+            end the page switcher's up-down mark, which opens Note and Chat. */}
+        <div className="min-w-0 flex-1">
+          <KebabMenu
+            label="Note or chat"
+            align="left"
+            width="w-44"
+            trigger={
+              <>
+                {mode === "note" ? "Note" : "Chat"}
+                <ChevronsUpDown className="size-3.5 text-slate-400 opacity-0 transition-opacity group-hover/anchor:opacity-100 group-aria-expanded/anchor:opacity-100" />
+              </>
+            }
+            triggerClassName="group/anchor inline-flex items-center gap-1.5 rounded px-1.5 py-0.5 text-[15px] font-semibold text-slate-900 outline-none transition-colors select-none hover:bg-muted aria-expanded:bg-muted focus-visible:outline-1 focus-visible:outline-ring"
+          >
+            <MenuRow icon={<StickyNote />} label="Note" checked={mode === "note"} onClick={() => setMode("note")} />
+            <MenuRow icon={<MessagesSquare />} label="Chat" checked={mode === "chat"} onClick={() => setMode("chat")} />
+          </KebabMenu>
+        </div>
         <KebabMenu label="Note options" width="w-52" trigger={<EllipsisVertical className="size-4" />} triggerClassName="inline-flex size-8 items-center justify-center rounded-md text-slate-800 outline-none hover:bg-foreground/8 hover:text-foreground aria-expanded:bg-foreground/8">
-          {/* The block menu's (dash/card-tools.tsx; Brendan, 2026-10-31), what of it a note takes: Favorite, Ask PAX,
-              Download and Delete; Pin to top, Add to Blocks, Refresh, the sizes and View don't apply. Copy as Markdown
-              and Close are the note's own. */}
+          {/* The block menu's (dash/card-tools.tsx; Brendan, 2026-10-31), what of it a note takes: Favorite, Add to
+              Blocks (the shelf's tile opens the note's card), Ask PAX, Download and Delete; Pin to top, Refresh, the
+              sizes and View don't apply. Copy as Markdown and Close are the note's own. */}
           <MenuRow icon={<Star className={id.current && favs.includes(id.current) ? "fill-amber-400 text-amber-400" : undefined} />} label={id.current && favs.includes(id.current) ? "Unfavorite" : "Favorite"} disabled={!id.current} onClick={() => id.current && toggleFav(id.current)} />
+          <MenuRow
+            icon={<LayoutGrid />}
+            label={id.current && shelf.has(`note:${id.current}`) ? "Remove from Blocks" : "Add to Blocks"}
+            checked={!!id.current && shelf.has(`note:${id.current}`)}
+            disabled={!id.current}
+            onClick={() => {
+              const key = `note:${id.current}`
+              if (!id.current) return
+              if (shelf.has(key)) shelf.remove(key)
+              else shelf.add({ key, title: titleOf(body), path: "/inbox", anchor: `note-${id.current}` })
+            }}
+          />
           <MenuRow icon={<MessagesSquare />} label="Ask PAX" onClick={() => askAbout({ context: () => `My note, "${titleOf(body)}":\n\n${body}` })} />
           <MenuSeparator />
           <MenuRow icon={<Copy />} label="Copy as Markdown" onClick={() => void navigator.clipboard.writeText(body)} />
@@ -151,10 +229,47 @@ export function FloatingNote({ rect, id: firstId, body: firstBody, onClose }: { 
         </KebabMenu>
       </div>
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[14px] border border-slate-200 bg-pax2-surface shadow-e1">
-        <TaskToolbar editor={editor} className="shrink-0 border-b border-slate-200 px-2 py-1" />
-        <div className="min-h-0 flex-1 cursor-text overflow-y-auto px-4 py-3" onClick={() => editor?.commands.focus()}>
-          <TaskSurface editor={editor} className="min-h-full [&_.ProseMirror]:min-h-full" />
-        </div>
+        {mode === "note" ? (
+          <>
+            <TaskToolbar editor={editor} className="shrink-0 border-b border-slate-200 px-2 py-1" />
+            <div className="min-h-0 flex-1 cursor-text overflow-y-auto px-4 py-3" onClick={() => editor?.commands.focus()}>
+              <TaskSurface editor={editor} className="min-h-full [&_.ProseMirror]:min-h-full" />
+            </div>
+          </>
+        ) : (
+          <>
+            <div ref={log} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3 text-sm">
+              {chat.map((m, i) =>
+                m.role === "user" ? (
+                  <p key={i} className="ml-auto w-fit max-w-[85%] rounded-2xl bg-pax2-lavender px-3 py-1.5 whitespace-pre-wrap text-pax2-blue">
+                    {m.content}
+                  </p>
+                ) : (
+                  <div key={i} className="text-slate-700">
+                    {m.content ? <MarkdownContent content={m.content} isStreaming={busy && i === chat.length - 1} /> : <Loader2 className="size-4 animate-spin text-slate-400" />}
+                  </div>
+                ),
+              )}
+            </div>
+            {/* Shift Enter sends; Enter keeps its new line. */}
+            <div
+              className="flex shrink-0 items-end gap-2 border-t border-slate-200 px-3 py-2"
+              onKeyDownCapture={(e) => {
+                if (e.key !== "Enter" || !e.shiftKey) return
+                e.preventDefault()
+                e.stopPropagation()
+                void send()
+              }}
+            >
+              <div className="max-h-32 min-w-0 flex-1 cursor-text overflow-y-auto py-1" onClick={() => asker?.commands.focus()}>
+                <TaskSurface editor={asker} className="min-h-0 [&_.ProseMirror]:min-h-6" />
+              </div>
+              <button type="button" aria-label="Send" title="Send (Shift Enter)" disabled={busy || !ask.trim()} onClick={() => void send()} className="flex size-7 shrink-0 items-center justify-center rounded-full bg-pax2-blue text-white transition-opacity disabled:opacity-40">
+                <ArrowUp className="size-4" />
+              </button>
+            </div>
+          </>
+        )}
       </div>
       <span {...corner} aria-label="Resize" className="absolute right-0 bottom-0 size-4 cursor-nwse-resize touch-none" />
     </div>,

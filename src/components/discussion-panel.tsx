@@ -19,6 +19,7 @@ import { LIFT_ANALYSIS_OPEN, LIFT_TOOLS_OPEN, takeToolsOnCards } from "@/lib/lif
 import { useDeliverables, type Deliverable } from "@/app/lift/deliverables"
 import { useThemePanel } from "@/components/theme/theme-palette"
 import { STUDIO_OPEN, takeStudio } from "@/lib/studio"
+import { openDrawnNote } from "@/lib/drawn-notes"
 import { TOOLS_OPEN, takeTools } from "@/lib/clips-panel"
 
 // 44b's DiscussionPanel (components/DiscussionPanel.tsx), cut to five doors: Blocks, Chat, Record, Slack and
@@ -136,6 +137,8 @@ function BlocksShelf() {
   const open = (b: ShelfBlock) => {
     show(b.key)
     setSelected(`b:${b.key}`)
+    // A note put on the shelf from its menu opens as its card (components/notes/draw-notes.tsx).
+    if (b.key.startsWith("note:")) return openDrawnNote(b.key.slice(5))
     if (b.path === path) document.getElementById(b.anchor)?.scrollIntoView({ behavior: "smooth", block: "start" })
     else {
       setGoing(`b:${b.key}`)
