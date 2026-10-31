@@ -675,7 +675,7 @@ function PageSwitcher({ title, items }: { title: string; items: { href: string; 
         aria-label={`${title} — switch page`}
         className={cn("flex h-9 items-center gap-1.5 rounded-full pl-3 pr-2 transition-colors", open ? "bg-slate-200/70" : "hover:bg-slate-200/70")}
       >
-        <span className="font-display max-w-[220px] truncate text-[17px] text-slate-900">{title}</span>
+        <span className="font-display max-w-[220px] truncate text-xl text-slate-900">{title}</span>
         <ChevronsUpDown className="size-3.5 shrink-0 text-slate-400" />
       </button>
       <h1 className="sr-only">{title}</h1>
