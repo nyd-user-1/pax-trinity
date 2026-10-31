@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ArrowUp, ChevronLeftIcon, ChevronRightIcon, EllipsisVerticalIcon, PanelLeftClose, PanelLeftOpen, PinIcon, StarIcon } from "lucide-react"
+import { ArrowUp, ChevronLeftIcon, ChevronRightIcon, EllipsisVerticalIcon, PinIcon, StarIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
@@ -18,7 +18,7 @@ import { ScrollArea } from "@govblock/ui/components/ny4/scroll-area"
 import { KebabMenu } from "@/components/kebab-menu"
 import { whiteButton } from "@/components/white-button"
 
-import { BankRail, BankTone } from "./bank-frame"
+import { BankRail, BankTone, RailToggle } from "./bank-frame"
 import { Marks, type MarkState } from "./marks"
 import { SearchField } from "./pane-bars"
 
@@ -44,8 +44,10 @@ import { SearchField } from "./pane-bars"
 export type Split = "none" | "vertical"
 
 export type Card = {
-  /** The bold line: the question's wording, the metric's name. */
+  /** The bold line: the question's wording, the metric's name, a thread's subject. */
   title: React.ReactNode
+  /** Who it is from, the Inbox's sender: a column before the title on one line, a line above it folded. */
+  from?: string | null
   /** The full text behind a truncated one-line title. */
   hint?: string
   /** The card's one chip — on /audience the topic. */
@@ -65,6 +67,8 @@ export type Card = {
   marks?: MarkState
   /** The row kebab's menu, in the house menu's parts (kebab-menu.tsx); none leaves the span alone. */
   menu?: React.ReactNode
+  /** Present, the row drags (the Inbox's thread onto a folder). */
+  onDragStart?: (event: React.DragEvent<HTMLLIElement>) => void
 }
 
 /** Sixty rows to a read, sixty more on reaching the end — a bulk folder holds thousands. */
@@ -212,11 +216,7 @@ export function CardList({
         >
           {kebab}
           {/* The sidebar's own toggle where the search icon was (Brendan, 2026-10-29); the bar's empty run still opens the search. */}
-          {railCtl && (
-            <Button variant="ghost" size="icon-sm" aria-label={railCtl.open ? "Hide sidebar" : "Show sidebar"} title={railCtl.open ? "Hide sidebar" : "Show sidebar"} onClick={railCtl.toggle}>
-              {railCtl.open ? <PanelLeftClose className="size-4" /> : <PanelLeftOpen className="size-4" />}
-            </Button>
-          )}
+          {railCtl && <RailToggle />}
           {!onSearch && (searching || query) && (
             <div className="min-w-0 flex-1">
               {/* Focused when picked from the bar, not when the rail's search fills it. */}
@@ -288,6 +288,8 @@ export function CardList({
               <li
                 key={id}
                 data-active={active}
+                draggable={c.onDragStart ? true : undefined}
+                onDragStart={c.onDragStart}
                 className={cn(
                   "group/row relative flex cursor-pointer gap-3 text-sm",
                   railTone
@@ -318,7 +320,14 @@ export function CardList({
                 {railTone && active && <span aria-hidden className="absolute top-1/2 left-0 h-4 w-[3px] -translate-y-1/2 rounded-full bg-pax2-light-blue" />}
                 {stacked ? (
                   <span className="flex min-w-0 flex-1 flex-col gap-4">
-                    {title}
+                    {c.from ? (
+                      <span className="flex min-w-0 flex-col gap-0.5">
+                        <span className={cn("truncate", weight)}>{c.from}</span>
+                        {title}
+                      </span>
+                    ) : (
+                      title
+                    )}
                     <span className="flex items-center gap-2">
                       {chip}
                       <span className="ml-auto flex shrink-0">{end}</span>
@@ -332,6 +341,7 @@ export function CardList({
                         <Marks {...c.marks} />
                       </span>
                     )}
+                    {c.from && <span className={cn("w-44 shrink-0 truncate", weight)}>{c.from}</span>}
                     <span className="flex min-w-0 flex-1 items-baseline">
                       <span className={cn("max-w-[68ch] min-w-0 truncate", weight)} title={c.hint}>
                         {pin}

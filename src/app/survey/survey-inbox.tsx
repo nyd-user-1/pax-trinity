@@ -2,13 +2,14 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { ChartColumn, ClipboardCheck, ClipboardList, FileText, FlaskConical, MessagesSquare, Plus, Shield, Vote } from "lucide-react"
+import { ArrowLeft, ChartColumn, ClipboardCheck, ClipboardList, FileText, FlaskConical, MessagesSquare, Plus, Shield, Vote } from "lucide-react"
 
-import { BankFrame, BankSplit } from "@/components/bank/bank-frame"
+import { BankFrame, BankSplit, RailToggle } from "@/components/bank/bank-frame"
 import { BankRail, RailGroup, RailRow } from "@/components/bank/bank-rail"
 import { CardList, type Card, type Split } from "@/components/bank/card-list"
-import { PaneSearchRow, PaneTitleRow, RefreshButton } from "@/components/bank/pane-bars"
+import { PaneTitleRow, RefreshButton } from "@/components/bank/pane-bars"
 import { SplitBar, SplitLegend } from "@/components/consensus/split-bar"
+import { Button } from "@govblock/ui/components/nova/button"
 import { agreement, consensusStatements, divisiveness, divisiveStatements, share, type Conversation, type Statement } from "@/lib/consensus/data"
 import { readDraft, type SurveyDraft } from "@/lib/consensus/draft"
 import { fmtNumber } from "@/lib/format"
@@ -25,6 +26,9 @@ import { SURVEYS } from "@/lib/surveys/catalog"
 // Since 2026-10-31 (Brendan) the rail also holds Consensus (Questions, Surveys,
 // Results, Admin) and, for admins, the message tests: each row opens its page
 // here, rendered by the server (surfaces.tsx), in place of the list.
+// It wears America Thinks' anatomy (Brendan, 2026-10-31): one bar all the way
+// down, the rows alone on load, a question opening the split, the split's
+// kebab giving the question the screen, and Back going one layer up.
 
 export type SurveyMeta = { slug: string; title: string; statements: number }
 
@@ -38,6 +42,8 @@ export function SurveyInbox({ surveys, open, admin, surface, page }: { surveys: 
   const [selected, setSelected] = React.useState<string | null>(null)
   const [split, setSplit] = React.useState<Split>("none")
   const [query, setQuery] = React.useState("")
+  // The open question's title row carries the search, as America Thinks' does.
+  const [paneSearch, setPaneSearch] = React.useState(false)
 
   // The draft lives in this browser's localStorage, so it is read after mount.
   React.useEffect(() => setDraft(readDraft()), [])
@@ -136,17 +142,24 @@ export function SurveyInbox({ surveys, open, admin, surface, page }: { surveys: 
     </BankRail>
   )
 
-  const list = (s: Split) => (
+  // A question opens beside the list, as a row on America Thinks does.
+  const openQuestion = (id: string) => {
+    setSelected(id)
+    setSplit("vertical")
+  }
+  const list = (s: Split, searchInPane = false) => (
     <CardList
       ids={ids}
       card={cardOf}
       selected={selected}
-      onOpen={setSelected}
+      onOpen={openQuestion}
       split={s}
       onSplit={setSplit}
       query={query}
       onQuery={setQuery}
       placeholder="Search questions…"
+      compact
+      onSearch={searchInPane ? () => setPaneSearch(true) : undefined}
       loading={false}
       error={null}
       empty={query.trim() ? `Nothing matching “${query.trim()}”.` : surveys.length ? "No questions in this survey." : "No surveys on file."}
@@ -156,10 +169,43 @@ export function SurveyInbox({ surveys, open, admin, surface, page }: { surveys: 
   const statement = selected && !onDraft ? statementOf(selected) : null
   const draftQuestion = selected && onDraft ? draftQuestionOf(selected) : null
 
+  // Back, one layer up: the full screen to the split, the split to the rows.
+  const back = selected && (
+    <Button
+      variant="ghost"
+      size="icon-sm"
+      aria-label="Back"
+      title="Back"
+      className="-ml-1.5 shrink-0"
+      onClick={() => {
+        if (split === "vertical") {
+          setSelected(null)
+          setSplit("none")
+        } else setSplit("vertical")
+      }}
+    >
+      <ArrowLeft className="size-4" />
+    </Button>
+  )
   const pane = (
     <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
-      <PaneSearchRow query={query} onQuery={setQuery} placeholder="Search questions…" />
-      <PaneTitleRow title={statement?.text ?? draftQuestion?.text ?? folderName}>{!onDraft && <RefreshButton onRefresh={() => router.refresh()} />}</PaneTitleRow>
+      <PaneTitleRow
+        title={statement?.text ?? draftQuestion?.text ?? folderName}
+        leading={back || undefined}
+        search={{
+          query,
+          onQuery: setQuery,
+          placeholder: "Search questions…",
+          open: paneSearch,
+          onOpen: () => setPaneSearch(true),
+          onClose: () => {
+            setQuery("")
+            setPaneSearch(false)
+          },
+        }}
+      >
+        {!onDraft && <RefreshButton onRefresh={() => router.refresh()} />}
+      </PaneTitleRow>
       <div className="min-h-0 flex-1 overflow-y-auto">
         {statement && open ? (
           <StatementResults statement={statement} conversation={open} />
@@ -185,13 +231,20 @@ export function SurveyInbox({ surveys, open, admin, surface, page }: { surveys: 
   )
 
   return (
-    <BankFrame rail={rail} crumb="Survey" search={{ query, onQuery: setQuery, placeholder: "Search questions" }}>
+    <BankFrame rail={rail} crumb="Survey" search={{ query, onQuery: setQuery, placeholder: "Search questions" }} bare tone="rail" railDefaultOpen={false}>
       {page ? (
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          <div className="mx-auto w-full max-w-[920px] px-5 py-6 md:px-8 md:py-8">{page}</div>
-        </div>
+        <>
+          {/* A rail page has no list, so its one bar holds the sidebar's toggle. */}
+          <div className="flex h-[52px] shrink-0 items-center gap-1 border-b px-3">
+            <RailToggle />
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="mx-auto w-full max-w-[920px] px-5 py-6 md:px-8 md:py-8">{page}</div>
+          </div>
+        </>
       ) : selected ? (
-        <BankSplit list={list("vertical")} pane={pane} />
+        // The split off, the question has the screen and its title row leads with Back.
+        <BankSplit list={split === "vertical" ? list("vertical", true) : undefined} pane={pane} />
       ) : (
         <BankSplit list={list(split)} pane={split === "vertical" && pane} fold={{ size: 420, min: 320, max: 640 }} />
       )}

@@ -1,10 +1,10 @@
 "use client"
 
 import * as React from "react"
-import { ArrowLeft, Check, Copy, ExternalLink, Forward as ForwardIcon, PenSquare, Reply as ReplyIcon, RotateCcw, Search, Star, Trash2, UserRound, X } from "lucide-react"
+import { ArrowLeft, Check, Copy, ExternalLink, Forward as ForwardIcon, PenSquare, Reply as ReplyIcon, RotateCcw, Star, Trash2, UserRound } from "lucide-react"
 
 import { agent as findAgent, maxRounds } from "@/lib/agents/registry"
-import { addressFor, findAddress, isPerson, isUnread, loadThreads, messageId, nameOf, newThread, reply, running, runners, saveThreads, settle, shownRecipients, snippet, threadCost, when, type Attached, type Folder, type Message, type Thread } from "@/lib/agents/inbox"
+import { addressFor, findAddress, inFolder, isPerson, isUnread, loadThreads, matches, messageId, nameOf, newThread, reply, running, runners, saveThreads, settle, shownRecipients, snippet, teaser, threadCost, when, type Attached, type Folder, type Message, type Thread } from "@/lib/agents/inbox"
 import { emptyRun, runAgent, type RunTurn } from "@/lib/agents/run-client"
 import { HISTORY } from "@/lib/agents/history"
 import { PENDING_DRAFT } from "@/lib/agents/pending-draft"
@@ -13,9 +13,9 @@ import { cn } from "@/lib/utils"
 import { ADMIN_USER } from "@/components/admin/account-footer"
 import { SaveToDrive } from "@/components/connectors/save-to-drive"
 import { Prose, RunSteps } from "@/app/agents/transcript"
-import { BlockShell } from "@/components/policy/block-shell"
-import { PathBar } from "@/components/create/path-bar"
-import { InboxRail } from "@/registry/blocks/sidebar-09/components/app-sidebar"
+import { BankFrame } from "@/components/bank/bank-frame"
+import { CardList, type Card, type Split } from "@/components/bank/card-list"
+import { InboxRail, THREAD_DRAG } from "@/registry/blocks/sidebar-09/components/app-sidebar"
 import { Compose, EMPTY_DRAFT, type Draft } from "@/registry/blocks/sidebar-09/components/compose"
 import { ComposeWindow } from "@/registry/blocks/sidebar-09/components/compose-window"
 import { TemplateList } from "@/registry/blocks/sidebar-09/components/template-list"
@@ -24,11 +24,11 @@ import { isReportType, isTrace, reportBody } from "@/lib/agents/report-modes"
 import { attachmentMeta, reportFor, save } from "@/lib/agents/report-pdf"
 import { AttachmentGroup } from "@/registry/blocks/sidebar-09/components/attachment"
 import { TraceReport } from "@/registry/blocks/sidebar-09/components/trace-report"
-import { Marker, ThreadList, type ListTab, type Split } from "@/registry/blocks/sidebar-09/components/thread-list"
-import { useLocal } from "@/lib/policy/use-local"
+import { Marker, TITLES, type ListTab } from "@/registry/blocks/sidebar-09/components/thread-list"
 import { Progress } from "@govblock/ui/components/progress"
 import { Avatar, AvatarFallback, AvatarImage } from "@govblock/ui/components/ny4/avatar"
 import { Button } from "@govblock/ui/components/nova/button"
+import { DropdownMenuItem, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator } from "@govblock/ui/components/ny4/dropdown-menu"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@govblock/ui/components/ny4/resizable"
 import { Separator } from "@govblock/ui/components/ny4/separator"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/ny4/tooltip"
@@ -164,17 +164,20 @@ export default function Page() {
   const [sent, setSent] = React.useState<string | null>(null)
   // What the real send did: who was mailed, how many the allowlist held.
   const [mailNote, setMailNote] = React.useState<string | null>(null)
-  // The header search: closed it is an icon; open it filters the list as you type.
-  const [searching, setSearching] = React.useState(false)
+  // The list bar's search: a press on the bar's empty run opens it; it filters the list as you type.
   const [query, setQuery] = React.useState("")
+  // The rows' boxes, Gmail's selection.
+  const [checked, setChecked] = React.useState<Set<string>>(() => new Set())
   // Messages folded to their one-line state, Gmail's collapse. Fresh per thread.
   const [folded, setFolded] = React.useState<Set<string>>(() => new Set())
   // The reply card's recipient row: a summary line until clicked, then the editable To/Cc/Bcc.
   const [editingTo, setEditingTo] = React.useState(false)
   const [copied, setCopied] = React.useState<string | null>(null)
   // The list alone, or the list beside the reading pane (Brendan, 2026-09-07:
-  // Gmail's split toggle). Kept in this browser with the threads.
-  const [split, setSplit] = useLocal<Split>("govblock:inbox:split", "vertical")
+  // Gmail's split toggle). America Thinks' anatomy since 2026-10-31 (Brendan):
+  // the rows alone on load, a thread opening beside the list, the kebab's No
+  // split giving it the screen, and Back going one layer up.
+  const [split, setSplit] = React.useState<Split>("none")
   const [, setTick] = React.useState(0)
 
   React.useEffect(() => {
@@ -412,6 +415,19 @@ export default function Page() {
 
   const open = threads.find((thread) => thread.id === selected) ?? null
 
+  // The open folder's threads, through the search and the unread filter.
+  const shown = React.useMemo(
+    () => threads.filter((thread) => inFolder(thread, folder)).filter((thread) => matches(thread, query)).filter((thread) => tab === "all" || isUnread(thread)),
+    [threads, folder, query, tab]
+  )
+  const ids = React.useMemo(() => shown.map((thread) => thread.id), [shown])
+  const byId = React.useMemo(() => new Map(threads.map((thread) => [thread.id, thread])), [threads])
+  const openThread = (id: string) => {
+    setSelected(id)
+    setComposing(false)
+    setSplit("vertical")
+  }
+
   // Opening a thread marks its reply read, the way opening a message does.
   React.useEffect(() => {
     if (!open || composing || !isUnread(open) || open.status === "running") return
@@ -580,51 +596,15 @@ export default function Page() {
   const latestReply = open ? [...open.messages].reverse().find((message) => message.from !== "you" && message.body && !message.run?.failed) : undefined
 
   return (
-    // The shared block shell: the folders in its sidebar, the thread list and
-    // the reading pane sharing the inset pane beside it.
-    <BlockShell
-      defaultOpen={false}
-      title={
-        <div className="flex min-w-0 flex-1 items-center gap-1">
-          <PathBar crumbs={[{ label: "Agent Inbox" }]} folder onGo={() => {}} />
-          {/* The header search, trinity's pattern: an icon until picked, then the bar's remaining width; the x folds it back and clears the filter. */}
-          {searching ? (
-            <div className="ml-2 flex min-w-0 flex-1 items-center gap-2 rounded-full bg-muted px-3 py-1.5">
-              <Search className="size-4 shrink-0 text-muted-foreground" />
-              <input
-                autoFocus
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Escape") {
-                    setQuery("")
-                    setSearching(false)
-                  }
-                }}
-                placeholder="Search mail"
-                className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-              />
-              <button
-                type="button"
-                aria-label="Close the search"
-                className="shrink-0 text-muted-foreground hover:text-foreground"
-                onClick={() => {
-                  setQuery("")
-                  setSearching(false)
-                }}
-              >
-                <X className="size-4" />
-              </button>
-            </div>
-          ) : (
-            <Button variant="ghost" size="sm" aria-label="Search mail" className="ml-1" onClick={() => setSearching(true)}>
-              <Search className="size-4" />
-            </Button>
-          )}
-        </div>
-      }
-      sidebarWidth="calc(var(--spacing) * 56)"
-      contentClassName="overflow-hidden"
+    // America Thinks' frame (Brendan, 2026-10-31): bare, one bar all the way
+    // down, the folders in its rail, the thread list and the reading pane
+    // beside it.
+    <BankFrame
+      bare
+      tone="rail"
+      railDefaultOpen={false}
+      crumb="Inbox"
+      search={{ query, onQuery: setQuery, placeholder: "Search mail" }}
       rail={
         <InboxRail
           threads={threads}
@@ -632,6 +612,7 @@ export default function Page() {
           onFolder={(next) => {
             setFolder(next)
             setComposing(false)
+            setSelected(null)
           }}
           onCompose={startCompose}
           onNew={startRequest}
@@ -640,33 +621,100 @@ export default function Page() {
       }
     >
       {(() => {
-        const list = folder === "templates" ? (
-          <TemplateList onUse={fromTemplate} />
-        ) : (
-          <ThreadList
-            threads={threads}
-            folder={folder}
-            selected={selected}
-            tab={tab}
-            onTab={setTab}
-            onOpenThread={(id) => {
-              setSelected(id)
-              setComposing(false)
-            }}
-            onStar={(id) => patch(id, (t) => ({ ...t, starred: !t.starred }))}
-            onImportant={(id) => patch(id, (t) => ({ ...t, important: !t.important }))}
-            query={query}
-            onRefresh={() => setTick((n) => n + 1)}
-            onMarkAllRead={() => setThreads((current) => current.map((thread) => ({ ...thread, messages: thread.messages.map((message) => (message.from === "you" ? message : { ...message, unread: false })) })))}
-            onClear={() => {
-              window.localStorage.setItem(CLEARED, "1")
-              setThreads([])
-              setSelected(null)
-            }}
-            split={split}
-            onSplit={setSplit}
-          />
+        const cardOf = (id: string): Card => {
+          const thread = byId.get(id)
+          if (!thread) return { title: "" }
+          const who = folder === "sent" || folder === "drafts" ? `To: ${shownRecipients(thread).join(", ")}` : shownRecipients(thread).join(", ") || thread.agentName
+          return {
+            title: thread.subject,
+            hint: thread.subject,
+            from: who,
+            snippet: thread.status === "running" ? running(thread) : teaser(thread),
+            span: when(thread.updatedAt),
+            unread: isUnread(thread),
+            marks: {
+              column: checked.has(id),
+              atCap: false,
+              boxLabel: `Select ${thread.subject}`,
+              onColumn: () =>
+                setChecked((current) => {
+                  const next = new Set(current)
+                  if (next.has(id)) next.delete(id)
+                  else next.add(id)
+                  return next
+                }),
+              // A task still running or one that failed lights the arrow on its own.
+              important: Boolean(thread.important) || thread.status === "running" || thread.status === "failed",
+              onImportant: () => patch(id, (t) => ({ ...t, important: !t.important })),
+              pinned: Boolean(thread.starred),
+              onPin: () => patch(id, (t) => ({ ...t, starred: !t.starred })),
+            },
+            onDragStart: (event) => {
+              event.dataTransfer.setData(THREAD_DRAG, id)
+              event.dataTransfer.effectAllowed = "move"
+            },
+          }
+        }
+        // The thread list's toolbar, in the list kebab: the unread filter, the selection, refresh, mark read, clear.
+        const listMenu = (
+          <>
+            <DropdownMenuRadioGroup value={tab} onValueChange={(value) => setTab(value as ListTab)}>
+              <DropdownMenuRadioItem value="all">All {TITLES[folder].toLowerCase()}</DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="unread">Unread only</DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setChecked(new Set(ids))}>Select all</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setChecked(new Set())}>Select none</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setChecked(new Set(shown.filter(isUnread).map((t) => t.id)))}>Select unread</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setChecked(new Set(shown.filter((t) => t.starred).map((t) => t.id)))}>Select starred</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setTick((n) => n + 1)}>Refresh</DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => setThreads((current) => current.map((thread) => ({ ...thread, messages: thread.messages.map((message) => (message.from === "you" ? message : { ...message, unread: false })) })))}
+            >
+              Mark all as read
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              variant="destructive"
+              onClick={() => {
+                window.localStorage.setItem(CLEARED, "1")
+                setThreads([])
+                setSelected(null)
+              }}
+            >
+              Clear every thread
+            </DropdownMenuItem>
+          </>
         )
+        const list =
+          folder === "templates" ? (
+            <TemplateList onUse={fromTemplate} />
+          ) : (
+            <CardList
+              ids={ids}
+              card={cardOf}
+              selected={selected}
+              onOpen={openThread}
+              split={split}
+              onSplit={setSplit}
+              query={query}
+              onQuery={setQuery}
+              placeholder="Search mail"
+              menu={listMenu}
+              compact
+              loading={false}
+              error={null}
+              empty={
+                query.trim()
+                  ? `Nothing matching “${query.trim()}”.`
+                  : tab === "unread"
+                    ? "Nothing unread."
+                    : folder === "inbox"
+                      ? "Nothing has arrived yet. Compose a task and the reply lands here."
+                      : "Nothing here."
+              }
+            />
+          )
         // Gmail's empty reading pane: nothing chosen, how much of this
         // browser's store the threads take, and the small print at the foot.
         const bytes = new Blob([JSON.stringify(threads)]).size
@@ -698,15 +746,19 @@ export default function Page() {
         )
         const showList = split === "vertical" || (!open && !composing)
         const showPane = split === "vertical" || open || composing
-        const back = split === "none" && (
-          <Tip label="Back to the list">
+        // Back, one layer up: the full screen to the split, the split to the rows alone.
+        const back = (open || composing) && (
+          <Tip label="Back">
             <Button
               variant="ghost"
               size="sm"
-              aria-label="Back to the list"
+              aria-label="Back"
               onClick={() => {
-                setSelected(null)
-                setComposing(false)
+                if (split === "vertical") {
+                  setSelected(null)
+                  setComposing(false)
+                  setSplit("none")
+                } else setSplit("vertical")
               }}
             >
               <ArrowLeft className="size-4" />
@@ -1037,8 +1089,7 @@ export default function Page() {
                 className="font-medium text-background/80 hover:text-background"
                 onClick={() => {
                   setFolder("sent")
-                  setSelected(justSent.id)
-                  setComposing(false)
+                  openThread(justSent.id)
                   setSent(null)
                 }}
               >
@@ -1063,6 +1114,6 @@ export default function Page() {
           </div>
         )
       })()}
-    </BlockShell>
+    </BankFrame>
   )
 }

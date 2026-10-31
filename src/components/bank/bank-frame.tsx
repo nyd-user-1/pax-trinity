@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { PanelLeftIcon, Search, X } from "lucide-react"
+import { PanelLeftClose, PanelLeftIcon, PanelLeftOpen, Search, X } from "lucide-react"
 import type { PanelImperativeHandle } from "react-resizable-panels"
 
 import { cn } from "@/lib/utils"
@@ -25,6 +25,18 @@ import { TooltipProvider } from "@govblock/ui/components/ny4/tooltip"
 
 /** The rail's state, for a control below the frame to show and hide it. */
 export const BankRail = React.createContext<{ open: boolean; toggle: () => void } | null>(null)
+
+/** The sidebar's toggle in a bar below a bare frame: the list's bar, or a page's in its place. */
+export function RailToggle() {
+  const rail = React.useContext(BankRail)
+  if (!rail) return null
+  const label = rail.open ? "Hide sidebar" : "Show sidebar"
+  return (
+    <Button variant="ghost" size="icon-sm" aria-label={label} title={label} onClick={rail.toggle}>
+      {rail.open ? <PanelLeftClose className="size-4" /> : <PanelLeftOpen className="size-4" />}
+    </Button>
+  )
+}
 
 /** The dress below the frame. "rail" (Brendan's experiment, 2026-10-29) lays
  *  the rail's look across the list and the pane: the mist ground, rows in the

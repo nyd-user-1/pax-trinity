@@ -18,12 +18,14 @@ export type MarkState = {
   onImportant: () => void
   pinned: boolean
   onPin: () => void
+  /** What the box does here: a compare-grid column on America Thinks, a selection in the Inbox. */
+  boxLabel?: string
 }
 
-export function Marks({ column, atCap, onColumn, important, onImportant, pinned, onPin }: MarkState) {
+export function Marks({ column, atCap, onColumn, important, onImportant, pinned, onPin, boxLabel = "Add as column" }: MarkState) {
   return (
     <>
-      <Checkbox aria-label="Add as column" checked={column} disabled={atCap} title={atCap ? "Four columns at most" : undefined} onCheckedChange={onColumn} />
+      <Checkbox aria-label={boxLabel} checked={column} disabled={atCap} title={atCap ? "Four columns at most" : undefined} onCheckedChange={onColumn} />
       <button type="button" aria-pressed={important} aria-label={important ? "Marked important" : "Mark as important"} title={important ? "Marked important" : "Mark as important"} onClick={onImportant} className="shrink-0">
         <ImportantIcon className={cn("size-4 shrink-0", important ? "fill-amber-400 text-amber-400" : "fill-transparent text-muted-foreground/50")} />
       </button>

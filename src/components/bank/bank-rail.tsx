@@ -66,6 +66,7 @@ export function RailRow({
   count,
   dim,
   menu,
+  drop,
 }: {
   on?: boolean
   onClick?: () => void
@@ -78,12 +79,31 @@ export function RailRow({
   dim?: boolean
   /** The row kebab's items; present, the count gives way to the kebab on hover. */
   menu?: React.ReactNode
+  /** A drop target: an item dragged with this data type lands here (the Inbox's thread onto a folder). */
+  drop?: { type: string; onDrop: (value: string) => void }
 }) {
   const [menuOpen, setMenuOpen] = React.useState(false)
+  const [over, setOver] = React.useState(false)
   const dress = cn(
     "group relative flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm outline-none transition-[color,background-color,box-shadow]",
-    on ? "bg-pax2-raised font-semibold text-pax2-blue shadow-e1" : "text-slate-500 hover:bg-pax2-raised/70 hover:text-pax2-blue hover:shadow-e1"
+    on ? "bg-pax2-raised font-semibold text-pax2-blue shadow-e1" : "text-slate-500 hover:bg-pax2-raised/70 hover:text-pax2-blue hover:shadow-e1",
+    over && "ring-2 ring-pax2-light-blue"
   )
+  const dropProps = drop ? {
+    onDragOver: (event: React.DragEvent) => {
+      if (!event.dataTransfer.types.includes(drop.type)) return
+      event.preventDefault()
+      event.dataTransfer.dropEffect = "move"
+      setOver(true)
+    },
+    onDragLeave: () => setOver(false),
+    onDrop: (event: React.DragEvent) => {
+      event.preventDefault()
+      setOver(false)
+      const value = event.dataTransfer.getData(drop.type)
+      if (value) drop.onDrop(value)
+    },
+  } : {}
   const inner = (
     <>
       {on && <span aria-hidden className="absolute top-1/2 left-0 h-4 w-[3px] -translate-y-1/2 rounded-full bg-pax2-light-blue" />}
@@ -102,11 +122,11 @@ export function RailRow({
     </>
   )
   const row = href ? (
-    <Link href={href} className={dress}>
+    <Link href={href} className={dress} {...dropProps}>
       {inner}
     </Link>
   ) : (
-    <button type="button" onClick={onClick} aria-current={on ? "true" : undefined} className={dress}>
+    <button type="button" onClick={onClick} aria-current={on ? "true" : undefined} className={dress} {...dropProps}>
       {inner}
     </button>
   )

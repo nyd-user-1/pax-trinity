@@ -1,19 +1,16 @@
 "use client"
 
-import * as React from "react"
-import Link from "next/link"
 import { ClipboardList, File, FlaskConical, Inbox, LayoutTemplate, PenSquare, Send, Star, Trash2 } from "lucide-react"
 
 import { unreadIn, type Folder, type Thread } from "@/lib/agents/inbox"
-import { cn } from "@/lib/utils"
-import { SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@govblock/ui/components/ny4/sidebar"
+import { BankRail, RailGroup, RailRow } from "@/components/bank/bank-rail"
 
 // The Agentic Inbox's rail: Compose above the folders, where mail clients put
-// it, and the folders with their unread counts. Since 2026-09-03 it is the
-// contents of the shared block shell's sidebar (`BlockShell`), the same
-// sidebar every block wears, rather than a sidebar of its own — so the rail
-// has room for the folder names, and the thread list and the reading pane
-// share the inset pane beside it.
+// it, and the folders with their unread counts. Since 2026-10-31 (Brendan) it
+// is drawn in the rail parts America Thinks and Survey use (bank-rail.tsx),
+// in the same frame, so the three inboxes' rails look alike; the folders, their
+// icons and their counts are the Inbox's own. A thread dragged from the list
+// drops onto a folder.
 
 const FOLDERS: { title: string; icon: typeof Inbox; folder: Folder }[] = [
   { title: "Inbox", icon: Inbox, folder: "inbox" },
@@ -23,6 +20,9 @@ const FOLDERS: { title: string; icon: typeof Inbox; folder: Folder }[] = [
   { title: "Templates", icon: LayoutTemplate, folder: "templates" },
   { title: "Trash", icon: Trash2, folder: "trash" },
 ]
+
+/** The data type a dragged thread carries. */
+export const THREAD_DRAG = "application/x-thread-id"
 
 export function InboxRail({
   threads,
@@ -41,78 +41,29 @@ export function InboxRail({
   /** A list row dragged onto a folder lands here. */
   onDropThread: (id: string, folder: Folder) => void
 }) {
-  const [over, setOver] = React.useState<Folder | null>(null)
   return (
-    <>
-      {/* The dashboard rail's header: the word alone (Brendan, 2026-09-07: "both should match the /dashboard sidebar"). */}
-      <SidebarHeader className="flex-row items-center gap-2.5 p-4">
-        <Link href="/inbox" className="flex items-center gap-2.5">
-          <p className="text-xl font-semibold">Inbox</p>
-        </Link>
-      </SidebarHeader>
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton onClick={onCompose} className="text-primary">
-                  <PenSquare />
-                  <span>Compose</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton onClick={() => onNew("test")}>
-                  <FlaskConical />
-                  <span>New test</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton onClick={() => onNew("survey")}>
-                  <ClipboardList />
-                  <span>New survey</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel>Folders</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {FOLDERS.map((item) => {
-                const unread = unreadIn(threads, item.folder)
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      onClick={() => onFolder(item.folder)}
-                      isActive={folder === item.folder}
-                      title={unread ? `${item.title} (${unread})` : item.title}
-                      onDragOver={(event) => {
-                        if (!event.dataTransfer.types.includes("application/x-thread-id")) return
-                        event.preventDefault()
-                        event.dataTransfer.dropEffect = "move"
-                        setOver(item.folder)
-                      }}
-                      onDragLeave={() => setOver((current) => (current === item.folder ? null : current))}
-                      onDrop={(event) => {
-                        event.preventDefault()
-                        setOver(null)
-                        const id = event.dataTransfer.getData("application/x-thread-id")
-                        if (id) onDropThread(id, item.folder)
-                      }}
-                      className={cn(over === item.folder && "bg-accent ring-2 ring-primary/40")}
-                    >
-                      <item.icon />
-                      <span>{item.title}</span>
-                      {unread > 0 && <span className="ml-auto text-xs tabular-nums">{unread}</span>}
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-    </>
+    <BankRail title="Inbox">
+      <RailGroup>
+        <RailRow onClick={onCompose} icon={PenSquare} label="Compose" />
+        <RailRow onClick={() => onNew("test")} icon={FlaskConical} label="New test" />
+        <RailRow onClick={() => onNew("survey")} icon={ClipboardList} label="New survey" />
+      </RailGroup>
+      <RailGroup label="Folders">
+        {FOLDERS.map((item) => {
+          const unread = unreadIn(threads, item.folder)
+          return (
+            <RailRow
+              key={item.title}
+              on={folder === item.folder}
+              onClick={() => onFolder(item.folder)}
+              icon={item.icon}
+              label={item.title}
+              count={unread > 0 ? unread : null}
+              drop={{ type: THREAD_DRAG, onDrop: (id) => onDropThread(id, item.folder) }}
+            />
+          )
+        })}
+      </RailGroup>
+    </BankRail>
   )
 }

@@ -1,6 +1,7 @@
 "use client"
 
 import { addressFor } from "@/lib/agents/inbox"
+import { RailToggle } from "@/components/bank/bank-frame"
 import { TEMPLATE_KINDS, TEMPLATES, type Template } from "@/lib/agents/templates"
 import { Face } from "@/registry/blocks/sidebar-09/components/compose"
 import { ScrollArea } from "@govblock/ui/components/ny4/scroll-area"
@@ -11,10 +12,9 @@ import { ScrollArea } from "@govblock/ui/components/ny4/scroll-area"
 export function TemplateList({ onUse }: { onUse: (template: Template) => void }) {
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex h-[52px] shrink-0 items-center border-b px-4">
-        <span className="ml-auto px-2 text-xs text-muted-foreground tabular-nums">
-          1–{TEMPLATES.length} of {TEMPLATES.length}
-        </span>
+      {/* One bar, as the other folders' list has: the sidebar's toggle (Brendan, 2026-10-31). */}
+      <div className="flex h-[52px] shrink-0 items-center gap-1 border-b px-3">
+        <RailToggle />
       </div>
       <ScrollArea className="min-h-0 flex-1">
         {TEMPLATE_KINDS.map((kind) => (
