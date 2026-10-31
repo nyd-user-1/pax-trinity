@@ -362,6 +362,15 @@ export function DiscussionPanel({ onClose: close, admin = false }: { onClose: ()
     window.addEventListener(STUDIO_OPEN, go)
     return () => window.removeEventListener(STUDIO_OPEN, go)
   }, [admin])
+  // The Studio opens at the half (Brendan, 2026-10-31), from Chat's Open in Studio and from Tools alike. A frame
+  // later, so it lands after the shell's opening size (every panel opens at the third).
+  React.useEffect(() => {
+    if (view !== "studio") return
+    const id = requestAnimationFrame(() => setWide(true))
+    return () => cancelAnimationFrame(id)
+    // setWide is the shell's; only arriving on the Studio widens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view])
   // Lift Analysis' Back: open on its cards, now or as the panel mounts.
   React.useEffect(() => {
     const go = () => takeToolsOnCards() && setViewState((keptView = "lift"))
