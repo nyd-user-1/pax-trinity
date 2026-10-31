@@ -66,14 +66,16 @@ let keptStudio: string | null = null
 const LOGO: Partial<Record<View, string>> = { slack: "/logos/slack.png", discord: "/logos/discord-icon.svg" }
 const TITLE: Record<View, string> = { welcome: "Tools", blocks: "Blocks", chat: "Chat", devtools: "Dev Tools", edits: "Edits", lift: "Lift Analysis", reports: "Reports", housekeeping: "Dev Comments", inspector: "Inspector", theme: "Theme", studio: "Studio", slack: "Slack", discord: "Discord" }
 
+/** A Tools row, its icon in the sidebar's (Brendan, 2026-10-31): 18px at a 1.75 stroke, filled raised and lavender
+ *  on hover, popping as the sidebar's icons do (icon-pop, pax2.css), and the row lifting with the sidebar's shadow. */
 function Row({ icon, label, sub, onClick }: { icon: React.ReactNode; label: string; sub?: string; onClick: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="group flex w-full items-center gap-3 border-b border-slate-200 px-3 py-3 text-left transition-[color,background-color] hover:bg-pax2-lift/70"
+      className="group relative flex w-full items-center gap-3 border-b border-slate-200 px-3 py-3 text-left transition-[color,background-color,box-shadow] hover:z-10 hover:bg-pax2-lift/70 hover:shadow-e1"
     >
-      <span className="flex size-4 shrink-0 items-center justify-center text-slate-500 transition-colors group-hover:text-pax2-blue [&_svg]:fill-pax2-raised [&_svg]:transition-colors group-hover:[&_svg]:fill-pax2-lavender">{icon}</span>
+      <span className="icon-pop flex size-[18px] shrink-0 items-center justify-center text-slate-500 transition-colors group-hover:text-pax2-blue [&_img]:size-[18px] [&_svg]:size-[18px] [&_svg]:fill-pax2-raised [&_svg]:stroke-[1.75] [&_svg]:transition-colors group-hover:[&_svg]:fill-pax2-lavender">{icon}</span>
       <span className="flex-1">
         <span className="block text-[15px] font-medium text-slate-600 group-hover:text-pax2-blue">{label}</span>
         {sub && <span className="block text-xs text-slate-400">{sub}</span>}
@@ -410,22 +412,22 @@ export function DiscussionPanel({ onClose: close, admin = false }: { onClose: ()
       <div className={cn("flex min-h-0 flex-1 flex-col", view === "welcome" && "overflow-y-auto")}>
         {view === "welcome" && (
           <div className="flex flex-col px-3 pt-1">
-            <Row icon={<LayoutGrid className="size-4" />} label="Blocks" sub="Shorts and blocks you've saved" onClick={() => setView("blocks")} />
-            <Row icon={<MessagesSquare className="size-4" />} label="Chat" sub="Ask about the scores, scripts and results" onClick={() => setView("chat")} />
-            {admin && <Row icon={<Wrench className="size-4" />} label="Dev Tools" sub="Comment, inspect, and more" onClick={() => setView("devtools")} />}
+            <Row icon={<LayoutGrid />} label="Blocks" sub="Shorts and blocks you've saved" onClick={() => setView("blocks")} />
+            <Row icon={<MessagesSquare />} label="Chat" sub="Ask about the scores, scripts and results" onClick={() => setView("chat")} />
+            {admin && <Row icon={<Wrench />} label="Dev Tools" sub="Comment, inspect, and more" onClick={() => setView("devtools")} />}
             {/* A to Z, Slack and Discord at the foot (Brendan, 2026-10-31). */}
-            <Row icon={<SquarePen className="size-4" />} label="Edits" sub="The team's thread on the clip playing" onClick={() => setView("edits")} />
-            <Row icon={<ChartColumn className="size-4" />} label="Lift Analysis" sub="Every deliverable the tests measured" onClick={() => setView("lift")} />
-            <Row icon={<Video className="size-4" />} label="Record" sub="Write a script, record it or upload a video" onClick={() => router.push("/recording")} />
-            <Row icon={<FileText className="size-4" />} label="Reports" sub="Every tested clip's readout" onClick={() => setView("reports")} />
-            {admin && <Row icon={<Clapperboard className="size-4" />} label="Studio" sub="Templates, graphics and saved versions" onClick={() => setView("studio")} />}
-            {themeRow && <Row icon={<Palette className="size-4" />} label="Theme" sub="Six themes, and every colour in them" onClick={() => setView("theme")} />}
+            <Row icon={<SquarePen />} label="Edits" sub="The team's thread on the clip playing" onClick={() => setView("edits")} />
+            <Row icon={<ChartColumn />} label="Lift Analysis" sub="Every deliverable the tests measured" onClick={() => setView("lift")} />
+            <Row icon={<Video />} label="Record" sub="Write a script, record it or upload a video" onClick={() => router.push("/recording")} />
+            <Row icon={<FileText />} label="Reports" sub="Every tested clip's readout" onClick={() => setView("reports")} />
+            {admin && <Row icon={<Clapperboard />} label="Studio" sub="Templates, graphics and saved versions" onClick={() => setView("studio")} />}
+            {themeRow && <Row icon={<Palette />} label="Theme" sub="Six themes, and every colour in them" onClick={() => setView("theme")} />}
             {admin && (
               <>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <Row icon={<img src="/logos/slack.png" alt="" className="size-4 object-contain" />} label="Slack" sub={status(linked?.slack)} onClick={() => setView("slack")} />
+                <Row icon={<img src="/logos/slack.png" alt="" className="object-contain" />} label="Slack" sub={status(linked?.slack)} onClick={() => setView("slack")} />
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <Row icon={<img src="/logos/discord-icon.svg" alt="" className="size-4 object-contain" />} label="Discord" sub={status(linked?.discord)} onClick={() => setView("discord")} />
+                <Row icon={<img src="/logos/discord-icon.svg" alt="" className="object-contain" />} label="Discord" sub={status(linked?.discord)} onClick={() => setView("discord")} />
               </>
             )}
           </div>
@@ -436,9 +438,9 @@ export function DiscussionPanel({ onClose: close, admin = false }: { onClose: ()
         {view === "reports" && <ClipReports onNav={setSub} />}
         {view === "devtools" && admin && (
           <div className="flex flex-col px-3 pt-1">
-            <Row icon={<MessageSquareText className="size-4" />} label="Dev Comments" sub="Comments on the app, and direct messages" onClick={() => setView("housekeeping")} />
-            <Row icon={<SquareDashedMousePointer className="size-4" />} label="Inspector" sub="The classifier, and your own notes" onClick={() => setView("inspector")} />
-            <Row icon={<Crosshair className="size-4" />} label="Sonar" sub="Point at an element and comment on it" onClick={() => void togglePointer()} />
+            <Row icon={<MessageSquareText />} label="Dev Comments" sub="Comments on the app, and direct messages" onClick={() => setView("housekeeping")} />
+            <Row icon={<SquareDashedMousePointer />} label="Inspector" sub="The classifier, and your own notes" onClick={() => setView("inspector")} />
+            <Row icon={<Crosshair />} label="Sonar" sub="Point at an element and comment on it" onClick={() => void togglePointer()} />
           </div>
         )}
         {view === "housekeeping" && <HousekeepingView />}
