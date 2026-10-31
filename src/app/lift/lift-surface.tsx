@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { Combobox } from "@base-ui/react/combobox"
-import { ArrowDown, ArrowDownUp, ArrowUp, ChartColumn, Check, CircleDashed, Copy, Download, Folder, Funnel, GripVerticalIcon, Info, ListFilter, Loader2, PanelLeftClose, PanelLeftOpen, SeparatorVertical, Share, Spline } from "lucide-react"
+import { ArrowDown, ArrowDownUp, ArrowUp, ChartColumn, Check, CircleDashed, Copy, Download, Folder, Funnel, GripVerticalIcon, Info, Loader2, PanelLeftClose, PanelLeftOpen, SeparatorVertical, Share, Spline } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { BankFrame, BankRail as RailState } from "@/components/bank/bank-frame"
@@ -19,6 +19,9 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@govblock/ui/components/ny4/dropdown-menu"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/ny4/tooltip"
@@ -87,9 +90,11 @@ const toggled = (list: string[], x: string) => (list.includes(x) ? list.filter((
 
 const TOOL = "flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[13px] text-foreground/80 outline-none transition-colors hover:bg-muted hover:text-pax2-blue focus-visible:bg-muted aria-expanded:bg-muted"
 const TOOL_ICON = "size-3.5 text-muted-foreground"
-const TH = "border-b px-3 py-2 text-left text-[13px] font-medium whitespace-nowrap"
+const TH = "group/th border-b px-3 py-2 text-left text-[13px] font-medium whitespace-nowrap"
 const TD = "border-b px-3 py-2 align-middle text-[13px]"
 const HEAD_ICON = "shrink-0 text-muted-foreground hover:text-foreground aria-expanded:text-foreground"
+// A header's info circle shows while the header is hovered or the circle has focus (Brendan, 2026-10-31).
+const HEAD_INFO = `${HEAD_ICON} opacity-0 transition-opacity group-hover/th:opacity-100 focus-visible:opacity-100`
 /** A cell's button: the grid's focus frame, no pressed state; the row carries the selection. */
 const FRAME = "block w-full rounded-[3px] text-left tabular-nums focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pax2-light-blue"
 /** A heatmap cell's button: the fill is the cell, the focus frame inside it. */
@@ -415,7 +420,7 @@ export function LiftSurface() {
     if (about)
       openAside({
         key: ABOUT_KEY,
-        title: "About Result",
+        title: "Lift Analysis",
         flush: true,
         body: <AboutResult key={`${about.entry}\u0001${about.metric}\u0001${about.seg}`} pick={about} files={files} folder={source} folders={SOURCES} complete={complete} place={place} />,
       })
@@ -500,7 +505,17 @@ export function LiftSurface() {
     </BankRail>
   )
 
-  const filterCount = periodsOff.length ? 1 : 0
+  // The toolbar's Filter holds every filter (Brendan, 2026-10-31): the waves, each metric's, each Archive column's.
+  const filterCount = (periodsOff.length ? 1 : 0) + Object.keys(metricFilter).length + Object.values(colFilter).filter((v) => v.length).length
+  // An Archive column's values in the column's own order.
+  const adValues = (c: AdColumn) => {
+    const order = new Map<string, string>()
+    for (const o of read?.options ?? []) {
+      const a = AD_INFO.get(o)
+      if (a) order.set(c.value(a), c.order(a))
+    }
+    return [...order.keys()].sort((x, y) => order.get(x)!.localeCompare(order.get(y)!))
+  }
   const segGroups = read ? [{ dim: null as string | null, name: "Everyone", vals: [null as string | null] }, ...[...read.dims].map(([d, vs]) => ({ dim: d as string | null, name: dimLabel(d), vals: vs as (string | null)[] }))] : []
   const toolbar = (
     <div className="flex h-11 shrink-0 items-center gap-0.5 border-b px-3">
@@ -623,6 +638,69 @@ export function LiftSurface() {
               {p.name !== p.dates && <span className="ml-4 text-xs text-muted-foreground">{p.dates}</span>}
             </DropdownMenuCheckboxItem>
           ))}
+          {/* Each metric's filter and each Archive column's, which were funnels in the column heads. */}
+          {!!view?.metrics.length && <DropdownMenuSeparator />}
+          {view?.metrics.map((m) => (
+            <DropdownMenuSub key={m}>
+              <DropdownMenuSubTrigger>
+                <span className="flex-1">{metricShort(m)}</span>
+                {metricFilter[m] && <span className="ml-4 text-xs text-muted-foreground">{metricFilter[m] === "measured" ? "Measured" : "Clears its test"}</span>}
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className="w-max min-w-44">
+                <DropdownMenuRadioGroup
+                  value={metricFilter[m] ?? "all"}
+                  onValueChange={(v) =>
+                    setMetricFilter((p) => {
+                      const next = { ...p }
+                      if (v === "all") delete next[m]
+                      else next[m] = v as "measured" | "significant"
+                      return next
+                    })
+                  }
+                >
+                  <DropdownMenuRadioItem value="all">All</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="measured">Measured</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="significant">Clears its test</DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+          ))}
+          {!!view?.adCols.length && <DropdownMenuSeparator />}
+          {view?.adCols.map((c) => {
+            const off = colFilter[c.key] ?? []
+            return (
+              <DropdownMenuSub key={c.key}>
+                <DropdownMenuSubTrigger>
+                  <span className="flex-1">{c.name}</span>
+                  {off.length > 0 && <span className="ml-4 text-xs text-muted-foreground">{off.length} hidden</span>}
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="max-h-80 w-max min-w-44 overflow-y-auto">
+                  <DropdownMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault()
+                      setColFilter((p) => ({ ...p, [c.key]: [] }))
+                    }}
+                  >
+                    Show all
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  {adValues(c).map((v) => (
+                    <DropdownMenuCheckboxItem key={v} checked={!off.includes(v)} onSelect={(e) => e.preventDefault()} onCheckedChange={() => setColFilter((p) => ({ ...p, [c.key]: toggled(p[c.key] ?? [], v) }))}>
+                      {v}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+            )
+          })}
+          {archive && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuCheckboxItem checked={grouped} onSelect={(e) => e.preventDefault()} onCheckedChange={() => setGrouped((g) => !g)}>
+                Group by test
+              </DropdownMenuCheckboxItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -695,7 +773,7 @@ export function LiftSurface() {
   )
 
   const ariaSort = (by: string) => (view?.by === by ? (view.dir === 1 ? "ascending" : "descending") : undefined)
-  // A header's label sorts its column on a click (again, the other way); its ListFilter opens its filter.
+  // A header's label sorts its column on a click (again, the other way); its filters are the toolbar's Filter.
   const defaultDir = (key: string): 1 | -1 => (key === BY_NAME || (key.startsWith("@") && key !== "@tested") ? 1 : -1)
   const sortBy = (key: string) => setSort({ by: key, dir: view?.by === key ? (-view.dir as 1 | -1) : defaultDir(key) })
   const sortLabel = (key: string, label: string) => (
@@ -706,19 +784,6 @@ export function LiftSurface() {
       {view?.by === key && (view.dir === 1 ? <ArrowUp aria-hidden className="size-3.5 shrink-0" /> : <ArrowDown aria-hidden className="size-3.5 shrink-0" />)}
     </button>
   )
-  const filterMenu = (active: boolean, items: React.ReactNode) => (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button type="button" aria-label="Filter" className={cn(HEAD_ICON, active && "text-foreground")}>
-          <ListFilter className="size-4" />
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="max-h-80 w-max min-w-44 overflow-y-auto">
-        {items}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
-
   const cols = view ? view.adCols.length + view.metrics.length + (view.emotion ? 1 : 0) : 0
 
   // The Attributes view (the Archive only): each coded trait's pooled lift, ads with it less ads without, per metric.
@@ -792,13 +857,6 @@ export function LiftSurface() {
       <span className="flex items-center gap-2">
         {sortLabel(BY_NAME, "Content")}
         <span className="ml-auto flex items-center gap-2">
-          {archive &&
-            filterMenu(
-              grouped,
-              <DropdownMenuCheckboxItem checked={grouped} onSelect={(e) => e.preventDefault()} onCheckedChange={() => setGrouped((g) => !g)}>
-                Group by test
-              </DropdownMenuCheckboxItem>
-            )}
           <Resize width={widths.treatment} onWidth={(w) => setWidths((p) => ({ ...p, treatment: w }))} />
         </span>
       </span>
@@ -817,44 +875,12 @@ export function LiftSurface() {
   // The Archive's trait columns: each sorts on its label, filters on its values.
   const adColHeads =
     view &&
-    view.adCols.map((c) => {
-      const order = new Map<string, string>()
-      for (const o of read?.options ?? []) {
-        const a = AD_INFO.get(o)
-        if (a) order.set(c.value(a), c.order(a))
-      }
-      const values = [...order.keys()].sort((x, y) => order.get(x)!.localeCompare(order.get(y)!))
-      const off = colFilter[c.key] ?? []
-      return (
-        <th key={c.key} aria-sort={ariaSort(c.key)} className={cn(TH, "relative border-l")}>
-          <span className="flex items-center gap-2">
-            {sortLabel(c.key, c.name)}
-            <span className="ml-auto">
-              {filterMenu(
-                off.length > 0,
-                <>
-                  <DropdownMenuItem
-                    onSelect={(e) => {
-                      e.preventDefault()
-                      setColFilter((p) => ({ ...p, [c.key]: [] }))
-                    }}
-                  >
-                    Show all
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  {values.map((v) => (
-                    <DropdownMenuCheckboxItem key={v} checked={!off.includes(v)} onSelect={(e) => e.preventDefault()} onCheckedChange={() => setColFilter((p) => ({ ...p, [c.key]: toggled(p[c.key] ?? [], v) }))}>
-                      {v}
-                    </DropdownMenuCheckboxItem>
-                  ))}
-                </>
-              )}
-            </span>
-          </span>
-          <ColumnGrip onWidth={resizeMetric(c.key)} />
-        </th>
-      )
-    })
+    view.adCols.map((c) => (
+      <th key={c.key} aria-sort={ariaSort(c.key)} className={cn(TH, "relative border-l")}>
+        <span className="flex items-center gap-2">{sortLabel(c.key, c.name)}</span>
+        <ColumnGrip onWidth={resizeMetric(c.key)} />
+      </th>
+    ))
   const metricHeads = view && (
     <>
       {view.metrics.map((m, i) => (
@@ -865,34 +891,12 @@ export function LiftSurface() {
               {defs.get(m) && (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button type="button" aria-label={`About ${labels.get(m) ?? metricShort(m)}`} className={HEAD_ICON}>
+                    <button type="button" aria-label={`About ${labels.get(m) ?? metricShort(m)}`} className={HEAD_INFO}>
                       <Info className="size-4" />
                     </button>
                   </TooltipTrigger>
                   <TooltipContent className="max-w-72">{defs.get(m)}</TooltipContent>
                 </Tooltip>
-              )}
-              {filterMenu(
-                !!metricFilter[m],
-                <>
-                  <DropdownMenuRadioGroup
-                    value={metricFilter[m] ?? "all"}
-                    onValueChange={(v) =>
-                      setMetricFilter((p) => {
-                        const next = { ...p }
-                        if (v === "all") delete next[m]
-                        else next[m] = v as "measured" | "significant"
-                        return next
-                      })
-                    }
-                  >
-                    <DropdownMenuRadioItem value="all">All</DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="measured">Measured</DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="significant">Clears its test</DropdownMenuRadioItem>
-                  </DropdownMenuRadioGroup>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onSelect={() => setMetricsOff((prev) => [...prev, m])}>Hide this metric</DropdownMenuItem>
-                </>
               )}
             </span>
           </span>
@@ -907,7 +911,7 @@ export function LiftSurface() {
             <span className="ml-auto flex items-center gap-2">
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <button type="button" aria-label={archive ? "About Emotional Appeal" : "About Emotional Response"} className={HEAD_ICON}>
+                  <button type="button" aria-label={archive ? "About Emotional Appeal" : "About Emotional Response"} className={HEAD_INFO}>
                     <Info className="size-4" />
                   </button>
                 </TooltipTrigger>
@@ -1084,7 +1088,7 @@ export function LiftSurface() {
                 <span className="ml-auto flex items-center">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <button type="button" aria-label={`About the ${metricShort(m)} attributes`} className={HEAD_ICON}>
+                      <button type="button" aria-label={`About the ${metricShort(m)} attributes`} className={HEAD_INFO}>
                         <Info className="size-4" />
                       </button>
                     </TooltipTrigger>
