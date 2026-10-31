@@ -16,7 +16,7 @@ const ID = /^[\w-]{8,64}$/
 
 /** First non-empty line of the markdown, its syntax stripped: the note's title. */
 const titleOf = (md: string) =>
-  (md.split("\n").map((l) => l.replace(/^[#>\-*+\s]+|\d+\.\s+/g, "").replace(/[*_`]/g, "").trim()).find(Boolean) ?? "Untitled note").slice(0, 120)
+  (md.split("\n").map((l) => l.replace(/<[^>]+>/g, "").replace(/^[#>\-*+\s]+|\d+\.\s+/g, "").replace(/[*_`]/g, "").trim()).find(Boolean) ?? "Untitled note").slice(0, 120)
 
 /** The video a note is on: none for the reader's own notes, the ones drawn anywhere with Shift (Brendan, 2026-10-31),
  *  which the Inbox lists under My notes. */
@@ -29,11 +29,14 @@ export async function myNotes(): Promise<{ notes: Note[]; kept: boolean }> {
   return { notes: await listNotes(who, MINE), kept: true }
 }
 
-/** A drawn note's first save: it is kept once there is something in it. */
-export async function createMyNote(bodyMd: string): Promise<Note | null> {
+/** A drawn note's first save: it is kept once there is something in it, the note or its chat. A note with nothing
+ *  written takes its title from the chat. */
+export async function createMyNote(bodyMd: string, chatMd = ""): Promise<Note | null> {
   const who = await reader()
-  if (!who || !String(bodyMd).trim()) return null
-  return writeNote(who, crypto.randomUUID(), MINE, { title: titleOf(bodyMd), bodyMd: String(bodyMd) })
+  const body = String(bodyMd)
+  const chat = String(chatMd)
+  if (!who || !(body.trim() || chat.trim())) return null
+  return writeNote(who, crypto.randomUUID(), MINE, { title: titleOf(body.trim() ? body : chat), bodyMd: body, chatMd: chat })
 }
 
 export async function videoNotes(ytId: string): Promise<{ notes: Note[]; kept: boolean }> {
@@ -54,12 +57,15 @@ export async function openNote(id: string): Promise<Note | null> {
   return readNote(who, id)
 }
 
-export async function saveNote(id: string, bodyMd: string): Promise<Note | null> {
+/** chatMd is a drawn note's chat; left out, the chat there is stays. */
+export async function saveNote(id: string, bodyMd: string, chatMd?: string): Promise<Note | null> {
   const who = await reader()
   if (!who || !ID.test(id)) return null
   const prev = await readNote(who, id)
   if (!prev) return null
-  return writeNote(who, id, prev.videoId, { title: titleOf(bodyMd), bodyMd: String(bodyMd) })
+  const body = String(bodyMd)
+  const chat = chatMd === undefined ? undefined : String(chatMd)
+  return writeNote(who, id, prev.videoId, { title: titleOf(body.trim() ? body : (chat ?? prev.chatMd ?? "")), bodyMd: body, chatMd: chat })
 }
 
 export async function removeNote(id: string): Promise<boolean> {

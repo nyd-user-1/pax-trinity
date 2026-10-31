@@ -26,7 +26,7 @@ const SKELETON_MS = 450
 /** The outline holds this long before the skeleton fills it. */
 const HOLD_MS = 160
 
-type Open = { key: number; rect: Rect; id: string | null; body: string; ready: boolean }
+type Open = { key: number; rect: Rect; id: string | null; body: string; chat: string; ready: boolean }
 
 const rectOf = (a: { x: number; y: number }, b: { x: number; y: number }): Rect => ({ x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(b.x - a.x), h: Math.abs(b.y - a.y) })
 
@@ -42,9 +42,9 @@ export function DrawNotes() {
   const [notes, setNotes] = React.useState<Open[]>([])
   const seq = React.useRef(0)
 
-  const open = React.useCallback((rect: Rect, id: string | null, body: string) => {
+  const open = React.useCallback((rect: Rect, id: string | null, body: string, chat: string) => {
     const key = ++seq.current
-    setNotes((n) => [...n, { key, rect, id, body, ready: false }])
+    setNotes((n) => [...n, { key, rect, id, body, chat, ready: false }])
     window.setTimeout(() => setNotes((n) => n.map((x) => (x.key === key ? { ...x, ready: true } : x))), SKELETON_MS)
   }, [])
 
@@ -90,7 +90,7 @@ export function DrawNotes() {
       setOutline(card)
       window.setTimeout(() => {
         setOutline(null)
-        open(card, null, "")
+        open(card, null, "", "")
       }, HOLD_MS)
     }
     const key = (e: KeyboardEvent) => {
@@ -121,7 +121,7 @@ export function DrawNotes() {
       const h = Math.min(420, window.innerHeight - 16)
       const rect = { x: (window.innerWidth - w) / 2, y: (window.innerHeight - h) / 2, w, h }
       const note = await openNote(id)
-      if (note) open(rect, note.id, note.bodyMd)
+      if (note) open(rect, note.id, note.bodyMd, note.chatMd ?? "")
     }
     window.addEventListener(NOTE_OPEN, on)
     return () => window.removeEventListener(NOTE_OPEN, on)
@@ -137,7 +137,7 @@ export function DrawNotes() {
         )}
       {notes.map((n) =>
         n.ready ? (
-          <FloatingNote key={n.key} rect={n.rect} id={n.id} body={n.body} onClose={() => setNotes((all) => all.filter((x) => x.key !== n.key))} />
+          <FloatingNote key={n.key} rect={n.rect} id={n.id} body={n.body} chat={n.chat} onClose={() => setNotes((all) => all.filter((x) => x.key !== n.key))} />
         ) : (
           <Skeleton key={n.key} rect={n.rect} />
         ),

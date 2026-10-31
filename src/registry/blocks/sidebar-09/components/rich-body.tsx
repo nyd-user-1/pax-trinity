@@ -13,7 +13,7 @@ import {
   Underline as UnderlineIcon,
 } from "lucide-react"
 import Placeholder from "@tiptap/extension-placeholder"
-import { EditorContent, useEditor, type Editor } from "@tiptap/react"
+import { EditorContent, useEditor, type AnyExtension, type Editor } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import { Underline } from "@tiptap/extension-underline"
 import { Markdown, type MarkdownStorage } from "tiptap-markdown"
@@ -57,10 +57,13 @@ export function useTaskEditor({
   value,
   onChange,
   placeholder,
+  extensions = [],
 }: {
   value: string
   onChange: (markdown: string) => void
   placeholder?: string
+  /** More of TipTap's extensions, read once when the editor is made: a note card's chat adds PAX's reply. */
+  extensions?: AnyExtension[]
 }) {
   const emit = React.useRef(onChange)
   const last = React.useRef(value)
@@ -74,6 +77,7 @@ export function useTaskEditor({
       UnderlineAsHtml,
       Markdown.configure({ html: true, breaks: true, transformPastedText: true }),
       Placeholder.configure({ placeholder: placeholder ?? "Write…" }),
+      ...extensions,
     ],
     content: value,
     editorProps: {

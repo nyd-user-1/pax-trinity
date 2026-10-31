@@ -2,15 +2,17 @@
 
 import * as React from "react"
 import { createPortal } from "react-dom"
-import { ArrowUp, ChevronsUpDown, Copy, Download, EllipsisVertical, GripVertical, LayoutGrid, Loader2, MessagesSquare, Star, StickyNote, Trash2, X } from "lucide-react"
+import { ChevronsUpDown, Copy, Download, EllipsisVertical, GripVertical, LayoutGrid, MessagesSquare, Star, StickyNote, Trash2, X } from "lucide-react"
+import { generateJSON, type Editor, type JSONContent } from "@tiptap/react"
 
 import { createMyNote, removeNote, saveNote } from "@/app/note-actions"
 import { KebabMenu, MenuFlyout, MenuFoot, MenuRow, MenuSeparator } from "@/components/kebab-menu"
 import { useShellPanel } from "@/components/shell"
-import { MarkdownContent } from "@/components/chat/markdown"
 import { useShelf } from "@/lib/home-blocks"
 import { NOTES_CHANGED, useNoteFavorites } from "@/lib/drawn-notes"
 import { TaskSurface, TaskToolbar, useTaskEditor } from "@/registry/blocks/sidebar-09/components/rich-body"
+
+import { PaxReply, turnsOf } from "./pax-reply"
 
 // A drawn note (Brendan, 2026-10-31): the card a Shift-drag draws (draw-notes.tsx), where it was drawn and as large,
 // in the model card's shape as Nav is: the tinted frame titled Note, the inbox rows' grip before it and the three-dot
@@ -20,11 +22,19 @@ import { TaskSurface, TaskToolbar, useTaskEditor } from "@/registry/blocks/sideb
 
 export type Rect = { x: number; y: number; w: number; h: number }
 
-/** A note's title: its first line, the markdown's marks taken off. */
-const titleOf = (md: string) => md.split("\n").map((l) => l.replace(/^[#>\-*+\s]+|\d+\.\s+/g, "").replace(/[*_`]/g, "").trim()).find(Boolean) ?? "Note"
+/** A note's title: its first line, the markdown's marks and tags taken off. */
+const titleOf = (md: string) => md.split("\n").map((l) => l.replace(/<[^>]+>/g, "").replace(/^[#>\-*+\s]+|\d+\.\s+/g, "").replace(/[*_`]/g, "").trim()).find(Boolean) ?? "Note"
 
-export function FloatingNote({ rect, id: firstId, body: firstBody, onClose }: { rect: Rect; id: string | null; body: string; onClose: () => void }) {
+/** The chat's editor carries PAX's replies. */
+const CHAT = [PaxReply]
+const SORRY = "Something went wrong. Please try again."
+
+/** tiptap-markdown's storage on an editor: its types leave the parser out. */
+const mdOf = (editor: Editor) => (editor.storage as unknown as { markdown: { getMarkdown(): string; parser: { parse(md: string): string } } }).markdown
+
+export function FloatingNote({ rect, id: firstId, body: firstBody, chat: firstChat, onClose }: { rect: Rect; id: string | null; body: string; chat: string; onClose: () => void }) {
   const [body, setBody] = React.useState(firstBody)
+  const [chat, setChat] = React.useState(firstChat)
   // The last save failed: the next keystroke tries again.
   const [failed, setFailed] = React.useState(false)
   const [pos, setPos] = React.useState({ left: rect.x, top: rect.y })
@@ -34,47 +44,79 @@ export function FloatingNote({ rect, id: firstId, body: firstBody, onClose }: { 
   const { favs, toggle: toggleFav } = useNoteFavorites()
   const shelf = useShelf()
 
-  // The card is a note or a chat (Brendan, 2026-10-31), switched from its header. The chat talks to PAX through
-  // /api/chat with the note as its context; Shift Enter or the send button sends, the reply streaming in.
-  const [mode, setMode] = React.useState<"note" | "chat">("note")
-  const [chat, setChat] = React.useState<{ role: "user" | "assistant"; content: string }[]>([])
-  const [ask, setAsk] = React.useState("")
+  // The card is a note or a chat (Brendan, 2026-10-31), switched from its header; a kept note with only a chat opens
+  // on it. The chat is one text (pax-reply.ts), kept with the note: Shift Enter sends what the reader wrote since PAX
+  // last answered, with the note as its context, and the answer streams into the text with a fresh line under it.
+  const [mode, setMode] = React.useState<"note" | "chat">(firstBody.trim() || !firstChat.trim() ? "note" : "chat")
+  const talk = useTaskEditor({ value: firstChat, onChange: setChat, placeholder: "Ask PAX. Shift Enter sends.", extensions: CHAT })
   const [busy, setBusy] = React.useState(false)
-  const asker = useTaskEditor({ value: ask, onChange: setAsk, placeholder: "Ask PAX…" })
-  const log = React.useRef<HTMLDivElement>(null)
   React.useEffect(() => {
-    if (mode === "chat") asker?.commands.focus("end")
+    if (mode === "chat") talk?.commands.focus("end")
     else editor?.commands.focus("end")
-  }, [mode, asker, editor])
-  React.useEffect(() => {
-    log.current?.scrollTo({ top: log.current.scrollHeight })
-  }, [chat])
+  }, [mode, talk, editor])
   const send = async () => {
-    const text = ask.trim()
-    if (!text || busy) return
-    const history = [...chat, { role: "user" as const, content: text }]
-    setChat([...history, { role: "assistant", content: "" }])
-    setAsk("")
+    const ed = talk
+    if (!ed || busy) return
+    const turns = turnsOf(mdOf(ed).getMarkdown())
+    if (turns[turns.length - 1]?.role !== "user") return
     setBusy(true)
-    const last = (f: (content: string) => string) => setChat((c) => c.map((m, i) => (i === c.length - 1 ? { ...m, content: f(m.content) } : m)))
+    // The reply goes at the end, in an empty last line's place, and a fresh line after it takes the caret.
+    const { doc } = ed.state
+    const end = doc.content.size
+    const tail = doc.lastChild
+    const from = tail?.type.name === "paragraph" && tail.content.size === 0 ? end - tail.nodeSize : end
+    const waiting: JSONContent[] = [{ type: "paragraph", content: [{ type: "text", text: "…" }] }]
+    ed.chain().insertContentAt({ from, to: end }, [{ type: "paxReply", attrs: { live: true }, content: waiting }, { type: "paragraph" }]).focus("end").scrollIntoView().run()
+    // The reply rewritten from the markdown so far, wherever the reader's edits have moved it. False once it is gone.
+    const write = (text: string, done = false) => {
+      let at = -1
+      ed.state.doc.forEach((n, offset) => {
+        if (n.type.name === "paxReply" && n.attrs.live) at = offset
+      })
+      const old = at < 0 ? null : ed.state.doc.nodeAt(at)
+      if (!old) return false
+      try {
+        const blocks = ((generateJSON(mdOf(ed).parser.parse(text), ed.extensionManager.extensions).content ?? []) as JSONContent[]).filter((b) => b.type !== "paxReply")
+        const node = ed.schema.nodeFromJSON({ type: "paxReply", attrs: { live: !done }, content: blocks.length ? blocks : waiting })
+        ed.view.dispatch(ed.state.tr.replaceWith(at, at + old.nodeSize, node).scrollIntoView())
+      } catch {
+        // Markdown the reply can't hold leaves it as it was until the next chunk.
+      }
+      return true
+    }
+    let text = ""
+    let frame = 0
+    let gone = false
+    const paint = () => {
+      frame = 0
+      if (!write(text)) gone = true
+    }
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: history, ...(body.trim() ? { systemContext: `The reader's note, which this chat sits beside:\n\n${body}` } : {}) }),
+        body: JSON.stringify({ messages: turns, ...(latest.current.body.trim() ? { systemContext: `The reader's note, which this chat sits beside:\n\n${latest.current.body}` } : {}) }),
       })
-      if (!res.ok || !res.body) return last(() => "Something went wrong. Please try again.")
-      const reader = res.body.getReader()
-      const decoder = new TextDecoder()
-      for (;;) {
-        const { done, value } = await reader.read()
-        if (done) break
-        const chunk = decoder.decode(value, { stream: true })
-        last((c) => c + chunk)
+      if (!res.ok || !res.body) text = SORRY
+      else {
+        const reader = res.body.getReader()
+        const decoder = new TextDecoder()
+        for (;;) {
+          const { done, value } = await reader.read()
+          if (done) break
+          text += decoder.decode(value, { stream: true })
+          if (gone) {
+            void reader.cancel()
+            break
+          }
+          if (!frame) frame = requestAnimationFrame(paint)
+        }
       }
     } catch {
-      last((c) => c || "Something went wrong. Please try again.")
+      text ||= SORRY
     } finally {
+      cancelAnimationFrame(frame)
+      write(text.trim() ? text : SORRY, true)
       setBusy(false)
     }
   }
@@ -86,25 +128,21 @@ export function FloatingNote({ rect, id: firstId, body: firstBody, onClose }: { 
     a.click()
     URL.revokeObjectURL(a.href)
   }
-  React.useEffect(() => {
-    editor?.commands.focus("end")
-  }, [editor])
-
   // Saves run one after another, so the first one's id is there for the next.
   const id = React.useRef(firstId)
   const chain = React.useRef<Promise<void>>(Promise.resolve())
-  const kept = React.useRef(firstBody)
-  const latest = React.useRef(firstBody)
-  latest.current = body
+  const kept = React.useRef({ body: firstBody, chat: firstChat })
+  const latest = React.useRef({ body: firstBody, chat: firstChat })
+  latest.current = { body, chat }
   const save = React.useCallback(() => {
     chain.current = chain.current.then(async () => {
-      const md = latest.current
-      if (md === kept.current) return
+      const now = latest.current
+      if (now.body === kept.current.body && now.chat === kept.current.chat) return
       try {
-        const note = id.current ? await saveNote(id.current, md) : await createMyNote(md)
+        const note = id.current ? await saveNote(id.current, now.body, now.chat) : await createMyNote(now.body, now.chat)
         if (!note) return
         id.current = note.id
-        kept.current = md
+        kept.current = now
         setFailed(false)
         window.dispatchEvent(new Event(NOTES_CHANGED))
       } catch {
@@ -114,10 +152,10 @@ export function FloatingNote({ rect, id: firstId, body: firstBody, onClose }: { 
     return chain.current
   }, [])
   React.useEffect(() => {
-    if (body === kept.current) return
+    if (body === kept.current.body && chat === kept.current.chat) return
     const t = window.setTimeout(save, 700)
     return () => window.clearTimeout(t)
-  }, [body, save])
+  }, [body, chat, save])
   // Closing keeps what was typed since the last save.
   const close = () => void save().finally(onClose)
 
@@ -202,7 +240,7 @@ export function FloatingNote({ rect, id: firstId, body: firstBody, onClose }: { 
               const key = `note:${id.current}`
               if (!id.current) return
               if (shelf.has(key)) shelf.remove(key)
-              else shelf.add({ key, title: titleOf(body), path: "/inbox", anchor: `note-${id.current}` })
+              else shelf.add({ key, title: titleOf(body.trim() ? body : chat), path: "/inbox", anchor: `note-${id.current}` })
             }}
           />
           <MenuRow icon={<MessagesSquare />} label="Ask PAX" onClick={() => askAbout({ context: () => `My note, "${titleOf(body)}":\n\n${body}` })} />
@@ -237,38 +275,19 @@ export function FloatingNote({ rect, id: firstId, body: firstBody, onClose }: { 
             </div>
           </>
         ) : (
-          <>
-            <div ref={log} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3 text-sm">
-              {chat.map((m, i) =>
-                m.role === "user" ? (
-                  <p key={i} className="ml-auto w-fit max-w-[85%] rounded-2xl bg-pax2-lavender px-3 py-1.5 whitespace-pre-wrap text-pax2-blue">
-                    {m.content}
-                  </p>
-                ) : (
-                  <div key={i} className="text-slate-700">
-                    {m.content ? <MarkdownContent content={m.content} isStreaming={busy && i === chat.length - 1} /> : <Loader2 className="size-4 animate-spin text-slate-400" />}
-                  </div>
-                ),
-              )}
-            </div>
-            {/* Shift Enter sends; Enter keeps its new line. */}
-            <div
-              className="flex shrink-0 items-end gap-2 border-t border-slate-200 px-3 py-2"
-              onKeyDownCapture={(e) => {
-                if (e.key !== "Enter" || !e.shiftKey) return
-                e.preventDefault()
-                e.stopPropagation()
-                void send()
-              }}
-            >
-              <div className="max-h-32 min-w-0 flex-1 cursor-text overflow-y-auto py-1" onClick={() => asker?.commands.focus()}>
-                <TaskSurface editor={asker} className="min-h-0 [&_.ProseMirror]:min-h-6" />
-              </div>
-              <button type="button" aria-label="Send" title="Send (Shift Enter)" disabled={busy || !ask.trim()} onClick={() => void send()} className="flex size-7 shrink-0 items-center justify-center rounded-full bg-pax2-blue text-white transition-opacity disabled:opacity-40">
-                <ArrowUp className="size-4" />
-              </button>
-            </div>
-          </>
+          // Shift Enter sends; Enter keeps its new line.
+          <div
+            className="min-h-0 flex-1 cursor-text overflow-y-auto px-4 py-3"
+            onClick={() => talk?.commands.focus()}
+            onKeyDownCapture={(e) => {
+              if (e.key !== "Enter" || !e.shiftKey || e.nativeEvent.isComposing) return
+              e.preventDefault()
+              e.stopPropagation()
+              void send()
+            }}
+          >
+            <TaskSurface editor={talk} className="min-h-full [&_.ProseMirror]:min-h-full [&_[data-pax]]:my-3 [&_[data-pax]]:border-l-[3px] [&_[data-pax]]:border-pax2-lavender [&_[data-pax]]:pl-3 [&_[data-pax]]:text-slate-600" />
+          </div>
         )}
       </div>
       <span {...corner} aria-label="Resize" className="absolute right-0 bottom-0 size-4 cursor-nwse-resize touch-none" />

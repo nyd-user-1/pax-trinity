@@ -6,13 +6,15 @@ import { get, put, query, remove, type Item } from "@/lib/ledger"
 // chats, rewritten in place:
 //
 //   pk              sk          item
-//   NOTES#<reader>  <note id>   videoId, title, bodyMd (markdown), createdAt, updatedAt
+//   NOTES#<reader>  <note id>   videoId, title, bodyMd (markdown), chatMd, createdAt, updatedAt
+//
+// chatMd is a drawn note's chat with PAX (components/notes/pax-reply.ts), kept beside the note (Brendan, 2026-10-31).
 
-export type Note = { id: string; videoId: string; title: string; bodyMd: string; createdAt: string; updatedAt: string }
+export type Note = { id: string; videoId: string; title: string; bodyMd: string; chatMd?: string; createdAt: string; updatedAt: string }
 
 type Row = Item & Omit<Note, "id">
 
-const noteOf = (r: Row): Note => ({ id: r.sk, videoId: r.videoId, title: r.title, bodyMd: r.bodyMd, createdAt: r.createdAt, updatedAt: r.updatedAt })
+const noteOf = (r: Row): Note => ({ id: r.sk, videoId: r.videoId, title: r.title, bodyMd: r.bodyMd, chatMd: r.chatMd, createdAt: r.createdAt, updatedAt: r.updatedAt })
 
 // DynamoDB refuses an item over 400 KB.
 const MAX_BYTES = 350_000
@@ -30,10 +32,13 @@ export async function readNote(who: string, id: string): Promise<Note | null> {
   return r ? noteOf(r) : null
 }
 
-export async function writeNote(who: string, id: string, videoId: string, patch: { title: string; bodyMd: string }): Promise<Note> {
+/** A save without chatMd keeps the chat there is. */
+export async function writeNote(who: string, id: string, videoId: string, patch: { title: string; bodyMd: string; chatMd?: string }): Promise<Note> {
   const prev = await get<Row>(`NOTES#${who}`, id)
   const at = new Date().toISOString()
-  const row: Row = { pk: `NOTES#${who}`, sk: id, videoId: prev?.videoId ?? videoId, title: patch.title.slice(0, 200), bodyMd: patch.bodyMd.slice(0, MAX_BYTES), createdAt: prev?.createdAt ?? at, updatedAt: at }
+  const bodyMd = patch.bodyMd.slice(0, MAX_BYTES)
+  const chatMd = (patch.chatMd ?? prev?.chatMd)?.slice(0, MAX_BYTES - bodyMd.length)
+  const row: Row = { pk: `NOTES#${who}`, sk: id, videoId: prev?.videoId ?? videoId, title: patch.title.slice(0, 200), bodyMd, chatMd, createdAt: prev?.createdAt ?? at, updatedAt: at }
   await put(row)
   return noteOf(row)
 }
