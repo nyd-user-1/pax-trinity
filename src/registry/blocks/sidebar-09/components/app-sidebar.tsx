@@ -7,6 +7,7 @@ import { unreadIn, type Folder, type Thread } from "@/lib/agents/inbox"
 import { BankRail, RailGroup, RailRow } from "@/components/bank/bank-rail"
 import { TEMPLATES, type Template } from "@/lib/agents/templates"
 import { REQUESTS } from "@/lib/agents/requests"
+import { useNoteFavorites } from "@/lib/drawn-notes"
 import { TemplateThumb } from "@/registry/blocks/sidebar-09/components/template-thumb"
 
 // The Agentic Inbox's rail: Compose above the folders, where mail clients put
@@ -70,6 +71,9 @@ export function InboxRail({
   /** A template picked from the rail: into the message being written, else a new one. */
   onTemplate: (template: Template) => void
 }) {
+  // The notes starred from a note's menu come first, with the star for their icon.
+  const { favs } = useNoteFavorites()
+  const mine = [...notes].sort((a, b) => Number(favs.includes(b.id)) - Number(favs.includes(a.id)))
   return (
     <BankRail title="Inbox">
       <RailGroup>
@@ -110,7 +114,7 @@ export function InboxRail({
       </RailGroup>
       {/* My notes (Brendan, 2026-10-31), at the foot: each opens as its card. */}
       <RailGroup label="My notes" collapsible>
-        {notes.length ? notes.map((n) => <RailRow key={n.id} onClick={() => onOpenNote(n.id)} icon={StickyNote} label={n.title} />) : <p className="px-3 py-2 text-sm text-slate-400">None yet</p>}
+        {mine.length ? mine.map((n) => <RailRow key={n.id} onClick={() => onOpenNote(n.id)} icon={favs.includes(n.id) ? Star : StickyNote} label={n.title} />) : <p className="px-3 py-2 text-sm text-slate-400">None yet</p>}
       </RailGroup>
     </BankRail>
   )

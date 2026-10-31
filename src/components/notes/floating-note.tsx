@@ -2,11 +2,12 @@
 
 import * as React from "react"
 import { createPortal } from "react-dom"
-import { Copy, EllipsisVertical, GripVertical, Trash2, X } from "lucide-react"
+import { Copy, Download, EllipsisVertical, GripVertical, MessagesSquare, Star, Trash2, X } from "lucide-react"
 
 import { createMyNote, removeNote, saveNote } from "@/app/note-actions"
-import { KebabMenu, MenuFoot, MenuRow, MenuSeparator } from "@/components/kebab-menu"
-import { NOTES_CHANGED } from "@/lib/drawn-notes"
+import { KebabMenu, MenuFlyout, MenuFoot, MenuRow, MenuSeparator } from "@/components/kebab-menu"
+import { useShellPanel } from "@/components/shell"
+import { NOTES_CHANGED, useNoteFavorites } from "@/lib/drawn-notes"
 import { TaskSurface, TaskToolbar, useTaskEditor } from "@/registry/blocks/sidebar-09/components/rich-body"
 
 // A drawn note (Brendan, 2026-10-31): the card a Shift-drag draws (draw-notes.tsx), where it was drawn and as large,
@@ -17,6 +18,9 @@ import { TaskSurface, TaskToolbar, useTaskEditor } from "@/registry/blocks/sideb
 
 export type Rect = { x: number; y: number; w: number; h: number }
 
+/** A note's title: its first line, the markdown's marks taken off. */
+const titleOf = (md: string) => md.split("\n").map((l) => l.replace(/^[#>\-*+\s]+|\d+\.\s+/g, "").replace(/[*_`]/g, "").trim()).find(Boolean) ?? "Note"
+
 export function FloatingNote({ rect, id: firstId, body: firstBody, onClose }: { rect: Rect; id: string | null; body: string; onClose: () => void }) {
   const [body, setBody] = React.useState(firstBody)
   // The last save failed: the next keystroke tries again.
@@ -24,6 +28,16 @@ export function FloatingNote({ rect, id: firstId, body: firstBody, onClose }: { 
   const [pos, setPos] = React.useState({ left: rect.x, top: rect.y })
   const [size, setSize] = React.useState({ w: rect.w, h: rect.h })
   const editor = useTaskEditor({ value: firstBody, onChange: setBody, placeholder: "Write a note…" })
+  const { askAbout } = useShellPanel()
+  const { favs, toggle: toggleFav } = useNoteFavorites()
+  const download = (ext: "md" | "txt") => {
+    const text = ext === "md" ? body : body.replace(/\*\*|__|`/g, "").replace(/^(#+|>)\s?/gm, "")
+    const a = document.createElement("a")
+    a.href = URL.createObjectURL(new Blob([text], { type: ext === "md" ? "text/markdown" : "text/plain" }))
+    a.download = `${titleOf(body).replace(/[^\w -]+/g, "").trim().replace(/\s+/g, "-").toLowerCase() || "note"}.${ext}`
+    a.click()
+    URL.revokeObjectURL(a.href)
+  }
   React.useEffect(() => {
     editor?.commands.focus("end")
   }, [editor])
@@ -109,7 +123,19 @@ export function FloatingNote({ rect, id: firstId, body: firstBody, onClose }: { 
         </span>
         <h3 className="min-w-0 flex-1 text-[15px] font-semibold text-slate-900">Note</h3>
         <KebabMenu label="Note options" width="w-52" trigger={<EllipsisVertical className="size-4" />} triggerClassName="inline-flex size-8 items-center justify-center rounded-md text-slate-800 outline-none hover:bg-foreground/8 hover:text-foreground aria-expanded:bg-foreground/8">
+          {/* The block menu's (dash/card-tools.tsx; Brendan, 2026-10-31), what of it a note takes: Favorite, Ask PAX,
+              Download and Delete; Pin to top, Add to Blocks, Refresh, the sizes and View don't apply. Copy as Markdown
+              and Close are the note's own. */}
+          <MenuRow icon={<Star className={id.current && favs.includes(id.current) ? "fill-amber-400 text-amber-400" : undefined} />} label={id.current && favs.includes(id.current) ? "Unfavorite" : "Favorite"} disabled={!id.current} onClick={() => id.current && toggleFav(id.current)} />
+          <MenuRow icon={<MessagesSquare />} label="Ask PAX" onClick={() => askAbout({ context: () => `My note, "${titleOf(body)}":\n\n${body}` })} />
+          <MenuSeparator />
           <MenuRow icon={<Copy />} label="Copy as Markdown" onClick={() => void navigator.clipboard.writeText(body)} />
+          <MenuFlyout id="download" icon={<Download />} label="Download">
+            <MenuRow label="Markdown" onClick={() => download("md")} />
+            <MenuRow label="Text" onClick={() => download("txt")} />
+          </MenuFlyout>
+          <MenuRow icon={<X />} label="Close" onClick={close} />
+          <MenuSeparator />
           <MenuRow
             icon={<Trash2 />}
             label="Delete note"
@@ -120,8 +146,6 @@ export function FloatingNote({ rect, id: firstId, body: firstBody, onClose }: { 
               onClose()
             }}
           />
-          <MenuSeparator />
-          <MenuRow icon={<X />} label="Close" onClick={close} />
           <MenuSeparator />
           <MenuFoot title="My notes" sub={failed ? "Not saved: the notes store can't be reached" : undefined} />
         </KebabMenu>
