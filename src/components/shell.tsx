@@ -23,6 +23,7 @@ import { STUDIO_OPEN } from "@/lib/studio"
 import { TOOLS_OPEN } from "@/lib/clips-panel"
 import { recordVisit } from "@/lib/nav-recents"
 import { GoToMenu, type Side } from "@/components/go-to-menu"
+import { DrawNotes } from "@/components/notes/draw-notes"
 import { testsHref } from "@/lib/survey-links"
 import { PaneFrame, PaneSync } from "@/components/pane"
 import { PANE_MESSAGE, PANE_PARAM, isEmbedded, isPanePath } from "@/lib/pane"
@@ -607,6 +608,8 @@ export function Shell({ children, drawer, signedIn = false, admin = false, partn
           </div>
         )}
       </div>
+      {/* Drawn notes (Brendan, 2026-10-31): Shift and a drag anywhere draws a note's card, kept in the Inbox's My notes. */}
+      {signedIn && <DrawNotes />}
     </PanelCtx.Provider>
   )
 }

@@ -15,6 +15,8 @@ import { SaveToDrive } from "@/components/connectors/save-to-drive"
 import { Prose, RunSteps } from "@/app/agents/transcript"
 import { BankFrame } from "@/components/bank/bank-frame"
 import { CardList, type Card, type Split } from "@/components/bank/card-list"
+import { myNotes } from "@/app/note-actions"
+import { NOTES_CHANGED, openDrawnNote } from "@/lib/drawn-notes"
 import { MenuFoot, MenuHeader, MenuRow, MenuSeparator } from "@/components/kebab-menu"
 import { InboxRail, THREAD_DRAG } from "@/registry/blocks/sidebar-09/components/app-sidebar"
 import { Compose, EMPTY_DRAFT, type Draft } from "@/registry/blocks/sidebar-09/components/compose"
@@ -266,6 +268,14 @@ export default function Page() {
     return () => window.clearInterval(every)
   }, [restored, refreshLive])
 
+  // My notes, read on arrival and again whenever a drawn note is kept or deleted.
+  const [notes, setNotes] = React.useState<{ id: string; title: string }[]>([])
+  React.useEffect(() => {
+    const load = () => void myNotes().then((r) => setNotes(r.notes.map((n) => ({ id: n.id, title: n.title }))), () => {})
+    load()
+    window.addEventListener(NOTES_CHANGED, load)
+    return () => window.removeEventListener(NOTES_CHANGED, load)
+  }, [])
   const patch = React.useCallback((id: string, change: (thread: Thread) => Thread) => {
     setThreads((current) => current.map((thread) => (thread.id === id ? change(thread) : thread)))
   }, [])
@@ -618,6 +628,8 @@ export default function Page() {
           onCompose={startCompose}
           onNew={startRequest}
           onDropThread={moveToFolder}
+          notes={notes}
+          onOpenNote={openDrawnNote}
         />
       }
     >

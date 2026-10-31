@@ -1,6 +1,6 @@
 "use client"
 
-import { ClipboardList, File, FlaskConical, Inbox, LayoutTemplate, PenSquare, Send, Star, Trash2 } from "lucide-react"
+import { ClipboardList, File, FlaskConical, Inbox, LayoutTemplate, PenSquare, Send, Star, StickyNote, Trash2 } from "lucide-react"
 
 import { unreadIn, type Folder, type Thread } from "@/lib/agents/inbox"
 import { BankRail, RailGroup, RailRow } from "@/components/bank/bank-rail"
@@ -31,6 +31,8 @@ export function InboxRail({
   onCompose,
   onNew,
   onDropThread,
+  notes,
+  onOpenNote,
 }: {
   threads: Thread[]
   folder: Folder
@@ -40,6 +42,9 @@ export function InboxRail({
   onNew: (kind: "test" | "survey") => void
   /** A list row dragged onto a folder lands here. */
   onDropThread: (id: string, folder: Folder) => void
+  /** My notes: the reader's own notes, drawn anywhere with Shift (components/notes/draw-notes.tsx). */
+  notes: { id: string; title: string }[]
+  onOpenNote: (id: string) => void
 }) {
   return (
     <BankRail title="Inbox">
@@ -63,6 +68,10 @@ export function InboxRail({
             />
           )
         })}
+      </RailGroup>
+      {/* My notes (Brendan, 2026-10-31), at the foot: each opens as its card. */}
+      <RailGroup label="My notes">
+        {notes.length ? notes.map((n) => <RailRow key={n.id} onClick={() => onOpenNote(n.id)} icon={StickyNote} label={n.title} />) : <p className="px-3 py-2 text-sm text-slate-400">None yet</p>}
       </RailGroup>
     </BankRail>
   )

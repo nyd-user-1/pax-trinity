@@ -18,6 +18,24 @@ const ID = /^[\w-]{8,64}$/
 const titleOf = (md: string) =>
   (md.split("\n").map((l) => l.replace(/^[#>\-*+\s]+|\d+\.\s+/g, "").replace(/[*_`]/g, "").trim()).find(Boolean) ?? "Untitled note").slice(0, 120)
 
+/** The video a note is on: none for the reader's own notes, the ones drawn anywhere with Shift (Brendan, 2026-10-31),
+ *  which the Inbox lists under My notes. */
+const MINE = ""
+
+/** The reader's own notes, newest edit first. kept is false when nothing can be kept (signed out, a demo login). */
+export async function myNotes(): Promise<{ notes: Note[]; kept: boolean }> {
+  const who = await reader()
+  if (!who) return { notes: [], kept: false }
+  return { notes: await listNotes(who, MINE), kept: true }
+}
+
+/** A drawn note's first save: it is kept once there is something in it. */
+export async function createMyNote(bodyMd: string): Promise<Note | null> {
+  const who = await reader()
+  if (!who || !String(bodyMd).trim()) return null
+  return writeNote(who, crypto.randomUUID(), MINE, { title: titleOf(bodyMd), bodyMd: String(bodyMd) })
+}
+
 export async function videoNotes(ytId: string): Promise<{ notes: Note[]; kept: boolean }> {
   const who = await reader()
   if (!who || !YT.test(ytId)) return { notes: [], kept: !!who }
