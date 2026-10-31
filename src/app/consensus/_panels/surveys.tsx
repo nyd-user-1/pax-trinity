@@ -43,26 +43,6 @@ export function SurveysPanel({ all, admin }: { all: Conversation[]; admin: boole
           </Block>
         ))}
       </div>
-
-      <p className="text-[13px] text-slate-500">
-        The conversations are the Computational Democracy Project&apos;s own published data, so every one of them has already clustered.{" "}
-        <Link href="/consensus" className="font-medium text-pax2-light-blue hover:underline">
-          Questions
-        </Link>{" "}
-        is where a conversation is voted on
-        {admin ? (
-          <>
-            {" "}
-            and{" "}
-            <Link href="/consensus?tab=admin" className="font-medium text-pax2-light-blue hover:underline">
-              Admin
-            </Link>{" "}
-            is where one is built.
-          </>
-        ) : (
-          "."
-        )}
-      </p>
     </div>
   )
 }
