@@ -21,6 +21,8 @@ import { LIFT_TOOLS_OPEN } from "@/lib/lift-analyses"
 import { useThemePanel } from "@/components/theme/theme-palette"
 import { STUDIO_OPEN } from "@/lib/studio"
 import { TOOLS_OPEN } from "@/lib/clips-panel"
+import { recordVisit } from "@/lib/nav-recents"
+import { GoToMenu } from "@/components/go-to-menu"
 import { testsHref } from "@/lib/survey-links"
 import { PaneFrame, PaneSync } from "@/components/pane"
 import { PANE_MESSAGE, isEmbedded, isPanePath } from "@/lib/pane"
@@ -157,6 +159,19 @@ export function Shell({ children, drawer, signedIn = false, admin = false, partn
   const paneRef = React.useRef<HTMLIFrameElement>(null)
   // Opening it shuts the sidebar, as picking a page does (Brendan, 2026-10-31).
   const openPane = React.useCallback((href: string) => (setAside(null), setSidebarOpen(false), setPane({ src: href, href, n: Date.now() })), [])
+  // Go to (Brendan, 2026-10-31): a right-click on the header's empty run opens a page switcher at the pointer,
+  // its Recent the pages this browser lately arrived on. A right-click on a control keeps its own; Shift keeps
+  // the browser's menu.
+  const [goTo, setGoTo] = React.useState<{ x: number; y: number } | null>(null)
+  React.useEffect(() => {
+    if (!isEmbedded()) recordVisit(window.location.pathname + window.location.search)
+  }, [path])
+  const onHeaderMenu = (e: React.MouseEvent) => {
+    if (e.shiftKey) return
+    if ((e.target as Element).closest("a, button, input, textarea, select, [contenteditable='true'], [role=button], [role=combobox], [role=menu], [role=dialog]")) return
+    e.preventDefault()
+    setGoTo({ x: e.clientX, y: e.clientY })
+  }
   // The panel's frame says where its page has gone; the address follows (PaneSync).
   React.useEffect(() => {
     const on = (e: MessageEvent) => {
@@ -500,7 +515,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false, partn
                 })}
               </nav>
             </header>
-            <div data-chrome className={cn("relative z-10 hidden min-h-[73px] shrink-0 items-center gap-3 bg-pax2-surface px-5 py-4 shadow-header md:flex")}>
+            <div data-chrome onContextMenu={onHeaderMenu} className={cn("relative z-10 hidden min-h-[73px] shrink-0 items-center gap-3 bg-pax2-surface px-5 py-4 shadow-header md:flex")}>
               <button type="button" onClick={() => setSidebarOpen((v) => !v)} aria-label="Toggle sidebar" className={whiteButton("circle")}>
                 {sidebarOpen ? <PanelLeftClose className="size-4" strokeWidth={2} /> : <PanelLeftOpen className="size-4" strokeWidth={2} />}
               </button>
@@ -515,6 +530,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false, partn
               <button type="button" onClick={() => (setAside(null), setDiscuss((v) => !v))} aria-pressed={discuss} aria-label="Open Tools" className={whiteButton("circle")}>
                 <MessagesSquare className="size-4 fill-pax2-lavender text-pax2-blue" />
               </button>
+              {goTo && <GoToMenu at={goTo} pages={findable} current={path} titleOf={titleFor} onPane={openPane} onClose={() => setGoTo(null)} />}
             </div>
             <main className={cn("flex-1", full ? "flex min-h-0 flex-col md:overflow-hidden" : "md:overflow-y-auto")} onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 0)}>
               {/* Each page arrives with RevealFx's wipe; the front door has its curtain instead. */}
