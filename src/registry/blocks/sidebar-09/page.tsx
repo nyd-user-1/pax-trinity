@@ -505,6 +505,12 @@ export default function Page() {
     setPopped(false)
     setComposing(true)
   }
+  // The rail's Templates (Brendan, 2026-10-31): a template picked while writing fills the message being written,
+  // its sender, subject and body, and keeps who it goes to; otherwise it starts a new one.
+  const applyTemplate = (template: Template) => {
+    if (!composing) return fromTemplate(template)
+    setDraft((d) => ({ ...d, from: template.from, subject: template.subject, body: template.body }))
+  }
 
   // A row dropped on a folder: trash and starred take it, inbox and sent restore
   // it; a sent thread cannot become a draft again, so that drop is a no-op.
@@ -630,6 +636,7 @@ export default function Page() {
           onDropThread={moveToFolder}
           notes={notes}
           onOpenNote={openDrawnNote}
+          onTemplate={applyTemplate}
         />
       }
     >

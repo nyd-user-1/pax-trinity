@@ -73,6 +73,7 @@ export function RailRow({
   onClick,
   href,
   icon: Icon,
+  lead,
   label,
   count,
   dim,
@@ -84,6 +85,8 @@ export function RailRow({
   /** A row that leaves for another surface: a link, never on. */
   href?: string
   icon?: LucideIcon
+  /** A picture in the icon's place: a template's thumbnail, as Lift's rows wear their videos'. */
+  lead?: React.ReactNode
   label: string
   count?: number | null
   /** The quiet row, the untagged remainder's dress. */
@@ -122,7 +125,8 @@ export function RailRow({
   const inner = (
     <>
       {on && <span aria-hidden className="absolute top-1/2 left-0 h-4 w-[3px] -translate-y-1/2 rounded-full bg-pax2-light-blue" />}
-      {Icon && (
+      {lead}
+      {!lead && Icon && (
         <Icon
           className={cn("icon-pop size-4 shrink-0 transition-colors", on ? "fill-pax2-lavender text-pax2-blue" : "group-hover:fill-pax2-lavender group-hover:text-pax2-blue")}
           strokeWidth={on ? 2.25 : 1.75}

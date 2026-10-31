@@ -4,6 +4,8 @@ import { ClipboardList, File, FlaskConical, Inbox, LayoutTemplate, PenSquare, Se
 
 import { unreadIn, type Folder, type Thread } from "@/lib/agents/inbox"
 import { BankRail, RailGroup, RailRow } from "@/components/bank/bank-rail"
+import { TEMPLATES, type Template } from "@/lib/agents/templates"
+import { TemplateThumb } from "@/registry/blocks/sidebar-09/components/template-thumb"
 
 // The Agentic Inbox's rail: Compose above the folders, where mail clients put
 // it, and the folders with their unread counts. Since 2026-10-31 (Brendan) it
@@ -33,6 +35,7 @@ export function InboxRail({
   onDropThread,
   notes,
   onOpenNote,
+  onTemplate,
 }: {
   threads: Thread[]
   folder: Folder
@@ -45,6 +48,8 @@ export function InboxRail({
   /** My notes: the reader's own notes, drawn anywhere with Shift (components/notes/draw-notes.tsx). */
   notes: { id: string; title: string }[]
   onOpenNote: (id: string) => void
+  /** A template picked from the rail: into the message being written, else a new one. */
+  onTemplate: (template: Template) => void
 }) {
   return (
     <BankRail title="Inbox">
@@ -68,6 +73,12 @@ export function InboxRail({
             />
           )
         })}
+      </RailGroup>
+      {/* Templates (Brendan, 2026-10-31), as America Thinks' Data: each with its mail's thumbnail, folding past ten. */}
+      <RailGroup label="Templates" collapsible maxRows={10}>
+        {TEMPLATES.map((t) => (
+          <RailRow key={t.id} onClick={() => onTemplate(t)} lead={<TemplateThumb template={t} />} label={t.name} />
+        ))}
       </RailGroup>
       {/* My notes (Brendan, 2026-10-31), at the foot: each opens as its card. */}
       <RailGroup label="My notes">

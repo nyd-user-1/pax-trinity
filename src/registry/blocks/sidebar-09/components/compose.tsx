@@ -293,13 +293,26 @@ export function Compose({
           on the wire and formatting on the screen — the agent reads `**bold**`
           and `- item`, the reader sees bold and a bullet, and the thread
           renders the same subset back. */}
-      <TaskSurface
-        editor={editor}
-        // A new task's surface takes the height the pane has, so the bottom
-        // bar sits at the bottom of the frame — Gmail's compose — and a long
-        // brief scrolls inside the surface rather than pushing Send away.
-        className={inline ? "[&_.ProseMirror]:min-h-24 min-h-24" : "min-h-0 flex-1 overflow-y-auto"}
-      />
+      {inline ? (
+        <TaskSurface editor={editor} className="[&_.ProseMirror]:min-h-24 min-h-24" />
+      ) : (
+        // A new message is written inside the card it is sent in (lib/mail/design.ts, Brendan, 2026-10-31): the pale
+        // page, the PAX mark, the white card, the subject heading it until the body opens on its own bold line, and the
+        // site's address under it. It takes the pane's height and scrolls inside, so Send stays at the foot.
+        <div className="min-h-0 flex-1 overflow-y-auto rounded-xl bg-[#f5f7fb] px-4 py-8">
+          <div className="mx-auto w-full max-w-[560px]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/pax-mark.png" alt="PAX" width={64} className="mb-5 ml-2 h-auto w-16" />
+            <div className="mail-body cursor-text rounded-2xl border border-[#e2e8f0] bg-white px-10 py-9" onClick={() => editor?.commands.focus()}>
+              {!/^\*\*[^*]+\*\*\s*(\n|$)/.test(draft.body.trim()) && draft.subject.trim() && (
+                <h1 className="mb-[18px] text-[23px] leading-[1.3] font-semibold tracking-[-0.01em] text-[#1e3a8a]">{draft.subject}</h1>
+              )}
+              <TaskSurface editor={editor} className="[&_.ProseMirror]:min-h-40" />
+            </div>
+            <p className="mt-5 ml-2 text-xs text-[#94a3b8]">pax.nysgpt.com</p>
+          </div>
+        </div>
+      )}
 
       {/* The bottom bar, in Gmail's arrangement: Send first, the formatting
           row immediately beside it, and the rest pushed right. Formatting
