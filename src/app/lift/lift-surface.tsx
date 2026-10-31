@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { Combobox } from "@base-ui/react/combobox"
-import { ArrowDown, ArrowDownUp, ArrowUp, ChartColumn, Check, CircleDashed, Copy, Download, Folder, Funnel, GripVerticalIcon, Info, Loader2, PanelLeftClose, PanelLeftOpen, SeparatorVertical, Share, Spline } from "lucide-react"
+import { ArrowDown, ArrowUp, ChartColumn, ChevronDown, ChevronUp, EllipsisVertical, Grid3x3, ListTree, Table, Tags, Check, CircleDashed, Copy, Download, Folder, Funnel, GripVerticalIcon, Info, Loader2, PanelLeftClose, PanelLeftOpen, SeparatorVertical, Share, Spline } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { BankFrame, BankRail as RailState } from "@/components/bank/bank-frame"
@@ -90,6 +90,8 @@ const toggled = (list: string[], x: string) => (list.includes(x) ? list.filter((
 
 const TOOL = "flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[13px] text-foreground/80 outline-none transition-colors hover:bg-muted hover:text-pax2-blue focus-visible:bg-muted aria-expanded:bg-muted"
 const TOOL_ICON = "size-3.5 text-muted-foreground"
+// The toolbar's words show only where the table is wide (Brendan, 2026-10-31): narrow, its buttons are icons.
+const TOOL_LABEL = "hidden @3xl/tools:inline"
 const TH = "group/th border-b px-3 py-2 text-left text-[13px] font-medium whitespace-nowrap"
 const TD = "border-b px-3 py-2 align-middle text-[13px]"
 const HEAD_ICON = "shrink-0 text-muted-foreground hover:text-foreground aria-expanded:text-foreground"
@@ -119,6 +121,8 @@ export function LiftSurface() {
   // The Archive's column filters: the values a trait column hides, and per metric which ads it keeps.
   const [colFilter, setColFilter] = React.useState<Record<string, string[]>>({})
   const [metricFilter, setMetricFilter] = React.useState<Record<string, "measured" | "significant">>({})
+  // The table's bands folded shut (a breakdown such as Education, or a test in the Archive's grouping).
+  const [shut, setShut] = React.useState<string[]>([])
   // The Archive's ads under their tests, off until the Content column's filter turns it on.
   const [grouped, setGrouped] = React.useState(() => link.one("g") === "1")
   // The Archive's columns: the trait columns switched on (every coded trait is one), the standing ones switched off.
@@ -518,7 +522,8 @@ export function LiftSurface() {
   }
   const segGroups = read ? [{ dim: null as string | null, name: "Everyone", vals: [null as string | null] }, ...[...read.dims].map(([d, vs]) => ({ dim: d as string | null, name: dimLabel(d), vals: vs as (string | null)[] }))] : []
   const toolbar = (
-    <div className="flex h-11 shrink-0 items-center gap-0.5 border-b px-3">
+    // 61px, so its rule lines up with the right panel's under its tabs (16px above and below them).
+    <div className="@container/tools flex h-[61px] shrink-0 items-center gap-0.5 border-b px-3">
       <SidebarToggle />
       <span aria-hidden className="mx-1 h-4 w-px bg-border" />
       <TreatmentPicker options={read?.options ?? []} chosen={chosen} onChosen={setPicked} count={view ? new Set(view.treatments.map(optionOf)).size : 0} disabled={!read} />
@@ -526,9 +531,9 @@ export function LiftSurface() {
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button type="button" className={TOOL} disabled={!read}>
+          <button type="button" className={TOOL} disabled={!read} title={plural((view?.metrics.length ?? 0) + (view?.emotion ? 1 : 0), "Metric")}>
             <Spline className={TOOL_ICON} />
-            {plural((view?.metrics.length ?? 0) + (view?.emotion ? 1 : 0), "Metric")}
+            <span className={TOOL_LABEL}>{plural((view?.metrics.length ?? 0) + (view?.emotion ? 1 : 0), "Metric")}</span>
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="max-h-[28rem] w-max min-w-48 overflow-y-auto">
@@ -571,9 +576,9 @@ export function LiftSurface() {
       <span aria-hidden className="mx-1 h-4 w-px bg-border" />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button type="button" className={TOOL} disabled={!read}>
+          <button type="button" className={TOOL} disabled={!read} title={plural(view?.segCount ?? 0, "Segment")}>
             <CircleDashed className={TOOL_ICON} />
-            {plural(view?.segCount ?? 0, "Segment")}
+            <span className={TOOL_LABEL}>{plural(view?.segCount ?? 0, "Segment")}</span>
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="max-h-[28rem] w-max min-w-56 overflow-y-auto">
@@ -725,30 +730,46 @@ export function LiftSurface() {
       )}
 
       <div className="ml-auto flex items-center gap-0.5">
-        <span className="mr-1.5">
+        <span className="mr-1">
+          {/* Icons (Brendan, 2026-10-31): Table (was Bars), Heatmap; the Archive's Traits and Attributes. */}
           <ViewToggle
-            views={[{ value: "bars" as const, label: archive ? "Traits" : "Bars" }, { value: "heatmap" as const, label: "Heatmap" }, ...(archive ? [{ value: "attributes" as const, label: "Attributes" }] : [])]}
+            views={[
+              { value: "bars" as const, label: archive ? "Traits" : "Table", icon: archive ? Tags : Table },
+              { value: "heatmap" as const, label: "Heatmap", icon: Grid3x3 },
+              ...(archive ? [{ value: "attributes" as const, label: "Attributes", icon: ListTree }] : []),
+            ]}
             value={shownDisplay}
             onChange={setDisplay}
           />
         </span>
+        {/* Sort, Share, Download and Refresh in the three-dot menu (Brendan, 2026-10-31). */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button type="button" className={TOOL} disabled={!view}>
-              <ArrowDownUp className={TOOL_ICON} />
-              Options
+            <button type="button" className={cn(TOOL, "px-1.5")} aria-label="Table options" title="Table options">
+              <EllipsisVertical className="size-4" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-max min-w-48">
             <DropdownMenuLabel className="text-xs text-muted-foreground">Sort by</DropdownMenuLabel>
             <DropdownMenuRadioGroup value={view?.by ?? BY_NAME} onValueChange={(by) => setSort({ by, dir: by === BY_NAME ? 1 : -1 })}>
               {(view?.metrics ?? []).map((m) => (
-                <DropdownMenuRadioItem key={m} value={m}>
+                <DropdownMenuRadioItem key={m} value={m} disabled={!view}>
                   {metricShort(m)}
                 </DropdownMenuRadioItem>
               ))}
-              <DropdownMenuRadioItem value={BY_NAME}>Treatment name</DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value={BY_NAME} disabled={!view}>
+                Treatment name
+              </DropdownMenuRadioItem>
             </DropdownMenuRadioGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={share}>
+              <Share />
+              {shared ? "Link copied" : "Share"}
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={download} disabled={!view}>
+              <Download />
+              Download
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onSelect={() => {
@@ -760,14 +781,6 @@ export function LiftSurface() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <button type="button" className={TOOL} onClick={share}>
-          <Share className={TOOL_ICON} />
-          {shared ? "Link copied" : "Share"}
-        </button>
-        <button type="button" className={TOOL} onClick={download} disabled={!view}>
-          <Download className={TOOL_ICON} />
-          Download
-        </button>
       </div>
     </div>
   )
@@ -977,11 +990,11 @@ export function LiftSurface() {
             return (
               <React.Fragment key={id}>
                 <tr>
-                  <td colSpan={lead + cols} className="border-b bg-pax2-mist px-3 py-1.5 text-xs font-semibold text-foreground">
-                    {a ? `${adWhere(a)} ${adOffice(a)} · ${adWhen(a)} · ${a.ads} ${a.ads === 1 ? "ad" : "ads"}` : id}
+                  <td colSpan={lead + cols} className="border-b bg-pax2-mist p-0">
+                    <BandToggle label={a ? `${adWhere(a)} ${adOffice(a)} · ${adWhen(a)} · ${a.ads} ${a.ads === 1 ? "ad" : "ads"}` : id} shut={shut.includes(`test:${id}`)} onToggle={() => setShut((p) => toggled(p, `test:${id}`))} />
                   </td>
                 </tr>
-                {eks.map((o) => (
+                {!shut.includes(`test:${id}`) && eks.map((o) => (
                   <BarsRow key={o} o={o} s={EVERYONE} first last sel={about?.entry === o && about.seg === ""} read={read} view={view} onPick={pick} />
                 ))}
               </React.Fragment>
@@ -993,12 +1006,12 @@ export function LiftSurface() {
             {g.dim && (
               <tr>
                 <td className="border-b bg-pax2-mist" />
-                <td colSpan={lead - 1 + cols} className="border-b bg-pax2-mist px-3 py-1.5 text-xs font-semibold text-foreground">
-                  {g.name}
+                <td colSpan={lead - 1 + cols} className="border-b bg-pax2-mist p-0">
+                  <BandToggle label={g.name} shut={shut.includes(`seg:${g.dim}`)} onToggle={() => setShut((p) => toggled(p, `seg:${g.dim}`))} />
                 </td>
               </tr>
             )}
-            {shown.flatMap((o) => {
+            {!(g.dim && shut.includes(`seg:${g.dim}`)) && shown.flatMap((o) => {
               const segs = g.segs.filter((s) => view.metrics.some((m) => read.cell(o, m, s.key)))
               return segs.map((s, i) => <BarsRow key={`${o}\u0001${s.key}`} o={o} s={s} first={i === 0} last={i === segs.length - 1} sel={about?.entry === o && about.seg === s.key} read={read} view={view} onPick={pick} />)
             })}
@@ -1156,6 +1169,17 @@ export function LiftSurface() {
   )
 }
 
+/** A band's label, which folds the rows under it into the band and opens them again (Brendan, 2026-10-31): open,
+ *  the up chevron shows on hover; shut, the down chevron stays. */
+function BandToggle({ label, shut, onToggle }: { label: string; shut: boolean; onToggle: () => void }) {
+  return (
+    <button type="button" onClick={onToggle} aria-expanded={!shut} className="group/band flex w-full items-center gap-1.5 px-3 py-1.5 text-left text-xs font-semibold text-foreground">
+      {label}
+      {shut ? <ChevronDown aria-hidden className="size-3.5 text-muted-foreground" /> : <ChevronUp aria-hidden className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/band:opacity-100" />}
+    </button>
+  )
+}
+
 /** The frame is bare (Brendan, 2026-10-29): no header row, so no header search; the rail's toggle leads the toolbar. */
 const NO_SEARCH = { query: "", onQuery: () => {}, placeholder: "" }
 
@@ -1177,9 +1201,9 @@ function TreatmentPicker({ options, chosen, onChosen, count, disabled }: { optio
   const input = React.useRef<HTMLInputElement>(null)
   return (
     <Combobox.Root items={options} multiple autoHighlight value={chosen} onValueChange={(v) => onChosen(v as string[])} itemToStringLabel={(o: string) => treatmentName(o)}>
-      <Combobox.Trigger className={cn(TOOL, "data-[popup-open]:bg-muted")} disabled={disabled}>
+      <Combobox.Trigger className={cn(TOOL, "data-[popup-open]:bg-muted")} disabled={disabled} title={plural(count, "Treatment")}>
         <Copy className={TOOL_ICON} />
-        {plural(count, "Treatment")}
+        <span className={TOOL_LABEL}>{plural(count, "Treatment")}</span>
       </Combobox.Trigger>
       <Combobox.Portal>
         <Combobox.Positioner align="start" sideOffset={4} className="z-50">
