@@ -27,6 +27,7 @@ import { dimLabel, groupSources, num, type AudienceIndex, type SourceRow } from 
 import { rowDress } from "../america-thinks/segment-grid"
 import { AboutResult } from "./about-result"
 import { useShellPanel } from "@/components/shell"
+import { PANE_PARAM } from "@/lib/pane"
 import { AD_COLUMNS, AD_INFO, TRAIT_COLUMN, TRAIT_COLUMNS, adOffice, adWhen, adWhere, dimOf, fielding, isPlacebo, metricShort, ordered, periodKey, segKey, segOf, setAds, signed, significance, testOf, TRAIT_GROUPS, treatmentName, valOf, type AdColumn, type AdInfo, type Cell, type Pick } from "./lift-data"
 import { AppealBar, AppealKey, axisOf, Candle, EmotionBar, EmotionKey, heat, HeatKey, sampleEmotions } from "./lift-marks"
 
@@ -476,7 +477,12 @@ export function LiftSurface() {
   }
   const url = read ? linkUrl() : null
   React.useEffect(() => {
-    if (url && url !== window.location.href) window.history.replaceState(window.history.state, "", url)
+    if (!url) return
+    // The second panel's ?pane rides along (lib/pane.ts): the share link is Lift's own view, but the address keeps
+    // both, or a reload lost the panel (Brendan, 2026-10-31).
+    const pane = new URLSearchParams(window.location.search).get(PANE_PARAM)
+    const next = pane ? `${url}&${PANE_PARAM}=${encodeURIComponent(pane)}` : url
+    if (next !== window.location.href) window.history.replaceState(window.history.state, "", next)
   }, [url])
   const share = () => {
     navigator.clipboard.writeText(linkUrl())
