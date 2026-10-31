@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { ArrowLeft, BadgeCheck, Bell, BookA, BookOpen, Boxes, ChevronDown, ChevronUp, ChevronsUpDown, Clapperboard, ClipboardList, Columns2, Columns3, EllipsisVertical, FileText, Film, FlaskConical, Gauge, House, LayoutDashboard, Link2, ListChecks, LogIn, LogOut, MessagesSquare, Palette, PanelLeftClose, PanelLeftOpen, PanelRight, Puzzle, Search, Settings, Shield, ShieldCheck, SlidersHorizontal, Star, User2, Users, Video, Vote, X, createLucideIcon } from "lucide-react"
+import { ArrowLeft, ArrowUpRight, BadgeCheck, Bell, BookA, BookOpen, Boxes, ChevronDown, ChevronUp, ChevronsUpDown, Clapperboard, ClipboardList, Columns2, Columns3, EllipsisVertical, FileText, Film, FlaskConical, Gauge, House, LayoutDashboard, Link2, ListChecks, LogIn, LogOut, MessagesSquare, Palette, PanelLeftClose, PanelLeftOpen, PanelRight, Puzzle, Search, Settings, Shield, ShieldCheck, SlidersHorizontal, Star, User2, Users, Video, Vote, X, createLucideIcon } from "lucide-react"
 
 import dynamic from "next/dynamic"
 import { SidebarChats } from "@/components/sidebar-chats"
@@ -14,6 +14,7 @@ import { Wordmark } from "@/components/wordmark"
 import { CommandKHost, openCommandK } from "@/components/command/command-k-host"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/ui/components/nova/dropdown-menu"
 import { cn } from "@/ui/lib/utils"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/ui/components/nova/tooltip"
 import { whiteButton } from "@/components/white-button"
 import { HOUSEKEEPING_OPEN, HousekeepingTool } from "@/components/housekeeping/tool"
 import { useThemePanel } from "@/components/theme/theme-palette"
@@ -303,7 +304,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
     const group = ADMIN.some((n) => n.href === href) ? "Admin" : "Main"
     const url = () => `${window.location.origin}${href}`
     const rowCls = cn(
-      "group relative flex items-center gap-3 rounded-xl px-3 pr-14 outline-none transition-[color,background-color,box-shadow]",
+      "group relative flex items-center gap-3 rounded-xl px-3 pr-16 outline-none transition-[color,background-color,box-shadow]",
       small ? "py-1.5 text-[13px]" : "py-2 text-sm",
       on ? "bg-pax2-lift font-semibold text-pax2-blue shadow-e1" : "text-slate-500 hover:bg-pax2-lift/70 hover:text-pax2-blue hover:shadow-e1",
     )
@@ -328,6 +329,24 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
       )}
       <span className="absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center">
         {fav && <Star aria-label="Favorite" className="size-3 fill-amber-400 text-amber-400" />}
+        {/* On hover, the row's page opens in the second panel, as the kebab's Open in panel does (Brendan, 2026-10-31). */}
+        {LIVE.has(href) && (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  type="button"
+                  aria-label={`Open ${label} in panel 2`}
+                  onClick={() => openPane(href)}
+                  className="flex size-7 items-center justify-center rounded-lg text-slate-400 opacity-0 transition-opacity hover:bg-pax2-lift hover:text-pax2-blue focus-visible:opacity-100 group-hover/item:opacity-100"
+                />
+              }
+            >
+              <ArrowUpRight className="size-4" />
+            </TooltipTrigger>
+            <TooltipContent>Panel 2</TooltipContent>
+          </Tooltip>
+        )}
         <KebabMenu
           label={`${label} options`}
           align="left"
