@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { Combobox } from "@base-ui/react/combobox"
-import { ArrowDown, ArrowUp, ChartColumn, ChevronDown, ChevronUp, EllipsisVertical, Grid3x3, ListTree, Table, Tags, Check, CircleDashed, Copy, Download, Folder, Funnel, GripVerticalIcon, Info, Loader2, PanelLeftClose, PanelLeftOpen, SeparatorVertical, Share, Spline } from "lucide-react"
+import { ArrowDown, ArrowUp, ChartColumn, ChevronDown, ChevronUp, EllipsisVertical, Grid3x3, ListTree, Table, Tags, Check, CircleDashed, Copy, Download, Folder, Funnel, Info, Loader2, PanelLeftClose, PanelLeftOpen, SeparatorVertical, Share, Spline } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { BankFrame, BankRail as RailState } from "@/components/bank/bank-frame"
@@ -31,7 +31,7 @@ import { rowDress } from "../america-thinks/segment-grid"
 import { AboutResult } from "./about-result"
 import { useShellPanel } from "@/components/shell"
 import { PANE_PARAM } from "@/lib/pane"
-import { LIFT_ANALYSIS_OPEN, openToolsOnCards, recordAnalysis, takeFromTools } from "@/lib/lift-analyses"
+import { LIFT_ANALYSIS_OPEN, openToolsOnCards } from "@/lib/lift-analyses"
 import { AD_COLUMNS, AD_INFO, TRAIT_COLUMN, TRAIT_COLUMNS, adOffice, adWhen, adWhere, dimOf, fielding, isPlacebo, metricShort, ordered, periodKey, segKey, segOf, setAds, signed, significance, testOf, TRAIT_GROUPS, treatmentName, valOf, type AdColumn, type AdInfo, type Cell, type Pick } from "./lift-data"
 import { AppealBar, AppealKey, axisOf, Candle, EmotionBar, EmotionKey, heat, HeatKey, sampleEmotions } from "./lift-marks"
 
@@ -135,14 +135,10 @@ export function LiftSurface() {
   const [periodsOff, setPeriodsOff] = React.useState<string[]>(() => link.list("fo"))
   // A linked cell opens once its folder has read: [treatment, metric, segment].
   const [linkedPick, setLinkedPick] = React.useState<string[] | null>(() => (link.list("at").length >= 3 ? link.list("at") : null))
-  // Whether the open analysis came from Tools' Lift Analysis cards: its panel then has a Back to them. A card
-  // from another page arrives through the address; on this page, through LIFT_ANALYSIS_OPEN.
-  const fromTools = React.useRef(false)
+  // A Tools card on this page hands its pick here (from another page it comes through the address).
   React.useEffect(() => {
-    if (takeFromTools()) fromTools.current = true
     const go = (e: Event) => {
       const { source: at, at: pick } = (e as CustomEvent<{ source: string; at: string[] }>).detail
-      fromTools.current = takeFromTools()
       if (at in SOURCES) setSource(at)
       setLinkedPick(pick)
     }
@@ -441,7 +437,8 @@ export function LiftSurface() {
         key: ABOUT_KEY,
         title: "Lift Analysis",
         flush: true,
-        back: fromTools.current ? openToolsOnCards : undefined,
+        // Back climbs to Tools' Lift Analysis cards, however the analysis was opened (Brendan, 2026-10-31).
+        back: openToolsOnCards,
         body: <AboutResult key={`${about.entry}\u0001${about.metric}\u0001${about.seg}`} pick={about} files={files} folder={source} folders={SOURCES} complete={complete} place={place} />,
       })
     else if (aboutShownRef.current) openAside(null)
@@ -451,20 +448,6 @@ export function LiftSurface() {
   React.useEffect(() => {
     if (!aboutShown) setAbout(null)
   }, [aboutShown])
-  // Every analysis opened goes on Tools' Lift Analysis cards (lib/lift-analyses).
-  React.useEffect(() => {
-    if (!about) return
-    const at = [about.option, about.metric, about.seg, fieldingOf(about.entry)]
-    recordAnalysis({
-      href: `/lift?source=${encodeURIComponent(source)}&at=${at.map(linkPart).join(",")}`,
-      source,
-      at,
-      title: treatmentName(about.option),
-      sub: `${metricShort(about.metric)} · ${about.segName} · ${signed(about.cell.lift[7])}`,
-    })
-    // source is the pick's folder at the moment it opens.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [about])
 
   const download = () => {
     if (!read || !view) return
@@ -891,8 +874,7 @@ export function LiftSurface() {
   // Stable, so a pick re-renders only the rows whose selection changed (the rows are memoized).
   // The same cell again closes the panel.
   const pick = React.useCallback(
-    // A cell's own pick has no Back: only Tools' cards give the panel one.
-    (ek: string, m: string, s: Seg, c: Cell) => ((fromTools.current = false), setAbout((prev) => (prev && prev.entry === ek && prev.metric === m && prev.seg === s.key ? null : { option: optionOf(ek), entry: ek, metric: m, seg: s.key, segName: s.name, cell: c }))),
+    (ek: string, m: string, s: Seg, c: Cell) => setAbout((prev) => (prev && prev.entry === ek && prev.metric === m && prev.seg === s.key ? null : { option: optionOf(ek), entry: ek, metric: m, seg: s.key, segName: s.name, cell: c })),
     []
   )
 
@@ -921,8 +903,12 @@ export function LiftSurface() {
     view &&
     view.adCols.map((c) => (
       <th key={c.key} aria-sort={ariaSort(c.key)} className={cn(TH, "relative border-l")}>
-        <span className="flex items-center gap-2">{sortLabel(c.key, c.name)}</span>
-        <ColumnGrip onWidth={resizeMetric(c.key)} />
+        <span className="flex items-center gap-2">
+          {sortLabel(c.key, c.name)}
+          <span className="ml-auto">
+            <Resize width={widthOf(c.key) ?? c.width} onWidth={resizeMetric(c.key)} max={640} />
+          </span>
+        </span>
       </th>
     ))
   const metricHeads = view && (
@@ -942,9 +928,9 @@ export function LiftSurface() {
                   <TooltipContent className="max-w-72">{defs.get(m)}</TooltipContent>
                 </Tooltip>
               )}
+              <Resize width={widthOf(m)} onWidth={resizeMetric(m)} max={640} />
             </span>
           </span>
-          <ColumnGrip onWidth={resizeMetric(m)} last={!view.emotion && i === view.metrics.length - 1} />
         </th>
       ))}
       {view.emotion && (
@@ -971,9 +957,9 @@ export function LiftSurface() {
                   </TooltipContent>
                 )}
               </Tooltip>
+              <Resize width={widthOf(EMOTION)} onWidth={resizeMetric(EMOTION)} max={640} />
             </span>
           </span>
-          <ColumnGrip onWidth={resizeMetric(EMOTION)} last />
         </th>
       )}
     </>
@@ -1129,7 +1115,7 @@ export function LiftSurface() {
             <th key={m} className={cn(TH, "relative border-l")}>
               <span className="flex items-center gap-2">
                 <span className="truncate">{metricShort(m)}</span>
-                <span className="ml-auto flex items-center">
+                <span className="ml-auto flex items-center gap-2">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button type="button" aria-label={`About the ${metricShort(m)} attributes`} className={HEAD_INFO}>
@@ -1140,9 +1126,9 @@ export function LiftSurface() {
                       The average lift of ads with the trait less ads without it, each side pooled across the archive&apos;s ads with random-effects weights (DerSimonian–Laird); gray where its 90% margin crosses zero. The number at zero is the average without it.
                     </TooltipContent>
                   </Tooltip>
+                  <Resize width={widthOf(m)} onWidth={resizeMetric(m)} max={640} />
                 </span>
               </span>
-              <ColumnGrip onWidth={resizeMetric(m)} last={i === view.metrics.length - 1} />
             </th>
           ))}
         </tr>
@@ -1448,11 +1434,14 @@ const HeatRow = React.memo(function HeatRow({
 })
 
 /** The column-resize handle: drag it to set the column's width. */
-function Resize({ width, onWidth, min = 120, max = 480 }: { width: number; onWidth: (w: number) => void; min?: number; max?: number }) {
+/** A column's resize control, in its head beside the label (Brendan, 2026-10-31: every column's, in place of the
+ *  metric columns' grips on their dividers). A column no drag has sized starts from its width as drawn. */
+function Resize({ width, onWidth, min = 120, max = 480 }: { width: number | undefined; onWidth: (w: number) => void; min?: number; max?: number }) {
   const start = (e: React.PointerEvent) => {
     e.preventDefault()
     const x0 = e.clientX
-    const move = (ev: PointerEvent) => onWidth(Math.min(max, Math.max(min, width + ev.clientX - x0)))
+    const w0 = width ?? (e.currentTarget.closest("th") as HTMLElement).getBoundingClientRect().width
+    const move = (ev: PointerEvent) => onWidth(Math.min(max, Math.max(min, w0 + ev.clientX - x0)))
     const up = () => {
       window.removeEventListener("pointermove", move)
       window.removeEventListener("pointerup", up)
@@ -1464,31 +1453,6 @@ function Resize({ width, onWidth, min = 120, max = 480 }: { width: number; onWid
     <button type="button" aria-label="Resize the column" title="Drag to resize" onPointerDown={start} className={cn(HEAD_ICON, "cursor-col-resize")}>
       <SeparatorVertical className="size-4" />
     </button>
-  )
-}
-
-/** A metric column's resize grip, America Thinks' panel handle (components/ui resizable's withHandle box) on the
- *  column's right divider: drag it to set the column's width. The last column's sits inside the table's edge. */
-function ColumnGrip({ onWidth, last = false }: { onWidth: (w: number) => void; last?: boolean }) {
-  const start = (e: React.PointerEvent) => {
-    e.preventDefault()
-    const x0 = e.clientX
-    // The column's width as drawn, so an undragged (shared) column starts where it stands.
-    const width = (e.currentTarget.parentElement as HTMLElement).getBoundingClientRect().width
-    const move = (ev: PointerEvent) => onWidth(Math.min(640, Math.max(120, width + ev.clientX - x0)))
-    const up = () => {
-      window.removeEventListener("pointermove", move)
-      window.removeEventListener("pointerup", up)
-    }
-    window.addEventListener("pointermove", move)
-    window.addEventListener("pointerup", up)
-  }
-  return (
-    <span role="separator" aria-orientation="vertical" aria-label="Resize the column" onPointerDown={start} className={cn("absolute top-0 z-10 flex h-full w-3.5 cursor-col-resize touch-none items-center justify-center", last ? "right-0" : "-right-[7px]")}>
-      <span className="flex h-4 w-3 items-center justify-center rounded-xs border bg-border">
-        <GripVerticalIcon className="size-2.5" />
-      </span>
-    </span>
   )
 }
 
