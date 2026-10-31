@@ -5,10 +5,10 @@
 // sidebar and the rails: a step up from the sidebar where there is one (white on PAX Light's mist, the
 // raised step on a dark), a step down on Light, whose sidebar is already white.
 //
+//   PAX Light  the default: the mist is the main colour, on both; cards lift to white on it.
+//   PAX Dark   PAX's navy: the dark navy of the first dark conversion (sidebar #0b1120, main #121a2b).
 //   Light      white is the main colour, on the main container and the sidebar alike.
 //   Dark       the classic dark: one near-black grey on both, zinc's steps.
-//   PAX Light  the mist is the main colour, on both; cards lift to white on it.
-//   PAX Dark   PAX's navy: the dark navy of the first dark conversion (sidebar #0b1120, main #121a2b).
 //   Vercel     Vercel's near-black and its blue.
 //   VS Code    VS Code's Dark+.
 //
@@ -49,32 +49,6 @@ const DARK_SIGNALS = { positive: "#4ade80", negative: "#f87171" }
 
 export const THEMES: Theme[] = [
   {
-    name: "light",
-    label: "Light",
-    dark: false,
-    colors: {
-      frame: "#eef1f5", sidebar: "#ffffff", surface: "#ffffff", raised: "#ffffff", tint: "#f4f6f9", lift: "#eef2f7",
-      rule: "#e2e8f0", ruleStrong: "#cbd5e1",
-      ...SLATE_INK, ...PAX_ACCENT, ...LIGHT_SIGNALS,
-    },
-    numbers: { shadow: 1, gridOpacity: 0.16, gridFill: 0.08, gridSpotlight: 0.8 },
-    shadowRgb: "15 23 42",
-  },
-  {
-    name: "dark",
-    label: "Dark",
-    dark: true,
-    colors: {
-      frame: "#09090b", sidebar: "#18181b", surface: "#18181b", raised: "#27272a", tint: "#222226", lift: "#27272a",
-      rule: "#2e2e33", ruleStrong: "#3f3f46",
-      ink: "#fafafa", ink2: "#d4d4d8", ink3: "#a1a1aa", ink4: "#71717a",
-      accent: "#3b82f6", accent2: "#60a5fa", wash: "#172554",
-      ...DARK_SIGNALS,
-    },
-    numbers: { shadow: 5, gridOpacity: 0.12, gridFill: 0.06, gridSpotlight: 0.6 },
-    shadowRgb: "0 0 0",
-  },
-  {
     name: "pax-light",
     label: "PAX Light",
     dark: false,
@@ -98,6 +72,32 @@ export const THEMES: Theme[] = [
       ...DARK_SIGNALS,
     },
     numbers: { shadow: 6, gridOpacity: 0.14, gridFill: 0.06, gridSpotlight: 0.6 },
+    shadowRgb: "0 0 0",
+  },
+  {
+    name: "light",
+    label: "Light",
+    dark: false,
+    colors: {
+      frame: "#eef1f5", sidebar: "#ffffff", surface: "#ffffff", raised: "#ffffff", tint: "#f4f6f9", lift: "#eef2f7",
+      rule: "#e2e8f0", ruleStrong: "#cbd5e1",
+      ...SLATE_INK, ...PAX_ACCENT, ...LIGHT_SIGNALS,
+    },
+    numbers: { shadow: 1, gridOpacity: 0.16, gridFill: 0.08, gridSpotlight: 0.8 },
+    shadowRgb: "15 23 42",
+  },
+  {
+    name: "dark",
+    label: "Dark",
+    dark: true,
+    colors: {
+      frame: "#09090b", sidebar: "#18181b", surface: "#18181b", raised: "#27272a", tint: "#222226", lift: "#27272a",
+      rule: "#2e2e33", ruleStrong: "#3f3f46",
+      ink: "#fafafa", ink2: "#d4d4d8", ink3: "#a1a1aa", ink4: "#71717a",
+      accent: "#3b82f6", accent2: "#60a5fa", wash: "#172554",
+      ...DARK_SIGNALS,
+    },
+    numbers: { shadow: 5, gridOpacity: 0.12, gridFill: 0.06, gridSpotlight: 0.6 },
     shadowRgb: "0 0 0",
   },
   {
@@ -130,7 +130,7 @@ export const THEMES: Theme[] = [
   },
 ]
 
-export const DEFAULT_THEME: ThemeName = "light"
+export const DEFAULT_THEME: ThemeName = "pax-light"
 
 /** The panel's controls, in its order, with the CSS variable each one sets. */
 export const TOKENS: { key: TokenKey; label: string; group: "Surfaces" | "Type" | "Lines" | "Accent" | "Signals" }[] = [

@@ -77,9 +77,9 @@ export function describeV2(el: Element): string {
  * The label over the outline (Brendan, 2026-10-30): the tag, numbered when it is one of a stack of
  * wrappers sharing one outline (div-1 the outermost), its size, its layout (grid, flex), and its
  * name, or how many elements it holds when it has none. With it, whether screen readers skip it,
- * and which ways the arrow keys can go from it.
+ * and which ways the keys can go from it (`chosen`: ⌘ has been used at its sibling level).
  */
-export function labelOf(el: Element): { text: string; hidden: boolean; ways: Ways } {
+export function labelOf(el: Element, chosen = false): { text: string; hidden: boolean; ways: Ways } {
   const role = el.getAttribute("role");
   const stack = stackOf(el);
   const head = `${el.localName}${stack.total > 1 ? `-${stack.index}` : ""}${role ? `[${role}]` : ""}`;
@@ -94,7 +94,7 @@ export function labelOf(el: Element): { text: string; hidden: boolean; ways: Way
     const n = drawnChildren(el).length;
     if (n > 1) parts.push(`${n} items`);
   }
-  return { text: parts.join(" · "), hidden: hiddenFromReaders(el), ways: waysFrom(el) };
+  return { text: parts.join(" · "), hidden: hiddenFromReaders(el), ways: waysFrom(el, chosen) };
 }
 
 /** sonar's own wording, which the first Housekeeping comments were saved under. */

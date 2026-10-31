@@ -2,6 +2,8 @@
 // when there's no room, below when neither side fits.
 
 import { h } from "./dom";
+import { waysMarks } from "./box";
+import type { Ways } from "./walk";
 import type { Session } from "./index";
 
 export interface PopoverActions {
@@ -46,7 +48,9 @@ export class Popover {
     this.el.hidden = true;
 
     this.crumb = h(doc, "div", "pc-crumb");
-    this.chip = h(doc, "span", "pc-chip", "@Housekeeping");
+    // The walk's marks for the element the box is on, where "@Housekeeping" stood (Brendan, 2026-10-30):
+    // the arrows still walk while the box is empty, so the box says which ways are open.
+    this.chip = h(doc, "span", "pc-ways");
     this.note = h(doc, "div", "pc-note");
     this.textarea = h(doc, "textarea", "pc-text");
     this.textarea.placeholder = "Leave a comment… (paste a screenshot to attach it)";
@@ -153,6 +157,13 @@ export class Popover {
     this.el.hidden = true;
   }
 
+  /** The walk's marks for the element the box is on. */
+  setWays(ways: Ways): void {
+    this.chip.replaceChildren(waysMarks(this.el.ownerDocument, ways));
+    this.chip.hidden = false;
+    this.measure();
+  }
+
   setCrumb(text: string): void {
     this.crumb.textContent = text;
   }
@@ -235,7 +246,7 @@ export class Popover {
   private refresh(): void {
     const send = this.sendBox.checked;
     const canSend = send && !!this.sessionId;
-    this.chip.hidden = !send;
+    this.chip.hidden = !send || !this.chip.childElementCount;
     this.session.hidden = true;
     this.primaryLabel.textContent = !send ? "Save" : canSend ? "Send" : "Copy as prompt";
     this.copyBtn.hidden = this.mode === "compose" && send && !canSend;

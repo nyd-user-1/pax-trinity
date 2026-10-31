@@ -67,8 +67,9 @@ export const OVERLAY_CSS = `
 .chip-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .chip-icon { flex-shrink: 0; display: block; }
 .chip-icon.off { opacity: .28; }
-.chip-ways { display: flex; flex-shrink: 0; gap: 1px; color: #93c5fd; }
-.box.locked .chip { visibility: hidden; } /* the popover carries the breadcrumb */
+.chip-ways { display: flex; flex-shrink: 0; align-items: center; gap: 2px; color: #93c5fd; }
+.chip-cmd { font: 600 10px/10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin-left: 2px; }
+.chip-cmd.off { opacity: .28; }
 .chip:empty { display: none; }
 
 .dot, .cross {
@@ -177,7 +178,10 @@ export const OVERLAY_CSS = `
   font: 13px/1.45 ${SANS};
 }
 .pc-crumb { color: #8b8b8b; font: 11px/16px ${MONO}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 8px; }
-.pc-chip { display: inline-block; margin-bottom: 6px; padding: 0 8px; border: 1px solid #3b82f6; border-radius: 999px; color: #93c5fd; font: 500 11px/18px ${SANS}; }
+.pc-ways { display: flex; margin-bottom: 6px; }
+.pc-ways .chip-ways { gap: 4px; }
+.pc-ways .chip-icon { width: 12px; height: 12px; }
+.pc-ways .chip-cmd { font-size: 12px; line-height: 12px; }
 .pc-text { display: block; width: 100%; min-height: 40px; padding: 0; border: 0; outline: 0; resize: none; background: transparent; color: #f3f4f6; font: inherit; cursor: text; }
 .pc-text::placeholder { color: #6b7280; }
 .pc-note { white-space: pre-wrap; overflow-wrap: anywhere; color: #f3f4f6; }

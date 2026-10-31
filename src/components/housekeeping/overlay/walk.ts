@@ -1,10 +1,12 @@
-// Walking the page with the keys (Brendan, 2026-10-30): ↑ the parent, ↓ the child, ← and → the
-// siblings, through the whole tree, decoration and hidden layers included. Two things the walk
-// reports rather than hides: wrappers that share one outline (numbered div-1, div-2… from the
-// outermost, so a stack of identical boxes reads as a stack), and which directions are open (the
-// label's chevrons). The one place it stops early is a word split into a span per character (PAX's
-// letters, a counter's digits): the span holding the whole word is the bottom; a bold or styled
-// part inside text is still a level of its own.
+// Walking the page with the keys (Brendan, 2026-10-30): ↑ the parent and ↓ the child travel the tree,
+// decoration and hidden layers included. Where an element has siblings, ⌘↑ and ⌘↓ cycle through them in
+// a circle, and the label shows ⌘ there in place of ← and →; at such a level a plain ↓ waits until ⌘ has
+// been used on it, so the walk never descends into a sibling nobody chose; ↑ always climbs out. Two
+// things the walk reports rather than hides: wrappers that share one outline (numbered div-1, div-2…
+// from the outermost, so a stack of identical boxes reads as a stack), and which ways are open (the
+// label's marks). The one place it stops early is a word split into a span per character (PAX's
+// letters, a counter's digits): the span holding the whole word is the bottom; a bold or styled part
+// inside text is still a level of its own.
 
 import { boxParent, isRoot } from "./targeting";
 
@@ -64,28 +66,31 @@ export function childAt(el: Element, x: number, y: number, overlay: Element): El
   return holds ?? kids[0];
 }
 
-export function siblingNext(el: Element, dir: "left" | "right"): Element | null {
+/** The sibling ⌘↑ (-1) or ⌘↓ (+1) goes to, round the circle; null when the element has none. */
+export function siblingCycle(el: Element, dir: 1 | -1): Element | null {
   const sibs = siblingsOf(el);
   const i = sibs.indexOf(el);
-  if (i < 0) return null;
-  return sibs[dir === "left" ? i - 1 : i + 1] ?? null;
+  if (i < 0 || sibs.length < 2) return null;
+  return sibs[(i + dir + sibs.length) % sibs.length];
 }
+
+export const hasSiblings = (el: Element) => siblingsOf(el).length > 1;
 
 export interface Ways {
   up: boolean;
+  /** A plain ↓: a child to go to, and, at a sibling level, ⌘ already used there. */
   down: boolean;
-  left: boolean;
-  right: boolean;
+  /** Siblings to cycle with ⌘↑ / ⌘↓. */
+  cmd: boolean;
 }
 
-export function waysFrom(el: Element): Ways {
-  const sibs = siblingsOf(el);
-  const i = sibs.indexOf(el);
+/** `chosen`: whether ⌘ has been used at this element's sibling level. */
+export function waysFrom(el: Element, chosen = false): Ways {
+  const cmd = hasSiblings(el);
   return {
     up: !!parentOf(el),
-    down: !isSplitText(el) && drawnChildren(el).length > 0,
-    left: i > 0,
-    right: i >= 0 && i < sibs.length - 1,
+    down: !isSplitText(el) && drawnChildren(el).length > 0 && (!cmd || chosen),
+    cmd,
   };
 }
 

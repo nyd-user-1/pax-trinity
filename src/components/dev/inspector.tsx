@@ -8,6 +8,7 @@
  * make this worse, not safer. */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { createPortal } from "react-dom"
 import {
   Boxes,
   Check,
@@ -306,6 +307,24 @@ export function DevInspector() {
   const [, setTick] = useState(0)
   /** Which of the dock's popovers is up. */
   const [tool, setTool] = useState<"comments" | "settings" | null>(null)
+  // PAX (Brendan, 2026-10-30): the right-hand panel's Dev Tools › Inspector item hands this a slot to draw
+  // its classifier or its comments into (components/discussion-panel.tsx, "inspector:embed"). Opening the
+  // item's Classifier turns the classifier on; leaving the item puts it away.
+  const [embed, setEmbed] = useState<{ slot: HTMLElement; view: "classifier" | "comments" } | null>(null)
+  useEffect(() => {
+    const on = (e: Event) => {
+      const d = (e as CustomEvent<{ slot: HTMLElement | null; view: "classifier" | "comments" } | null>).detail
+      if (d?.slot) {
+        setEmbed({ slot: d.slot, view: d.view })
+        setOpen(d.view === "classifier")
+      } else {
+        setEmbed(null)
+        setOpen(false)
+      }
+    }
+    window.addEventListener("inspector:embed", on)
+    return () => window.removeEventListener("inspector:embed", on)
+  }, [])
   const [prefs, setPrefs] = useState<Prefs>(PREFS)
   const [comments, setComments] = useState<Comment[]>([])
   /** The dock waits for the saved prefs, or a dock you sent to the edge would
@@ -570,6 +589,31 @@ export function DevInspector() {
   const matches = filter.size && scan ? [...scan.entries()].filter(([, l]) => filter.has(l)) : []
   const filtered = matches.slice(0, WASH_CAP)
 
+  const panelEl = () => (
+        <Panel
+          onClose={() => setOpen(false)}
+          latched={latched}
+          setLatched={setLatched}
+          counts={counts}
+          scan={scan}
+          scanning={scanning}
+          scanPage={scanPage}
+          filter={filter}
+          setFilter={setFilter}
+          shown={filtered.length}
+          total={matches.length}
+          hover={frozen ?? hover}
+          selected={frozen}
+          onSelect={(el) => {
+            void read(el).then(setFrozen)
+          }}
+          expanded={expanded}
+          setExpanded={setExpanded}
+          hold={prefs.hold}
+          embedded={embed?.view === "classifier"}
+        />
+  )
+
   return (
     <>
       {/* layer wash — every matching element at once, so nothing paints over
@@ -633,29 +677,12 @@ export function DevInspector() {
         setPrefs={savePrefs}
       />}
 
-      {open && (
-        <Panel
-          onClose={() => setOpen(false)}
-          latched={latched}
-          setLatched={setLatched}
-          counts={counts}
-          scan={scan}
-          scanning={scanning}
-          scanPage={scanPage}
-          filter={filter}
-          setFilter={setFilter}
-          shown={filtered.length}
-          total={matches.length}
-          hover={frozen ?? hover}
-          selected={frozen}
-          onSelect={(el) => {
-            void read(el).then(setFrozen)
-          }}
-          expanded={expanded}
-          setExpanded={setExpanded}
-          hold={prefs.hold}
-        />
-      )}
+      {open && (embed?.view === "classifier" ? createPortal(panelEl(), embed.slot) : panelEl())}
+      {embed?.view === "comments" &&
+        createPortal(
+          <CommentsPop embedded top={false} right={false} pinned={frozen} comments={comments} setComments={saveComments} hold={prefs.hold} onClose={() => {}} />,
+          embed.slot,
+        )}
     </>
   )
 }
@@ -1259,6 +1286,10 @@ function Dock({
 
 // ── the dock's popovers ─────────────────────────────────────────────────────
 
+/** PAX (2026-10-30): a panel drawn into the right-hand panel's Inspector item rather than floating. */
+const EMBEDDED: React.CSSProperties = { position: "relative", width: "100%", flex: "1 1 auto", minHeight: 0, maxHeight: "none" }
+const EMBEDDED_FRAME: React.CSSProperties = { border: "none", borderRadius: 0, boxShadow: "none", background: "transparent" }
+
 /** Off the dock, on the side away from the edge it sits on. Their popup is
  *  320 wide (core/dist/index.js:1550); the surface is the panel's, since it is
  *  ours and not theirs. */
@@ -1268,6 +1299,7 @@ function Pop({
   title,
   actions,
   onClose,
+  embedded = false,
   children,
 }: {
   top: boolean
@@ -1275,6 +1307,8 @@ function Pop({
   title: string
   actions?: React.ReactNode
   onClose: () => void
+  /** Drawn inside the right-hand panel's Inspector item (PAX): in its flow, full width, no frame. */
+  embedded?: boolean
   children: React.ReactNode
 }) {
   const at: React.CSSProperties = {}
@@ -1283,13 +1317,11 @@ function Pop({
   return (
     <div
       data-nodrag
+      data-devinspector={embedded ? "" : undefined}
       role="dialog"
       aria-label={title}
       style={{
-        position: "absolute",
-        ...at,
-        width: 320,
-        maxHeight: "min(60vh, 480px)",
+        ...(embedded ? EMBEDDED : { position: "absolute", ...at, width: 320, maxHeight: "min(60vh, 480px)" }),
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
@@ -1302,6 +1334,7 @@ function Pop({
         textAlign: "left",
         userSelect: "text",
         cursor: "default",
+        ...(embedded ? EMBEDDED_FRAME : {}),
       }}
     >
       <div className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-3">
@@ -1313,6 +1346,7 @@ function Pop({
           type="button"
           onClick={onClose}
           aria-label="Close"
+          style={embedded ? { display: "none" } : undefined}
           className="shrink-0 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
         >
           <span style={{ fontSize: 14, lineHeight: 1 }}>✕</span>
@@ -1333,6 +1367,7 @@ function CommentsPop({
   setComments,
   hold,
   onClose,
+  embedded = false,
 }: {
   top: boolean
   right: boolean
@@ -1341,6 +1376,7 @@ function CommentsPop({
   setComments: (c: Comment[]) => void
   hold: Hold
   onClose: () => void
+  embedded?: boolean
 }) {
   const [text, setText] = useState("")
   const [copied, setCopied] = useState(false)
@@ -1371,6 +1407,7 @@ function CommentsPop({
 
   return (
     <Pop
+      embedded={embedded}
       top={top}
       right={right}
       title={comments.length ? `Comments · ${comments.length}` : "Comments"}
@@ -1789,6 +1826,7 @@ function Panel({
   expanded,
   setExpanded,
   hold,
+  embedded = false,
 }: {
   onClose: () => void
   latched: boolean
@@ -1807,6 +1845,8 @@ function Panel({
   expanded: Set<Element>
   setExpanded: React.Dispatch<React.SetStateAction<Set<Element>>>
   hold: Hold
+  /** Drawn inside the right-hand panel's Inspector item (PAX): in its flow, full width, no frame, no drag. */
+  embedded?: boolean
 }) {
   const d = useDrag<HTMLDivElement>({ top: 18, right: 18 })
   // Filtering needs the page scanned. Doing it here rather than in an effect
@@ -1824,11 +1864,7 @@ function Panel({
       data-devinspector
       ref={d.ref}
       style={{
-        position: "fixed",
-        zIndex: 2147483647,
-        ...d.style,
-        width: 423,
-        maxHeight: "calc(100vh - 36px)",
+        ...(embedded ? EMBEDDED : { position: "fixed", zIndex: 2147483647, ...d.style, width: 423, maxHeight: "calc(100vh - 36px)" }),
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
@@ -1838,13 +1874,14 @@ function Panel({
         color: "var(--popover-foreground)",
         boxShadow: "0 4px 32px rgba(0,0,0,0.18)",
         font: '13px/1.6 var(--font-sans, ui-sans-serif), sans-serif',
+        ...(embedded ? EMBEDDED_FRAME : {}),
       }}
     >
       <div
-        {...d.handlers}
+        {...(embedded ? {} : d.handlers)}
         data-grip
         className="flex shrink-0 items-center gap-2 border-b border-border px-5 py-4"
-        style={{ cursor: "grab", touchAction: "none", userSelect: "none" }}
+        style={{ cursor: embedded ? "default" : "grab", touchAction: "none", userSelect: "none" }}
       >
         <span className="min-w-0 flex-1 truncate" style={{ fontSize: 15, fontWeight: 500, letterSpacing: "-0.005em" }}>
           Inspector
@@ -1885,6 +1922,7 @@ function Panel({
           type="button"
           onClick={onClose}
           aria-label="Close"
+          style={embedded ? { display: "none" } : undefined}
           className="shrink-0 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
         >
           <span style={{ fontSize: 14, lineHeight: 1 }}>✕</span>

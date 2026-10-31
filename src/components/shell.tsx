@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { ArrowLeft, BadgeCheck, Bell, BookA, BookOpen, Boxes, ChevronDown, ChevronUp, ChevronsUpDown, Clapperboard, ClipboardList, Columns2, Columns3, EllipsisVertical, ExternalLink, FileText, Film, FlaskConical, Gauge, House, Inbox, LayoutDashboard, Link2, ListChecks, LogIn, LogOut, MessagesSquare, Palette, PanelLeftClose, PanelLeftOpen, Puzzle, Search, Settings, Shield, ShieldCheck, SlidersHorizontal, Star, User2, Users, Video, Vote, X } from "lucide-react"
+import { ArrowLeft, BadgeCheck, Bell, BookA, BookOpen, Boxes, ChevronDown, ChevronUp, ChevronsUpDown, Clapperboard, ClipboardList, Columns2, Columns3, EllipsisVertical, ExternalLink, FileText, Film, FlaskConical, Gauge, House, LayoutDashboard, Link2, ListChecks, LogIn, LogOut, MessagesSquare, Palette, PanelLeftClose, PanelLeftOpen, Puzzle, Search, Settings, Shield, ShieldCheck, SlidersHorizontal, Star, User2, Users, Video, Vote, X, createLucideIcon } from "lucide-react"
 
 import dynamic from "next/dynamic"
 import { SidebarChats } from "@/components/sidebar-chats"
@@ -16,7 +16,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { cn } from "@/ui/lib/utils"
 import { whiteButton } from "@/components/white-button"
 import { HOUSEKEEPING_OPEN, HousekeepingTool } from "@/components/housekeeping/tool"
-import { ThemePalette, useThemePanel } from "@/components/theme/theme-palette"
+import { useThemePanel } from "@/components/theme/theme-palette"
 import { STUDIO_OPEN } from "@/lib/studio"
 import type { ChipOffer } from "@/lib/question-resolver"
 
@@ -42,13 +42,20 @@ const ADMIN = [
   { href: "/studio", label: "Studio", icon: Clapperboard },
   { href: "/message-tests", label: "Tests", icon: ClipboardList },
 ]
+// lucide's Inbox with its two shapes in the other order: lucide draws the notch, then the tray over it,
+// so the two-tone fill covered the notch's line. Here the tray goes first and the notch's line on top.
+const InboxTray = createLucideIcon("InboxTray", [
+  ["path", { d: "M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z", key: "tray" }],
+  ["polyline", { points: "22 12 16 12 14 15 10 15 8 12 2 12", key: "notch" }],
+])
+
 const NAV_TREE: (NavLink | NavGroup)[] = [
   { href: "/america-thinks", label: "America Thinks", icon: Users },
   { href: "/chat", label: "Chat", icon: MessagesSquare },
   { href: "/clips", label: "Clips", icon: Film },
   { href: "/consensus", label: "Consensus", icon: Vote },
   { href: "/data-dictionary", label: "Data dictionary", icon: BookA },
-  { href: "/inbox", label: "Inbox", icon: Inbox },
+  { href: "/inbox", label: "Inbox", icon: InboxTray },
   { href: "/lift", label: "Lift", icon: FlaskConical },
   { href: "/reports", label: "Reports", icon: FileText },
   { href: "/survey", label: "Survey", icon: ListChecks },
@@ -129,6 +136,14 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
   const nextSize: PanelSize = size === "third" ? "half" : size === "half" ? "full" : size === "full" ? "third" : split < 0.5 ? "half" : "full"
   const [scrolled, setScrolled] = React.useState(false)
   const [discuss, setDiscuss] = React.useState(false)
+  // The right panel holds its content through the slide shut, as the sidebar does (the slide, lib/motion.ts):
+  // unmounted at once, it blinked out while its column was still closing (Brendan, 2026-10-30).
+  const [discussShown, setDiscussShown] = React.useState(false)
+  React.useEffect(() => {
+    if (discuss) return setDiscussShown(true)
+    const t = window.setTimeout(() => setDiscussShown(false), 300)
+    return () => window.clearTimeout(t)
+  }, [discuss])
   const [aside, setAside] = React.useState<Aside | null>(null)
   const [seed, setSeed] = React.useState<DiscussSeed | null>(null)
   const animKey = React.useRef("Scored")
@@ -253,7 +268,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
       <>
         {on && <span aria-hidden className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-pax2-light-blue" />}
         <Icon
-          className={cn(small ? "size-3.5" : "size-[18px]", "icon-pop shrink-0 transition-colors", on ? "fill-pax2-lavender text-pax2-blue" : "group-hover:fill-pax2-lavender group-hover:text-pax2-blue")}
+          className={cn(small ? "size-3.5" : "size-[18px]", "icon-pop shrink-0 fill-pax2-lavender transition-colors", on ? "text-pax2-blue" : "group-hover:text-pax2-blue")}
           strokeWidth={on ? 2.25 : 1.75}
         />
         {label}
@@ -290,10 +305,14 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
     )
   }
   const sidebar = (
-    <div className="flex h-full w-60 flex-col rounded-2xl border border-slate-500 bg-pax2-sidebar px-3 py-4 shadow-e2">
-      <Link href="/" aria-label="Home" className="mb-4 flex px-3 pt-1">
-        <Wordmark size={20} />
-      </Link>
+    <div className="flex h-full w-60 flex-col rounded-2xl border border-slate-500 bg-pax2-sidebar px-3 pb-4 shadow-e2">
+      {/* The wordmark stands in a header as tall as the main container's and the right panel's, with the same
+          shadow under it, so the three header rows line up (Brendan, 2026-10-30). */}
+      <div className="relative z-10 -mx-3 mb-4 flex min-h-[73px] shrink-0 items-center rounded-t-2xl bg-pax2-sidebar px-6 shadow-[0_4px_12px_-8px_rgb(var(--t-shadow-rgb,15_23_42)/0.25)]">
+        <Link href="/" aria-label="Home" className="flex">
+          <Wordmark size={20} />
+        </Link>
+      </div>
       {/* The ⌘K search sits under the wordmark, above Chat (moved from the header, 2026-10-22). */}
       <div className="mb-3">
         <HeaderSearch items={findable} />
@@ -320,7 +339,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
                   holds ? "font-semibold text-pax2-blue" : "text-slate-500",
                 )}
               >
-                <n.icon className={cn("icon-pop size-[18px] shrink-0 transition-colors", holds ? "fill-pax2-lavender text-pax2-blue" : "group-hover:fill-pax2-lavender group-hover:text-pax2-blue")} strokeWidth={holds ? 2.25 : 1.75} />
+                <n.icon className={cn("icon-pop size-[18px] shrink-0 fill-pax2-lavender transition-colors", holds ? "text-pax2-blue" : "group-hover:text-pax2-blue")} strokeWidth={holds ? 2.25 : 1.75} />
                 <span className="flex-1">{n.label}</span>
                 <Chevron className="size-4 shrink-0 text-slate-400 transition-colors group-hover:text-pax2-blue" />
               </button>
@@ -357,14 +376,13 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
     return (
       <PanelCtx.Provider value={panel}>
       <CommandKHost />
-      <ThemeLayer />
         <div className="min-h-dvh bg-pax2-surface">{children}</div>
         {/* The sidebar slides in for everyone (PAX in the landing header calls it); the discussion is for the signed in. */}
         <div aria-hidden onClick={() => (setSidebarOpen(false), setDiscuss(false))} className={cn("fixed inset-0 z-40 bg-night-900/20 transition-opacity duration-300", sidebarOpen || discuss ? "opacity-100" : "pointer-events-none opacity-0")} />
         <div className={cn("fixed inset-y-[18px] left-[18px] z-[45] transition-transform duration-300 ease-in-out", sidebarOpen ? "translate-x-0" : "-translate-x-[calc(100%+18px)]")}>{sidebar}</div>
         {signedIn && (
           <div className={cn("fixed inset-y-[18px] right-[18px] z-[45] w-[min(420px,calc(100vw-36px))] transition-transform duration-300 ease-in-out", discuss ? "translate-x-0" : "translate-x-[calc(100%+18px)]")}>
-            {discuss && <DiscussionPanel admin={admin} onClose={() => setDiscuss(false)} />}
+            {(discuss || discussShown) && <DiscussionPanel admin={admin} onClose={() => setDiscuss(false)} />}
           </div>
         )}
       </PanelCtx.Provider>
@@ -384,7 +402,6 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
   return (
     <PanelCtx.Provider value={panel}>
       <CommandKHost />
-      <ThemeLayer />
       <div className="flex min-h-dvh md:h-dvh md:overflow-hidden md:bg-pax2-frame md:p-[18px]">
         <div className={cn("hidden shrink-0 overflow-hidden transition-[width,margin] duration-300 ease-in-out md:block", sidebarOpen ? "md:mr-[18px] md:w-60" : "md:w-0")}>
           {sidebar}
@@ -409,7 +426,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
                 })}
               </nav>
             </header>
-            <div className={cn("relative z-10 hidden shrink-0 items-center gap-3 bg-pax2-surface px-5 py-4 shadow-[0_4px_12px_-8px_rgb(15_23_42/0.25)] md:flex")}>
+            <div className={cn("relative z-10 hidden min-h-[73px] shrink-0 items-center gap-3 bg-pax2-surface px-5 py-4 shadow-[0_4px_12px_-8px_rgb(var(--t-shadow-rgb,15_23_42)/0.25)] md:flex")}>
               <button type="button" onClick={() => setSidebarOpen((v) => !v)} aria-label="Toggle sidebar" className={whiteButton("circle")}>
                 {sidebarOpen ? <PanelLeftClose className="size-4" strokeWidth={2} /> : <PanelLeftOpen className="size-4" strokeWidth={2} />}
               </button>
@@ -473,7 +490,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
         >
           <div className={cn("relative h-full", takeover ? "w-full" : panelW)}>
             {drawer}
-            {discuss && !panelOpen && <DiscussionPanel admin={admin} onClose={() => setDiscuss(false)} />}
+            {(discuss || discussShown) && !panelOpen && <DiscussionPanel admin={admin} onClose={() => setDiscuss(false)} />}
             {aside && !discuss && !panelOpen && <AsidePanel aside={aside} wide={wide} onWide={(w) => setSize(w ? "half" : "third")} onClose={() => setAside(null)} />}
             {paired && <CornerClose label="Close" onClose={closePanel} />}
           </div>
@@ -650,12 +667,6 @@ function HeaderSearch({ items }: { items: { href: string; label: string; icon: t
   )
 }
 
-
-/** The palette in the lower-right corner while the account menu's Theme switch is on (components/theme). */
-function ThemeLayer() {
-  const [on] = useThemePanel()
-  return on ? <ThemePalette /> : null
-}
 
 // leuk's AccountMenu (components/shell/account-menu.tsx): the UserChip at the foot of the
 // sidebar, opening upward to the identity header and Log out.

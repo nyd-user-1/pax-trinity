@@ -72,8 +72,8 @@ export class Box {
     this.el.classList.remove("on");
   }
 
-  /** The label: its text, a closed eye when screen readers skip the element, and the walk's four
-   *  arrows, each dimmed when that way is closed (Brendan, 2026-10-30). */
+  /** The label: its text, a closed eye when screen readers skip the element, and the walk's marks,
+   *  ↑ ↓ ⌘, each dimmed when that way is closed (Brendan, 2026-10-30). */
   setLabel(text: string, extra: { hidden?: boolean; ways?: Ways } = {}): void {
     const key = `${text}|${extra.hidden ? 1 : 0}|${extra.ways ? Object.values(extra.ways).map(Number).join("") : ""}`;
     if (this.labelKey === key) return;
@@ -81,17 +81,7 @@ export class Box {
     const doc = this.chip.ownerDocument;
     const parts: Element[] = [h(doc, "span", "chip-text", text)];
     if (extra.hidden) parts.push(icon(doc, EYE_OFF, "Hidden from screen readers"));
-    if (extra.ways) {
-      const w = extra.ways;
-      const group = h(doc, "span", "chip-ways");
-      group.append(
-        icon(doc, ["m18 15-6-6-6 6"], "", !w.up),
-        icon(doc, ["m6 9 6 6 6-6"], "", !w.down),
-        icon(doc, ["m15 18-6-6 6-6"], "", !w.left),
-        icon(doc, ["m9 18 6-6-6-6"], "", !w.right),
-      );
-      parts.push(group);
-    }
+    if (extra.ways) parts.push(waysMarks(doc, extra.ways));
     this.chip.replaceChildren(...parts);
     this.chipWidth = this.chip.offsetWidth;
     this.chipHeight = this.chip.offsetHeight;
@@ -140,4 +130,16 @@ function icon(doc: Document, paths: string[], title: string, off = false): SVGEl
   }
   for (const d of paths) el.appendChild(svg(doc, "path", { d }));
   return el;
+}
+
+/**
+ * The walk's marks (walk.ts), on the label and in the comment box's header: ↑ the parent, ↓ a child (dim
+ * at a sibling level until ⌘ has been used there), ⌘ siblings to cycle with ⌘↑ / ⌘↓.
+ */
+export function waysMarks(doc: Document, ways: Ways): HTMLSpanElement {
+  const group = h(doc, "span", "chip-ways");
+  const cmd = h(doc, "span", ways.cmd ? "chip-cmd" : "chip-cmd off", "⌘");
+  cmd.title = ways.cmd ? "⌘↑ / ⌘↓ cycle the siblings" : "No siblings here";
+  group.append(icon(doc, ["m18 15-6-6-6 6"], "", !ways.up), icon(doc, ["m6 9 6 6 6-6"], "", !ways.down), cmd);
+  return group;
 }

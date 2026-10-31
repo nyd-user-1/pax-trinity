@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ArrowLeft, ChevronRight, Clapperboard, Loader2, Columns2, Columns3, LayoutGrid, Maximize2, MessagesSquare, Video, Wrench, X } from "lucide-react"
+import { ArrowLeft, ChevronRight, Clapperboard, Crosshair, Loader2, Columns2, Columns3, LayoutGrid, Maximize2, MessageSquareText, MessagesSquare, Palette, SquareDashedMousePointer, Video, Wrench, X } from "lucide-react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -14,7 +14,8 @@ import { useHiddenBlocks, useShelf, type PageBlock, type ShelfBlock, type ShelfI
 import { setPageBlockDrag, setShelfDrag } from "@/lib/shelf-drag"
 import { cn } from "@/ui/lib/utils"
 import { whiteButton } from "@/components/white-button"
-import { HOUSEKEEPING_OPEN, takeOpen } from "@/components/housekeeping/tool"
+import { HOUSEKEEPING_OPEN, takeOpen, togglePointer } from "@/components/housekeeping/tool"
+import { useThemePanel } from "@/components/theme/theme-palette"
 import { STUDIO_OPEN, takeStudio } from "@/lib/studio"
 
 // 44b's DiscussionPanel (components/DiscussionPanel.tsx), cut to five doors: Blocks, Chat, Record, Slack and
@@ -25,13 +26,26 @@ import { STUDIO_OPEN, takeStudio } from "@/lib/studio"
 // It sits in the shell's right slot in the take panel's frame, so the two read as one panel. It wears the
 // rail's dress (Brendan, 2026-10-29, after America Thinks): the mist ground, its rows the rail's rows.
 
-type View = "welcome" | "blocks" | "chat" | "housekeeping" | "studio" | "slack" | "discord"
+type View = "welcome" | "blocks" | "chat" | "devtools" | "housekeeping" | "inspector" | "theme" | "studio" | "slack" | "discord"
+
+// Dev Tools (Brendan, 2026-10-30): one row for the admins' tools. Dev Comments is Housekeeping, renamed; the
+// Inspector item opens the inspector dock's two panels here, Classifier and Comments (the admin's own
+// notes); Sonar turns on Housekeeping's pointer. The header's crosshair and the dock stay as they are while
+// the combined design is worked out. Theme (the account menu's switch shows it) opens the theme panel.
+/** Where Back goes from a view; the welcome list when unnamed. */
+const PARENT: Partial<Record<View, View>> = { housekeeping: "devtools", inspector: "devtools" }
+
+/** The inspector dock (components/dev/inspector.tsx) draws its panel into the slot this sends it. */
+export const INSPECTOR_EMBED = "inspector:embed"
+type InspectorPanel = "classifier" | "comments"
 
 // Housekeeping's stream loads when it is opened (components/housekeeping).
 const HousekeepingView = dynamic(() => import("@/components/housekeeping/view").then((m) => m.HousekeepingView), {
   ssr: false,
   loading: () => <Loader2 className="mx-6 my-6 size-5 animate-spin text-pax2-blue" />,
 })
+// The theme panel's controls load when Theme is opened.
+const ThemeControls = dynamic(() => import("@/components/theme/theme-palette").then((m) => m.ThemeControls), { ssr: false })
 // The Studio's frame loads when its view is opened, so the panel's first load carries none of it.
 const StudioFrame = dynamic(() => import("@/components/studio-frame").then((m) => m.StudioFrame), { ssr: false })
 
@@ -43,16 +57,16 @@ let keptSelected: string | null = null
 let keptStudio: string | null = null
 // The service a Slack or Discord view talks to, named by its logo in the header at every level.
 const LOGO: Partial<Record<View, string>> = { slack: "/logos/slack.png", discord: "/logos/discord-icon.svg" }
-const TITLE: Record<View, string> = { welcome: "Discussion", blocks: "Blocks", chat: "Chat", housekeeping: "Housekeeping", studio: "Studio", slack: "Slack", discord: "Discord" }
+const TITLE: Record<View, string> = { welcome: "Discussion", blocks: "Blocks", chat: "Chat", devtools: "Dev Tools", housekeeping: "Dev Comments", inspector: "Inspector", theme: "Theme", studio: "Studio", slack: "Slack", discord: "Discord" }
 
 function Row({ icon, label, sub, onClick }: { icon: React.ReactNode; label: string; sub?: string; onClick: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-[color,background-color,box-shadow] hover:bg-pax2-lift/70 hover:shadow-e1"
+      className="group flex w-full items-center gap-3 border-b border-slate-200 px-3 py-3 text-left transition-[color,background-color] hover:bg-pax2-lift/70"
     >
-      <span className="flex size-4 shrink-0 items-center justify-center text-slate-500 transition-colors group-hover:text-pax2-blue [&_svg]:transition-colors group-hover:[&_svg]:fill-pax2-lavender">{icon}</span>
+      <span className="flex size-4 shrink-0 items-center justify-center text-slate-500 transition-colors group-hover:text-pax2-blue [&_svg]:fill-pax2-lavender [&_svg]:transition-colors">{icon}</span>
       <span className="flex-1">
         <span className="block text-[15px] font-medium text-slate-600 group-hover:text-pax2-blue">{label}</span>
         {sub && <span className="block text-xs text-slate-400">{sub}</span>}
@@ -235,6 +249,7 @@ export function DiscussionPanel({ onClose: close, admin = false }: { onClose: ()
   const { wide, setWide, discussSeed } = useShellPanel()
   const router = useRouter()
   const [view, setViewState] = React.useState<View>(keptView)
+  const [themeRow] = useThemePanel()
   const [linked, setLinked] = React.useState<{ slack: string | null; discord: string | null } | null>(null)
   React.useEffect(() => {
     if (admin) connections().then(setLinked).catch(() => setLinked({ slack: null, discord: null }))
@@ -279,10 +294,10 @@ export function DiscussionPanel({ onClose: close, admin = false }: { onClose: ()
   }
   return (
     <section className="fixed inset-0 z-50 flex flex-col bg-pax2-sidebar md:static md:z-auto md:h-full md:overflow-hidden md:rounded-2xl md:border md:border-slate-500 md:shadow-e2">
-      <div className="relative z-10 flex min-h-[73px] shrink-0 items-center justify-between gap-3 bg-pax2-sidebar px-6 py-4">
+      <div className="relative z-10 flex min-h-[73px] shrink-0 items-center justify-between gap-3 bg-pax2-sidebar px-6 py-4 shadow-[0_4px_12px_-8px_rgb(var(--t-shadow-rgb,15_23_42)/0.25)]">
         <div className="flex min-w-0 items-center gap-2">
           {view !== "welcome" && (
-            <button type="button" onClick={() => (sub ? sub.back() : setView("welcome"))} aria-label="Back" className="-ml-2 flex size-9 shrink-0 items-center justify-center rounded-full text-slate-600 hover:bg-pax2-surface hover:text-pax2-blue">
+            <button type="button" onClick={() => (sub ? sub.back() : setView(PARENT[view] ?? "welcome"))} aria-label="Back" className="-ml-2 flex size-9 shrink-0 items-center justify-center rounded-full text-slate-600 hover:bg-pax2-surface hover:text-pax2-blue">
               <ArrowLeft className="size-4" />
             </button>
           )}
@@ -308,10 +323,11 @@ export function DiscussionPanel({ onClose: close, admin = false }: { onClose: ()
       </div>
       <div className={cn("flex min-h-0 flex-1 flex-col", view === "welcome" && "overflow-y-auto", view === "chat" && "border-t border-slate-200/70")}>
         {view === "welcome" && (
-          <div className="flex flex-col gap-0.5 px-3 pt-1">
+          <div className="flex flex-col px-3 pt-1">
             <Row icon={<LayoutGrid className="size-4" />} label="Blocks" sub="Shorts and blocks you've saved" onClick={() => setView("blocks")} />
             <Row icon={<MessagesSquare className="size-4" />} label="Chat" sub="Ask about the scores, scripts and results" onClick={() => setView("chat")} />
-            {admin && <Row icon={<Wrench className="size-4" />} label="Housekeeping" sub="Comments on the app, and direct messages" onClick={() => setView("housekeeping")} />}
+            {admin && <Row icon={<Wrench className="size-4" />} label="Dev Tools" sub="Comment, inspect, and more" onClick={() => setView("devtools")} />}
+            {themeRow && <Row icon={<Palette className="size-4" />} label="Theme" sub="Six themes, and every colour in them" onClick={() => setView("theme")} />}
             {admin && <Row icon={<Clapperboard className="size-4" />} label="Studio" sub="Templates, graphics and saved versions" onClick={() => setView("studio")} />}
             <Row icon={<Video className="size-4" />} label="Record" sub="Write a script, record it or upload a video" onClick={() => router.push("/recording")} />
             {admin && (
@@ -325,11 +341,53 @@ export function DiscussionPanel({ onClose: close, admin = false }: { onClose: ()
           </div>
         )}
         {view === "blocks" && <BlocksShelf />}
+        {view === "devtools" && admin && (
+          <div className="flex flex-col px-3 pt-1">
+            <Row icon={<MessageSquareText className="size-4" />} label="Dev Comments" sub="Comments on the app, and direct messages" onClick={() => setView("housekeeping")} />
+            <Row icon={<SquareDashedMousePointer className="size-4" />} label="Inspector" sub="The classifier, and your own notes" onClick={() => setView("inspector")} />
+            <Row icon={<Crosshair className="size-4" />} label="Sonar" sub="Point at an element and comment on it" onClick={() => void togglePointer()} />
+          </div>
+        )}
         {view === "housekeeping" && <HousekeepingView />}
+        {view === "inspector" && admin && <InspectorPanels />}
+        {view === "theme" && <ThemeControls />}
         {view === "studio" && admin && <StudioFrame id={studio} onMove={standOn} />}
         {view === "chat" && <Chat compact context={discussSeed?.context} chipVideo={discussSeed?.chipVideo} surface={discussSeed?.chipVideo ? "video-panel" : "chat"} explore={!discussSeed?.chipVideo} seedChip={discussSeed?.ask ?? null} seedNonce={discussSeed?.nonce} />}
         {(view === "slack" || view === "discord") && (linked ? <ConnectView key={view} service={view} mock={!linked[view]} onNav={setSub} /> : <Loader2 className="mx-6 my-6 size-5 animate-spin text-pax2-blue" />)}
       </div>
     </section>
+  )
+}
+
+/**
+ * The Inspector item's two panels (Brendan, 2026-10-30): Classifier, the dock's classifier panel (opening it
+ * turns the classifier on), and Comments, the notes an admin leaves for themselves. The dock
+ * (components/dev/inspector.tsx) draws each into the slot this hands it, so the dock's own panels and these
+ * are one state.
+ */
+function InspectorPanels() {
+  const [tab, setTab] = React.useState<InspectorPanel>("classifier")
+  const slot = React.useRef<HTMLDivElement>(null)
+  React.useEffect(() => {
+    window.dispatchEvent(new CustomEvent(INSPECTOR_EMBED, { detail: { slot: slot.current, view: tab } }))
+  }, [tab])
+  React.useEffect(() => () => void window.dispatchEvent(new CustomEvent(INSPECTOR_EMBED, { detail: null })), [])
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex shrink-0 gap-1.5 px-5 pb-3">
+        {(["classifier", "comments"] as const).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setTab(t)}
+            aria-pressed={tab === t}
+            className={cn("rounded-full px-3 py-1.5 text-xs font-medium transition-colors", tab === t ? "bg-pax2-lift text-pax2-blue shadow-e1" : "text-slate-500 hover:bg-pax2-lift/70 hover:text-pax2-blue")}
+          >
+            {t === "classifier" ? "Classifier" : "Comments"}
+          </button>
+        ))}
+      </div>
+      <div ref={slot} className="flex min-h-0 flex-1 flex-col overflow-y-auto border-t border-slate-200" />
+    </div>
   )
 }

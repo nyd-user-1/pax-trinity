@@ -10,12 +10,12 @@ import { Cursor } from "./cursor";
 import { labelOf, shortSel } from "./describe";
 import { locatorBundle, uniquePath } from "./locator";
 import { describe } from "./describe";
-import { DebugPanel, StatusPill } from "./panels";
+import { DebugPanel } from "./panels";
 import { Pin, type PinState } from "./pin";
 import { Popover } from "./popover";
 import { HOST_CSS, OVERLAY_CSS, PAGE_CSS } from "./styles";
 import { FRAME_TAGS, hitTest, pick, type Pick } from "./targeting";
-import { childAt, parentOf, siblingNext } from "./walk";
+import { childAt, hasSiblings, parentOf, siblingCycle } from "./walk";
 
 export interface Session {
   id: string;
@@ -128,7 +128,6 @@ export function mount(opts: MountOptions = {}): Sonar {
   const box = new Box(doc, root);
   const cursor = new Cursor(doc, root);
   const debug = new DebugPanel(doc, root, opts.debug ?? true);
-  const pill = new StatusPill(doc, root);
   const popover = new Popover(doc, root, {
     submit: () => void submit(),
     copy: () => void copyPrompt(),
@@ -171,10 +170,11 @@ export function mount(opts: MountOptions = {}): Sonar {
       box.hide();
       return;
     }
-    const label = labelOf(current);
+    const label = labelOf(current, chosen(current));
     crumb = label.text;
     box.to(current.getBoundingClientRect(), { x: px, y: py }, now);
     box.setLabel(label.text, { hidden: label.hidden, ways: label.ways });
+    if (draft) popover.setWays(label.ways);
   }
 
   function evaluate(now: number, force = false): void {
@@ -215,24 +215,30 @@ export function mount(opts: MountOptions = {}): Sonar {
   }
 
   /**
-   * The arrow keys walk the tree (Brendan, 2026-10-30): ↑ the parent, ↓ the child under the pointer
-   * (or the pin, when locked), ← and → the previous and next sibling. Every level counts, wrappers that
-   * share an outline included (the label numbers them); a word split into a span per character is the
-   * bottom (walk.ts).
+   * The keys walk the tree (Brendan, 2026-10-30): ↑ the parent, ↓ the child under the pointer (or the pin,
+   * when locked). Where the element has siblings, ⌘↑ and ⌘↓ cycle through them in a circle, and a plain ↓
+   * waits until ⌘ has been used at that level, so the walk never descends into a sibling nobody chose; ↑
+   * always climbs out. Every level counts, wrappers that share an outline included (the label numbers
+   * them); a word split into a span per character is the bottom (walk.ts).
    */
-  type Way = "up" | "down" | "left" | "right";
+  // The sibling level ⌘ was last used at, by its parent: a plain ↓ is open there.
+  let chosenAt: Element | null = null;
+  const chosen = (el: Element) => !!chosenAt && parentOf(el) === chosenAt;
+  type Way = "up" | "down" | "next" | "prev";
   function walk(dir: Way): void {
     if (!current) return;
     const ref = draft ? draft.point() : { x: px, y: py };
+    if (dir === "down" && hasSiblings(current) && !chosen(current)) return popover.isOpen ? popover.nudge() : undefined;
+    if (dir === "next" || dir === "prev") chosenAt = parentOf(current);
     const next =
-      dir === "up" ? parentOf(current) : dir === "down" ? childAt(current, ref.x, ref.y, host) : siblingNext(current, dir);
+      dir === "up" ? parentOf(current) : dir === "down" ? childAt(current, ref.x, ref.y, host) : siblingCycle(current, dir === "next" ? 1 : -1);
     if (!next) return;
-    const verdict = { up: "✓ ↑ parent", down: "✓ ↓ child", left: "✓ ← sibling", right: "✓ → sibling" }[dir];
+    const verdict = { up: "✓ ↑ parent", down: "✓ ↓ child", next: "✓ ⌘↓ sibling", prev: "✓ ⌘↑ sibling" }[dir];
     const chain = [...(currentPick?.chain ?? []), { el: next, verdict }];
     if (!draft) manual = { x: px, y: py };
     commit({ raw: currentPick?.raw ?? null, target: next, chain }, performance.now());
     if (draft) {
-      // A sideways step leaves the pin's point outside the new element: pin it to the element's middle.
+      // A sibling step leaves the pin's point outside the new element: pin it to the element's middle.
       const r = next.getBoundingClientRect();
       const inside = ref.x >= r.left && ref.x <= r.right && ref.y >= r.top && ref.y <= r.bottom;
       draft.anchor(next, inside ? ref.x : r.left + r.width / 2, inside ? ref.y : r.top + r.height / 2);
@@ -240,7 +246,14 @@ export function mount(opts: MountOptions = {}): Sonar {
     }
   }
 
-  const ARROWS: Record<string, Way> = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right" };
+  /** The way a key goes: ↑/↓ the tree, ⌘↑/⌘↓ (Ctrl elsewhere) round the siblings. */
+  const isMac = /Mac|iPhone|iPad/.test(win.navigator.platform);
+  function wayOf(e: KeyboardEvent): Way | null {
+    if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return null;
+    const mod = isMac ? e.metaKey : e.ctrlKey;
+    if (mod) return e.key === "ArrowUp" ? "prev" : "next";
+    return e.key === "ArrowUp" ? "up" : "down";
+  }
 
   // --- lock, pin, popover (spec §2.3–2.4) ---
 
@@ -253,6 +266,7 @@ export function mount(opts: MountOptions = {}): Sonar {
     draft = pin;
     box.lock(true);
     popover.open({ mode: "compose", crumb });
+    popover.setWays(labelOf(current, chosen(current)).ways);
     popover.place(pin.point());
     opts.sessions?.().then(
       (list) => draft === pin && popover.setSessions(list),
@@ -396,7 +410,6 @@ export function mount(opts: MountOptions = {}): Sonar {
     cursor.frame();
     if (hasPointer) {
       debug.dodge(px, py);
-      pill.dodge(px, py);
     }
     debug.render({
       crumb,
@@ -455,9 +468,10 @@ export function mount(opts: MountOptions = {}): Sonar {
     }
     if (fromOverlay(e)) {
       // In the comment box, the arrows walk the locked target only while it's empty.
-      if (draft && !popover.value && ARROWS[e.key]) {
+      const way = wayOf(e);
+      if (draft && !popover.value && way) {
         stop(e);
-        walk(ARROWS[e.key]);
+        walk(way);
       }
       return;
     }
@@ -468,9 +482,9 @@ export function mount(opts: MountOptions = {}): Sonar {
         manual = null;
         evaluate(performance.now(), true);
       }
-    } else if (ARROWS[e.key]) {
+    } else if (wayOf(e)) {
       stop(e);
-      walk(ARROWS[e.key]);
+      walk(wayOf(e)!);
     } else if ((e.key === "d" || e.key === "D") && !e.metaKey && !e.ctrlKey && !e.altKey && !isEditable(doc.activeElement)) {
       stop(e);
       debug.toggle();
