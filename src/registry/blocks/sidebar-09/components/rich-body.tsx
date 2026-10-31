@@ -10,6 +10,7 @@ import {
   ListOrdered,
   Quote,
   Strikethrough,
+  Table2,
   Underline as UnderlineIcon,
 } from "lucide-react"
 import Placeholder from "@tiptap/extension-placeholder"
@@ -58,12 +59,16 @@ export function useTaskEditor({
   onChange,
   placeholder,
   extensions = [],
+  headings = false,
 }: {
   value: string
   onChange: (markdown: string) => void
   placeholder?: string
-  /** More of TipTap's extensions, read once when the editor is made: a note card's chat adds PAX's reply. */
+  /** More of TipTap's extensions, read once when the editor is made: a note card adds tables, the "/" and "@"
+   *  menus and, in its chat, PAX's reply (components/notes/note-menus.tsx, pax-reply.ts). */
   extensions?: AnyExtension[]
+  /** Headings 1 to 3, which a note card's "/" menu sets; mail has none. */
+  headings?: boolean
 }) {
   const emit = React.useRef(onChange)
   const last = React.useRef(value)
@@ -73,7 +78,7 @@ export function useTaskEditor({
     // Next renders this on the server first; TipTap wants the DOM.
     immediatelyRender: false,
     extensions: [
-      StarterKit.configure({ heading: false, underline: false }),
+      StarterKit.configure({ heading: headings ? { levels: [1, 2, 3] } : false, underline: false }),
       UnderlineAsHtml,
       Markdown.configure({ html: true, breaks: true, transformPastedText: true }),
       Placeholder.configure({ placeholder: placeholder ?? "Write…" }),
@@ -111,7 +116,8 @@ export function TaskSurface({ editor, className }: { editor: Editor | null; clas
     <EditorContent
       editor={editor}
       className={cn(
-        "min-h-40 w-full rounded-lg text-sm",
+        // rich-body: headings, tables, dividers and mentions, where the editor has them (pax2.css).
+        "rich-body min-h-40 w-full rounded-lg text-sm",
         "[&_.ProseMirror]:min-h-40 [&_.ProseMirror]:outline-none",
         "[&_.ProseMirror_p]:my-1.5",
         "[&_.ProseMirror_ul]:my-1.5 [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-5",
@@ -134,7 +140,7 @@ export function TaskSurface({ editor, className }: { editor: Editor | null; clas
 }
 
 type Tool =
-  | { kind: "button"; icon: typeof Bold; label: string; run: (editor: Editor) => void; active?: string }
+  | { kind: "button"; icon: typeof Bold; label: string; run: (editor: Editor) => void; active?: string; /** Shown only where the editor has this node. */ needs?: string }
   | { kind: "divider" }
 
 const TOOLS: Tool[] = [
@@ -146,6 +152,7 @@ const TOOLS: Tool[] = [
   { kind: "button", icon: List, label: "Bulleted list", active: "bulletList", run: (e) => e.chain().focus().toggleBulletList().run() },
   { kind: "button", icon: ListOrdered, label: "Numbered list", active: "orderedList", run: (e) => e.chain().focus().toggleOrderedList().run() },
   { kind: "button", icon: Quote, label: "Quote", active: "blockquote", run: (e) => e.chain().focus().toggleBlockquote().run() },
+  { kind: "button", icon: Table2, label: "Table", active: "table", needs: "table", run: (e) => e.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() },
   { kind: "divider" },
   { kind: "button", icon: Code, label: "Code", active: "code", run: (e) => e.chain().focus().toggleCode().run() },
   {
@@ -182,7 +189,7 @@ export function TaskToolbar({ editor, className }: { editor: Editor | null; clas
 
   return (
     <div className={cn("flex items-center gap-0.5", className)}>
-      {TOOLS.map((tool, i) =>
+      {TOOLS.filter((tool) => tool.kind === "divider" || !tool.needs || editor.schema.nodes[tool.needs]).map((tool, i) =>
         tool.kind === "divider" ? (
           <span key={i} aria-hidden className="mx-1 h-4 w-px bg-border" />
         ) : (

@@ -44,11 +44,12 @@ export const PaxReply = Node.create({
 export type Turn = { role: "user" | "assistant"; content: string }
 
 /** The conversation in a chat's markdown: PAX's replies, and the reader's words between them. Turns of one voice
- *  that meet (a reply deleted) join, and the conversation starts with the reader, as the model wants. */
+ *  that meet (a reply deleted) join, and the conversation starts with the reader, as the model wants. A mention
+ *  goes as the words it shows, "@Sajeela Padder". */
 export function turnsOf(md: string): Turn[] {
   const turns: Turn[] = []
   const push = (role: Turn["role"], text: string) => {
-    const content = text.trim()
+    const content = text.replace(/<span[^>]*data-type="mention"[^>]*>([\s\S]*?)<\/span>/g, "$1").trim()
     if (!content) return
     const last = turns[turns.length - 1]
     if (last?.role === role) last.content += `\n\n${content}`

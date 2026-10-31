@@ -14,8 +14,8 @@ import { cn } from "@/ui/lib/utils"
 type Ctx = { close: () => void; flyout: string | null; setFlyout: (k: string | null) => void; side: "left" | "right" }
 const MenuCtx = React.createContext<Ctx>({ close: () => {}, flyout: null, setFlyout: () => {}, side: "right" })
 
-const ROW = "group/row flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-[13px] text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900"
-const ICON = "flex size-4 shrink-0 items-center justify-center text-slate-400 transition-colors group-hover/row:text-pax2-blue [&_svg]:size-4"
+export const ROW = "group/row flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-[13px] text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900"
+export const ICON = "flex size-4 shrink-0 items-center justify-center text-slate-400 transition-colors group-hover/row:text-pax2-blue [&_svg]:size-4"
 
 /** One action. It runs, then the menu closes. `checked` marks the current choice in a set. */
 export function MenuRow({ icon, label, onClick, checked, danger, hint, disabled }: { icon?: React.ReactNode; label: React.ReactNode; onClick: () => void; checked?: boolean; danger?: boolean; hint?: React.ReactNode; disabled?: boolean }) {

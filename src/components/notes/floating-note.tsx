@@ -13,6 +13,7 @@ import { NOTES_CHANGED, useNoteFavorites } from "@/lib/drawn-notes"
 import { pageContext } from "@/lib/page-text"
 import { TaskSurface, TaskToolbar, useTaskEditor } from "@/registry/blocks/sidebar-09/components/rich-body"
 
+import { noteExtensions } from "./note-menus"
 import { PaxReply, turnsOf } from "./pax-reply"
 
 // A drawn note (Brendan, 2026-10-31): the card a Shift-drag draws (draw-notes.tsx), where it was drawn and as large,
@@ -26,8 +27,6 @@ export type Rect = { x: number; y: number; w: number; h: number }
 /** A note's title: its first line, the markdown's marks and tags taken off. */
 const titleOf = (md: string) => md.split("\n").map((l) => l.replace(/<[^>]+>/g, "").replace(/^[#>\-*+\s]+|\d+\.\s+/g, "").replace(/[*_`]/g, "").trim()).find(Boolean) ?? "Note"
 
-/** The chat's editor carries PAX's replies. */
-const CHAT = [PaxReply]
 const SORRY = "Something went wrong. Please try again."
 
 /** tiptap-markdown's storage on an editor: its types leave the parser out. */
@@ -40,7 +39,10 @@ export function FloatingNote({ rect, id: firstId, body: firstBody, chat: firstCh
   const [failed, setFailed] = React.useState(false)
   const [pos, setPos] = React.useState({ left: rect.x, top: rect.y })
   const [size, setSize] = React.useState({ w: rect.w, h: rect.h })
-  const editor = useTaskEditor({ value: firstBody, onChange: setBody, placeholder: "Write a note…" })
+  // Both editors take tables, headings and the "/" and "@" menus (note-menus.tsx); the chat's carries PAX's replies.
+  const [noteExt] = React.useState(noteExtensions)
+  const [chatExt] = React.useState(() => [...noteExtensions(), PaxReply])
+  const editor = useTaskEditor({ value: firstBody, onChange: setBody, placeholder: "Write a note…", extensions: noteExt, headings: true })
   const { askAbout } = useShellPanel()
   const { favs, toggle: toggleFav } = useNoteFavorites()
   const shelf = useShelf()
@@ -50,7 +52,7 @@ export function FloatingNote({ rect, id: firstId, body: firstBody, chat: firstCh
   // last answered, with the pages open on screen (lib/page-text.ts) and the note as its context, and the answer
   // streams into the text with a fresh line under it.
   const [mode, setMode] = React.useState<"note" | "chat">(firstBody.trim() || !firstChat.trim() ? "note" : "chat")
-  const talk = useTaskEditor({ value: firstChat, onChange: setChat, placeholder: "Ask PAX. Shift Enter sends.", extensions: CHAT })
+  const talk = useTaskEditor({ value: firstChat, onChange: setChat, placeholder: "Ask PAX. Shift Enter sends.", extensions: chatExt, headings: true })
   const [busy, setBusy] = React.useState(false)
   React.useEffect(() => {
     if (mode === "chat") talk?.commands.focus("end")

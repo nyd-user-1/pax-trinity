@@ -437,3 +437,17 @@ body {
 .mail-body .ProseMirror > p:has(> a:only-child) > a { display: inline-block; padding: 13px 30px; border-radius: 999px; background: #1e3a8a; color: #fff; text-decoration: none; }
 .mail-body .ProseMirror > p:last-child:not(:first-child) { margin: 8px 0 0; color: #0f172a; font-weight: 500; }
 .mail-body .ProseMirror > ul, .mail-body .ProseMirror > ol { margin: 0 0 20px; padding: 18px 20px 18px 40px; border-radius: 10px; background: #f5f7fb; color: #0f172a; font-size: 14px; }
+
+/* The rich editor's blocks beyond mail's (rich-body.tsx; Brendan, 2026-10-31): a note card's headings, tables,
+   dividers and mentions. The tables are the Leuk editor's (components/notes/notes-editor.tsx). */
+.rich-body .ProseMirror h1 { margin: 0.8em 0 0.3em; font-size: 20px; font-weight: 600; line-height: 1.3; color: #0f172a; }
+.rich-body .ProseMirror h2 { margin: 0.8em 0 0.3em; font-size: 17px; font-weight: 600; line-height: 1.35; color: #0f172a; }
+.rich-body .ProseMirror h3 { margin: 0.7em 0 0.25em; font-size: 15px; font-weight: 600; line-height: 1.4; color: #0f172a; }
+.rich-body .ProseMirror hr { border: none; border-top: 1px solid #e6e7eb; margin: 1.2em 0; }
+.rich-body .ProseMirror .tableWrapper { overflow-x: auto; margin: 0.9em 0; }
+.rich-body .ProseMirror table { border-collapse: collapse; table-layout: fixed; width: 100%; margin: 0; font-size: 13px; overflow: hidden; }
+.rich-body .ProseMirror td, .rich-body .ProseMirror th { border: 1px solid #e6e7eb; padding: 6px 9px; vertical-align: top; position: relative; }
+.rich-body .ProseMirror th { background: #f7f8f9; color: #0f172a; font-weight: 600; text-align: left; }
+.rich-body .ProseMirror td > p, .rich-body .ProseMirror th > p { margin: 0; }
+.rich-body .ProseMirror .selectedCell::after { content: ""; position: absolute; inset: 0; background: rgba(3, 56, 130, 0.08); pointer-events: none; }
+.rich-body .ProseMirror .mention { border-radius: 4px; background: var(--pax2-lavender); padding: 0 3px; color: var(--pax2-blue); font-weight: 500; }
