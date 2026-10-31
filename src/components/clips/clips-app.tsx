@@ -347,7 +347,7 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
           </div>
         </aside>
 
-        <main className="min-w-0 flex-[1_1_756px]">
+        <main className="min-w-0 flex-[1_1_760px]">
           <div className={cn("flex flex-col md:sticky md:top-4 md:pb-4", MAIN_HEIGHT[frame])}>
             {/* The partners' dress (Brendan, 2026-10-31): the partner shown as the title, the view toggle after it,
                 the count and its refresh before the menu. Without the partners' column the title is its menu. */}

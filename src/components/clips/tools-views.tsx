@@ -26,7 +26,9 @@ export function ClipEdits() {
 const TESTED: { clip: Clip; sub: string }[] = PUBLISHED.filter((c) => isTested(c.id))
   .map((clip) => {
     const t = testsOf(clip.id)[0]
-    return { clip, sub: `Wave ${t.rs.wave}`, wave: t.rs.wave }
+    // Cuts can share a title (four "Why independents are locked out"): the messenger, or the length, tells them apart.
+    const who = clip.messenger && clip.messenger !== clip.title ? clip.messenger : `${clip.duration}s`
+    return { clip, sub: `${who} · Wave ${t.rs.wave}`, wave: t.rs.wave }
   })
   .sort((a, b) => b.wave - a.wave)
 
