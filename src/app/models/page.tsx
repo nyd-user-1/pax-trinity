@@ -33,6 +33,8 @@ const shortId = (id: string) =>
     .replace(/(-v?\d+)?:\d+$/, "")
     .replace(/-v\d+$/, "")
     .replace(/-\d{8}$/, "")
+    // The cards name no model Claude (Brendan, 2026-10-31): sonnet-4-6, not claude-sonnet-4-6.
+    .replace(/^claude-/, "")
 
 const PaxTile = () => (
   <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-pax2-surface">
