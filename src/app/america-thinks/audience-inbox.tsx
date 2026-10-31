@@ -55,8 +55,8 @@ export function AudienceInbox() {
   // The open question's title row carries the search (Brendan, 2026-10-29):
   // opened there, it stays open across the pane's views until closed.
   const [paneSearch, setPaneSearch] = React.useState(false)
-  // Split view is the page's default (Brendan, 2026-10-29): the list folded, the pane beside it.
-  const [split, setSplit] = React.useState<Split>("vertical")
+  // The page loads on the rows alone, no split (Brendan, 2026-10-31); opening a question still folds the list beside it.
+  const [split, setSplit] = React.useState<Split>("none")
   // The compare grid's columns, four at most, added from a row's kebab.
   const [columns, setColumns] = React.useState<string[]>([])
   const [pinned, setPinned] = React.useState<string[]>([])
