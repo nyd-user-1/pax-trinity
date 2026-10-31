@@ -381,7 +381,7 @@ const COVERED = "group-hover/row:invisible group-has-focus-visible/row:invisible
 const SHOWN = "opacity-0 group-hover/row:opacity-100 group-has-focus-visible/row:opacity-100 group-has-[[aria-expanded=true]]/row:opacity-100"
 /** The kebab, drawn as the ghost icon button it was. */
 const KEBAB =
-  "inline-flex size-7 shrink-0 items-center justify-center rounded-lg outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 aria-expanded:bg-muted aria-expanded:text-foreground"
+  "inline-flex size-7 shrink-0 items-center justify-center rounded-lg outline-none transition-colors hover:bg-foreground/8 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 aria-expanded:bg-foreground/8 aria-expanded:text-foreground"
 
 /** The row's right edge: the chip (one-line) and the span, and on hover the
  *  row's kebab over both, the folded card's star beside it. */
