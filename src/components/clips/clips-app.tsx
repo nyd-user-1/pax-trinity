@@ -3,7 +3,7 @@
 import * as React from "react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
-import { CameraIcon, ChevronLeftIcon, ChevronRightIcon, LayoutGridIcon, LockIcon, PlaySquareIcon, RefreshCwIcon } from "lucide-react"
+import { CameraIcon, ChevronLeftIcon, ChevronRightIcon, FileTextIcon, LayoutGridIcon, LockIcon, PlaySquareIcon, RefreshCwIcon, SquarePenIcon } from "lucide-react"
 
 import { Button } from "@govblock/ui/components/nova/button"
 import { Drawer, DrawerContent, DrawerTitle } from "@govblock/ui/components/nova/drawer"
@@ -13,7 +13,7 @@ import { cn } from "@govblock/ui/lib/utils"
 import { Capture } from "./capture"
 import { EditThread } from "./comments"
 import { PanelBlock } from "@/components/blocks"
-import { MenuRow } from "@/components/kebab-menu"
+import { MenuRow, MenuSeparator } from "@/components/kebab-menu"
 import { Creators } from "./creators"
 import { DEFAULT_AVATAR } from "@/lib/auth/use-account"
 import { viewer } from "@/app/original-actions"
@@ -157,15 +157,16 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
   // the stock), narrowed to a creator when one is picked.
   const published = React.useMemo(() => [...mine.filter((c) => c.visibility === "public" && c.status !== "processing"), ...live, ...PUBLISHED], [mine, live])
   const clips = React.useMemo(() => {
-    const list = creator === "you" ? mine : creator === "all" ? published : published.filter((c) => c.creatorId === creator)
+    // Bookmarks (Brendan, 2026-10-31): the clips the reader saved with the feed's bookmark, whoever's they are.
+    const list = creator === "you" ? mine : creator === "all" ? published : creator === "saved" ? [...mine, ...published].filter((c, i, a) => saved.has(c.id) && a.findIndex((x) => x.id === c.id) === i) : published.filter((c) => c.creatorId === creator)
     // Newest first, everywhere (Brendan, 2026-10-25), the tested clips ahead of the rest (Brendan, 2026-10-29).
     const tested = (c: Clip) => (isTested(c.id) ? 1 : 0)
     return [...list].sort((a, b) => tested(b) - tested(a) || Date.parse(b.createdAt) - Date.parse(a.createdAt))
-  }, [creator, mine, published])
+  }, [creator, mine, published, saved])
 
   // The rail lists the videos themselves (Brendan, 2026-10-25), not the desks.
   const clipRows = clips.map((c) => ({ id: c.id, title: c.title, sub: `${c.duration}s · @${c.author.handle}`, partner: creatorOf(c.creatorId)?.name ?? c.author.name }))
-  const partnerRows = [{ id: "all", name: "All partners", count: published.length }, ...CREATORS.map((c) => ({ id: c.id, name: c.name, count: published.filter((x) => x.creatorId === c.id).length }))]
+  const partnerRows = [{ id: "all", name: "All partners", count: published.length }, { id: "saved", name: "Bookmarks", count: saved.size }, ...CREATORS.map((c) => ({ id: c.id, name: c.name, count: published.filter((x) => x.creatorId === c.id).length }))]
 
   // The first clip plays on arrival, or the one the address names.
   React.useEffect(() => {
@@ -332,7 +333,7 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
     const el = document.querySelector(view === "grid" ? `[data-tile="${CSS.escape(next.id)}"]` : `[data-id="${CSS.escape(next.id)}"]`)
     el?.scrollIntoView({ behavior: "smooth", block: view === "grid" ? "nearest" : "start" })
   }
-  const creatorLabel = creator === "all" ? "All clips" : creator === "you" ? "Your library" : (CREATORS.find((c) => c.id === creator)?.name ?? creator)
+  const creatorLabel = creator === "all" ? "All clips" : creator === "you" ? "Your library" : creator === "saved" ? "Bookmarks" : (CREATORS.find((c) => c.id === creator)?.name ?? creator)
 
   return (
     // The slot hides the site footer (Brendan, 2026-09-11): the page is the clip.
@@ -366,6 +367,13 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
               id="clips"
               name="clips"
               rows={clipRows}
+              menuItems={
+                <>
+                  <MenuRow icon={<SquarePenIcon />} label="Edits" onClick={() => openTools("edits")} />
+                  <MenuRow icon={<FileTextIcon />} label="Reports" onClick={() => openTools("reports")} />
+                  <MenuSeparator />
+                </>
+              }
               tools={
                 <div className="flex min-w-0 items-center gap-3">
                   <span className="hidden truncate text-base font-medium @min-[1056px]/clips:inline">{creatorLabel}</span>
@@ -376,6 +384,9 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
                     <SelectContent className="w-max min-w-44">
                       <SelectItem value="all" className="whitespace-nowrap">
                         All clips
+                      </SelectItem>
+                      <SelectItem value="saved" className="whitespace-nowrap">
+                        Bookmarks
                       </SelectItem>
                       {CREATORS.map((c) => (
                         <SelectItem key={c.id} value={c.id} className="whitespace-nowrap">
@@ -429,7 +440,7 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
                     <LoadingFlag />
                   </div>
                 ) : clips.length === 0 ? (
-                  <Empty icon={<CameraIcon className="size-6" />} text={creator === "you" ? "Nothing recorded yet." : "Nothing published yet."}>
+                  <Empty icon={<CameraIcon className="size-6" />} text={creator === "you" ? "Nothing recorded yet." : creator === "saved" ? "Nothing bookmarked yet." : "Nothing published yet."}>
                     {creator === "you" && (
                       <Button size="sm" onClick={record}>
                         Record the first one

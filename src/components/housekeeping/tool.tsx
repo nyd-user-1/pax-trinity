@@ -21,8 +21,6 @@ export const HOUSEKEEPING_CHANGED = "housekeeping:changed"
 /** Opens the right panel on Housekeeping (the shell and the panel listen). */
 export const HOUSEKEEPING_OPEN = "housekeeping:open"
 const OUTLINE_KEY = "housekeeping:outline"
-/** Set once Dev Tools' Sonar has started the pointer in this tab: the header's crosshair shows from then. */
-const SHOWN_KEY = "housekeeping:sonar-shown"
 
 type Overlay = typeof import("./overlay")
 let running: { unmount: () => void } | null = null
@@ -126,9 +124,6 @@ export async function togglePointer() {
       announce()
     },
   })
-  try {
-    sessionStorage.setItem(SHOWN_KEY, "1")
-  } catch {}
   announce()
 }
 
@@ -182,19 +177,14 @@ type Mark = { id: string; path: string; target?: string; author: string; authorN
 
 /** The header's crosshair, the page's comment markers, and the outline that waits for a page to arrive. */
 export function HousekeepingTool() {
+  // The crosshair shows only while Dev Tools' Sonar has the pointer on, and turns it off (Brendan, 2026-10-31).
   const [on, setOn] = React.useState(false)
-  // Hidden until Dev Tools' Sonar starts the pointer in this tab (Brendan, 2026-10-31).
-  const [shown, setShown] = React.useState(false)
   const [marks, setMarks] = React.useState<Mark[]>([])
   const path = usePathname()
 
   React.useEffect(() => {
-    const hear = (v: boolean) => {
-      setOn(v)
-      if (v) setShown(true)
-    }
+    const hear = (v: boolean) => setOn(v)
     hear(!!running)
-    if (sessionStorage.getItem(SHOWN_KEY) === "1") setShown(true)
     listeners.add(hear)
     return () => {
       listeners.delete(hear)
@@ -242,15 +232,15 @@ export function HousekeepingTool() {
 
   return (
     <>
-      {shown && (
+      {on && (
         <button
           type="button"
           data-sonar-exempt
           onClick={() => void togglePointer()}
-          aria-pressed={on}
-          aria-label={on ? "Turn sonar off" : "Turn sonar on"}
-          title={on ? "Turn sonar off" : "Turn sonar on"}
-          className={whiteButton("circle", on && "ring-2 ring-pax2-light-blue")}
+          aria-pressed
+          aria-label="Turn sonar off"
+          title="Turn sonar off"
+          className={whiteButton("circle", "ring-2 ring-pax2-light-blue")}
         >
           <Crosshair className="size-4 text-pax2-blue" />
         </button>
