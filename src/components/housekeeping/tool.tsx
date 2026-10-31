@@ -51,6 +51,19 @@ export function openHousekeeping(id?: string) {
   window.dispatchEvent(new Event(HOUSEKEEPING_OPEN))
 }
 
+/** Opens the right panel on Dev Tools (the account menu's Admin; the shell and the panel listen). */
+export const DEVTOOLS_OPEN = "devtools:open"
+let devtoolsPending = false
+export const takeDevTools = () => {
+  const was = devtoolsPending
+  devtoolsPending = false
+  return was
+}
+export function openDevTools() {
+  devtoolsPending = true
+  window.dispatchEvent(new Event(DEVTOOLS_OPEN))
+}
+
 /** A screenshot shrunk to at most 1600px on its long side, as JPEG, so a post stays small. */
 export async function shrink(img: { mime: string; data: string }): Promise<{ mime: string; data: string }> {
   const el = new Image()

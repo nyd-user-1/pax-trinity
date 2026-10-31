@@ -14,7 +14,7 @@ import { useHiddenBlocks, useShelf, type PageBlock, type ShelfBlock, type ShelfI
 import { setPageBlockDrag, setShelfDrag } from "@/lib/shelf-drag"
 import { cn } from "@/ui/lib/utils"
 import { whiteButton } from "@/components/white-button"
-import { HOUSEKEEPING_OPEN, takeOpen, togglePointer } from "@/components/housekeeping/tool"
+import { DEVTOOLS_OPEN, HOUSEKEEPING_OPEN, takeDevTools, takeOpen, togglePointer } from "@/components/housekeeping/tool"
 import { LIFT_ANALYSIS_OPEN, LIFT_TOOLS_OPEN, takeToolsOnCards } from "@/lib/lift-analyses"
 import { useDeliverables, type Deliverable } from "@/app/lift/deliverables"
 import { useThemePanel } from "@/components/theme/theme-palette"
@@ -323,6 +323,14 @@ export function DiscussionPanel({ onClose: close, admin = false }: { onClose: ()
     const open = () => (takeOpen(), setViewState((keptView = "housekeeping")))
     window.addEventListener(HOUSEKEEPING_OPEN, open)
     return () => window.removeEventListener(HOUSEKEEPING_OPEN, open)
+  }, [admin])
+  // The account menu's Admin › Dev Tools: open on Dev Tools, now or as the panel mounts.
+  React.useEffect(() => {
+    if (!admin) return
+    const go = () => takeDevTools() && setViewState((keptView = "devtools"))
+    go()
+    window.addEventListener(DEVTOOLS_OPEN, go)
+    return () => window.removeEventListener(DEVTOOLS_OPEN, go)
   }, [admin])
   // A chat video's Open in Studio: open the Studio view on its version, now or as the panel mounts.
   React.useEffect(() => {

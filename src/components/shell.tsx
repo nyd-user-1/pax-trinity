@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { ArrowLeft, ArrowUpRight, BadgeCheck, Bell, BookA, BookOpen, Boxes, ChevronDown, ChevronUp, ChevronsUpDown, Clapperboard, ClipboardList, Columns2, Columns3, EllipsisVertical, FileText, Film, FlaskConical, Gauge, House, LayoutDashboard, Link2, ListChecks, LogIn, LogOut, MessagesSquare, Palette, PanelLeftClose, PanelLeftOpen, PanelRight, Puzzle, Search, Settings, Shield, ShieldCheck, SlidersHorizontal, Star, User2, Users, Video, Vote, X, createLucideIcon } from "lucide-react"
+import { ArrowLeft, ArrowUpRight, BadgeCheck, Bell, BookA, BookOpen, Boxes, ChevronDown, ChevronUp, ChevronsUpDown, Clapperboard, ClipboardList, Columns2, Columns3, EllipsisVertical, FileText, Film, FlaskConical, Gauge, House, LayoutDashboard, Link2, ListChecks, LogIn, LogOut, MessagesSquare, Palette, PanelLeftClose, PanelLeftOpen, PanelRight, Puzzle, Search, Settings, Shield, ShieldCheck, SlidersHorizontal, Star, User2, Users, Video, Vote, Wrench, X, createLucideIcon } from "lucide-react"
 
 import dynamic from "next/dynamic"
 import { SidebarChats } from "@/components/sidebar-chats"
@@ -16,10 +16,11 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { cn } from "@/ui/lib/utils"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/ui/components/nova/tooltip"
 import { whiteButton } from "@/components/white-button"
-import { HOUSEKEEPING_OPEN, HousekeepingTool } from "@/components/housekeeping/tool"
+import { DEVTOOLS_OPEN, HOUSEKEEPING_OPEN, HousekeepingTool, openDevTools } from "@/components/housekeeping/tool"
 import { LIFT_TOOLS_OPEN } from "@/lib/lift-analyses"
 import { useThemePanel } from "@/components/theme/theme-palette"
 import { STUDIO_OPEN } from "@/lib/studio"
+import { testsHref } from "@/lib/survey-links"
 import { PaneFrame, PaneSync } from "@/components/pane"
 import { PANE_MESSAGE, isEmbedded, isPanePath } from "@/lib/pane"
 import { useThemeFollow } from "@/lib/theme-client"
@@ -38,15 +39,13 @@ const DiscussionPanel = dynamic(() => import("@/components/discussion-panel").th
 // goes nowhere. /changelog is unpublished pending Brendan's word, reachable by URL alone.
 const LIVE = new Set(["/", "/chat", "/clips", "/america-thinks", "/inbox", "/survey", "/lift", "/reports", "/dashboard", "/data-dictionary", "/studio", "/signin", "/signup"])
 
-type NavLink = { href: string; label: string; icon: typeof House }
+/** `who`: a page not everyone may open shows only to them — "admin" for the admins, "board" for the admins
+ *  and the partners (the Delivery Board). */
+type NavLink = { href: string; label: string; icon: typeof House; who?: "admin" | "board" }
 type NavGroup = { label: string; icon: typeof House; children: NavLink[]; admin?: boolean }
-// A to Z (Brendan, 2026-10-23, again 2026-10-29); the Admin group holds the foot.
-// Dashboard joined, and Message tests became Tests (Brendan, 2026-10-29). Studio joined (Brendan, 2026-10-30).
-// Tests moved into Survey's inbox, as Consensus did (Brendan, 2026-10-31).
-const ADMIN = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/studio", label: "Studio", icon: Clapperboard },
-]
+// A to Z (Brendan, 2026-10-23, again 2026-10-29). Tests moved into Survey's inbox, as Consensus did, and
+// Dashboard and Studio left the Admin group for the list, Admin moving to the account menu (Brendan, 2026-10-31).
+const shows = (l: NavLink, admin: boolean, partner: boolean) => !l.who || admin || (l.who === "board" && partner)
 // lucide's Inbox with its two shapes in the other order: lucide draws the notch, then the tray over it,
 // so the two-tone fill covered the notch's line. Here the tray goes first and the notch's line on top.
 const InboxTray = createLucideIcon("InboxTray", [
@@ -58,21 +57,17 @@ const NAV_TREE: (NavLink | NavGroup)[] = [
   { href: "/america-thinks", label: "America Thinks", icon: Users },
   { href: "/chat", label: "Chat", icon: MessagesSquare },
   { href: "/clips", label: "Clips", icon: Film },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, who: "board" },
   { href: "/data-dictionary", label: "Data dictionary", icon: BookA },
   { href: "/inbox", label: "Inbox", icon: InboxTray },
   { href: "/lift", label: "Lift", icon: FlaskConical },
   { href: "/reports", label: "Reports", icon: FileText },
+  { href: "/studio", label: "Studio", icon: Clapperboard, who: "admin" },
   { href: "/survey", label: "Survey", icon: ListChecks },
-  // Admins only: the admin surfaces that exist so far.
-  { label: "Admin", icon: ShieldCheck, admin: true, children: ADMIN.filter((l) => LIVE.has(l.href)) },
 ]
 
-// A partner's own page (Brendan, 2026-10-31): their Delivery Board, in the main list A to Z, since the
-// Admin group never shows to them.
-const PARTNER_TREE: (NavLink | NavGroup)[] = NAV_TREE.flatMap((n) => ("href" in n && n.href === "/clips" ? [n, ADMIN[0]] : [n]))
-
 // The product's pages, in order: the search's list and the phone's strip.
-const NAV: NavLink[] = NAV_TREE.filter((n) => !("children" in n) || n.label !== "Admin").flatMap((n) => ("children" in n ? n.children : [n]))
+const NAV: NavLink[] = NAV_TREE.flatMap((n) => ("children" in n ? n.children : [n]))
 
 // The header names the page; the first match wins, so a deeper route comes before its parent.
 const TITLES: [string, string][] = [
@@ -223,11 +218,13 @@ export function Shell({ children, drawer, signedIn = false, admin = false, partn
   React.useEffect(() => {
     const open = () => (setAside(null), setDiscuss(true))
     window.addEventListener(HOUSEKEEPING_OPEN, open)
+    window.addEventListener(DEVTOOLS_OPEN, open)
     window.addEventListener(STUDIO_OPEN, open)
     // Lift Analysis' Back, when Tools' cards opened it.
     window.addEventListener(LIFT_TOOLS_OPEN, open)
     return () => {
       window.removeEventListener(HOUSEKEEPING_OPEN, open)
+      window.removeEventListener(DEVTOOLS_OPEN, open)
       window.removeEventListener(STUDIO_OPEN, open)
       window.removeEventListener(LIFT_TOOLS_OPEN, open)
     }
@@ -289,7 +286,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false, partn
   const [openGroups, setOpenGroups] = React.useState<string[]>([])
   const toggleGroup = (label: string) => setOpenGroups((g) => (g.includes(label) ? g.filter((x) => x !== label) : [...g, label]))
   // The switcher and the header search offer only pages that exist (Brendan, 2026-10-25): the LIVE set, once per address.
-  const findable = React.useMemo(() => [...new Map([...NAV, ...(admin || partner ? [ADMIN[0]] : []), ...(admin ? ADMIN : [])].filter((l) => LIVE.has(l.href)).map((l) => [l.href, l])).values()], [admin, partner])
+  const findable = React.useMemo(() => NAV.filter((l) => LIVE.has(l.href) && shows(l, admin, partner)), [admin, partner])
   // The front door (landing, record entry, sign-in) is full bleed; the recording flow, from /recording on, sits in the shell.
   // /signup and /signin are the landing's first screen with a form in place of the hero, sidebar and all.
   // Trinity's front door lives inside the shell; only the auth screens stay full bleed.
@@ -310,7 +307,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false, partn
   const item = (href: string, label: string, Icon: typeof Gauge, small = false) => {
     const on = active(href)
     const fav = favs.includes(href)
-    const group = ADMIN.some((n) => n.href === href) ? "Admin" : "Main"
+    const group = "Main"
     const url = () => `${window.location.origin}${href}`
     const rowCls = cn(
       "group relative flex items-center gap-3 rounded-xl px-3 pr-16 outline-none transition-[color,background-color,box-shadow]",
@@ -391,8 +388,8 @@ export function Shell({ children, drawer, signedIn = false, admin = false, partn
       {/* A group row folds its pages open and shut; open, they hang off it on the comment thread's tree
           lines: the trunk down from the group's icon, a rounded elbow turning into each page. */}
       <nav className="-mx-1 flex shrink-0 flex-col gap-0.5 overflow-y-auto px-1 max-h-[55%]">
-        {(partner && !admin ? PARTNER_TREE : NAV_TREE).map((n) => {
-          if (!("children" in n)) return item(n.href, n.label, n.icon)
+        {NAV_TREE.map((n) => {
+          if (!("children" in n)) return shows(n, admin, partner) ? item(n.href, n.label, n.icon) : null
           if (n.admin && !admin) return null
           const subs = n.children
           const isOpen = openGroups.includes(n.label)
@@ -486,7 +483,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false, partn
             <header data-chrome className="sticky top-0 z-20 flex items-center gap-3 border-b bg-pax2-surface/90 px-4 py-2.5 backdrop-blur md:hidden">
               <Link href="/" aria-label="Home"><Wordmark size={18} /></Link>
               <nav className="no-scrollbar flex flex-1 gap-1 overflow-x-auto">
-                {NAV.map(({ href, label }) => {
+                {NAV.filter((l) => shows(l, admin, partner)).map(({ href, label }) => {
                   const cls = cn("whitespace-nowrap rounded-full px-3 py-1 text-xs", active(href) ? "bg-pax2-lavender font-semibold text-pax2-blue" : "text-slate-500")
                   return LIVE.has(href) ? (
                     <Link key={href} href={href} className={cls}>
@@ -769,6 +766,7 @@ export function AccountMenu() {
   const path = usePathname()
   const [user, setUser] = React.useState<User | null | undefined>(undefined)
   const [themePanel, setThemePanel] = useThemePanel()
+  const { admin } = useShellPanel()
   // /settings' tabs, as the account menu opens them; General has the bare address.
   const openSettings = (tab: string) => router.push(tab === "general" ? "/settings" : `/settings?tab=${tab}`)
   React.useEffect(() => {
@@ -859,6 +857,23 @@ export function AccountMenu() {
         <DropdownMenuItem onClick={() => router.push("/models")} className={item}>
           <Boxes /> Models
         </DropdownMenuItem>
+        {/* Admin (Brendan, 2026-10-31): the sidebar's Admin group moved here once Dashboard and Studio joined
+            the list. It holds the admins' tools: Dev Tools in the right panel, and Survey's tests. */}
+        {admin && (
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger className={item}>
+              <ShieldCheck /> Admin
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className={sub}>
+              <DropdownMenuItem onClick={openDevTools} className={item}>
+                <Wrench /> Dev Tools
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push(testsHref())} className={item}>
+                <FlaskConical /> Tests
+              </DropdownMenuItem>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={signOut} className={cn(item, "text-pax2-red-deep [&_svg]:text-pax2-red-deep")}>
           <LogOut /> Log out

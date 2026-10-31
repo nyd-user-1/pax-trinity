@@ -115,12 +115,12 @@ export const ITEMS: CommandItem[] = [
   r("page", "Constructs", "One idea across sources", "/constructs"),
   r("page", "Data dictionary", "Every table and field", "/data-dictionary"),
   r("page", "Electorate", "Massachusetts registration and turnout", "/electorate"),
-  r("page", "Dashboard", "Admin", "/dashboard", "delivery board worklogs"),
+  r("page", "Dashboard", "The Delivery Board", "/dashboard", "delivery board partners work requests"),
   r("page", "Inbox", "The Pollster, the Analyst and the Assistant", "/inbox", "mail agents"),
   r("page", "Lift", "Every lift against its placebo", "/lift", "results benchmarks"),
   r("page", "Tests", "Survey", testsHref(), "message tests setup field kit"),
   r("page", "Reports", "Every report as a card", "/reports"),
-  r("page", "Studio", "Admin", "/studio", "remotion video templates graphics versions"),
+  r("page", "Studio", "Video templates and versions", "/studio", "remotion video templates graphics versions"),
   r("page", "Survey", "Toplines and consensus surveys", "/survey"),
 
   // Commands
