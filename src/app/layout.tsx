@@ -6,6 +6,7 @@ import { LoadCurtainGate } from "@/components/load-curtain-gate"
 import { Shell } from "@/components/shell"
 import { DevInspector } from "@/components/dev/inspector"
 import { THEME_SCRIPT } from "@/lib/theme"
+import { EMBED_SCRIPT } from "@/lib/pane"
 import { currentUser } from "@/lib/auth"
 
 const sans = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-sans" })
@@ -23,6 +24,8 @@ export default async function RootLayout({ children, drawer }: LayoutProps<"/">)
     <html lang="en" className={`${sans.variable} ${mono.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+        {/* A page open in the second panel is this app in a frame: only the page shows (lib/pane.ts). */}
+        <script dangerouslySetInnerHTML={{ __html: EMBED_SCRIPT }} />
         {/* Every card's thumbnail comes from YouTube's image host; the handshake happens once, early. */}
         <link rel="preconnect" href="https://i.ytimg.com" />
       </head>
@@ -32,7 +35,11 @@ export default async function RootLayout({ children, drawer }: LayoutProps<"/">)
           {children}
         </Shell>
         {/* GovBlock's inspector dock, bottom right, for admins (beside Housekeeping's pointer, to compare). */}
-        {user?.admin && <DevInspector />}
+        {user?.admin && (
+          <div data-chrome className="contents">
+            <DevInspector />
+          </div>
+        )}
       </body>
     </html>
   )

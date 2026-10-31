@@ -24,18 +24,37 @@ export function savedCustom(name: ThemeName): Custom {
   }
 }
 
-/** Puts a theme and its edits on <html>, keeps them in this browser, and tells the page. */
-export function applyTheme(theme: Theme, custom: Custom) {
+/** Puts a theme and its edits on <html> and tells the page, without saving them. */
+export function paintTheme(theme: Theme, custom: Custom) {
   const root = document.documentElement
   root.setAttribute("data-theme", theme.name)
   root.classList.toggle("dark", theme.dark)
   root.style.colorScheme = theme.dark ? "dark" : "light"
   for (const [k, v] of Object.entries(themeVars(theme, custom))) root.style.setProperty(k, v)
+  window.dispatchEvent(new Event(THEME_EVENT))
+}
+
+/** Puts a theme and its edits on <html>, keeps them in this browser, and tells the page. */
+export function applyTheme(theme: Theme, custom: Custom) {
   try {
     localStorage.setItem(THEME_KEY, theme.name)
     localStorage.setItem(`${CUSTOM_KEY}:${theme.name}`, JSON.stringify(custom))
   } catch {}
-  window.dispatchEvent(new Event(THEME_EVENT))
+  paintTheme(theme, custom)
+}
+
+/** Repaints this page when the theme saved in this browser changes elsewhere: another tab, or the page
+ *  around the second panel's frame (lib/pane.ts). The storage event fires only in the other pages. */
+export function useThemeFollow() {
+  React.useEffect(() => {
+    const on = (e: StorageEvent) => {
+      if (!e.key?.startsWith(THEME_KEY)) return
+      const t = themeOf(savedThemeName())
+      paintTheme(t, savedCustom(t.name))
+    }
+    window.addEventListener("storage", on)
+    return () => window.removeEventListener("storage", on)
+  }, [])
 }
 
 /** A --t-* value as it stands now (a hex), for a canvas that cannot read CSS variables. */

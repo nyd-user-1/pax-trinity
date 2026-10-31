@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { ArrowLeft, BadgeCheck, Bell, BookA, BookOpen, Boxes, ChevronDown, ChevronUp, ChevronsUpDown, Clapperboard, ClipboardList, Columns2, Columns3, EllipsisVertical, ExternalLink, FileText, Film, FlaskConical, Gauge, House, LayoutDashboard, Link2, ListChecks, LogIn, LogOut, MessagesSquare, Palette, PanelLeftClose, PanelLeftOpen, Puzzle, Search, Settings, Shield, ShieldCheck, SlidersHorizontal, Star, User2, Users, Video, Vote, X, createLucideIcon } from "lucide-react"
+import { ArrowLeft, BadgeCheck, Bell, BookA, BookOpen, Boxes, ChevronDown, ChevronUp, ChevronsUpDown, Clapperboard, ClipboardList, Columns2, Columns3, EllipsisVertical, FileText, Film, FlaskConical, Gauge, House, LayoutDashboard, Link2, ListChecks, LogIn, LogOut, MessagesSquare, Palette, PanelLeftClose, PanelLeftOpen, PanelRight, Puzzle, Search, Settings, Shield, ShieldCheck, SlidersHorizontal, Star, User2, Users, Video, Vote, X, createLucideIcon } from "lucide-react"
 
 import dynamic from "next/dynamic"
 import { SidebarChats } from "@/components/sidebar-chats"
@@ -18,6 +18,9 @@ import { whiteButton } from "@/components/white-button"
 import { HOUSEKEEPING_OPEN, HousekeepingTool } from "@/components/housekeeping/tool"
 import { useThemePanel } from "@/components/theme/theme-palette"
 import { STUDIO_OPEN } from "@/lib/studio"
+import { PaneFrame, PaneSync } from "@/components/pane"
+import { PANE_MESSAGE } from "@/lib/pane"
+import { useThemeFollow } from "@/lib/theme-client"
 import type { ChipOffer } from "@/lib/question-resolver"
 
 // The discussion panel carries the whole chat (markdown, the Remotion player): it loads the first time it opens,
@@ -110,6 +113,8 @@ type PanelState = {
   discussSeed: DiscussSeed | null
   /** The signed-in user is an admin: the Studio and Housekeeping are theirs. */
   admin: boolean
+  /** Opens a page in the second panel, beside the main one (lib/pane.ts). */
+  openPane: (href: string) => void
 }
 /** `nonce` makes asking the same thing twice a second ask. */
 export type DiscussSeed = { context: () => string; chipVideo?: string; ask?: ChipOffer | null; nonce: number }
@@ -117,7 +122,7 @@ export type DiscussSeed = { context: () => string; chipVideo?: string; ask?: Chi
  *  Discussion panel's back arrow before the title; `flush` lets rows run to the panel's edges. */
 export type Aside = { key: string; title: string; body: React.ReactNode; back?: () => void; flush?: boolean }
 export type PanelSize = "third" | "half" | "full" | "custom"
-const PanelCtx = React.createContext<PanelState>({ setOpen: () => {}, wide: false, setWide: () => {}, size: "third", nextSize: "half", cycleSize: () => {}, panelOpen: false, sidebarOpen: false, toggleSidebar: () => {}, discuss: false, toggleDiscuss: () => {}, openAside: () => {}, asideKey: null, askAbout: () => {}, discussSeed: null, admin: false })
+const PanelCtx = React.createContext<PanelState>({ setOpen: () => {}, wide: false, setWide: () => {}, size: "third", nextSize: "half", cycleSize: () => {}, panelOpen: false, sidebarOpen: false, toggleSidebar: () => {}, discuss: false, toggleDiscuss: () => {}, openAside: () => {}, asideKey: null, askAbout: () => {}, discussSeed: null, admin: false, openPane: () => {} })
 export const useShellPanel = () => React.useContext(PanelCtx)
 
 export function Shell({ children, drawer, signedIn = false, admin = false }: { children: React.ReactNode; drawer: React.ReactNode; signedIn?: boolean; admin?: boolean }) {
@@ -144,6 +149,23 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
   }, [discuss])
   const [aside, setAside] = React.useState<Aside | null>(null)
   const [seed, setSeed] = React.useState<DiscussSeed | null>(null)
+  // The second panel (lib/pane.ts): the page it opened on (its frame's src, fixed per opening) and where it
+  // is now. `n` reloads the frame when a page is opened into it again.
+  const [pane, setPane] = React.useState<{ src: string; href: string; n: number } | null>(null)
+  const paneRef = React.useRef<HTMLIFrameElement>(null)
+  const openPane = React.useCallback((href: string) => (setAside(null), setPane({ src: href, href, n: Date.now() })), [])
+  // The panel's frame says where its page has gone; the address follows (PaneSync).
+  React.useEffect(() => {
+    const on = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin || e.source !== paneRef.current?.contentWindow) return
+      const d = e.data as { type?: string; href?: string } | null
+      if (d?.type === PANE_MESSAGE && typeof d.href === "string") setPane((p) => (p && p.href !== d.href ? { ...p, href: d.href! } : p))
+    }
+    window.addEventListener("message", on)
+    return () => window.removeEventListener("message", on)
+  }, [])
+  // A theme picked in another tab, or around the panel's frame, repaints this one.
+  useThemeFollow()
   const animKey = React.useRef("Scored")
   const panel = React.useMemo<PanelState>(
     () => ({
@@ -166,8 +188,9 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
       askAbout: (s: Omit<DiscussSeed, "nonce">) => (setAside(null), setSeed({ ...s, nonce: Date.now() }), setDiscuss(true)),
       discussSeed: seed,
       admin,
+      openPane,
     }),
-    [wide, size, nextSize, panelOpen, sidebarOpen, discuss, aside?.key, seed, admin],
+    [wide, size, nextSize, panelOpen, sidebarOpen, discuss, aside?.key, seed, admin, openPane],
   )
   // Housekeeping's pointer and page markers open the discussion panel on Housekeeping; a chat video's
   // Open in Studio opens it on the Studio.
@@ -192,7 +215,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
     localStorage.setItem(SPLIT_KEY, JSON.stringify({ size, split }))
   }, [size, split, dragging])
   // Closing the panel after the page was closed beside it brings the page back at its old split.
-  const open = panelOpen || discuss || !!aside
+  const open = panelOpen || discuss || !!aside || !!pane
   // What a page handed the panel belongs to that page.
   React.useEffect(() => (setAside(null), setSeed(null)), [path])
   // Every panel opens at the one-third view, 420px (Brendan's rule, 2026-10-20); a drag resizes it after.
@@ -293,7 +316,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
           <MenuHeader text={href} copy={href} />
           <MenuSeparator />
           <MenuRow icon={<Star className={fav ? "fill-amber-400 text-amber-400" : undefined} />} label={fav ? "Unfavorite" : "Favorite"} onClick={() => toggleFav(href)} />
-          <MenuRow icon={<ExternalLink />} label="Open in new tab" onClick={() => window.open(href, "_blank", "noopener")} />
+          <MenuRow icon={<PanelRight />} label="Open in panel" onClick={() => openPane(href)} />
           <MenuRow icon={<Link2 />} label="Copy link" onClick={() => navigator.clipboard.writeText(url())} />
           <MenuSeparator />
           <MenuFoot title={label} sub={group} />
@@ -385,7 +408,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
         )}
       </PanelCtx.Provider>
     )
-  const title = TITLES.find(([p]) => path.startsWith(p))?.[1] ?? (path === "/" ? "Home" : path.slice(1).split("/")[0].replace(/^./, (c) => c.toUpperCase()))
+  const title = titleFor(path)
   // The take panel must not remount (and re-fade) the page beneath it.
   if (!path.startsWith("/v/")) animKey.current = title
   const panelW = size === "half" ? PANEL_HALF : size === "custom" ? PANEL_CUSTOM : PANEL_THIRD
@@ -393,21 +416,24 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
   const takeover = open && size === "full"
   // Both panes side by side: the divider and the corner closes show.
   const paired = open && !takeover
-  const closePanel = () => (panelOpen ? router.back() : discuss ? setDiscuss(false) : setAside(null))
+  const closePanel = () => (panelOpen ? router.back() : pane ? setPane(null) : discuss ? setDiscuss(false) : setAside(null))
   // /chat fills the content card edge to edge, as solar's chat fills its main area; /app/home is the same chat dressed as the home.
   // /studio's Studio frame does too.
   const full = path === "/" || ["/data-dictionary", "/america-thinks", "/survey", "/lift", "/chat", "/inbox", "/studio"].some((p) => path.startsWith(p))
   return (
     <PanelCtx.Provider value={panel}>
       <CommandKHost />
-      <div className="flex min-h-dvh md:h-dvh md:overflow-hidden md:bg-pax2-frame md:p-[18px]">
-        <div className={cn("hidden shrink-0 overflow-hidden transition-[width,margin] duration-300 ease-in-out md:block", sidebarOpen ? "md:mr-[18px] md:w-60" : "md:w-0")}>
+      <React.Suspense>
+        <PaneSync href={pane?.href ?? null} onOpen={openPane} />
+      </React.Suspense>
+      <div data-shell-frame className="flex min-h-dvh md:h-dvh md:overflow-hidden md:bg-pax2-frame md:p-[18px]">
+        <div data-chrome className={cn("hidden shrink-0 overflow-hidden transition-[width,margin] duration-300 ease-in-out md:block", sidebarOpen ? "md:mr-[18px] md:w-60" : "md:w-0")}>
           {sidebar}
         </div>
         <div ref={mainRef} className={cn("relative flex min-w-0 flex-1 flex-col", takeover && "md:hidden")}>
-          <div className="flex min-w-0 flex-1 flex-col md:min-h-0 md:overflow-hidden md:rounded-2xl md:border md:border-slate-500 md:bg-pax2-surface md:shadow-e2">
+          <div data-shell-main className="flex min-w-0 flex-1 flex-col md:min-h-0 md:overflow-hidden md:rounded-2xl md:border md:border-slate-500 md:bg-pax2-surface md:shadow-e2">
             <Announcement />
-            <header className="sticky top-0 z-20 flex items-center gap-3 border-b bg-pax2-surface/90 px-4 py-2.5 backdrop-blur md:hidden">
+            <header data-chrome className="sticky top-0 z-20 flex items-center gap-3 border-b bg-pax2-surface/90 px-4 py-2.5 backdrop-blur md:hidden">
               <Link href="/" aria-label="Home"><Wordmark size={18} /></Link>
               <nav className="no-scrollbar flex flex-1 gap-1 overflow-x-auto">
                 {NAV.map(({ href, label }) => {
@@ -424,7 +450,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
                 })}
               </nav>
             </header>
-            <div className={cn("relative z-10 hidden min-h-[73px] shrink-0 items-center gap-3 bg-pax2-surface px-5 py-4 shadow-[0_4px_12px_-8px_rgb(var(--t-shadow-rgb,15_23_42)/0.25)] md:flex")}>
+            <div data-chrome className={cn("relative z-10 hidden min-h-[73px] shrink-0 items-center gap-3 bg-pax2-surface px-5 py-4 shadow-[0_4px_12px_-8px_rgb(var(--t-shadow-rgb,15_23_42)/0.25)] md:flex")}>
               <button type="button" onClick={() => setSidebarOpen((v) => !v)} aria-label="Toggle sidebar" className={whiteButton("circle")}>
                 {sidebarOpen ? <PanelLeftClose className="size-4" strokeWidth={2} /> : <PanelLeftOpen className="size-4" strokeWidth={2} />}
               </button>
@@ -488,15 +514,16 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
         >
           <div className={cn("relative h-full", takeover ? "w-full" : panelW)}>
             {drawer}
-            {(discuss || discussShown) && !panelOpen && <DiscussionPanel admin={admin} onClose={() => setDiscuss(false)} />}
-            {aside && !discuss && !panelOpen && <AsidePanel aside={aside} wide={wide} onWide={(w) => setSize(w ? "half" : "third")} onClose={() => setAside(null)} />}
+            {pane && !panelOpen && <PaneFrame key={pane.n} src={pane.src} title={titleFor(pane.href)} nextSize={nextSize} onSize={() => ((restore.current = null), setSize(nextSize))} onClose={() => setPane(null)} dragging={dragging} frameRef={paneRef} />}
+            {(discuss || discussShown) && !panelOpen && !pane && <DiscussionPanel admin={admin} onClose={() => setDiscuss(false)} />}
+            {aside && !discuss && !panelOpen && !pane && <AsidePanel aside={aside} wide={wide} onWide={(w) => setSize(w ? "half" : "third")} onClose={() => setAside(null)} />}
             {paired && <CornerClose label="Close" onClose={closePanel} />}
           </div>
         </div>
         {/* A video opened beside the discussion: the drawer takes the column above, between the page and
             the discussion, and the discussion keeps its own 420px column on the far right. Close the page
             and the video takes the room that's left. */}
-        {discuss && panelOpen && (
+        {discuss && (panelOpen || !!pane) && (
           <div className="shrink-0 md:ml-[18px] md:w-[420px]">
             <DiscussionPanel onClose={() => setDiscuss(false)} />
           </div>
@@ -538,7 +565,7 @@ function Announcement() {
   }, [])
   if (!open) return null
   return (
-    <div className="relative z-30 flex shrink-0 items-center justify-center gap-2 bg-[linear-gradient(100deg,#060b22,#1e3a8a_55%,#5b1120_130%)] px-12 py-2 text-[13px] text-white">
+    <div data-chrome className="relative z-30 flex shrink-0 items-center justify-center gap-2 bg-[linear-gradient(100deg,#060b22,#1e3a8a_55%,#5b1120_130%)] px-12 py-2 text-[13px] text-white">
       <p className="truncate">Four ElevenLabs voices are in the Studio — Sarah, Matilda, Eric and Brian.</p>
       <Link href="/record/studio" className="shrink-0 font-semibold underline underline-offset-2">
         Try them
@@ -815,4 +842,10 @@ function AsidePanel({ aside, wide, onWide, onClose }: { aside: Aside; wide: bool
       <div className={cn("min-h-0 flex-1 overflow-y-auto border-t border-slate-200/70", !aside.flush && "px-6 py-5")}>{aside.body}</div>
     </section>
   )
+}
+
+/** A page's header title from its path (the second panel names its page the same way). */
+function titleFor(href: string) {
+  const p = href.split(/[?#]/)[0] || "/"
+  return TITLES.find(([x]) => p.startsWith(x))?.[1] ?? (p === "/" ? "Home" : p.slice(1).split("/")[0].replace(/^./, (c) => c.toUpperCase()))
 }

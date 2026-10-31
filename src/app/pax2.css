@@ -172,6 +172,21 @@
   --shadow-e3: var(--pax2-shadow-3);
 }
 
+/* A page open in the second panel (lib/pane.ts) is this app in a frame, <html data-embed>: the shell's
+   chrome goes (sidebar, headers, announcement, the inspector) and the main card fills the frame. */
+html[data-embed] [data-chrome] {
+  display: none !important;
+}
+html[data-embed] [data-shell-frame] {
+  padding: 0 !important;
+  background: var(--pax2-surface) !important;
+}
+html[data-embed] [data-shell-main] {
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
 /* Headings: the body family at heavier weight and tighter tracking. */
 .font-display {
   font-family: var(--font-sans), system-ui, sans-serif;
