@@ -85,7 +85,7 @@ function Card({ s, x, y }: { s: Short; x: number; y: number }) {
   const flip = x > 0.7
   return (
     <div
-      className="pointer-events-none absolute z-10 flex w-40 flex-col gap-1 rounded-lg bg-slate-900 p-1 text-white shadow-e3"
+      className="pointer-events-none absolute z-10 flex w-40 flex-col gap-1 rounded-lg bg-night-900 p-1 text-white shadow-e3"
       style={{
         left: `calc(${LEFT}px + ${x} * (100% - ${LEFT + MARGIN.right}px))`,
         top: `calc(${MARGIN.top}px + ${1 - y} * (100% - ${MARGIN.top + BOTTOM}px))`,

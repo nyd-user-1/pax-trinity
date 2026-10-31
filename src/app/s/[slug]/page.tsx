@@ -27,7 +27,7 @@ export default async function RespondPage({ params, searchParams }: Props) {
   const pid = typeof raw === "string" && /^[0-9a-z-]{8,64}$/.test(raw) ? raw : null
   const fielding = pid ? await armForPid(pid).catch(() => null) : null
   return (
-    <main className="min-h-dvh bg-white text-slate-900">
+    <main className="min-h-dvh bg-surface text-slate-900">
       <div className="mx-auto w-full max-w-xl px-5 py-12">
         {fielding?.closed ? (
           <div className="flex flex-col gap-3 rounded-xl border border-slate-200 p-8">

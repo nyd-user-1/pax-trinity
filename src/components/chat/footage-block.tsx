@@ -68,7 +68,7 @@ function ShelvedCard({ id, title, children, className }: { id: string; title: st
         <LayoutGrid className="size-3.5 text-pax2-blue" />
         <span className="truncate font-mono">{`${path}#${title.toLowerCase()}`}</span>
         <span className="ml-auto flex items-center gap-1">
-          <button type="button" onClick={() => (on ? remove(key) : add({ key, title, path: where, anchor: id }))} className="rounded-md px-2 py-1 font-medium text-slate-600 transition-colors hover:bg-white hover:text-pax2-blue">
+          <button type="button" onClick={() => (on ? remove(key) : add({ key, title, path: where, anchor: id }))} className="rounded-md px-2 py-1 font-medium text-slate-600 transition-colors hover:bg-surface hover:text-pax2-blue">
             {on ? 'On the shelf' : 'Add to Blocks'}
           </button>
         </span>
@@ -286,7 +286,7 @@ export function FootageBlock({ script, videoModel, focus, show }: { script: stri
                     <span className="flex items-center gap-2.5">
                       <span className="flex">
                         <span className="size-3 rounded-full" style={{ background: b.primary }} />
-                        <span className="-ml-1 size-3 rounded-full ring-2 ring-white" style={{ background: b.accent }} />
+                        <span className="-ml-1 size-3 rounded-full ring-2 ring-surface" style={{ background: b.accent }} />
                       </span>
                       {b.name}
                     </span>

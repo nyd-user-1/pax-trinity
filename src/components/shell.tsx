@@ -230,7 +230,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
   if (path.startsWith("/test/") || path.startsWith("/s/")) return <>{children}</>
   if (path === "/record" || (path.startsWith("/sign") && !home))
     return (
-      <div className="min-h-dvh bg-white">
+      <div className="min-h-dvh bg-surface">
         <RevealFx key={path} translateY={4}>
           {children}
         </RevealFx>
@@ -247,7 +247,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
     const rowCls = cn(
       "group relative flex items-center gap-3 rounded-xl px-3 pr-14 outline-none transition-[color,background-color,box-shadow]",
       small ? "py-1.5 text-[13px]" : "py-2 text-sm",
-      on ? "bg-white font-semibold text-pax2-blue shadow-e1" : "text-slate-500 hover:bg-white/70 hover:text-pax2-blue hover:shadow-e1",
+      on ? "bg-surface font-semibold text-pax2-blue shadow-e1" : "text-slate-500 hover:bg-surface/70 hover:text-pax2-blue hover:shadow-e1",
     )
     const rowBody = (
       <>
@@ -275,7 +275,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
           align="left"
           width="w-56"
           trigger={<EllipsisVertical className="size-4" />}
-          triggerClassName="flex size-7 items-center justify-center rounded-lg text-slate-400 opacity-0 transition-opacity hover:bg-white hover:text-pax2-blue focus-visible:opacity-100 group-hover/item:opacity-100 aria-expanded:bg-white aria-expanded:opacity-100"
+          triggerClassName="flex size-7 items-center justify-center rounded-lg text-slate-400 opacity-0 transition-opacity hover:bg-surface hover:text-pax2-blue focus-visible:opacity-100 group-hover/item:opacity-100 aria-expanded:bg-surface aria-expanded:opacity-100"
         >
           <MenuHeader text={href} copy={href} />
           <MenuSeparator />
@@ -316,7 +316,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
                 onClick={() => toggleGroup(n.label)}
                 aria-expanded={isOpen}
                 className={cn(
-                  "group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm outline-none transition-[color,background-color,box-shadow] hover:bg-white/70 hover:text-pax2-blue hover:shadow-e1 focus-visible:bg-white/70",
+                  "group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm outline-none transition-[color,background-color,box-shadow] hover:bg-surface/70 hover:text-pax2-blue hover:shadow-e1 focus-visible:bg-surface/70",
                   holds ? "font-semibold text-pax2-blue" : "text-slate-500",
                 )}
               >
@@ -358,9 +358,9 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
       <PanelCtx.Provider value={panel}>
       <CommandKHost />
       <ThemeLayer />
-        <div className="min-h-dvh bg-white">{children}</div>
+        <div className="min-h-dvh bg-surface">{children}</div>
         {/* The sidebar slides in for everyone (PAX in the landing header calls it); the discussion is for the signed in. */}
-        <div aria-hidden onClick={() => (setSidebarOpen(false), setDiscuss(false))} className={cn("fixed inset-0 z-40 bg-slate-900/20 transition-opacity duration-300", sidebarOpen || discuss ? "opacity-100" : "pointer-events-none opacity-0")} />
+        <div aria-hidden onClick={() => (setSidebarOpen(false), setDiscuss(false))} className={cn("fixed inset-0 z-40 bg-night-900/20 transition-opacity duration-300", sidebarOpen || discuss ? "opacity-100" : "pointer-events-none opacity-0")} />
         <div className={cn("fixed inset-y-[18px] left-[18px] z-[45] transition-transform duration-300 ease-in-out", sidebarOpen ? "translate-x-0" : "-translate-x-[calc(100%+18px)]")}>{sidebar}</div>
         {signedIn && (
           <div className={cn("fixed inset-y-[18px] right-[18px] z-[45] w-[min(420px,calc(100vw-36px))] transition-transform duration-300 ease-in-out", discuss ? "translate-x-0" : "translate-x-[calc(100%+18px)]")}>
@@ -390,9 +390,9 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
           {sidebar}
         </div>
         <div ref={mainRef} className={cn("relative flex min-w-0 flex-1 flex-col", takeover && "md:hidden")}>
-          <div className="flex min-w-0 flex-1 flex-col md:min-h-0 md:overflow-hidden md:rounded-2xl md:border md:border-slate-500 md:bg-white md:shadow-e2">
+          <div className="flex min-w-0 flex-1 flex-col md:min-h-0 md:overflow-hidden md:rounded-2xl md:border md:border-slate-500 md:bg-surface md:shadow-e2">
             <Announcement />
-            <header className="sticky top-0 z-20 flex items-center gap-3 border-b bg-white/90 px-4 py-2.5 backdrop-blur md:hidden">
+            <header className="sticky top-0 z-20 flex items-center gap-3 border-b bg-surface/90 px-4 py-2.5 backdrop-blur md:hidden">
               <Link href="/" aria-label="Home"><Wordmark size={18} /></Link>
               <nav className="no-scrollbar flex flex-1 gap-1 overflow-x-auto">
                 {NAV.map(({ href, label }) => {
@@ -409,7 +409,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
                 })}
               </nav>
             </header>
-            <div className={cn("relative z-10 hidden shrink-0 items-center gap-3 bg-white px-5 py-4 shadow-[0_4px_12px_-8px_rgb(15_23_42/0.25)] md:flex")}>
+            <div className={cn("relative z-10 hidden shrink-0 items-center gap-3 bg-surface px-5 py-4 shadow-[0_4px_12px_-8px_rgb(15_23_42/0.25)] md:flex")}>
               <button type="button" onClick={() => setSidebarOpen((v) => !v)} aria-label="Toggle sidebar" className={whiteButton("circle")}>
                 {sidebarOpen ? <PanelLeftClose className="size-4" strokeWidth={2} /> : <PanelLeftOpen className="size-4" strokeWidth={2} />}
               </button>
@@ -595,7 +595,7 @@ function PageSwitcher({ title, items }: { title: string; items: { href: string; 
       </button>
       <h1 className="sr-only">{title}</h1>
       {open && (
-        <div role="menu" className="absolute left-0 top-full z-50 mt-1.5 w-64 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-e3">
+        <div role="menu" className="absolute left-0 top-full z-50 mt-1.5 w-64 overflow-hidden rounded-2xl border border-slate-200/80 bg-surface shadow-e3">
           <div className="border-b border-slate-200/70 p-2">
             <input
               autoFocus
@@ -638,7 +638,7 @@ function HeaderSearch({ items }: { items: { href: string; label: string; icon: t
       type="button"
       onClick={openCommandK}
       aria-label={`Search everything (${items.length} pages and more)`}
-      className="flex h-9 w-full items-center gap-2 rounded-full border border-slate-200 bg-white px-3 text-left shadow-e1 transition-colors hover:border-slate-300"
+      className="flex h-9 w-full items-center gap-2 rounded-full border border-slate-200 bg-surface px-3 text-left shadow-e1 transition-colors hover:border-slate-300"
     >
       <Search className="size-4 shrink-0 text-slate-400" />
       <span className="flex-1 text-sm text-slate-400">Search…</span>
@@ -698,22 +698,22 @@ export function AccountMenu() {
   // Signed out, the account chip is simply the way in.
   if (!user)
     return (
-      <Link href={`/signin?next=${encodeURIComponent(path)}`} className="flex w-full items-center gap-2 rounded-full py-1 pl-1 pr-2.5 text-sm font-semibold text-pax2-blue transition-colors hover:bg-white/70">
+      <Link href={`/signin?next=${encodeURIComponent(path)}`} className="flex w-full items-center gap-2 rounded-full py-1 pl-1 pr-2.5 text-sm font-semibold text-pax2-blue transition-colors hover:bg-surface/70">
         <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-slate-200 text-slate-500"><LogIn className="size-3.5" /></span>
         Log in
       </Link>
     )
   const name = user.name
   const item = "gap-2.5 rounded-lg px-2.5 py-2 text-sm [&_svg]:size-4 [&_svg]:text-slate-500"
-  const sub = "min-w-44 rounded-2xl border border-slate-500 bg-white p-1.5 shadow-e2 ring-0"
+  const sub = "min-w-44 rounded-2xl border border-slate-500 bg-surface p-1.5 shadow-e2 ring-0"
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger aria-label="Account menu" className="flex w-full max-w-full items-center gap-2 rounded-full py-1 pl-1 pr-2.5 text-pax2-blue outline-none transition-colors hover:bg-white/70 data-[popup-open]:bg-white/70">
+      <DropdownMenuTrigger aria-label="Account menu" className="flex w-full max-w-full items-center gap-2 rounded-full py-1 pl-1 pr-2.5 text-pax2-blue outline-none transition-colors hover:bg-surface/70 data-[popup-open]:bg-surface/70">
         {user ? <Initials name={name} size="sm" /> : <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-slate-200 text-slate-500"><User2 className="size-3.5" /></span>}
         <span className="flex-1 truncate text-left text-sm font-semibold">{name}</span>
         <ChevronsUpDown className="size-3.5 shrink-0 text-slate-400" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-(--anchor-width) rounded-2xl border border-slate-500 bg-white p-1.5 shadow-e2 ring-0">
+      <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-(--anchor-width) rounded-2xl border border-slate-500 bg-surface p-1.5 shadow-e2 ring-0">
         <div className="flex items-center gap-3 px-2.5 py-2">
           {user ? <Initials name={name} size="md" /> : <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-slate-200 text-slate-500"><User2 className="size-4" /></span>}
           <span className="min-w-0">
@@ -763,7 +763,7 @@ export function AccountMenu() {
         <DropdownMenuItem closeOnClick={false} onClick={() => setThemePanel(!themePanel)} className={item}>
           <Palette /> Theme
           <span aria-hidden className={cn("ml-auto inline-flex h-4 w-7 shrink-0 items-center rounded-full p-0.5 transition-colors", themePanel ? "bg-pax2-light-blue" : "bg-slate-300")}>
-            <span className={cn("size-3 rounded-full bg-white shadow-sm transition-transform", themePanel && "translate-x-3")} />
+            <span className={cn("size-3 rounded-full bg-surface shadow-sm transition-transform", themePanel && "translate-x-3")} />
           </span>
           <span className="sr-only">{themePanel ? "on" : "off"}</span>
         </DropdownMenuItem>
@@ -784,11 +784,11 @@ export function AccountMenu() {
  *  title, width toggle and close. */
 function AsidePanel({ aside, wide, onWide, onClose }: { aside: Aside; wide: boolean; onWide: (wide: boolean) => void; onClose: () => void }) {
   return (
-    <section className="fixed inset-0 z-50 flex flex-col bg-white md:static md:z-auto md:h-full md:overflow-hidden md:rounded-2xl md:border md:border-slate-500 md:shadow-e2">
+    <section className="fixed inset-0 z-50 flex flex-col bg-surface md:static md:z-auto md:h-full md:overflow-hidden md:rounded-2xl md:border md:border-slate-500 md:shadow-e2">
       <div className="flex min-h-[73px] shrink-0 items-center justify-between gap-3 px-6 py-4">
         <div className="flex min-w-0 items-center gap-2">
           {aside.back && (
-            <button type="button" onClick={aside.back} aria-label="Back" className="-ml-2 flex size-9 shrink-0 items-center justify-center rounded-full text-slate-600 hover:bg-white hover:text-pax2-blue">
+            <button type="button" onClick={aside.back} aria-label="Back" className="-ml-2 flex size-9 shrink-0 items-center justify-center rounded-full text-slate-600 hover:bg-surface hover:text-pax2-blue">
               <ArrowLeft className="size-4" />
             </button>
           )}

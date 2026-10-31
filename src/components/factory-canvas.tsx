@@ -134,7 +134,7 @@ const STORE_ICON: Record<StoreData["service"], LucideIcon> = { "Amazon S3": Hard
 
 function Door({ id, data: d }: NodeProps<Node<DoorData>>) {
   return (
-    <div title={d.about} style={{ width: d.w, height: d.h }} className={cn("flex items-center justify-center gap-2 rounded-xl px-3", d.planned ? "border-2 border-dashed border-slate-300 bg-white" : "bg-pax2-blue shadow-e1", d.big && "ring-4 ring-pax2-lavender", glow(useLit("nodes", id)))}>
+    <div title={d.about} style={{ width: d.w, height: d.h }} className={cn("flex items-center justify-center gap-2 rounded-xl px-3", d.planned ? "border-2 border-dashed border-slate-300 bg-surface" : "bg-pax2-blue shadow-e1", d.big && "ring-4 ring-pax2-lavender", glow(useLit("nodes", id)))}>
       <span className={cn("font-semibold leading-tight", d.big ? "text-lg" : "text-[15px]", d.planned ? "text-slate-500" : "text-white")}>{d.title}</span>
       <Sides extra={d.extra} />
     </div>
@@ -143,7 +143,7 @@ function Door({ id, data: d }: NodeProps<Node<DoorData>>) {
 
 function Stage({ id, data: d }: NodeProps<Node<StageData>>) {
   return (
-    <div title={d.about} style={{ width: d.w, height: d.h }} className={cn("flex flex-col rounded-2xl border-2 border-pax2-light-blue bg-white px-4", d.tools ? "py-3.5" : "justify-center", glow(useLit("nodes", id)))}>
+    <div title={d.about} style={{ width: d.w, height: d.h }} className={cn("flex flex-col rounded-2xl border-2 border-pax2-light-blue bg-surface px-4", d.tools ? "py-3.5" : "justify-center", glow(useLit("nodes", id)))}>
       <p className={cn("text-lg font-semibold text-pax2-blue", !d.tools && "text-center")}>{d.title}</p>
       {d.tools && (
         <ul className="mt-1.5 space-y-0.5">
@@ -189,7 +189,7 @@ function MakeBadge({ make, small = false }: { make: Make; small?: boolean }) {
 
 function ChipBody({ c }: { c: Chip }) {
   return (
-    <span title={`${c.status} · ${MAKE[c.make].label}`} className={cn("flex min-h-[34px] items-center gap-2 rounded-[18px] border py-1 pl-1 pr-3 text-xs font-semibold leading-tight text-pax2-blue", c.status === "Live" ? "border-indigo-200 bg-indigo-50" : "border-dashed border-indigo-300 bg-white")}>
+    <span title={`${c.status} · ${MAKE[c.make].label}`} className={cn("flex min-h-[34px] items-center gap-2 rounded-[18px] border py-1 pl-1 pr-3 text-xs font-semibold leading-tight text-pax2-blue", c.status === "Live" ? "border-indigo-200 bg-indigo-50" : "border-dashed border-indigo-300 bg-surface")}>
       <MakeBadge make={c.make} />
       <span>
         <span className="tabular">{c.n}.</span> {c.name}
@@ -209,7 +209,7 @@ function Instrument({ id, data: d }: NodeProps<Node<ChipData>>) {
 
 function Rack({ id, data: d }: NodeProps<Node<RackData>>) {
   return (
-    <div style={{ width: d.w }} className={cn("grid grid-cols-2 gap-1.5 rounded-2xl border border-indigo-200 bg-white/80 p-2.5", glow(useLit("nodes", id)))}>
+    <div style={{ width: d.w }} className={cn("grid grid-cols-2 gap-1.5 rounded-2xl border border-indigo-200 bg-surface/80 p-2.5", glow(useLit("nodes", id)))}>
       {d.ns.map((n) => <ChipBody key={n} c={model(n)} />)}
       <Sides extra={d.extra} />
     </div>
@@ -230,7 +230,7 @@ function Service({ id, data: d }: NodeProps<Node<ServiceData>>) {
 
 function Surface({ id, data: d }: NodeProps<Node<SurfaceData>>) {
   return (
-    <div title={d.about} style={{ width: d.w, height: d.h }} className={cn("flex flex-col overflow-hidden rounded-xl border border-slate-300 bg-white shadow-e1", glow(useLit("nodes", id)))}>
+    <div title={d.about} style={{ width: d.w, height: d.h }} className={cn("flex flex-col overflow-hidden rounded-xl border border-slate-300 bg-surface shadow-e1", glow(useLit("nodes", id)))}>
       <div className="flex h-4 shrink-0 items-center gap-1 bg-slate-100 px-2">
         {[0, 1, 2].map((i) => <span key={i} className="size-1.5 rounded-full bg-slate-300" />)}
         <span className="ml-1.5 font-mono text-[10px] text-slate-500">{d.path}</span>
@@ -266,14 +266,14 @@ function EdgeChip({ d, big = false, className, style }: { d: FxData; big?: boole
       title={d.label}
       style={style}
       className={cn(
-        "relative flex shrink-0 items-center justify-center rounded-full border bg-white font-medium leading-none",
+        "relative flex shrink-0 items-center justify-center rounded-full border bg-surface font-medium leading-none",
         Icon ? (big ? "size-8" : "size-7") : cn("w-max whitespace-nowrap px-2.5 text-xs", big ? "h-8" : "h-7"),
         d.kind === "loop" ? "border-violet-300 text-violet-700" : d.kind === "planned" ? "border-dashed border-slate-300 italic text-slate-400" : "border-slate-200 text-pax2-blue",
         className,
       )}
     >
       {Icon ? <Icon className={big ? "size-4" : "size-3.5"} strokeWidth={2} /> : d.text}
-      {d.loop && !big && <span className="tabular absolute -right-1.5 -top-1.5 flex size-4 items-center justify-center rounded-full bg-violet-600 text-[9px] font-semibold not-italic text-white ring-2 ring-white">{d.loop}</span>}
+      {d.loop && !big && <span className="tabular absolute -right-1.5 -top-1.5 flex size-4 items-center justify-center rounded-full bg-violet-600 text-[9px] font-semibold not-italic text-white ring-2 ring-surface">{d.loop}</span>}
     </span>
   )
 }
@@ -369,7 +369,7 @@ const same = (a: Focus, b: Focus) => JSON.stringify(a) === JSON.stringify(b)
 function Entry({ focus, current, onFocus, sample, children }: { focus: Focus; current: Focus; onFocus: (f: Focus) => void; sample: React.ReactNode; children: React.ReactNode }) {
   const on = same(focus, current)
   return (
-    <button type="button" onClick={() => onFocus(on ? null : focus)} aria-pressed={on} className={cn("-mx-2 flex w-[calc(100%+16px)] items-center gap-2.5 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-white", on && "bg-white ring-1 ring-pax2-light-blue")}>
+    <button type="button" onClick={() => onFocus(on ? null : focus)} aria-pressed={on} className={cn("-mx-2 flex w-[calc(100%+16px)] items-center gap-2.5 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-surface", on && "bg-surface ring-1 ring-pax2-light-blue")}>
       <span className="flex min-h-8 w-14 shrink-0 items-center justify-center">{sample}</span>
       <span className="min-w-0">{children}</span>
     </button>
@@ -384,7 +384,7 @@ type View = "rows" | "factory" | "widgets"
 /** The Discussion panel's row (components/discussion-panel.tsx), for the Architecture panel's two doors. */
 function ArchRow({ icon, label, sub, onClick }: { icon: React.ReactNode; label: string; sub: string; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} className="group flex w-full items-center gap-3 border-b border-slate-200/70 px-6 py-4 text-left transition-colors hover:bg-white/70">
+    <button type="button" onClick={onClick} className="group flex w-full items-center gap-3 border-b border-slate-200/70 px-6 py-4 text-left transition-colors hover:bg-surface/70">
       <span className="flex size-4 shrink-0 items-center justify-center text-slate-400 group-hover:text-pax2-blue">{icon}</span>
       <span className="flex-1">
         <span className="block text-[15px] font-medium text-slate-900 group-hover:text-pax2-blue">{label}</span>
@@ -440,11 +440,11 @@ function Architecture({ view, edges, focus, onFocus, onOpen }: { view: View; edg
       <>
         <div className="space-y-1">
           {kind("door", <span className="h-6 w-14 rounded-lg bg-pax2-blue" />, "Door", "How a video enters.")}
-          {kind("stage", <span className="h-6 w-14 rounded-xl border-2 border-pax2-light-blue bg-white" />, "Stage", "What the Lab does to the video, with the tools that do it.")}
+          {kind("stage", <span className="h-6 w-14 rounded-xl border-2 border-pax2-light-blue bg-surface" />, "Stage", "What the Lab does to the video, with the tools that do it.")}
           {kind("store", <span className="flex h-6 w-14 items-center justify-center rounded-[10px_10px_6px_6px] border border-slate-300 bg-slate-50"><HardDrive className="size-3.5 text-slate-500" /></span>, "Store", "Where it is kept: S3 prefixes, the DynamoDB ledger, the catalog.")}
           {kind("instrument", <span className="flex h-6 w-14 items-center gap-1 rounded-full border border-indigo-200 bg-indigo-50 pl-0.5"><MakeBadge make="neural" small /></span>, "Instrument", "A fitted model or a measured reference, numbered to the Models table. Its circle names the kind: a network for a neural network, a calculator for a statistical model, a pencil and ruler for measured effects. A dashed one is staged: fitted or in build, not yet serving.")}
           {kind("service", <span className="flex h-6 w-14 items-center justify-center rounded-lg border border-amber-300 bg-amber-50"><Server className="size-3.5 text-amber-700" /></span>, "Service", "A paid service the factory calls, named for its job; the provider shows on hover.")}
-          {kind("surface", <span className="h-6 w-14 overflow-hidden rounded-lg border border-slate-300 bg-white"><span className="block h-1.5 bg-slate-100" /></span>, "Surface", "A page the factory feeds.")}
+          {kind("surface", <span className="h-6 w-14 overflow-hidden rounded-lg border border-slate-300 bg-surface"><span className="block h-1.5 bg-slate-100" /></span>, "Surface", "A page the factory feeds.")}
         </div>
         <div className="mt-3 space-y-1 border-t border-slate-200/70 pt-3">
           {line("flow", "Flow", "The video, or what was measured from it, moves on.")}

@@ -79,7 +79,7 @@ function Row({ title, thumbnail, progress, error }: { title: string; thumbnail: 
 export function ChannelChip({ channelId, title, thumbnail, initial, className }: { channelId: string; title: string; thumbnail: string | null; initial: Progress | null; className?: string }) {
   const { progress, error } = useIngest(channelId, initial)
   return (
-    <div className={cn("rounded-2xl border border-slate-200 bg-white", className)}>
+    <div className={cn("rounded-2xl border border-slate-200 bg-surface", className)}>
       <Row title={title} thumbnail={thumbnail} progress={progress} error={error} />
     </div>
   )
@@ -93,7 +93,7 @@ export function ChannelCard({ channelId, title, thumbnail, initial, className }:
   const hidden = progress?.hidden ?? 0
   const listed = progress != null && progress.phase !== "catalog"
   return (
-    <div className={cn("rounded-2xl border border-slate-200 bg-white", className)}>
+    <div className={cn("rounded-2xl border border-slate-200 bg-surface", className)}>
       <Row title={title} thumbnail={thumbnail} progress={progress} error={error} />
       {listed && hidden > 0 && (
         <div className="border-t border-slate-100">
@@ -170,7 +170,7 @@ function Picker({ channelId, onCancel, onSaved }: { channelId: string; onCancel:
       </ul>
       <div className="mt-2 flex items-center justify-end gap-2">
         {onCancel && <button type="button" onClick={onCancel} className="h-9 rounded-lg px-3 text-sm font-medium text-slate-600 hover:bg-slate-100">Cancel</button>}
-        <button type="button" disabled={busy || !changed} onClick={save} className="h-9 rounded-lg bg-slate-950 px-4 text-sm font-medium text-white disabled:opacity-40">
+        <button type="button" disabled={busy || !changed} onClick={save} className="h-9 rounded-lg bg-night-950 px-4 text-sm font-medium text-white disabled:opacity-40">
           {busy ? "Saving" : picked.size || !before.size ? `Include ${picked.size} ${picked.size === 1 ? "video" : "videos"}` : "Leave them all out"}
         </button>
       </div>

@@ -70,7 +70,7 @@ export function VideoModelPicker({ value, onChange }: { value: VideoProvider; on
         <ChevronDown className={cn("size-3.5 text-slate-400 transition-transform", open && "rotate-180")} />
       </button>
       {open && (
-        <div role="menu" className={cn("absolute right-0 z-50 w-64 rounded-xl border border-slate-200 bg-white p-1 shadow-e3", above ? "bottom-full mb-2" : "top-full mt-2")}>
+        <div role="menu" className={cn("absolute right-0 z-50 w-64 rounded-xl border border-slate-200 bg-surface p-1 shadow-e3", above ? "bottom-full mb-2" : "top-full mt-2")}>
           {VIDEO_MODEL_OPTIONS.map((m) => (
             <button
               key={m.id}

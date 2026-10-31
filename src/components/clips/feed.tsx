@@ -272,7 +272,7 @@ function FeedItem({ clip, active, near, muted, onMuted, reactions }: { clip: Cli
         )}
         {!clip.youtube && !clip.composition && (
           <div className="absolute inset-x-0 bottom-0 h-0.5 bg-white/25">
-            <div className="h-full bg-white" style={{ width: `${progress * 100}%` }} />
+            <div className="h-full bg-surface" style={{ width: `${progress * 100}%` }} />
           </div>
         )}
         {/* On a phone the rail and the caption sit over the picture. */}

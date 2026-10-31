@@ -242,7 +242,7 @@ function ReactanceChart({ tour, mark }: { tour: TourStep<Curve> | null; mark?: n
   const band = bandAt(s)
   const near = bandAt(FR)
   const v = tuned ? [near.outperformShort, near.underperformShort].find(onMessage) ?? near.outperformShort : s < FR ? band.outperformShort : band.underperformShort
-  const tone = tuned ? "bg-white text-pax2-blue ring-1 ring-foreground/10" : s < FR ? "bg-pax2-blue text-white" : "bg-pax2-red text-white"
+  const tone = tuned ? "bg-surface text-pax2-blue ring-1 ring-foreground/10" : s < FR ? "bg-pax2-blue text-white" : "bg-pax2-red text-white"
   const x = (s - S_MIN) / (S_MAX - S_MIN)
 
   // The chart: drawn once with what never moves, then patched by series id as the cursor moves.

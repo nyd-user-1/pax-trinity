@@ -136,7 +136,7 @@ export function NoteSheet({
   // Minimized: the title strip alone, docked bottom-right. Click it to reopen at its last size.
   if (minimized)
     return createPortal(
-      <div className="fixed bottom-0 right-4 z-50 w-full max-w-xs overflow-hidden rounded-t-2xl border border-slate-200 bg-white shadow-e3 sm:right-6 sm:max-w-sm">
+      <div className="fixed bottom-0 right-4 z-50 w-full max-w-xs overflow-hidden rounded-t-2xl border border-slate-200 bg-surface shadow-e3 sm:right-6 sm:max-w-sm">
         <div className="flex h-11 w-full items-center justify-between gap-2 bg-pax2-blue pl-3 pr-1">
           <button type="button" onClick={() => setMinimized(false)} aria-label="Restore note" className="flex min-w-0 flex-1 items-center gap-2 text-left">
             <NotebookPen className="size-[15px] shrink-0 text-white/80" />
@@ -163,8 +163,8 @@ export function NoteSheet({
 
   return createPortal(
     <>
-      {big && <div className="fixed inset-0 z-40 bg-slate-950/40" aria-hidden onClick={() => setBig(false)} />}
-      <div className={cn("fixed z-50 flex flex-col overflow-hidden border border-slate-200 bg-white shadow-e3 transition-[width,height,border-radius] duration-200 animate-in fade-in slide-in-from-bottom-4", sizeClasses)}>
+      {big && <div className="fixed inset-0 z-40 bg-night-950/40" aria-hidden onClick={() => setBig(false)} />}
+      <div className={cn("fixed z-50 flex flex-col overflow-hidden border border-slate-200 bg-surface shadow-e3 transition-[width,height,border-radius] duration-200 animate-in fade-in slide-in-from-bottom-4", sizeClasses)}>
         <div className="flex h-11 shrink-0 items-center justify-between gap-1 bg-pax2-blue pl-3 pr-1">
           <span className="flex min-w-0 items-center gap-2 text-[13px] font-medium text-white/90">
             <NotebookPen className="size-[15px] shrink-0" />
@@ -183,7 +183,7 @@ export function NoteSheet({
           </div>
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col bg-white">
+        <div className="flex min-h-0 flex-1 flex-col bg-surface">
           {error && <p className="px-6 pt-4 text-center text-sm text-below">{error}</p>}
           {!note && !error && (
             <div className="flex flex-1 items-center justify-center text-pax2-blue">
@@ -213,7 +213,7 @@ export function NoteSheet({
 
               <main className="min-h-0 flex-1 overflow-y-auto">
                 {/* One continuous white sheet: the editor and its canvas are the same page. */}
-                <div className="group relative mx-auto flex min-h-[70%] max-w-3xl flex-col bg-white px-8 py-6">
+                <div className="group relative mx-auto flex min-h-[70%] max-w-3xl flex-col bg-surface px-8 py-6">
                   <div className="absolute right-3 top-3 z-10 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100 has-[[aria-expanded=true]]:opacity-100">
                     <KebabMenu label="Note options" trigger={<EllipsisVertical className="size-4" />} triggerClassName="inline-flex size-8 items-center justify-center rounded-md text-slate-800 outline-none hover:bg-muted aria-expanded:bg-muted">
                       <MenuRow icon={<MessagesSquare />} label="Ask PAX" onClick={ask} />

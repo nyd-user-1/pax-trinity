@@ -124,7 +124,7 @@ export function SidebarChats() {
     const href = `/chat?c=${c.id}`
     if (editing === c.id)
       return (
-        <div key={c.id} className="flex items-center rounded-xl bg-white shadow-e1">
+        <div key={c.id} className="flex items-center rounded-xl bg-surface shadow-e1">
           <input
             autoFocus
             value={editValue}
@@ -148,7 +148,7 @@ export function SidebarChats() {
           setTip({ x: r.right + 8, y: r.top + r.height / 2, text: `${c.title} · ${ago(c.updatedAt)}` })
         }}
         onMouseLeave={() => setTip(null)}
-        className={cn("group/item relative flex items-center rounded-xl transition-[color,background-color,box-shadow]", on ? "bg-white shadow-e1" : "hover:bg-white/70 hover:shadow-e1", c.hidden && "opacity-50")}
+        className={cn("group/item relative flex items-center rounded-xl transition-[color,background-color,box-shadow]", on ? "bg-surface shadow-e1" : "hover:bg-surface/70 hover:shadow-e1", c.hidden && "opacity-50")}
       >
         {on && <span aria-hidden className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-pax2-light-blue" />}
         <Link href={href} aria-current={on ? "page" : undefined} onClick={() => setTip(null)} className={cn("min-w-0 flex-1 truncate py-1.5 pl-3 text-[13px] outline-none", on ? "font-semibold text-pax2-blue" : "text-slate-500 group-hover/item:text-pax2-blue")}>
@@ -160,7 +160,7 @@ export function SidebarChats() {
           align="left"
           width="w-56"
           trigger={<EllipsisVertical className="size-4" />}
-          triggerClassName="mr-1 flex size-7 shrink-0 items-center justify-center rounded-lg text-slate-400 opacity-0 transition-opacity hover:bg-white hover:text-pax2-blue focus-visible:opacity-100 group-hover/item:opacity-100 aria-expanded:bg-white aria-expanded:opacity-100"
+          triggerClassName="mr-1 flex size-7 shrink-0 items-center justify-center rounded-lg text-slate-400 opacity-0 transition-opacity hover:bg-surface hover:text-pax2-blue focus-visible:opacity-100 group-hover/item:opacity-100 aria-expanded:bg-surface aria-expanded:opacity-100"
         >
           <MenuHeader text={href} copy={href} />
           <MenuSeparator />
@@ -194,7 +194,7 @@ export function SidebarChats() {
           align="left"
           width="w-44"
           trigger={<SlidersHorizontal className="size-3.5" />}
-          triggerClassName={cn("flex size-6 items-center justify-center rounded-md transition-colors hover:bg-white hover:text-pax2-blue aria-expanded:bg-white", groupBy !== "none" ? "text-slate-500" : "text-slate-400")}
+          triggerClassName={cn("flex size-6 items-center justify-center rounded-md transition-colors hover:bg-surface hover:text-pax2-blue aria-expanded:bg-surface", groupBy !== "none" ? "text-slate-500" : "text-slate-400")}
         >
           <p className={cn(LABEL, "px-2.5 py-1")}>Group by</p>
           {GROUP_OPTIONS.map((o) => (
@@ -235,7 +235,7 @@ export function SidebarChats() {
       {/* The whole title and its age, to the right of the row; portaled so the sidebar can't clip it. */}
       {tip &&
         createPortal(
-          <div role="tooltip" style={{ top: tip.y, left: tip.x }} className="pointer-events-none fixed z-[100] max-w-80 -translate-y-1/2 truncate rounded-lg bg-white px-2.5 py-1 text-xs text-slate-700 shadow-e2 ring-1 ring-slate-200">
+          <div role="tooltip" style={{ top: tip.y, left: tip.x }} className="pointer-events-none fixed z-[100] max-w-80 -translate-y-1/2 truncate rounded-lg bg-surface px-2.5 py-1 text-xs text-slate-700 shadow-e2 ring-1 ring-slate-200">
             {tip.text}
           </div>,
           document.body,

@@ -70,7 +70,7 @@ export function VideoBlock({ templateId, props, parent, title, saveKey, chatId }
 
   if (!v.ok)
     return (
-      <div className="rounded-xl border border-pax2-red/40 bg-white p-4">
+      <div className="rounded-xl border border-pax2-red/40 bg-surface p-4">
         <p className="text-sm font-medium text-pax2-red">I couldn&apos;t draw this video.</p>
         <pre className="mt-2 overflow-x-auto font-mono text-xs whitespace-pre-wrap text-slate-700">{v.error}</pre>
       </div>

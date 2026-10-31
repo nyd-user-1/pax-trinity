@@ -77,7 +77,7 @@ function HoverThumb({ v, aspect, playButton, eager }: { v: FeedVideo; aspect: st
         <img src={thumb(v.id)} alt="" loading={eager ? "eager" : "lazy"} fetchPriority={eager ? "high" : undefined} className={cn("size-full object-cover", aspect !== "aspect-video" && "transition-transform duration-300 group-hover:scale-[1.02]")} />
       )}
       {v.lab && (
-        <span title={v.e2 ? "e\u00b2" : "Lab Tested"} aria-label={v.e2 ? "e\u00b2" : "Lab Tested"} className="absolute right-1.5 top-1.5 z-10 flex size-6 items-center justify-center rounded-full bg-white/85 text-slate-900 ring-1 ring-white backdrop-blur-md">
+        <span title={v.e2 ? "e\u00b2" : "Lab Tested"} aria-label={v.e2 ? "e\u00b2" : "Lab Tested"} className="absolute right-1.5 top-1.5 z-10 flex size-6 items-center justify-center rounded-full bg-surface/85 text-slate-900 ring-1 ring-surface backdrop-blur-md">
           {v.e2 ? <span className="text-[11px] font-bold leading-none">e&sup2;</span> : <FlaskConical className="size-3.5" />}
         </span>
       )}
@@ -96,7 +96,7 @@ function HoverThumb({ v, aspect, playButton, eager }: { v: FeedVideo; aspect: st
  *  green, 5x and over full green. No red on reader-facing chips — it may return on partner or
  *  admin pages for evaluative reads. */
 const scoreOf = (v: FeedVideo) =>
-  v.ratio >= 5 ? "bg-green-600 text-white" : v.ratio >= 3 ? "bg-green-200 text-green-950 ring-1 ring-white" : "bg-white/85 text-slate-900 ring-1 ring-white backdrop-blur-md"
+  v.ratio >= 5 ? "bg-green-600 text-white" : v.ratio >= 3 ? "bg-green-200 text-green-950 ring-1 ring-surface" : "bg-surface/85 text-slate-900 ring-1 ring-surface backdrop-blur-md"
 
 /** The video's ratio — views over its channel's median — on hover: the frame dims and the
  *  chip pops in at its center, green for a Hit, red for a Miss, frosted white otherwise. The whole
@@ -339,7 +339,7 @@ function RowMenu({ v, className }: { v: FeedVideo; className?: string }) {
  *  the first line of the description. */
 export function ListRow({ v }: { v: FeedVideo }) {
   return (
-    <Link href={`/v/yt-${v.id}`} className="group relative isolate before:absolute before:-inset-3 before:-z-10 before:rounded-2xl before:border before:border-slate-200 before:bg-white before:transition-colors before:duration-200 hover:before:border-pax2-blue flex flex-col gap-3 sm:flex-row sm:gap-5">
+    <Link href={`/v/yt-${v.id}`} className="group relative isolate before:absolute before:-inset-3 before:-z-10 before:rounded-2xl before:border before:border-slate-200 before:bg-surface before:transition-colors before:duration-200 hover:before:border-pax2-blue flex flex-col gap-3 sm:flex-row sm:gap-5">
       <div className="relative w-full shrink-0 overflow-hidden rounded-xl bg-slate-200 sm:w-[380px] md:w-[448px]">
         <HoverThumb v={v} aspect="aspect-video" />
         <Score v={v} />
@@ -381,7 +381,7 @@ function Ribbon({ v, compact }: { v: FeedVideo; compact?: boolean }) {
  *  hover, the channel ribbon at its foot, then the title and the counts. */
 export function ShortCard({ v }: { v: FeedVideo }) {
   return (
-    <Link href={`/v/yt-${v.id}`} className="group relative isolate before:absolute before:-inset-3 before:-z-10 before:rounded-2xl before:border before:border-slate-200 before:bg-white before:transition-colors before:duration-200 hover:before:border-pax2-blue flex flex-col gap-1.5">
+    <Link href={`/v/yt-${v.id}`} className="group relative isolate before:absolute before:-inset-3 before:-z-10 before:rounded-2xl before:border before:border-slate-200 before:bg-surface before:transition-colors before:duration-200 hover:before:border-pax2-blue flex flex-col gap-1.5">
       <div className="overflow-hidden rounded-xl bg-slate-200">
         <div className="relative overflow-hidden">
           <HoverThumb v={v} aspect="aspect-[9/16]" playButton />
@@ -402,7 +402,7 @@ export function ShortCard({ v }: { v: FeedVideo }) {
  *  channel and its velocity score, then the title, the description's first lines and the counts. */
 export function LandscapeCard({ v, eager }: { v: FeedVideo; eager?: boolean }) {
   return (
-    <Link href={`/v/yt-${v.id}`} className="group relative isolate before:absolute before:-inset-3 before:-z-10 before:rounded-2xl before:border before:border-slate-200 before:bg-white before:transition-colors before:duration-200 hover:before:border-pax2-blue flex flex-col gap-3">
+    <Link href={`/v/yt-${v.id}`} className="group relative isolate before:absolute before:-inset-3 before:-z-10 before:rounded-2xl before:border before:border-slate-200 before:bg-surface before:transition-colors before:duration-200 hover:before:border-pax2-blue flex flex-col gap-3">
       <div className="overflow-hidden rounded-xl bg-slate-200">
         <div className="relative overflow-hidden">
           <HoverThumb v={v} aspect="aspect-video" playButton eager={eager} />
@@ -641,7 +641,7 @@ function Suggest({
         )}
       </div>
       {open && hits.length > 0 && (
-        <ul className="absolute inset-x-0 top-full z-10 mt-1 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
+        <ul className="absolute inset-x-0 top-full z-10 mt-1 overflow-hidden rounded-xl border border-slate-200 bg-surface py-1 shadow-lg">
           {hits.map((o) => (
             <li key={o}>
               <button type="button" onClick={() => pick(o)} className="w-full truncate px-3.5 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-50 hover:text-pax2-blue">
@@ -736,9 +736,9 @@ export function SearchBar({
           submit()
         }}
         className={cn(
-          "flex items-center rounded-[28px] border bg-white transition-[box-shadow,border-color,background-color]",
+          "flex items-center rounded-[28px] border bg-surface transition-[box-shadow,border-color,background-color]",
           className ?? "h-11 border-slate-200 shadow-e1 focus-within:shadow-e2",
-          open && cn("rounded-b-none hover:bg-white", edge),
+          open && cn("rounded-b-none hover:bg-surface", edge),
         )}
       >
         <Search aria-hidden className="ml-5 size-4 shrink-0 text-slate-400" />
@@ -783,7 +783,7 @@ export function SearchBar({
             )}
           >
             <SlidersHorizontal className="size-5" />
-            {refined && !sorting && <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-pax2-blue ring-2 ring-white" />}
+            {refined && !sorting && <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-pax2-blue ring-2 ring-surface" />}
           </button>
         ) : (
           <span className={aiMode ? "w-2" : "w-3"} />
@@ -791,7 +791,7 @@ export function SearchBar({
       </form>
       {open && (
         <div
-          className={cn("absolute inset-x-0 top-full z-50 -mt-px rounded-b-[28px] border border-t-0 bg-white text-left shadow-lg", edge)}
+          className={cn("absolute inset-x-0 top-full z-50 -mt-px rounded-b-[28px] border border-t-0 bg-surface text-left shadow-lg", edge)}
           // Clicks inside keep the search's focus — except into the filter inputs, which take it.
           onMouseDown={(e) => {
             if (!(e.target instanceof HTMLInputElement)) e.preventDefault()

@@ -60,7 +60,7 @@ export function MenuFlyout({ id, icon, label, hint, children }: { id: string; ic
       </div>
       {open && (
         <div className={cn("absolute top-0 z-50", side === "left" ? "right-full pr-1" : "left-full pl-1")}>
-          <div role="menu" className="flex min-w-44 flex-col whitespace-nowrap rounded-xl border border-slate-200 bg-white p-1 shadow-e3">
+          <div role="menu" className="flex min-w-44 flex-col whitespace-nowrap rounded-xl border border-slate-200 bg-surface p-1 shadow-e3">
             {children}
           </div>
         </div>
@@ -179,7 +179,7 @@ export function KebabMenu({
               onClick={(e) => e.stopPropagation()}
               onMouseOver={() => setFlyout(null)}
               style={{ top: pos.top, left: pos.left, right: pos.right }}
-              className={cn("fixed z-[70] flex flex-col whitespace-nowrap rounded-xl border border-slate-200 bg-white p-1 shadow-e3", width)}
+              className={cn("fixed z-[70] flex flex-col whitespace-nowrap rounded-xl border border-slate-200 bg-surface p-1 shadow-e3", width)}
             >
               {children}
             </div>

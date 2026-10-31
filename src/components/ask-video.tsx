@@ -22,7 +22,7 @@ import { Skeleton } from '@/ui/components/nova/skeleton'
 const MAX = 3
 const HOLD_MS = 350
 const GAP = 8
-const CHIP = 'shrink-0 whitespace-nowrap rounded-full border border-[var(--border,#e2e8f0)] bg-white px-3.5 py-1.5 text-sm text-slate-700'
+const CHIP = 'shrink-0 whitespace-nowrap rounded-full border border-[var(--border,#e2e8f0)] bg-surface px-3.5 py-1.5 text-sm text-slate-700'
 
 export function AskVideo({ ytId, title }: { ytId: string; title: string }) {
   const { askAbout } = useShellPanel()
@@ -106,7 +106,7 @@ export function AskVideo({ ytId, title }: { ytId: string; title: string }) {
         ref={ask}
         type="button"
         onClick={() => askAbout({ context, chipVideo: ytId })}
-        className="press flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 shadow-e1 transition-colors hover:border-pax2-light-blue hover:text-pax2-blue"
+        className="press flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border border-slate-300 bg-surface px-4 py-2 text-sm font-medium text-slate-800 shadow-e1 transition-colors hover:border-pax2-light-blue hover:text-pax2-blue"
       >
         <MessagesSquare className="size-4" style={{ color: '#033882', fill: '#dbe7fa' }} />
         Ask about this video

@@ -19,7 +19,7 @@ import { ASK_AT, ITEMS, KINDS, SECTIONS, SUGGESTED, type CommandItem } from "./c
 type Row = { key: string; item?: CommandItem; ask?: string; at?: (typeof ASK_AT)[number] }
 type Action = { label: string; keys: string[]; run: () => void }
 
-const KBD = "inline-flex h-6 min-w-6 items-center justify-center rounded-md border border-slate-300 bg-white px-1.5 text-[12px] font-medium text-slate-600"
+const KBD = "inline-flex h-6 min-w-6 items-center justify-center rounded-md border border-slate-300 bg-surface px-1.5 text-[12px] font-medium text-slate-600"
 
 /** Every token of the query in the row's words; the title's own matches rank first. */
 function score(item: CommandItem, q: string) {
@@ -180,7 +180,7 @@ export function CommandK({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-start justify-center bg-slate-900/15 px-4 pt-[12vh] backdrop-blur-[2px]" onMouseDown={(e) => e.target === e.currentTarget && onClose()} onKeyDown={onKey}>
+    <div className="fixed inset-0 z-[100] flex items-start justify-center bg-night-900/15 px-4 pt-[12vh] backdrop-blur-[2px]" onMouseDown={(e) => e.target === e.currentTarget && onClose()} onKeyDown={onKey}>
       <figure role="dialog" aria-label="Search" className="relative w-full max-w-[780px] overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-e3 animate-in fade-in slide-in-from-top-1 duration-200">
         {/* The field */}
         <div className="flex h-[62px] items-center gap-3 border-b border-slate-200 px-5">
@@ -241,7 +241,7 @@ export function CommandK({ onClose }: { onClose: () => void }) {
                       data-picked={picked}
                       onMouseMove={() => at !== i && setAt(i)}
                       onClick={() => open(row)}
-                      className={cn("mx-2 flex h-12 w-[calc(100%-16px)] items-center gap-3 rounded-xl px-3 text-left transition-colors", picked ? "bg-white shadow-e1" : "hover:bg-white/60")}
+                      className={cn("mx-2 flex h-12 w-[calc(100%-16px)] items-center gap-3 rounded-xl px-3 text-left transition-colors", picked ? "bg-surface shadow-e1" : "hover:bg-surface/60")}
                     >
                       {row.item && k ? <Tile icon={k.icon} tint={k.tint} /> : row.at ? <Tile icon={row.at.icon} tint={row.at.tint} /> : <PaxMark size={18} className="mx-[5px] shrink-0" />}
                       <span className="flex min-w-0 flex-1 items-baseline gap-3">
@@ -258,7 +258,7 @@ export function CommandK({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* The foot */}
-        <div className="flex h-[52px] items-center gap-3 border-t border-slate-200 bg-white/70 px-4">
+        <div className="flex h-[52px] items-center gap-3 border-t border-slate-200 bg-surface/70 px-4">
           <PaxMark size={18} />
           {mode === "ask" && <span className="text-[14px] text-slate-600">Ask PAX</span>}
           <span className="ml-auto flex items-center gap-2.5 text-[14px]">
@@ -283,7 +283,7 @@ export function CommandK({ onClose }: { onClose: () => void }) {
 
         {/* The actions, over the foot's right corner */}
         {actions && (
-          <div className="absolute right-3 bottom-[58px] w-80 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-e3 animate-in fade-in slide-in-from-bottom-1 duration-150">
+          <div className="absolute right-3 bottom-[58px] w-80 overflow-hidden rounded-xl border border-slate-200 bg-surface p-1.5 shadow-e3 animate-in fade-in slide-in-from-bottom-1 duration-150">
             <p className="truncate px-2.5 pt-1 pb-2 text-[12px] font-semibold text-slate-500">{current?.item?.title ?? "Ask PAX"}</p>
             {actionList.map((a, i) => (
               <button

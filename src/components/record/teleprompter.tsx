@@ -162,7 +162,7 @@ export function Teleprompter({ text, onClose, onDone }: { text: string; onClose:
         </button>
       </div>
       <div className="relative flex flex-col items-center gap-2 bg-black/40 py-5">
-        <button type="button" disabled={!!err} onClick={recording ? stop : start} aria-label={recording ? "Stop" : "Record"} className="flex size-20 items-center justify-center rounded-full border-4 border-white disabled:opacity-40">
+        <button type="button" disabled={!!err} onClick={recording ? stop : start} aria-label={recording ? "Stop" : "Record"} className="flex size-20 items-center justify-center rounded-full border-4 border-surface disabled:opacity-40">
           <span className={cn("bg-[var(--pax2-red)] transition-all", recording ? "size-8 rounded-md" : "size-16 rounded-full")} />
         </button>
         <span className="text-sm text-white/80">{recording ? "Tap to finish" : "Tap to start"}</span>

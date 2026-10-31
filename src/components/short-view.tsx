@@ -599,7 +599,7 @@ export async function ShortView({ id, inDrawer = false }: { id: string; inDrawer
                 <Player src={`/api/video/${id}`} subject={id} poster={`https://i.ytimg.com/vi/${ytId}/hqdefault.jpg`} className="aspect-auto size-full max-w-none rounded-none object-cover shadow-none @[301px]/portrait:object-contain" />
               </div>
             ) : (
-              <div className="mx-auto aspect-[9/16] w-full max-w-[300px] overflow-hidden rounded-2xl bg-slate-900 shadow-e2 @[301px]/portrait:aspect-video @[301px]/portrait:max-w-none">
+              <div className="mx-auto aspect-[9/16] w-full max-w-[300px] overflow-hidden rounded-2xl bg-night-900 shadow-e2 @[301px]/portrait:aspect-video @[301px]/portrait:max-w-none">
                 <iframe
                   src={`https://www.youtube.com/embed/${ytId}`}
                   title={v?.title ?? "YouTube short"}

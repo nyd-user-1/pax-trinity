@@ -18,16 +18,16 @@ export function TemplatePlayer({ templateId, props, className }: { templateId: s
 
   if (!v.ok)
     return process.env.NODE_ENV === "development" ? (
-      <div className={cn("rounded-xl border border-pax2-red/40 bg-white p-4", className)}>
+      <div className={cn("rounded-xl border border-pax2-red/40 bg-surface p-4", className)}>
         <p className="text-sm font-medium text-pax2-red">These props do not fit {templateId}</p>
         <pre className="mt-2 overflow-x-auto font-mono text-xs whitespace-pre-wrap text-slate-700">{v.error}</pre>
       </div>
     ) : (
-      <div className={cn("rounded-xl border bg-white px-4 py-3 text-sm text-muted-foreground", className)}>This video could not be drawn.</div>
+      <div className={cn("rounded-xl border bg-surface px-4 py-3 text-sm text-muted-foreground", className)}>This video could not be drawn.</div>
     )
 
   const t = getTemplate(v.spec.id)
-  if (!t) return <div className={cn("rounded-xl border bg-white px-4 py-3 text-sm text-muted-foreground", className)}>This video could not be drawn.</div>
+  if (!t) return <div className={cn("rounded-xl border bg-surface px-4 py-3 text-sm text-muted-foreground", className)}>This video could not be drawn.</div>
   const vertical = t.height > t.width
   return (
     <div className={cn("w-full", vertical && "mx-auto max-w-[360px]", className)}>

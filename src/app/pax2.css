@@ -10,6 +10,8 @@
   --pax2-light-blue: #2563eb;
   --pax2-lavender: #dbeafe;
   --pax2-mist: #f5f7fb;
+  /* The surface cards and panels stand on: white here, a step above the ground in Dark. */
+  --pax2-surface: #ffffff;
   --pax2-red: #dc2626;
   --pax2-red-deep: #991b1b;
   --pax2-red-soft: #fee2e2;
@@ -33,7 +35,86 @@
   --pax2-shadow-3: 0 18px 40px -12px rgb(15 23 42 / 0.22), 0 6px 12px -6px rgb(15 23 42 / 0.1);
 }
 
+/* Dark (Brendan, 2026-10-30: "convert them"). Light is the tokens above; Dark is a class on <html>
+   (lib/theme.ts). Rather than rewrite each class, Dark swaps the colours the classes point at: PAX's
+   own tokens, the shadcn tokens, and Tailwind's slate and gray scales, so the 1,100-odd slate classes
+   follow without an edit. The scales are set by role, not flipped: 50–300 are the tints and rules a
+   step above the surface, 400–950 the type, light to lightest. The surface (bg-surface, which every
+   white background became) sits a step above the ground (the mist). text-white stays white, and the
+   night scale (bg-night-*) keeps the few dark chips and scrims dark in both. :root:root.dark outranks
+   the :root:root above. */
+:root:root.dark {
+  color-scheme: dark;
+  --pax2-blue: #3b82f6;
+  --pax2-light-blue: #60a5fa;
+  --pax2-lavender: #182c50;
+  --pax2-mist: #0b1120;
+  --pax2-surface: #121a2b;
+  --pax2-red: #f87171;
+  --pax2-red-deep: #fca5a5;
+  --pax2-red-soft: #3a1618;
+  --pax2-above: #4ade80;
+  --pax2-above-soft: #0f2a1b;
+  --pax2-below: #f87171;
+  --pax2-below-soft: #3a1618;
+  --pax2-observed: #60a5fa;
+  --pax2-interpretation: #9ca3af;
+  --pax2-hypothesis: #f87171;
+  --primary: #3b82f6;
+  --primary-foreground: #ffffff;
+  --ring: #60a5fa;
+  --pax2-shadow-1: 0 1px 2px rgb(0 0 0 / 0.35), 0 1px 1px rgb(0 0 0 / 0.25);
+  --pax2-shadow-2: 0 4px 14px -4px rgb(0 0 0 / 0.55), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+  --pax2-shadow-3: 0 18px 40px -12px rgb(0 0 0 / 0.7), 0 6px 12px -6px rgb(0 0 0 / 0.5);
+
+  --background: #121a2b;
+  --foreground: #e2e8f0;
+  --card: #121a2b;
+  --card-foreground: #e2e8f0;
+  --popover: #121a2b;
+  --popover-foreground: #e2e8f0;
+  --muted: #1c2638;
+  --muted-foreground: #9aa7bb;
+  --accent: #1c2638;
+  --accent-foreground: #e2e8f0;
+  --border: #2a3548;
+  --input: #2a3548;
+
+  --color-slate-50: #172033;
+  --color-slate-100: #1c2638;
+  --color-slate-200: #2a3548;
+  --color-slate-300: #3a465a;
+  --color-slate-400: #7d8aa0;
+  --color-slate-500: #94a1b5;
+  --color-slate-600: #b0bbcb;
+  --color-slate-700: #c8d1de;
+  --color-slate-800: #dde3ec;
+  --color-slate-900: #eef2f7;
+  --color-slate-950: #f8fafc;
+
+  --color-gray-50: #181d26;
+  --color-gray-100: #1e242e;
+  --color-gray-200: #2c333e;
+  --color-gray-300: #3c4450;
+  --color-gray-400: #838b98;
+  --color-gray-500: #9aa1ac;
+  --color-gray-600: #b5bbc4;
+  --color-gray-700: #ccd1d8;
+  --color-gray-800: #e0e3e8;
+  --color-gray-900: #f0f2f5;
+  --color-gray-950: #f9fafb;
+}
+
+/* The night scale: slate's darks, fixed, for chips, tooltips and scrims that are dark in both themes. */
+@theme {
+  --color-night-700: #334155;
+  --color-night-800: #1e293b;
+  --color-night-900: #0f172a;
+  --color-night-950: #020617;
+}
+
 @theme inline {
+  --color-surface: var(--pax2-surface);
   --color-pax2-blue: var(--pax2-blue);
   --color-pax2-light-blue: var(--pax2-light-blue);
   --color-pax2-lavender: var(--pax2-lavender);
@@ -74,7 +155,7 @@ body {
 
 /* A raised surface, and the lift it gives when it can be opened. */
 .surface {
-  background: #fff;
+  background: var(--pax2-surface);
   border-radius: 1.25rem;
   box-shadow: var(--pax2-shadow-1);
   outline: 1px solid rgb(15 23 42 / 0.06);

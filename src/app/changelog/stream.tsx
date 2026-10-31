@@ -46,7 +46,7 @@ export function ChangelogSteps() {
   if (!c) return null
   return (
     <div>
-      <label className="flex h-10 items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 text-sm focus-within:border-pax2-blue">
+      <label className="flex h-10 items-center gap-2 rounded-xl border border-slate-300 bg-surface px-3 text-sm focus-within:border-pax2-blue">
         <Search className="size-4 shrink-0 text-slate-400" />
         <input value={c.query} onChange={(e) => c.setQuery(e.target.value)} placeholder="Search the changelog by change, day or commit…" className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-slate-400" />
       </label>

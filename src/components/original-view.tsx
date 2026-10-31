@@ -77,7 +77,7 @@ export async function OriginalView({ row, tab, publish }: { row: OriginalRow; ta
       {active === "recorded" && (
         <div className="grid gap-6 @3xl:grid-cols-[300px_1fr]">
           {row.sourceYoutubeId ? (
-            <div className="aspect-[9/16] w-full max-w-[300px] overflow-hidden rounded-2xl bg-slate-900 shadow-e2">
+            <div className="aspect-[9/16] w-full max-w-[300px] overflow-hidden rounded-2xl bg-night-900 shadow-e2">
               <iframe src={`https://www.youtube.com/embed/${row.sourceYoutubeId}`} title={row.title ?? "YouTube short"} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="size-full border-0" />
             </div>
           ) : (

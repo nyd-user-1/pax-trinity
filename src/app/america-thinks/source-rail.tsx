@@ -98,7 +98,7 @@ export function SourceRail({
 }) {
   // The shell's ⌘K bar, exactly (shell.tsx's HeaderSearch); the keys are its dress.
   const search = (
-    <div className="flex h-9 items-center gap-2 rounded-full border border-slate-200 bg-white px-3 shadow-e1 transition-colors focus-within:border-slate-300">
+    <div className="flex h-9 items-center gap-2 rounded-full border border-slate-200 bg-surface px-3 shadow-e1 transition-colors focus-within:border-slate-300">
       <Search className="size-4 shrink-0 text-slate-400" />
       <input
         value={query}

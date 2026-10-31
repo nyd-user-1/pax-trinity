@@ -128,7 +128,7 @@ export function OrderedBlock({ id, label, children }: { id: string; label: strin
       onDrop={onDrop}
     >
       {ctx && (
-        <div className={cn("absolute -top-3 right-6 z-10 flex items-center gap-0.5 rounded-lg border bg-white p-0.5 opacity-0 shadow-xs transition-opacity", "group-hover/block:opacity-100 focus-within:opacity-100")}>
+        <div className={cn("absolute -top-3 right-6 z-10 flex items-center gap-0.5 rounded-lg border bg-surface p-0.5 opacity-0 shadow-xs transition-opacity", "group-hover/block:opacity-100 focus-within:opacity-100")}>
           <button type="button" aria-label={`Move ${label} up`} disabled={at <= 0} onClick={() => ctx.move(id, -1)} className={arrow}>
             <ArrowUp />
           </button>

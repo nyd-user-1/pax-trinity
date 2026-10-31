@@ -28,7 +28,7 @@ export function sourceOf(name: string): TraceSource {
   if (name === "post_to_discord") return { label: "Discord", mark: "D", tone: "bg-zinc-500", image: "/logos/discord.svg" }
   if (name.startsWith("post_to") || name === "deliver_report")
     return { label: "Delivery", mark: "→", tone: "bg-zinc-500" }
-  return { label: "GovBlock record", mark: "DB", tone: "bg-slate-700", image: "/logo.svg" }
+  return { label: "GovBlock record", mark: "DB", tone: "bg-night-700", image: "/logo.svg" }
 }
 
 export function args(input: unknown) {

@@ -568,7 +568,7 @@ export const NotesEditor = forwardRef<NotesEditorHandle, Props>(function NotesEd
       <style>{PROSE_CSS}</style>
       <div ref={hostRef} className="min-h-0 flex-1 overflow-y-auto" />
       {inTable && !readOnly && (
-        <div className="pointer-events-auto absolute bottom-2 right-2 z-20 flex flex-wrap items-center gap-0.5 rounded-xl border border-slate-200 bg-white p-1 shadow-e3">
+        <div className="pointer-events-auto absolute bottom-2 right-2 z-20 flex flex-wrap items-center gap-0.5 rounded-xl border border-slate-200 bg-surface p-1 shadow-e3">
           {TABLE_ACTIONS.map(([label, glyph, run]) => (
             <button
               key={label}
@@ -591,7 +591,7 @@ export const NotesEditor = forwardRef<NotesEditorHandle, Props>(function NotesEd
       {slash && filtered.length > 0 && (
         <div
           style={{ left: slash.left, top: slash.top }}
-          className="fixed z-[100] flex w-60 flex-col rounded-xl border border-slate-200 bg-white p-1 shadow-e3"
+          className="fixed z-[100] flex w-60 flex-col rounded-xl border border-slate-200 bg-surface p-1 shadow-e3"
         >
           {filtered.map((item, i) => (
             <button

@@ -151,7 +151,7 @@ function Timeline({ entries }: { entries: { t: number; label: string | null; tex
     <ol className="relative flex flex-col gap-5 pl-6 before:absolute before:inset-y-2 before:left-[5px] before:w-px before:bg-slate-200">
       {entries.map((e, i) => (
         <li key={i} className="relative flex flex-col gap-1">
-          <span className={cn("absolute -left-6 top-1.5 size-[11px] rounded-full border-2 bg-white transition-colors", i === at && now > 0 ? "border-pax2-light-blue bg-pax2-light-blue" : e.label ? "border-pax2-blue" : "border-slate-300")} />
+          <span className={cn("absolute -left-6 top-1.5 size-[11px] rounded-full border-2 bg-surface transition-colors", i === at && now > 0 ? "border-pax2-light-blue bg-pax2-light-blue" : e.label ? "border-pax2-blue" : "border-slate-300")} />
           <div className="flex items-center gap-2">
             <At t={e.t} />
             {e.label && <span className="text-xs font-semibold text-pax2-blue">{e.label}</span>}

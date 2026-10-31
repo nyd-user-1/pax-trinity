@@ -57,7 +57,7 @@ export function SurveyForm({ survey, pid = null }: { survey: Survey; pid?: strin
         ))}
       </div>
       {state === "failed" && <p className="mt-6 text-sm text-red-600">I couldn&apos;t record your answers. Please try again.</p>}
-      <button type="submit" disabled={!complete || state === "sending"} className="mt-8 h-11 w-full rounded-full bg-slate-900 text-[15px] font-semibold text-white transition-opacity disabled:opacity-40">
+      <button type="submit" disabled={!complete || state === "sending"} className="mt-8 h-11 w-full rounded-full bg-night-900 text-[15px] font-semibold text-white transition-opacity disabled:opacity-40">
         {state === "sending" ? "Sending" : "Submit"}
       </button>
     </form>

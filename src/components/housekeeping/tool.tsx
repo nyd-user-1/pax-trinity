@@ -282,7 +282,7 @@ function Marks({ marks }: { marks: Mark[] }) {
             className="group fixed top-0 left-0 z-[60] size-6 rounded-full"
           >
             <span className="absolute inset-0 animate-ping rounded-full bg-pax2-light-blue/60" />
-            <span className="relative flex size-6 items-center justify-center overflow-hidden rounded-full bg-pax2-blue text-[10px] font-semibold text-white ring-2 ring-white shadow-e2 transition-transform group-hover:scale-110">
+            <span className="relative flex size-6 items-center justify-center overflow-hidden rounded-full bg-pax2-blue text-[10px] font-semibold text-white ring-2 ring-surface shadow-e2 transition-transform group-hover:scale-110">
               {photo ? (
                 // eslint-disable-next-line @next/next/no-img-element -- a 24px headshot from public/
                 <img src={photo} alt="" className="size-full object-cover" />

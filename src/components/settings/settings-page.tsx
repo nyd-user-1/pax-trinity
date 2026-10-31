@@ -69,7 +69,7 @@ export const SETTINGS_TABS: { key: SettingsTab; label: string; icon: typeof Bell
 
 export const settingsHref = (tab: SettingsTab) => (tab === "general" ? "/settings" : `/settings?tab=${tab}`)
 
-const MENU = "w-auto min-w-44 rounded-xl border border-slate-200 bg-white p-1 shadow-e2 ring-0"
+const MENU = "w-auto min-w-44 rounded-xl border border-slate-200 bg-surface p-1 shadow-e2 ring-0"
 const MENU_ITEM = "gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] [&_svg]:size-4 [&_svg]:text-slate-500"
 // A press on any of these is an edit, and wakes Cancel and Update.
 const EDITS = '[role="switch"],[role="checkbox"],[role="option"],[role="menuitemradio"],[role="radio"],[aria-pressed],[data-edit]'
@@ -374,11 +374,11 @@ function Members({ user }: { user: User | null }) {
                       return next
                     })
                   }
-                  className={cn("flex items-center gap-3 rounded-xl border p-3 text-left transition-colors outline-none focus-visible:ring-3 focus-visible:ring-pax2-light-blue/30", on ? "border-pax2-blue bg-pax2-lavender/40" : "border-slate-200 bg-white hover:border-slate-300")}
+                  className={cn("flex items-center gap-3 rounded-xl border p-3 text-left transition-colors outline-none focus-visible:ring-3 focus-visible:ring-pax2-light-blue/30", on ? "border-pax2-blue bg-pax2-lavender/40" : "border-slate-200 bg-surface hover:border-slate-300")}
                 >
                   <Tile icon={a.icon} tint={a.tint} />
                   <span className="flex-1 text-sm font-medium text-slate-900">{a.label}</span>
-                  <span className={cn("flex size-5 items-center justify-center rounded-full border", on ? "border-pax2-blue bg-pax2-blue text-white" : "border-slate-300 bg-white")}>{on && <Check className="size-3" strokeWidth={3} />}</span>
+                  <span className={cn("flex size-5 items-center justify-center rounded-full border", on ? "border-pax2-blue bg-pax2-blue text-white" : "border-slate-300 bg-surface")}>{on && <Check className="size-3" strokeWidth={3} />}</span>
                 </button>
               )
             })}
@@ -520,10 +520,10 @@ function Members({ user }: { user: User | null }) {
               setPage(0)
             }}
           >
-            <SelectTrigger aria-label="Rows per page" size="sm" className="h-8 w-16 rounded-lg border-slate-200 bg-white shadow-e1 dark:bg-white">
+            <SelectTrigger aria-label="Rows per page" size="sm" className="h-8 w-16 rounded-lg border-slate-200 bg-surface shadow-e1 dark:bg-surface">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="min-w-20 rounded-xl border border-slate-200 bg-white p-1 shadow-e2 ring-0">
+            <SelectContent className="min-w-20 rounded-xl border border-slate-200 bg-surface p-1 shadow-e2 ring-0">
               {["5", "10", "20"].map((n) => (
                 <SelectItem key={n} value={n} className="rounded-lg px-2.5 py-1.5">
                   {n}
@@ -562,14 +562,14 @@ function InviteMember({ onInvite }: { onInvite: (p: Person) => void }) {
       <PopoverTrigger className={SMALL}>
         <UserPlus /> Invite member
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-80 space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-e2 ring-0">
+      <PopoverContent align="end" className="w-80 space-y-3 rounded-xl border border-slate-200 bg-surface p-4 shadow-e2 ring-0">
         <Field autoFocus type="email" aria-label="Email address" placeholder="name@example.org" value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} />
         <div className="flex items-center gap-2">
           <Select value={role} onValueChange={(v) => v && setRole(v as Role)}>
-            <SelectTrigger aria-label="Role" className="h-8 flex-1 rounded-lg border-slate-200 bg-white shadow-e1 dark:bg-white">
+            <SelectTrigger aria-label="Role" className="h-8 flex-1 rounded-lg border-slate-200 bg-surface shadow-e1 dark:bg-surface">
               <SelectValue>{() => ROLE_LABEL[role]}</SelectValue>
             </SelectTrigger>
-            <SelectContent className="rounded-xl border border-slate-200 bg-white p-1 shadow-e2 ring-0">
+            <SelectContent className="rounded-xl border border-slate-200 bg-surface p-1 shadow-e2 ring-0">
               {(["admin", "staff", "partner"] as const).map((r) => (
                 <SelectItem key={r} value={r} className="rounded-lg px-2.5 py-1.5">
                   {ROLE_LABEL[r]}
@@ -722,7 +722,7 @@ function Approvers() {
         />
       </div>
       {offers.length > 0 && (
-        <div className="absolute inset-x-0 top-full z-10 mt-1 rounded-xl border border-slate-200 bg-white p-1 shadow-e2">
+        <div className="absolute inset-x-0 top-full z-10 mt-1 rounded-xl border border-slate-200 bg-surface p-1 shadow-e2">
           {offers.map((m) => (
             <button key={m.email} type="button" data-edit onClick={() => add(m.email!)} className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-[13px] text-slate-700 hover:bg-slate-100">
               <Avatar name={m.name} email={m.email} size={20} />

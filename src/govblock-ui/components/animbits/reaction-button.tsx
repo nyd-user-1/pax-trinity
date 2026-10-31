@@ -88,7 +88,7 @@ export function ReactionButton({
 
           {/* Top-left sparkle (Dot) */}
           <motion.div
-            className="absolute top-0 left-0 rounded-full bg-white"
+            className="absolute top-0 left-0 rounded-full bg-surface"
             style={{ width: size * 0.1, height: size * 0.1 }}
             initial={{ scale: 0, opacity: 0, x: size * 0.2, y: size * 0.2 }}
             animate={{
@@ -102,7 +102,7 @@ export function ReactionButton({
 
           {/* Top-right sparkle (Dot) */}
           <motion.div
-            className="absolute top-0 right-0 rounded-full bg-white"
+            className="absolute top-0 right-0 rounded-full bg-surface"
             style={{ width: size * 0.1, height: size * 0.1 }}
             initial={{ scale: 0, opacity: 0, x: -size * 0.2, y: size * 0.2 }}
             animate={{

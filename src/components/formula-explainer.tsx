@@ -29,7 +29,7 @@ export function FormulaExplainer({ title, html, pill, facts, rows }: FormulaExpl
       />
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="w-[min(760px,calc(100vw-2rem))] rounded-2xl border-0 bg-slate-100 p-2 shadow-lg sm:max-w-none">
-          <div className="flex max-h-[82vh] min-h-0 flex-col overflow-hidden rounded-xl border bg-white shadow-sm">
+          <div className="flex max-h-[82vh] min-h-0 flex-col overflow-hidden rounded-xl border bg-surface shadow-sm">
             <DialogHeader className="flex h-14 shrink-0 flex-row items-center gap-3 border-b px-5 pr-12">
               <DialogTitle className="text-base font-medium">{title}</DialogTitle>
               {pill && <span className="rounded-md border px-1.5 py-0.5 text-xs text-slate-800">{pill}</span>}

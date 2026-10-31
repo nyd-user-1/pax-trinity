@@ -23,10 +23,10 @@ export function Field({ lead, className, ...props }: React.ComponentProps<"input
 export function Choice({ label, options, defaultValue }: { label: string; options: string[]; defaultValue: string }) {
   return (
     <Select defaultValue={defaultValue}>
-      <SelectTrigger aria-label={label} className="h-9 w-full rounded-xl border-slate-200 bg-white pl-3 shadow-e1 data-[size=default]:h-9 dark:bg-white">
+      <SelectTrigger aria-label={label} className="h-9 w-full rounded-xl border-slate-200 bg-surface pl-3 shadow-e1 data-[size=default]:h-9 dark:bg-surface">
         <SelectValue />
       </SelectTrigger>
-      <SelectContent className="rounded-xl border border-slate-200 bg-white p-1 shadow-e2 ring-0">
+      <SelectContent className="rounded-xl border border-slate-200 bg-surface p-1 shadow-e2 ring-0">
         {options.map((o) => (
           <SelectItem key={o} value={o} className="rounded-lg px-2.5 py-1.5">
             {o}
@@ -46,7 +46,7 @@ export function Toggle({ label, defaultOn, on, onChange }: { label: string; defa
       onCheckedChange={onChange}
       className="relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full bg-slate-200 p-0.5 transition-colors outline-none focus-visible:ring-3 focus-visible:ring-pax2-light-blue/30 data-checked:bg-pax2-blue"
     >
-      <Switch.Thumb className="size-4 rounded-full bg-white shadow-sm transition-transform duration-150 data-checked:translate-x-4" />
+      <Switch.Thumb className="size-4 rounded-full bg-surface shadow-sm transition-transform duration-150 data-checked:translate-x-4" />
     </Switch.Root>
   )
 }
@@ -57,7 +57,7 @@ export function Tick({ label, defaultOn, disabled, children }: { label: string; 
       aria-label={children ? undefined : label}
       defaultChecked={defaultOn}
       disabled={disabled}
-      className="flex size-4 shrink-0 items-center justify-center rounded-[4px] border border-slate-300 bg-white transition-colors outline-none focus-visible:ring-3 focus-visible:ring-pax2-light-blue/30 data-checked:border-pax2-blue data-checked:bg-pax2-blue data-disabled:cursor-not-allowed data-disabled:opacity-50"
+      className="flex size-4 shrink-0 items-center justify-center rounded-[4px] border border-slate-300 bg-surface transition-colors outline-none focus-visible:ring-3 focus-visible:ring-pax2-light-blue/30 data-checked:border-pax2-blue data-checked:bg-pax2-blue data-disabled:cursor-not-allowed data-disabled:opacity-50"
     >
       <Checkbox.Indicator className="flex text-white">
         <Check className="size-3" strokeWidth={3} />

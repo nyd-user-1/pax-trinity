@@ -36,7 +36,7 @@ export function CodeCard({ code, language }: { code: string; language?: string }
             type="button"
             onClick={copy}
             aria-label={copied ? 'Copied' : 'Copy code'}
-            className="pointer-events-auto flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white/90 text-slate-600 opacity-0 shadow-e1 backdrop-blur transition-opacity hover:text-pax2-blue focus-visible:opacity-100 group-hover/code:opacity-100"
+            className="pointer-events-auto flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-surface/90 text-slate-600 opacity-0 shadow-e1 backdrop-blur transition-opacity hover:text-pax2-blue focus-visible:opacity-100 group-hover/code:opacity-100"
           >
             {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
           </button>

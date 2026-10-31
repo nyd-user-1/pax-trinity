@@ -104,7 +104,7 @@ function List({ source, forum, onOpen }: { source: Source; forum?: Item; onOpen:
             key={it.id}
             type="button"
             onClick={() => onOpen(it)}
-            className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-[color,background-color,box-shadow] hover:bg-white/70 hover:shadow-e1"
+            className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-[color,background-color,box-shadow] hover:bg-surface/70 hover:shadow-e1"
           >
             <Icon className="size-4 shrink-0 text-slate-500 transition-colors group-hover:fill-pax2-lavender group-hover:text-pax2-blue" />
             <span className="min-w-0 flex-1">
@@ -124,12 +124,12 @@ function Files({ files }: { files: Attachment[] }) {
     <div className="mt-1.5 flex flex-col gap-2">
       {files.map((f, i) =>
         f.preview ? (
-          <a key={i} href={f.url} target="_blank" rel="noreferrer" className="block w-fit overflow-hidden rounded-lg border border-slate-200 bg-white">
+          <a key={i} href={f.url} target="_blank" rel="noreferrer" className="block w-fit overflow-hidden rounded-lg border border-slate-200 bg-surface">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={f.preview} alt={f.name} className="max-h-64 max-w-full object-contain" />
           </a>
         ) : (
-          <a key={i} href={f.url} target="_blank" rel="noreferrer" className="flex w-fit max-w-full items-center gap-2.5 rounded-lg border border-slate-200 bg-white px-3 py-2 hover:border-pax2-light-blue">
+          <a key={i} href={f.url} target="_blank" rel="noreferrer" className="flex w-fit max-w-full items-center gap-2.5 rounded-lg border border-slate-200 bg-surface px-3 py-2 hover:border-pax2-light-blue">
             <FileText className="size-5 shrink-0 text-pax2-blue" />
             <span className="min-w-0">
               <span className="block truncate text-sm font-medium text-slate-900">{f.name}</span>
@@ -249,7 +249,7 @@ function Composer({ service, placeholder, people, members, onSend }: { service: 
     <div className="relative">
       {error && <p className="px-1 pb-2 text-xs text-red-600">{error}</p>}
       {pop === "emoji" && (
-        <div className="absolute bottom-full left-0 z-20 mb-2 grid grid-cols-8 gap-0.5 rounded-xl border border-slate-200 bg-white p-2 shadow-e2">
+        <div className="absolute bottom-full left-0 z-20 mb-2 grid grid-cols-8 gap-0.5 rounded-xl border border-slate-200 bg-surface p-2 shadow-e2">
           {EMOJI.map((e) => (
             <button key={e} type="button" onClick={() => (insert(e), setPop(null))} className="flex size-8 items-center justify-center rounded-md text-lg hover:bg-slate-100">
               {e}
@@ -258,7 +258,7 @@ function Composer({ service, placeholder, people, members, onSend }: { service: 
         </div>
       )}
       {pop === "at" && (
-        <div className="absolute bottom-full left-0 z-20 mb-2 max-h-64 w-64 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1 shadow-e2">
+        <div className="absolute bottom-full left-0 z-20 mb-2 max-h-64 w-64 overflow-y-auto rounded-xl border border-slate-200 bg-surface p-1 shadow-e2">
           {roster.length ? (
             roster.map((m) => (
               <button key={m.id} type="button" onClick={() => mention(m)} className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm text-slate-800 hover:bg-slate-100">
@@ -276,7 +276,7 @@ function Composer({ service, placeholder, people, members, onSend }: { service: 
           )}
         </div>
       )}
-      <div className={cn("rounded-2xl border border-slate-200 bg-white transition-colors focus-within:border-pax2-light-blue", off && "opacity-70")}>
+      <div className={cn("rounded-2xl border border-slate-200 bg-surface transition-colors focus-within:border-pax2-light-blue", off && "opacity-70")}>
         {bar && (
           <div className="flex flex-wrap items-center gap-0.5 border-b border-slate-100 px-2 py-1">
             {tools

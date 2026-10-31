@@ -50,7 +50,7 @@ function Row({ icon, label, sub, onClick }: { icon: React.ReactNode; label: stri
     <button
       type="button"
       onClick={onClick}
-      className="group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-[color,background-color,box-shadow] hover:bg-white/70 hover:shadow-e1"
+      className="group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-[color,background-color,box-shadow] hover:bg-surface/70 hover:shadow-e1"
     >
       <span className="flex size-4 shrink-0 items-center justify-center text-slate-500 transition-colors group-hover:text-pax2-blue [&_svg]:transition-colors group-hover:[&_svg]:fill-pax2-lavender">{icon}</span>
       <span className="flex-1">
@@ -150,7 +150,7 @@ function BlocksShelf() {
   }
   const tile = (key: string) =>
     cn(
-      "relative aspect-square cursor-grab overflow-hidden rounded-xl border bg-white shadow-e1 transition-[opacity,box-shadow,border-color] active:cursor-grabbing",
+      "relative aspect-square cursor-grab overflow-hidden rounded-xl border bg-surface shadow-e1 transition-[opacity,box-shadow,border-color] active:cursor-grabbing",
       selected === key ? "border-pax2-blue" : "border-slate-200 hover:border-pax2-blue",
       dragging === key && "opacity-40",
       over === key && dragging !== key && "ring-2 ring-pax2-light-blue",
@@ -202,10 +202,10 @@ function BlocksShelf() {
           <div key={it.key} {...drag(it)} role="button" tabIndex={0} onClick={() => play(it.video.id)} onKeyDown={(e) => e.key === "Enter" && play(it.video.id)} aria-label={`Play ${it.video.title}`} className={tile(it.key)}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={`https://i.ytimg.com/vi/${it.video.id}/hqdefault.jpg`} alt="" draggable={false} className="absolute inset-0 size-full object-cover" />
-            <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/85 to-transparent px-2 pb-1.5 pt-6">
+            <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-night-950/85 to-transparent px-2 pb-1.5 pt-6">
               <span className="line-clamp-2 text-[11px] font-semibold leading-snug text-white">{it.video.title}</span>
             </span>
-            {it.video.duration && <span className="absolute right-1.5 top-1.5 rounded-md bg-slate-950/70 px-1 py-0.5 font-mono text-[10px] text-white">{it.video.duration}</span>}
+            {it.video.duration && <span className="absolute right-1.5 top-1.5 rounded-md bg-night-950/70 px-1 py-0.5 font-mono text-[10px] text-white">{it.video.duration}</span>}
           </div>
         ),
       )}
@@ -282,7 +282,7 @@ export function DiscussionPanel({ onClose: close, admin = false }: { onClose: ()
       <div className="relative z-10 flex min-h-[73px] shrink-0 items-center justify-between gap-3 bg-pax2-mist px-6 py-4">
         <div className="flex min-w-0 items-center gap-2">
           {view !== "welcome" && (
-            <button type="button" onClick={() => (sub ? sub.back() : setView("welcome"))} aria-label="Back" className="-ml-2 flex size-9 shrink-0 items-center justify-center rounded-full text-slate-600 hover:bg-white hover:text-pax2-blue">
+            <button type="button" onClick={() => (sub ? sub.back() : setView("welcome"))} aria-label="Back" className="-ml-2 flex size-9 shrink-0 items-center justify-center rounded-full text-slate-600 hover:bg-surface hover:text-pax2-blue">
               <ArrowLeft className="size-4" />
             </button>
           )}

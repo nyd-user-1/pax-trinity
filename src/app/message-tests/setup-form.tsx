@@ -21,7 +21,7 @@ export type ArmClip = { id: string; title: string; duration: number | null }
 const NONE: ArmClip[] = []
 
 const mmss = (s: number | null) => (s == null ? "" : `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`)
-const input = "h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-pax2-blue"
+const input = "h-9 w-full rounded-lg border border-slate-200 bg-surface px-3 text-sm text-slate-900 outline-none focus:border-pax2-blue"
 
 function Field({ label, children, wide }: { label: string; children: React.ReactNode; wide?: boolean }) {
   return (

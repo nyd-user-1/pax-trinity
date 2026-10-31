@@ -20,7 +20,7 @@ import { fallbackChain, VIDEO_MODEL_OPTIONS, videoModelById, type VideoProvider 
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/nova/card'
 
 const CHIP = (on: boolean) => `rounded-full border px-3 py-1.5 text-[13px] transition-colors ${on ? 'border-pax2-blue bg-pax2-blue text-white' : 'border-[var(--border)] text-[var(--txt)] hover:bg-muted'}`
-const FIELD = 'rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-[14px] text-[var(--txt)] outline-none transition-colors placeholder:text-[var(--muted2)] focus:border-pax2-light-blue'
+const FIELD = 'rounded-lg border border-[var(--border)] bg-surface px-3 py-2 text-[14px] text-[var(--txt)] outline-none transition-colors placeholder:text-[var(--muted2)] focus:border-pax2-light-blue'
 
 type Job = { state: 'idle' | 'working' | 'done' | 'error'; url?: string; message?: string }
 
