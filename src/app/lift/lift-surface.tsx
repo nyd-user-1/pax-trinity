@@ -1128,7 +1128,7 @@ export function LiftSurface() {
   const table = shownDisplay === "attributes" ? attributesTable : shownDisplay === "heatmap" ? heatTable : barsTable
 
   return (
-    <BankFrame rail={rail} crumb="Lift" search={NO_SEARCH} bare>
+    <BankFrame rail={rail} crumb="Lift" search={NO_SEARCH} bare railDefaultOpen={false}>
       <div className="flex h-full min-h-0 flex-col">
         {toolbar}
         <div className="relative flex min-h-0 flex-1">
