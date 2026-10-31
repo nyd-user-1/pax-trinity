@@ -8,8 +8,10 @@ import { Crosshair } from "lucide-react"
 import { whiteButton } from "@/components/white-button"
 import { describe, describeV2, legacyDescribe } from "./overlay/describe"
 
-// Housekeeping's pointer (Brendan, 2026-10-30): sonar's overlay as PAX's own comment tool. The
-// header's crosshair starts it (only the crosshair: no shortcut turns it on, as with the inspector's dock): hover outlines and names an element, a click
+// Housekeeping's pointer (Brendan, 2026-10-30): sonar's overlay as PAX's own comment tool. Dev Tools' Sonar
+// starts it, and from then the header's crosshair shows for the tab's session to switch it on and off; sonar
+// passes the crosshair's clicks through (data-sonar-exempt) (Brendan, 2026-10-31). No shortcut turns it on, as
+// with the inspector's dock. Hover outlines and names an element, a click
 // locks it, Enter sends the comment (Shift+Enter is a new line), with any pasted screenshots, to
 // Housekeeping's stream, and the right panel opens on it. Escape leaves. Every open comment marks
 // its element on the page with its author's headshot until it is resolved. Admins and the super
@@ -19,6 +21,8 @@ export const HOUSEKEEPING_CHANGED = "housekeeping:changed"
 /** Opens the right panel on Housekeeping (the shell and the panel listen). */
 export const HOUSEKEEPING_OPEN = "housekeeping:open"
 const OUTLINE_KEY = "housekeeping:outline"
+/** Set once Dev Tools' Sonar has started the pointer in this tab: the header's crosshair shows from then. */
+const SHOWN_KEY = "housekeeping:sonar-shown"
 
 type Overlay = typeof import("./overlay")
 let running: { unmount: () => void } | null = null
@@ -109,6 +113,9 @@ export async function togglePointer() {
       announce()
     },
   })
+  try {
+    sessionStorage.setItem(SHOWN_KEY, "1")
+  } catch {}
   announce()
 }
 
@@ -163,13 +170,21 @@ type Mark = { id: string; path: string; target?: string; author: string; authorN
 /** The header's crosshair, the page's comment markers, and the outline that waits for a page to arrive. */
 export function HousekeepingTool() {
   const [on, setOn] = React.useState(false)
+  // Hidden until Dev Tools' Sonar starts the pointer in this tab (Brendan, 2026-10-31).
+  const [shown, setShown] = React.useState(false)
   const [marks, setMarks] = React.useState<Mark[]>([])
   const path = usePathname()
 
   React.useEffect(() => {
-    listeners.add(setOn)
+    const hear = (v: boolean) => {
+      setOn(v)
+      if (v) setShown(true)
+    }
+    hear(!!running)
+    if (sessionStorage.getItem(SHOWN_KEY) === "1") setShown(true)
+    listeners.add(hear)
     return () => {
-      listeners.delete(setOn)
+      listeners.delete(hear)
     }
   }, [])
 
@@ -214,16 +229,20 @@ export function HousekeepingTool() {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => void togglePointer()}
-        aria-pressed={on}
-        aria-label="Comment on the page"
-        title="Comment on the page"
-        className={whiteButton("circle", on ? "ring-2 ring-pax2-light-blue" : undefined)}
-      >
-        <Crosshair className="size-4 text-pax2-blue" />
-      </button>
+      {shown && (
+        // Pressed, its border and ring are the theme's green (Brendan, 2026-10-31).
+        <button
+          type="button"
+          data-sonar-exempt
+          onClick={() => void togglePointer()}
+          aria-pressed={on}
+          aria-label={on ? "Turn sonar off" : "Turn sonar on"}
+          title={on ? "Turn sonar off" : "Turn sonar on"}
+          className={whiteButton("circle", on && "ring-2 ring-above aria-pressed:border-above hover:border-above")}
+        >
+          <Crosshair className="size-4 text-pax2-blue" />
+        </button>
+      )}
       {marks.length > 0 && <Marks marks={marks} />}
     </>
   )

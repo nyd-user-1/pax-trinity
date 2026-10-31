@@ -426,12 +426,14 @@ export function mount(opts: MountOptions = {}): Sonar {
   // --- events ---
 
   const fromOverlay = (e: Event) => e.composedPath().includes(host);
+  // The control that turns sonar on and off (the header's crosshair) keeps working while it runs.
+  const exempt = (e: Event) => e.composedPath().some((n) => n instanceof Element && n.hasAttribute("data-sonar-exempt"));
 
   const onPointerMove = (e: PointerEvent) => {
     px = e.clientX;
     py = e.clientY;
     hasPointer = true;
-    overUi = fromOverlay(e);
+    overUi = fromOverlay(e) || exempt(e);
     cursor.move(px, py);
     if (e.altKey !== alt) {
       alt = e.altKey;
@@ -442,7 +444,7 @@ export function mount(opts: MountOptions = {}): Sonar {
   };
 
   const onPointerDown = (e: PointerEvent) => {
-    if (fromOverlay(e)) return;
+    if (fromOverlay(e) || exempt(e)) return;
     stop(e);
     if (e.button !== 0) return;
     if (viewing) return closeView();
@@ -511,7 +513,7 @@ export function mount(opts: MountOptions = {}): Sonar {
   // While sonar is active, a click must not activate the page (follow a link,
   // submit a form, steal focus). Events from the overlay's own UI pass through.
   const swallow = (e: Event) => {
-    if (fromOverlay(e)) return;
+    if (fromOverlay(e) || exempt(e)) return;
     stop(e);
     if (draft && (e.type === "mouseup" || e.type === "click")) popover.textarea.focus({ preventScroll: true });
   };
