@@ -85,7 +85,7 @@ const WAVE = new Map(RESULT_SETS.map((s) => [`${s.fielded.start}|${s.fielded.end
 const plural = (n: number, noun: string) => `${n.toLocaleString("en-US")} ${noun}${n === 1 ? "" : "s"}`
 const toggled = (list: string[], x: string) => (list.includes(x) ? list.filter((y) => y !== x) : [...list, x])
 
-const TOOL = "flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[13px] text-foreground/80 outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:bg-muted aria-expanded:bg-muted"
+const TOOL = "flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[13px] text-foreground/80 outline-none transition-colors hover:bg-muted hover:text-pax2-blue focus-visible:bg-muted aria-expanded:bg-muted"
 const TOOL_ICON = "size-3.5 text-muted-foreground"
 const TH = "border-b px-3 py-2 text-left text-[13px] font-medium whitespace-nowrap"
 const TD = "border-b px-3 py-2 align-middle text-[13px]"
