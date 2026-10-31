@@ -277,7 +277,7 @@ export function CardList({
                   railTone
                     ? cn(
                         "rounded-xl px-3 transition-[color,background-color,box-shadow]",
-                        active ? "bg-pax2-surface text-pax2-blue shadow-e1" : "text-slate-600 hover:bg-pax2-surface/70 hover:text-pax2-blue hover:shadow-e1"
+                        active ? "bg-pax2-lift text-pax2-blue shadow-e1" : "text-slate-600 hover:bg-pax2-lift/70 hover:text-pax2-blue hover:shadow-e1"
                       )
                     : cn(
                         "px-4 transition-[background-color,box-shadow] hover:z-10 hover:bg-accent/60 hover:shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)]",

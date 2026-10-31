@@ -104,7 +104,7 @@ function List({ source, forum, onOpen }: { source: Source; forum?: Item; onOpen:
             key={it.id}
             type="button"
             onClick={() => onOpen(it)}
-            className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-[color,background-color,box-shadow] hover:bg-pax2-surface/70 hover:shadow-e1"
+            className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-[color,background-color,box-shadow] hover:bg-pax2-lift/70 hover:shadow-e1"
           >
             <Icon className="size-4 shrink-0 text-slate-500 transition-colors group-hover:fill-pax2-lavender group-hover:text-pax2-blue" />
             <span className="min-w-0 flex-1">

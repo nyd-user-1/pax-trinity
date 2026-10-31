@@ -50,7 +50,7 @@ function Row({ icon, label, sub, onClick }: { icon: React.ReactNode; label: stri
     <button
       type="button"
       onClick={onClick}
-      className="group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-[color,background-color,box-shadow] hover:bg-pax2-surface/70 hover:shadow-e1"
+      className="group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-[color,background-color,box-shadow] hover:bg-pax2-lift/70 hover:shadow-e1"
     >
       <span className="flex size-4 shrink-0 items-center justify-center text-slate-500 transition-colors group-hover:text-pax2-blue [&_svg]:transition-colors group-hover:[&_svg]:fill-pax2-lavender">{icon}</span>
       <span className="flex-1">

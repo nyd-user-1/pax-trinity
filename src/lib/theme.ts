@@ -1,7 +1,9 @@
 // The app's themes (Brendan, 2026-10-30): six, each sixteen base colours, one of them central and the
 // rest stepping up or down from it. Every colour in the app reads these (src/app/pax2.css maps them onto
 // PAX's tokens, shadcn's, Tailwind's slate and gray, Home's paper and the design system's surface), so a
-// theme is these sixteen values and nothing else.
+// theme is these values and nothing else. The seventeenth, lift, is a selected or hovered row on the
+// sidebar and the rails: a step up from the sidebar where there is one (white on PAX Light's mist, the
+// raised step on a dark), a step down on Light, whose sidebar is already white.
 //
 //   Light      white is the main colour, on the main container and the sidebar alike.
 //   Dark       the classic dark: one near-black grey on both, zinc's steps.
@@ -22,7 +24,7 @@
 export type ThemeName = "light" | "dark" | "pax-light" | "pax-dark" | "vercel" | "vscode"
 
 export type TokenKey =
-  | "frame" | "sidebar" | "surface" | "raised" | "tint"
+  | "frame" | "sidebar" | "surface" | "raised" | "tint" | "lift"
   | "rule" | "ruleStrong"
   | "ink" | "ink2" | "ink3" | "ink4"
   | "accent" | "accent2" | "wash"
@@ -51,7 +53,7 @@ export const THEMES: Theme[] = [
     label: "Light",
     dark: false,
     colors: {
-      frame: "#eef1f5", sidebar: "#ffffff", surface: "#ffffff", raised: "#ffffff", tint: "#f4f6f9",
+      frame: "#eef1f5", sidebar: "#ffffff", surface: "#ffffff", raised: "#ffffff", tint: "#f4f6f9", lift: "#eef2f7",
       rule: "#e2e8f0", ruleStrong: "#cbd5e1",
       ...SLATE_INK, ...PAX_ACCENT, ...LIGHT_SIGNALS,
     },
@@ -63,7 +65,7 @@ export const THEMES: Theme[] = [
     label: "Dark",
     dark: true,
     colors: {
-      frame: "#09090b", sidebar: "#18181b", surface: "#18181b", raised: "#27272a", tint: "#222226",
+      frame: "#09090b", sidebar: "#18181b", surface: "#18181b", raised: "#27272a", tint: "#222226", lift: "#27272a",
       rule: "#2e2e33", ruleStrong: "#3f3f46",
       ink: "#fafafa", ink2: "#d4d4d8", ink3: "#a1a1aa", ink4: "#71717a",
       accent: "#3b82f6", accent2: "#60a5fa", wash: "#172554",
@@ -77,7 +79,7 @@ export const THEMES: Theme[] = [
     label: "PAX Light",
     dark: false,
     colors: {
-      frame: "#e3e9f1", sidebar: "#f5f7fb", surface: "#f5f7fb", raised: "#ffffff", tint: "#eef2f8",
+      frame: "#e3e9f1", sidebar: "#f5f7fb", surface: "#f5f7fb", raised: "#ffffff", tint: "#eef2f8", lift: "#ffffff",
       rule: "#dce3ec", ruleStrong: "#c3cddb",
       ...SLATE_INK, ...PAX_ACCENT, ...LIGHT_SIGNALS,
     },
@@ -89,7 +91,7 @@ export const THEMES: Theme[] = [
     label: "PAX Dark",
     dark: true,
     colors: {
-      frame: "#1d2638", sidebar: "#0b1120", surface: "#121a2b", raised: "#1c2638", tint: "#172033",
+      frame: "#1d2638", sidebar: "#0b1120", surface: "#121a2b", raised: "#1c2638", tint: "#172033", lift: "#1c2638",
       rule: "#2a3548", ruleStrong: "#3a465a",
       ink: "#eef2f7", ink2: "#b0bbcb", ink3: "#94a1b5", ink4: "#7d8aa0",
       accent: "#3b82f6", accent2: "#60a5fa", wash: "#182c50",
@@ -103,7 +105,7 @@ export const THEMES: Theme[] = [
     label: "Vercel",
     dark: true,
     colors: {
-      frame: "#000000", sidebar: "#0a0a0a", surface: "#0a0a0a", raised: "#1a1a1a", tint: "#111111",
+      frame: "#000000", sidebar: "#0a0a0a", surface: "#0a0a0a", raised: "#1a1a1a", tint: "#111111", lift: "#1f1f1f",
       rule: "#262626", ruleStrong: "#3d3d3d",
       ink: "#ededed", ink2: "#a1a1a1", ink3: "#8f8f8f", ink4: "#6e6e6e",
       accent: "#0070f3", accent2: "#52a8ff", wash: "#0c1d33",
@@ -117,7 +119,7 @@ export const THEMES: Theme[] = [
     label: "VS Code",
     dark: true,
     colors: {
-      frame: "#181818", sidebar: "#252526", surface: "#1e1e1e", raised: "#2d2d30", tint: "#252526",
+      frame: "#181818", sidebar: "#252526", surface: "#1e1e1e", raised: "#2d2d30", tint: "#252526", lift: "#37373d",
       rule: "#3c3c3c", ruleStrong: "#474747",
       ink: "#d4d4d4", ink2: "#bbbbbb", ink3: "#9d9d9d", ink4: "#858585",
       accent: "#0e639c", accent2: "#3794ff", wash: "#264f78",
@@ -137,6 +139,7 @@ export const TOKENS: { key: TokenKey; label: string; group: "Surfaces" | "Type" 
   { key: "surface", label: "Main", group: "Surfaces" },
   { key: "raised", label: "Raised", group: "Surfaces" },
   { key: "tint", label: "Tint", group: "Surfaces" },
+  { key: "lift", label: "Selected", group: "Surfaces" },
   { key: "ink", label: "Ink", group: "Type" },
   { key: "ink2", label: "Secondary", group: "Type" },
   { key: "ink3", label: "Muted", group: "Type" },

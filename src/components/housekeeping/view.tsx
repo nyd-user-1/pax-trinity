@@ -192,7 +192,7 @@ export function HousekeepingView() {
           </ThreadChip>
         ))}
         <span className="ml-auto flex gap-1.5">
-          <button type="button" onClick={() => void togglePointer()} className="flex size-8 items-center justify-center rounded-full bg-pax2-surface text-pax2-blue shadow-e1 transition-colors hover:bg-pax2-lavender" aria-label="Point at something on the page" title="Point at something on the page">
+          <button type="button" onClick={() => void togglePointer()} className="flex size-8 items-center justify-center rounded-full bg-pax2-lift text-pax2-blue shadow-e1 transition-colors hover:bg-pax2-lavender" aria-label="Point at something on the page" title="Point at something on the page">
             <Crosshair className="size-4" />
           </button>
           <button
@@ -388,7 +388,7 @@ function ThreadChip({ on, onClick, children }: { on: boolean; onClick: () => voi
       type="button"
       onClick={onClick}
       aria-pressed={on}
-      className={cn("rounded-full px-3 py-1.5 text-xs font-medium transition-[color,background-color,box-shadow]", on ? "bg-pax2-surface text-pax2-blue shadow-e1" : "text-slate-500 hover:bg-pax2-surface/70 hover:text-pax2-blue")}
+      className={cn("rounded-full px-3 py-1.5 text-xs font-medium transition-[color,background-color,box-shadow]", on ? "bg-pax2-lift text-pax2-blue shadow-e1" : "text-slate-500 hover:bg-pax2-lift/70 hover:text-pax2-blue")}
     >
       {children}
     </button>

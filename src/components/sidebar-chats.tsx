@@ -124,7 +124,7 @@ export function SidebarChats() {
     const href = `/chat?c=${c.id}`
     if (editing === c.id)
       return (
-        <div key={c.id} className="flex items-center rounded-xl bg-pax2-surface shadow-e1">
+        <div key={c.id} className="flex items-center rounded-xl bg-pax2-lift shadow-e1">
           <input
             autoFocus
             value={editValue}
@@ -148,7 +148,7 @@ export function SidebarChats() {
           setTip({ x: r.right + 8, y: r.top + r.height / 2, text: `${c.title} · ${ago(c.updatedAt)}` })
         }}
         onMouseLeave={() => setTip(null)}
-        className={cn("group/item relative flex items-center rounded-xl transition-[color,background-color,box-shadow]", on ? "bg-pax2-surface shadow-e1" : "hover:bg-pax2-surface/70 hover:shadow-e1", c.hidden && "opacity-50")}
+        className={cn("group/item relative flex items-center rounded-xl transition-[color,background-color,box-shadow]", on ? "bg-pax2-lift shadow-e1" : "hover:bg-pax2-lift/70 hover:shadow-e1", c.hidden && "opacity-50")}
       >
         {on && <span aria-hidden className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-pax2-light-blue" />}
         <Link href={href} aria-current={on ? "page" : undefined} onClick={() => setTip(null)} className={cn("min-w-0 flex-1 truncate py-1.5 pl-3 text-[13px] outline-none", on ? "font-semibold text-pax2-blue" : "text-slate-500 group-hover/item:text-pax2-blue")}>

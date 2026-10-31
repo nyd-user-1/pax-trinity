@@ -247,7 +247,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
     const rowCls = cn(
       "group relative flex items-center gap-3 rounded-xl px-3 pr-14 outline-none transition-[color,background-color,box-shadow]",
       small ? "py-1.5 text-[13px]" : "py-2 text-sm",
-      on ? "bg-pax2-surface font-semibold text-pax2-blue shadow-e1" : "text-slate-500 hover:bg-pax2-surface/70 hover:text-pax2-blue hover:shadow-e1",
+      on ? "bg-pax2-lift font-semibold text-pax2-blue shadow-e1" : "text-slate-500 hover:bg-pax2-lift/70 hover:text-pax2-blue hover:shadow-e1",
     )
     const rowBody = (
       <>
@@ -275,7 +275,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
           align="left"
           width="w-56"
           trigger={<EllipsisVertical className="size-4" />}
-          triggerClassName="flex size-7 items-center justify-center rounded-lg text-slate-400 opacity-0 transition-opacity hover:bg-pax2-surface hover:text-pax2-blue focus-visible:opacity-100 group-hover/item:opacity-100 aria-expanded:bg-pax2-surface aria-expanded:opacity-100"
+          triggerClassName="flex size-7 items-center justify-center rounded-lg text-slate-400 opacity-0 transition-opacity hover:bg-pax2-lift hover:text-pax2-blue focus-visible:opacity-100 group-hover/item:opacity-100 aria-expanded:bg-pax2-lift aria-expanded:opacity-100"
         >
           <MenuHeader text={href} copy={href} />
           <MenuSeparator />
@@ -316,7 +316,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
                 onClick={() => toggleGroup(n.label)}
                 aria-expanded={isOpen}
                 className={cn(
-                  "group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm outline-none transition-[color,background-color,box-shadow] hover:bg-pax2-surface/70 hover:text-pax2-blue hover:shadow-e1 focus-visible:bg-pax2-surface/70",
+                  "group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm outline-none transition-[color,background-color,box-shadow] hover:bg-pax2-lift/70 hover:text-pax2-blue hover:shadow-e1 focus-visible:bg-pax2-lift/70",
                   holds ? "font-semibold text-pax2-blue" : "text-slate-500",
                 )}
               >

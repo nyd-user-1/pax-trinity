@@ -14,6 +14,7 @@
   --pax2-surface: #ffffff;
   --pax2-frame: #e9eef5;
   --pax2-sidebar: #f5f7fb;
+  --pax2-lift: #ffffff;
   --pax2-raised: #ffffff;
   --pax2-red: #dc2626;
   --pax2-red-deep: #991b1b;
@@ -52,6 +53,7 @@
   --pax2-lavender: var(--t-wash);
   --pax2-mist: var(--t-tint);
   --pax2-sidebar: var(--t-sidebar);
+  --pax2-lift: var(--t-lift);
   --pax2-surface: var(--t-surface);
   --pax2-frame: var(--t-frame);
   --pax2-raised: var(--t-raised);
@@ -149,6 +151,7 @@
   --color-pax2-surface: var(--pax2-surface);
   --color-pax2-frame: var(--pax2-frame);
   --color-pax2-sidebar: var(--pax2-sidebar);
+  --color-pax2-lift: var(--pax2-lift);
   --color-pax2-raised: var(--pax2-raised);
   --color-pax2-blue: var(--pax2-blue);
   --color-pax2-light-blue: var(--pax2-light-blue);
