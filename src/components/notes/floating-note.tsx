@@ -10,6 +10,7 @@ import { KebabMenu, MenuFlyout, MenuFoot, MenuRow, MenuSeparator } from "@/compo
 import { useShellPanel } from "@/components/shell"
 import { useShelf } from "@/lib/home-blocks"
 import { NOTES_CHANGED, useNoteFavorites } from "@/lib/drawn-notes"
+import { pageContext } from "@/lib/page-text"
 import { TaskSurface, TaskToolbar, useTaskEditor } from "@/registry/blocks/sidebar-09/components/rich-body"
 
 import { PaxReply, turnsOf } from "./pax-reply"
@@ -46,7 +47,8 @@ export function FloatingNote({ rect, id: firstId, body: firstBody, chat: firstCh
 
   // The card is a note or a chat (Brendan, 2026-10-31), switched from its header; a kept note with only a chat opens
   // on it. The chat is one text (pax-reply.ts), kept with the note: Shift Enter sends what the reader wrote since PAX
-  // last answered, with the note as its context, and the answer streams into the text with a fresh line under it.
+  // last answered, with the pages open on screen (lib/page-text.ts) and the note as its context, and the answer
+  // streams into the text with a fresh line under it.
   const [mode, setMode] = React.useState<"note" | "chat">(firstBody.trim() || !firstChat.trim() ? "note" : "chat")
   const talk = useTaskEditor({ value: firstChat, onChange: setChat, placeholder: "Ask PAX. Shift Enter sends.", extensions: CHAT })
   const [busy, setBusy] = React.useState(false)
@@ -91,11 +93,14 @@ export function FloatingNote({ rect, id: firstId, body: firstBody, chat: firstCh
       frame = 0
       if (!write(text)) gone = true
     }
+    const note = latest.current.body.trim() ? `The reader's note, which this chat sits beside:\n\n${latest.current.body}` : ""
+    // The note first: the chat route keeps the first 80,000 characters, and a long page is what gets cut.
+    const systemContext = [note, pageContext()].filter(Boolean).join("\n\n")
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: turns, ...(latest.current.body.trim() ? { systemContext: `The reader's note, which this chat sits beside:\n\n${latest.current.body}` } : {}) }),
+        body: JSON.stringify({ messages: turns, ...(systemContext ? { systemContext } : {}) }),
       })
       if (!res.ok || !res.body) text = SORRY
       else {

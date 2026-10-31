@@ -28,7 +28,7 @@ export function PaneFrame({ src, title, nextSize, onSize, onClose, dragging, fra
         </div>
       </div>
       {/* While the divider is dragged the frame gives up the pointer, or it would swallow the drag. */}
-      <iframe ref={frameRef} src={src} title={title} className={cn("min-h-0 w-full flex-1 border-0 bg-pax2-surface", dragging && "pointer-events-none")} />
+      <iframe ref={frameRef} data-pane src={src} title={title} className={cn("min-h-0 w-full flex-1 border-0 bg-pax2-surface", dragging && "pointer-events-none")} />
     </section>
   )
 }
