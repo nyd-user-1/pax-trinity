@@ -290,7 +290,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
     )
   }
   const sidebar = (
-    <div className="flex h-full w-60 flex-col rounded-2xl border border-slate-500 bg-pax2-mist px-3 py-4 shadow-e2">
+    <div className="flex h-full w-60 flex-col rounded-2xl border border-slate-500 bg-pax2-sidebar px-3 py-4 shadow-e2">
       <Link href="/" aria-label="Home" className="mb-4 flex px-3 pt-1">
         <Wordmark size={20} />
       </Link>
@@ -385,7 +385,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
     <PanelCtx.Provider value={panel}>
       <CommandKHost />
       <ThemeLayer />
-      <div className="flex min-h-dvh md:h-dvh md:overflow-hidden md:bg-slate-200/60 md:p-[18px]">
+      <div className="flex min-h-dvh md:h-dvh md:overflow-hidden md:bg-pax2-frame md:p-[18px]">
         <div className={cn("hidden shrink-0 overflow-hidden transition-[width,margin] duration-300 ease-in-out md:block", sidebarOpen ? "md:mr-[18px] md:w-60" : "md:w-0")}>
           {sidebar}
         </div>

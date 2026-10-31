@@ -12,8 +12,8 @@ import { cn } from "@/ui/lib/utils"
 // the topic lift with this video's topic
 // highlighted, and Resonance's pair: the banded gauge and the mode match (docs/RESONANCE.md).
 
-const NAVY = "#1e3a8a"
-const RED = "#dc2626"
+const NAVY = "var(--t-accent, #1e3a8a)"
+const RED = "var(--t-negative, #dc2626)"
 const LIGHT = "#3b82f6"
 
 // ---------- the production profile ----------
@@ -133,7 +133,7 @@ export function ModeMatch({ score, rows, template, mode }: { score: number; rows
             axes={axes}
             label="This short against the outperformers' profile"
             shapes={[
-              { name: "Outperformers", values: mode.center, stroke: "#94a3b8", fill: "rgb(148 163 184 / 0.08)", dashed: true },
+              { name: "Outperformers", values: mode.center, stroke: "var(--t-ink-4, #94a3b8)", fill: "rgb(148 163 184 / 0.08)", dashed: true },
               { name: "This short", values: template, stroke: NAVY, fill: "rgb(30 58 138 / 0.12)" },
             ]}
           />

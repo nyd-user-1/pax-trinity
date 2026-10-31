@@ -13,10 +13,10 @@ import { TourButton, TourCard, type TourStep } from "@/components/record/chart-t
 // the topic's channels. Right of zero the topic lifts a short; left of it, the topic weighs it down.
 // The pointer picks a row; the tooltip shows a real short from it.
 
-const RED = "#dc2626"
-const NAVY = "#1e3a8a"
-const INK = "#0f172a"
-const AXIS = { fontSize: 12, fill: "#334155" }
+const RED = "var(--t-negative, #dc2626)"
+const NAVY = "var(--t-accent, #1e3a8a)"
+const INK = "var(--t-ink, #0f172a)"
+const AXIS = { fontSize: 12, fill: "var(--t-ink-2, #334155)" }
 
 const MARGIN = { top: 28, right: 24, bottom: 4, left: 0 }
 const Y_WIDTH = 220
@@ -91,7 +91,7 @@ function TopicChart({ tour, mark }: { tour: TourStep | null; mark?: number | nul
         <ReferenceArea x1={0} x2={X_MAX} fill={NAVY} fillOpacity={0.06} />
         <XAxis type="number" domain={[X_MIN, X_MAX]} ticks={Array.from({ length: (X_MAX - X_MIN) / 5 + 1 }, (_, k) => X_MIN + k * 5)} tickFormatter={(v: number) => (v > 0 ? `+${v}` : `${v}`)} tick={AXIS} height={X_HEIGHT} label={{ value: "Points over the channels' usual 3× rate", position: "insideBottomRight", offset: 0, ...AXIS }} />
         <YAxis type="category" dataKey="name" width={Y_WIDTH} tick={AXIS} tickLine={false} interval={0} />
-        <ReferenceLine x={0} stroke="#475569" strokeDasharray="5 5" />
+        <ReferenceLine x={0} stroke="var(--t-ink-2, #475569)" strokeDasharray="5 5" />
         <Bar dataKey="lift" isAnimationActive={false} activeBar={false}>
           {TOPICS.map((row, k) => (
             <Cell key={row.id} fill={row.lift >= 0 ? NAVY : RED} fillOpacity={i == null || i === k ? 1 : 0.25} />

@@ -278,8 +278,8 @@ export function DiscussionPanel({ onClose: close, admin = false }: { onClose: ()
     close()
   }
   return (
-    <section className="fixed inset-0 z-50 flex flex-col bg-pax2-mist md:static md:z-auto md:h-full md:overflow-hidden md:rounded-2xl md:border md:border-slate-500 md:shadow-e2">
-      <div className="relative z-10 flex min-h-[73px] shrink-0 items-center justify-between gap-3 bg-pax2-mist px-6 py-4">
+    <section className="fixed inset-0 z-50 flex flex-col bg-pax2-sidebar md:static md:z-auto md:h-full md:overflow-hidden md:rounded-2xl md:border md:border-slate-500 md:shadow-e2">
+      <div className="relative z-10 flex min-h-[73px] shrink-0 items-center justify-between gap-3 bg-pax2-sidebar px-6 py-4">
         <div className="flex min-w-0 items-center gap-2">
           {view !== "welcome" && (
             <button type="button" onClick={() => (sub ? sub.back() : setView("welcome"))} aria-label="Back" className="-ml-2 flex size-9 shrink-0 items-center justify-center rounded-full text-slate-600 hover:bg-pax2-surface hover:text-pax2-blue">

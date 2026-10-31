@@ -9,6 +9,7 @@ import { CanvasRenderer } from "echarts/renderers"
 import { reducedMotion } from "@/components/reveal"
 
 import { num, year, type MetricInfo, type SourceRow } from "./audience-data"
+import { retheme, useThemeVersion } from "@/lib/theme-client"
 
 // A question's trend as the line chart a pollster puts in a report: one line
 // per answer option across the waves, toplines only. ECharts from its core
@@ -90,7 +91,7 @@ function fmt(v: number, type: string): string {
 /** The tooltip: the wave, then each visible option's value with its margin, then the base. */
 function tooltipFor(t: Trend, visible: number[], wave: number): HTMLElement {
   const box = document.createElement("div")
-  box.style.cssText = `min-width:160px;color:${INK};font-size:12px;line-height:1.5`
+  box.style.cssText = `min-width:160px;color:var(--t-ink, ${INK});font-size:12px;line-height:1.5`
   const head = document.createElement("div")
   head.style.cssText = "font-weight:600;margin-bottom:4px"
   head.textContent = String(wave)
@@ -109,12 +110,12 @@ function tooltipFor(t: Trend, visible: number[], wave: number): HTMLElement {
     row.append(key, val)
     if (r && r[9] != null) {
       const moe = document.createElement("span")
-      moe.style.cssText = `color:${MUTED};font-size:11px;font-variant-numeric:tabular-nums`
+      moe.style.cssText = `color:var(--t-ink-3, ${MUTED});font-size:11px;font-variant-numeric:tabular-nums`
       moe.textContent = `± ${num(r[9], t.type === "count" ? 0 : 1)}`
       row.appendChild(moe)
     }
     const name = document.createElement("span")
-    name.style.cssText = `color:${SECONDARY}`
+    name.style.cssText = `color:var(--t-ink-2, ${SECONDARY})`
     name.textContent = t.lines[i].name
     row.appendChild(name)
     box.appendChild(row)
@@ -123,7 +124,7 @@ function tooltipFor(t: Trend, visible: number[], wave: number): HTMLElement {
   }
   if (n != null) {
     const base = document.createElement("div")
-    base.style.cssText = `margin-top:4px;color:${MUTED};font-size:11px;font-variant-numeric:tabular-nums`
+    base.style.cssText = `margin-top:4px;color:var(--t-ink-3, ${MUTED});font-size:11px;font-variant-numeric:tabular-nums`
     base.textContent = `n ${num(n, 0)}`
     box.appendChild(base)
   }
@@ -266,11 +267,13 @@ function Canvas({ option, label }: { option: Option; label: string }) {
     }
   }, [])
 
+  // Drawn in the theme's colours (lib/theme-client.ts retheme), and again whenever the theme changes.
+  const themeV = useThemeVersion()
   React.useEffect(() => {
     const el = ref.current
     if (!chart.current || !el) return
-    chart.current.setOption({ ...option, textStyle: { fontFamily: getComputedStyle(el).fontFamily } }, { notMerge: true })
-  }, [option])
+    chart.current.setOption(retheme({ ...option, textStyle: { fontFamily: getComputedStyle(el).fontFamily } }), { notMerge: true })
+  }, [option, themeV])
 
   return <div ref={ref} role="img" aria-label={label} style={{ height: HEIGHT }} className="w-full" />
 }

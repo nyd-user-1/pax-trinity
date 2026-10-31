@@ -6,6 +6,7 @@ import * as echarts from "echarts"
 import data from "../../../data/generated/model/length-crossing.json"
 import { ChartBlock } from "@/components/blocks"
 import { TourButton, TourCard, type TourStep } from "@/components/record/chart-tour"
+import { retheme, useThemeVersion } from "@/lib/theme-client"
 
 // The resonant frequency chart, read off the shorts. The textbook LC figure's two curves keep their
 // forms — X_C falls as 1/f, X_L rises with f — each with a constant added, fitted (least squares,
@@ -250,9 +251,9 @@ function ReactanceChart({ tour, mark }: { tour: TourStep<Curve> | null; mark?: n
   const chart = React.useRef<echarts.ECharts | null>(null)
   React.useEffect(() => {
     const c = echarts.init(el.current!, undefined, { renderer: "canvas" })
-    c.setOption(baseOption())
+    c.setOption(retheme(baseOption()))
     if (mark != null)
-      c.setOption({
+      c.setOption(retheme({
         series: [
           {
             id: "mark",
@@ -262,7 +263,7 @@ function ReactanceChart({ tour, mark }: { tour: TourStep<Curve> | null; mark?: n
             z: 5,
           },
         ],
-      })
+      }))
     chart.current = c
     const ro = new ResizeObserver(() => c.resize())
     ro.observe(el.current!)
@@ -275,8 +276,13 @@ function ReactanceChart({ tour, mark }: { tour: TourStep<Curve> | null; mark?: n
   const dimXc = dim("xc")
   const dimXl = dim("xl")
   React.useEffect(() => {
-    chart.current?.setOption({ series: liveSeries(s, up, down, tuned, dimXc, dimXl) })
+    chart.current?.setOption(retheme({ series: liveSeries(s, up, down, tuned, dimXc, dimXl) }))
   }, [s, up, down, tuned, dimXc, dimXl])
+  // A theme change redraws what never moves in the new colours (lib/theme-client.ts retheme).
+  const themeV = useThemeVersion()
+  React.useEffect(() => {
+    if (themeV > 0) chart.current?.setOption(retheme(baseOption()))
+  }, [themeV])
 
   return (
     <div onPointerMove={onPointerMove} onPointerDown={onPointerMove} onPointerLeave={() => setHover(null)} className="relative size-full cursor-crosshair touch-pan-y select-none [&_*:focus]:outline-none">

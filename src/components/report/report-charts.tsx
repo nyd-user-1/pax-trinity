@@ -7,6 +7,7 @@ import { DataZoomInsideComponent, DataZoomSliderComponent, GridComponent, Legend
 import { CanvasRenderer } from "echarts/renderers"
 
 import { reducedMotion } from "@/components/reveal"
+import { retheme, useThemeVersion } from "@/lib/theme-client"
 
 // The readout's charts on ECharts canvas (Brendan, 2026-10-29), each sized to its block's width and
 // to its rows' height, so none scrolls. Three shapes. SubgroupLines: pax2's Multi-Modal Viometric Line
@@ -102,10 +103,10 @@ function Canvas({ option, height, label }: { option: EChartsCoreOption | null; h
         drawn.current = true
         const animate = !still && !reducedMotion()
         if (animate) busyUntil.current = performance.now() + SETTLE
-        chart.current.setOption({ ...latest.current, animation: animate }, true)
+        chart.current.setOption(retheme({ ...latest.current, animation: animate }), true)
         return
       }
-      settle(() => latest.current && chart.current?.setOption({ ...latest.current, animation: false }, true), still)
+      settle(() => latest.current && chart.current?.setOption(retheme({ ...latest.current, animation: false }), true), still)
     },
     [settle]
   )
@@ -145,6 +146,11 @@ function Canvas({ option, height, label }: { option: EChartsCoreOption | null; h
     }
   }, [draw, settle])
   React.useEffect(() => draw(), [option, draw])
+  // Drawn in the theme's colours (lib/theme-client.ts retheme), and again, at once, when the theme changes.
+  const themeV = useThemeVersion()
+  React.useEffect(() => {
+    if (themeV > 0) draw(true)
+  }, [themeV, draw])
   return <div ref={ref} role="img" aria-label={label} style={{ height }} className="w-full" />
 }
 

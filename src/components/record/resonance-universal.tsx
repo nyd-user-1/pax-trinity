@@ -17,11 +17,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 // pointer's x is the frequency, or the ratio; the readout gives every curve there, and the card shows
 // one of the channel's shorts near that ratio.
 
-const RED = "#dc2626"
-const NAVY = "#1e3a8a"
+const RED = "var(--t-negative, #dc2626)"
+const NAVY = "var(--t-accent, #1e3a8a)"
 const SKY = "#60a5fa"
-const INK = "#0f172a"
-const AXIS = { fontSize: 12, fill: "#334155" }
+const INK = "var(--t-ink, #0f172a)"
+const AXIS = { fontSize: 12, fill: "var(--t-ink-2, #334155)" }
 
 const MARGIN = { top: 28, right: 16, bottom: 4, left: 0 }
 const Y_WIDTH = 40
@@ -134,20 +134,20 @@ function UniversalChart({ channel, tour, mark }: { channel: Channel; tour: Step 
         <XAxis dataKey="x" type="number" scale="log" domain={[0.1, 10]} ticks={[0.1, 0.2, 0.5, 1, 2, 5, 10]} tickFormatter={(v: number) => String(v)} tick={AXIS} height={X_HEIGHT} label={{ value: "Dimensionless frequency, f / f₀ · a short's views over its channel's median", position: "insideBottomRight", offset: 0, ...AXIS }} allowDataOverflow />
         <YAxis domain={[0, 1]} ticks={[0, 0.2, 0.4, 0.6, 0.8, 1]} tick={AXIS} width={Y_WIDTH} label={{ value: "Response", angle: -90, position: "insideLeft", offset: 4, ...AXIS }} />
         {[0.2, 0.5, 2, 5].map((v) => (
-          <ReferenceLine key={v} x={v} stroke="#e2e8f0" />
+          <ReferenceLine key={v} x={v} stroke="var(--t-rule, #e2e8f0)" />
         ))}
-        <ReferenceLine x={1} stroke="#475569" strokeDasharray="5 5" />
-        {rest != null && <ReferenceLine x={rest} stroke="#2563eb" strokeWidth={2} strokeDasharray="4 3" label={{ value: "This video", position: "insideTopRight", fill: "#2563eb", fontSize: 12 }} />}
+        <ReferenceLine x={1} stroke="var(--t-ink-2, #475569)" strokeDasharray="5 5" />
+        {rest != null && <ReferenceLine x={rest} stroke="var(--t-accent-2, #2563eb)" strokeWidth={2} strokeDasharray="4 3" label={{ value: "This video", position: "insideTopRight", fill: "var(--t-accent-2, #2563eb)", fontSize: 12 }} />}
         <Area data={curve} dataKey="v" stroke={INK} strokeWidth={2.5} fill={INK} fillOpacity={0.07} strokeOpacity={tour?.focus ? 0.2 : 1} dot={false} activeDot={false} isAnimationActive={false} />
         {QS.map(({ key, color }) => (
           <Line key={key} dataKey={key} stroke={color} strokeOpacity={dim(key)} strokeWidth={key === "q100" ? 2 : 3} dot={false} activeDot={false} isAnimationActive={false} />
         ))}
-        {x != null && <ReferenceLine x={x} stroke="#0f172a" strokeOpacity={0.15} />}
+        {x != null && <ReferenceLine x={x} stroke="var(--t-ink, #0f172a)" strokeOpacity={0.15} />}
         {x != null &&
           QS.map(({ q, key, color }) => (
-            <ReferenceDot key={key} x={x} y={response(x, q)} shape={(p: { cx?: number; cy?: number }) => (p.cx == null || p.cy == null ? <g /> : <circle cx={p.cx} cy={p.cy} r={4.5} fill={color} fillOpacity={dim(key)} stroke="#fff" strokeWidth={2} />)} />
+            <ReferenceDot key={key} x={x} y={response(x, q)} shape={(p: { cx?: number; cy?: number }) => (p.cx == null || p.cy == null ? <g /> : <circle cx={p.cx} cy={p.cy} r={4.5} fill={color} fillOpacity={dim(key)} stroke="var(--t-surface, #fff)" strokeWidth={2} />)} />
           ))}
-        {x != null && <ReferenceDot x={x} y={cv} shape={(p: { cx?: number; cy?: number }) => (p.cx == null || p.cy == null ? <g /> : <circle cx={p.cx} cy={p.cy} r={5} fill={INK} stroke="#fff" strokeWidth={2} />)} />}
+        {x != null && <ReferenceDot x={x} y={cv} shape={(p: { cx?: number; cy?: number }) => (p.cx == null || p.cy == null ? <g /> : <circle cx={p.cx} cy={p.cy} r={5} fill={INK} stroke="var(--t-surface, #fff)" strokeWidth={2} />)} />}
       </ComposedChart>
     </div>
   )

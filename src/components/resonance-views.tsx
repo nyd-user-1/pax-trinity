@@ -14,11 +14,11 @@ import { cn } from "@/ui/lib/utils"
 
 /** The credit-score bands, carried proportionally from the 300–850 scale onto 0–100. */
 export const BANDS = [
-  { name: "Poor", from: 0, to: 51, color: "#dc2626" },
+  { name: "Poor", from: 0, to: 51, color: "var(--t-negative, #dc2626)" },
   { name: "Fair", from: 51, to: 67, color: "#f97316" },
   { name: "Good", from: 67, to: 80, color: "#eab308" },
   { name: "Very good", from: 80, to: 91, color: "#84cc16" },
-  { name: "Exceptional", from: 91, to: 100, color: "#16a34a" },
+  { name: "Exceptional", from: 91, to: 100, color: "var(--t-positive, #16a34a)" },
 ]
 const bandOf = (v: number) => BANDS.find((b) => v >= b.from && v < b.to) ?? BANDS[BANDS.length - 1]
 
@@ -76,17 +76,17 @@ export function ResonanceGauge({ pre, post }: { pre: number | null; post?: numbe
     <div className="flex h-full min-h-0 w-full items-center justify-center">
       <svg viewBox="0 0 200 150" className="h-auto max-h-full w-full max-w-[560px]" role="img" aria-label="Resonance gauge">
         {BANDS.map((b) => (
-          <path key={b.name} d={arc(b.from + 0.6, b.to - 0.6, 82)} fill="none" stroke={final == null ? "#e2e8f0" : b.color} strokeWidth={14} strokeDasharray={final == null ? "4 3" : undefined} />
+          <path key={b.name} d={arc(b.from + 0.6, b.to - 0.6, 82)} fill="none" stroke={final == null ? "var(--t-rule, #e2e8f0)" : b.color} strokeWidth={14} strokeDasharray={final == null ? "4 3" : undefined} />
         ))}
         {post != null && pre != null && settled && (() => {
           const [x1, y1, x2, y2] = tick(pre)
-          return <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#0f172a" strokeWidth={2} strokeDasharray="2 2" />
+          return <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="var(--t-ink, #0f172a)" strokeWidth={2} strokeDasharray="2 2" />
         })()}
         {live != null && (() => {
           const [x, y] = needle(live)
-          return <line x1={100} y1={100} x2={x} y2={y} stroke="#0f172a" strokeWidth={3} strokeLinecap="round" />
+          return <line x1={100} y1={100} x2={x} y2={y} stroke="var(--t-ink, #0f172a)" strokeWidth={3} strokeLinecap="round" />
         })()}
-        <circle cx={100} cy={100} r={diff != null && settled ? 15 : 6} fill={diff != null && settled ? "#fff" : "#0f172a"} stroke="#0f172a" strokeWidth={diff != null && settled ? 1.5 : 0} />
+        <circle cx={100} cy={100} r={diff != null && settled ? 15 : 6} fill={diff != null && settled ? "var(--t-surface, #fff)" : "var(--t-ink, #0f172a)"} stroke="var(--t-ink, #0f172a)" strokeWidth={diff != null && settled ? 1.5 : 0} />
         {diff != null && settled && (
           <text x={100} y={101} textAnchor="middle" dominantBaseline="middle" className={cn("text-[10px] font-semibold", diff >= 0 ? "fill-above" : "fill-below")}>
             {diff > 0 ? `+${diff}` : diff}
@@ -98,7 +98,7 @@ export function ResonanceGauge({ pre, post }: { pre: number | null; post?: numbe
             <tspan dx={6} fontSize={11} fontWeight={500} fill={bandOf(final).color}>{bandOf(final).name}</tspan>
           </text>
         ) : (
-          <text x={100} y={140} textAnchor="middle" fontSize={10} fill="#94a3b8">No Resonance score yet</text>
+          <text x={100} y={140} textAnchor="middle" fontSize={10} fill="var(--t-ink-4, #94a3b8)">No Resonance score yet</text>
         )}
       </svg>
     </div>
@@ -138,7 +138,7 @@ export function ResonanceCard({ score, factors }: { score: Score; factors: Facto
   const band = bandOf(score.pre)
   // The stretch between the two scores: green from the prediction up to the measured score, light red
   // from the measured score up to the prediction when it fell short. Both rise together.
-  const gap = u == null ? null : u >= v ? { lo: v, hi: u, color: "#16a34a" } : { lo: u, hi: v, color: "#fca5a5" }
+  const gap = u == null ? null : u >= v ? { lo: v, hi: u, color: "var(--t-positive, #16a34a)" } : { lo: u, hi: v, color: "#fca5a5" }
   const sorted = [...factors].sort((a, b) => Number(helps(score, a)) - Number(helps(score, b)))
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200">

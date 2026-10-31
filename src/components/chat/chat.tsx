@@ -145,12 +145,12 @@ function openScript(text: string): { before: string; partial: string } | null {
 }
 
 const SKIN = {
-  '--txt': '#0f172a',
-  '--muted': '#64748b',
-  '--muted2': '#94a3b8',
-  '--border': '#e2e8f0',
-  '--surface': '#ffffff',
-  '--inp-bg': '#ffffff',
+  '--txt': 'var(--t-ink, #0f172a)',
+  '--muted': 'var(--t-ink-3, #64748b)',
+  '--muted2': 'var(--t-ink-4, #94a3b8)',
+  '--border': 'var(--t-rule, #e2e8f0)',
+  '--surface': 'var(--t-surface, #ffffff)',
+  '--inp-bg': 'var(--t-surface, #ffffff)',
 } as React.CSSProperties
 
 const ask = (v: VideoChip) => `What explains the score on ${v.label}?`

@@ -66,25 +66,25 @@ export function Radar({ axes, shapes, label, size = 300 }: { axes: RadarAxis[]; 
       <svg viewBox="0 0 240 240" className="h-auto w-full overflow-visible" role="img" aria-label={label}>
         <defs>
           <mask id={mask}>
-            <path d={wedge(t)} fill="#fff" />
+            <path d={wedge(t)} fill="var(--t-surface, #fff)" />
           </mask>
         </defs>
         {[25, 50, 75, 100].map((p) => (
-          <polygon key={p} points={ring(n, (R * p) / 100)} fill="none" stroke={p === 50 ? "#94a3b8" : "#e2e8f0"} strokeDasharray={p === 50 ? "3 3" : undefined} />
+          <polygon key={p} points={ring(n, (R * p) / 100)} fill="none" stroke={p === 50 ? "var(--t-ink-4, #94a3b8)" : "var(--t-rule, #e2e8f0)"} strokeDasharray={p === 50 ? "3 3" : undefined} />
         ))}
         {axes.map((_, i) => {
           const [x, y] = polar(i, n, R)
-          return <line key={i} x1={C} y1={C} x2={x} y2={y} stroke={hot === i ? "#64748b" : "#e2e8f0"} />
+          return <line key={i} x1={C} y1={C} x2={x} y2={y} stroke={hot === i ? "var(--t-ink-3, #64748b)" : "var(--t-rule, #e2e8f0)"} />
         })}
         <g mask={`url(#${mask})`}>
           {shapes.map((s) => (
             <polygon key={s.name} points={axes.map((a, i) => polar(i, n, (R * Math.max(2, s.values[a.key] ?? 50)) / 100).join(",")).join(" ")} fill={s.fill} stroke={s.stroke} strokeWidth={2} strokeLinejoin="round" strokeDasharray={s.dashed ? "5 4" : undefined} />
           ))}
         </g>
-        {t < 1 && <line x1={C} y1={C} x2={C + R * Math.cos(hand)} y2={C + R * Math.sin(hand)} stroke="#1e3a8a" strokeWidth={1.5} strokeLinecap="round" opacity={0.6} />}
+        {t < 1 && <line x1={C} y1={C} x2={C + R * Math.cos(hand)} y2={C + R * Math.sin(hand)} stroke="var(--t-accent, #1e3a8a)" strokeWidth={1.5} strokeLinecap="round" opacity={0.6} />}
         {axes.map((a, i) => {
           const [x, y] = polar(i, n, R)
-          return <circle key={a.key} cx={x} cy={y} r={hot === i ? 4 : 3} fill={hot === i ? "#1e3a8a" : "#cbd5e1"} />
+          return <circle key={a.key} cx={x} cy={y} r={hot === i ? 4 : 3} fill={hot === i ? "var(--t-accent, #1e3a8a)" : "var(--t-rule-strong, #cbd5e1)"} />
         })}
         {axes.map((a, i) => (
           <path key={a.key} d={sector(i, n)} fill="transparent" onMouseEnter={() => setHot(i)} className="cursor-default">

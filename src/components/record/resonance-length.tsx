@@ -13,10 +13,10 @@ import { TourButton, TourCard, type TourStep } from "@/components/record/chart-t
 // crossing a short is likelier to outperform than to underperform; above it, the reverse. The pointer's x is the
 // length, eased like the first chart; the tooltip shows a real short from the band under the cursor.
 
-const RED = "#dc2626"
-const INK = "#0f172a"
-const NAVY = "#1e3a8a"
-const AXIS = { fontSize: 12, fill: "#334155" }
+const RED = "var(--t-negative, #dc2626)"
+const INK = "var(--t-ink, #0f172a)"
+const NAVY = "var(--t-accent, #1e3a8a)"
+const AXIS = { fontSize: 12, fill: "var(--t-ink-2, #334155)" }
 
 const MARGIN = { top: 28, right: 12, bottom: 4, left: 0 }
 const Y_WIDTH = 44
@@ -78,7 +78,7 @@ function useEased(target: number, instant = false) {
 
 function Dot({ cx, cy, color }: { cx?: number; cy?: number; color: string }) {
   if (cx == null || cy == null) return <g />
-  return <circle cx={cx} cy={cy} r={4.5} fill={color} stroke="#fff" strokeWidth={2} />
+  return <circle cx={cx} cy={cy} r={4.5} fill={color} stroke="var(--t-surface, #fff)" strokeWidth={2} />
 }
 
 function Pulse({ cx, cy, color }: { cx?: number; cy?: number; color: string }) {
@@ -86,7 +86,7 @@ function Pulse({ cx, cy, color }: { cx?: number; cy?: number; color: string }) {
   return (
     <g>
       <circle cx={cx} cy={cy} r={9} fill={color} fillOpacity={0.35} className="animate-ping" style={{ transformBox: "fill-box", transformOrigin: "center" }} />
-      <circle cx={cx} cy={cy} r={5} fill={color} stroke="#fff" strokeWidth={2} />
+      <circle cx={cx} cy={cy} r={5} fill={color} stroke="var(--t-surface, #fff)" strokeWidth={2} />
     </g>
   )
 }
@@ -176,16 +176,16 @@ function LengthChart({ tour, mark }: { tour: TourStep<Line2> | null; mark?: numb
         <Area dataKey="after" stroke="none" fill={RED} fillOpacity={0.1} activeDot={false} isAnimationActive={false} />
         <XAxis dataKey="s" type="number" domain={[S_MIN, S_MAX]} ticks={[0, 15, 30, 45, 60, 75, 90, 105, 120, 135, 150]} tickFormatter={(t: number) => `${t}s`} tick={AXIS} height={X_HEIGHT} label={{ value: "Length", position: "insideBottomRight", offset: 0, ...AXIS }} />
         <YAxis domain={[0, Y_TOP]} ticks={[0, 5, 10, 15, 20, 25]} tickFormatter={(t: number) => `${t}%`} tick={AXIS} width={Y_WIDTH} label={{ value: "Share of shorts", angle: -90, position: "insideLeft", offset: 4, ...AXIS }} />
-        <ReferenceLine x={CROSS.seconds} stroke="#475569" strokeDasharray="5 5" label={{ value: `${CROSS.seconds.toFixed(0)}s`, position: "insideBottomLeft", offset: 6, ...AXIS }} />
-        <ReferenceLine segment={[{ x: S_MIN, y: CROSS.share }, { x: CROSS.seconds, y: CROSS.share }]} stroke="#475569" strokeDasharray="5 5" />
+        <ReferenceLine x={CROSS.seconds} stroke="var(--t-ink-2, #475569)" strokeDasharray="5 5" label={{ value: `${CROSS.seconds.toFixed(0)}s`, position: "insideBottomLeft", offset: 6, ...AXIS }} />
+        <ReferenceLine segment={[{ x: S_MIN, y: CROSS.share }, { x: CROSS.seconds, y: CROSS.share }]} stroke="var(--t-ink-2, #475569)" strokeDasharray="5 5" />
         <Line data={POINTS} dataKey="outperform" stroke={NAVY} strokeOpacity={dim("outperform")} strokeWidth={3} dot={(p: { cx?: number; cy?: number; key?: React.Key | null }) => <Measured key={p.key ?? undefined} cx={p.cx} cy={p.cy} color={NAVY} opacity={dim("outperform")} />} activeDot={false} isAnimationActive={false} />
         <Line data={POINTS} dataKey="underperform" stroke={RED} strokeOpacity={dim("underperform")} strokeWidth={3} dot={(p: { cx?: number; cy?: number; key?: React.Key | null }) => <Measured key={p.key ?? undefined} cx={p.cx} cy={p.cy} color={RED} opacity={dim("underperform")} />} activeDot={false} isAnimationActive={false} />
-        {mark != null && <ReferenceLine x={Math.min(S_MAX, mark)} stroke="#2563eb" strokeWidth={2} strokeDasharray="4 3" label={{ value: `This video, ${Math.round(mark)}s`, position: "insideTopLeft", offset: 8, fontSize: 13, fontWeight: 600, fill: NAVY }} />}
-        {!tuned && <ReferenceLine x={s} stroke="#0f172a" strokeOpacity={0.15} />}
+        {mark != null && <ReferenceLine x={Math.min(S_MAX, mark)} stroke="var(--t-accent-2, #2563eb)" strokeWidth={2} strokeDasharray="4 3" label={{ value: `This video, ${Math.round(mark)}s`, position: "insideTopLeft", offset: 8, fontSize: 13, fontWeight: 600, fill: NAVY }} />}
+        {!tuned && <ReferenceLine x={s} stroke="var(--t-ink, #0f172a)" strokeOpacity={0.15} />}
         {!tuned && <ReferenceLine segment={[{ x: s, y: outperform }, { x: s, y: underperform }]} stroke={INK} strokeWidth={5} />}
         {!tuned && <ReferenceDot x={s} y={outperform} shape={(p: { cx?: number; cy?: number }) => <Dot {...p} color={NAVY} />} />}
         {!tuned && <ReferenceDot x={s} y={underperform} shape={(p: { cx?: number; cy?: number }) => <Dot {...p} color={RED} />} />}
-        <ReferenceDot x={CROSS.seconds} y={CROSS.share} shape={(p: { cx?: number; cy?: number }) => (tuned ? <Pulse {...p} color={RED} /> : <Dot {...p} color="#475569" />)} />
+        <ReferenceDot x={CROSS.seconds} y={CROSS.share} shape={(p: { cx?: number; cy?: number }) => (tuned ? <Pulse {...p} color={RED} /> : <Dot {...p} color="var(--t-ink-2, #475569)" />)} />
       </ComposedChart>
     </div>
   )
