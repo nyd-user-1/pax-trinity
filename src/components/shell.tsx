@@ -246,10 +246,11 @@ export function Shell({ children, drawer, signedIn = false, admin = false }: { c
   // A new page closes the sidebar (Brendan, 2026-10-31): opened to pick a page, it shuts once one is picked.
   React.useEffect(() => setSidebarOpen(false), [path])
   // Every panel opens at the one-third view, 420px (Brendan's rule, 2026-10-20); a drag resizes it after.
-  // A video opening or closing beside the discussion counts: each lands at the third.
+  // A video opening or closing beside the discussion counts: each lands at the third. The second panel opens at
+  // the half (Brendan, 2026-10-31), and the panel it gives way to returns to the third.
   React.useEffect(() => {
-    if (open) setSize("third")
-  }, [open, panelOpen])
+    if (open) setSize(pane ? "half" : "third")
+  }, [open, panelOpen, pane])
   React.useEffect(() => {
     if (open || !restore.current) return
     setSize(restore.current)
