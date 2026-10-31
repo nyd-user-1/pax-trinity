@@ -321,7 +321,7 @@ export function DiscussionPanel({ onClose: close, admin = false }: { onClose: ()
           </button>
         </div>
       </div>
-      <div className={cn("flex min-h-0 flex-1 flex-col", view === "welcome" && "overflow-y-auto", view === "chat" && "border-t border-slate-200/70")}>
+      <div data-panel-body className={cn("flex min-h-0 flex-1 flex-col", view === "welcome" && "overflow-y-auto", view === "chat" && "border-t border-slate-200/70")}>
         {view === "welcome" && (
           <div className="flex flex-col px-3 pt-1">
             <Row icon={<LayoutGrid className="size-4" />} label="Blocks" sub="Shorts and blocks you've saved" onClick={() => setView("blocks")} />
