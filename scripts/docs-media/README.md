@@ -32,3 +32,15 @@ content types). The folder is outside the app's type check (tsconfig's exclude).
 - `Guide.tsx`: a title card, then each step's screenshot in a window, the camera easing toward its target, a ring,
   a cursor that travels and clicks, and the step's caption.
 - `Recording.tsx`: a recording's segments in the same window and captions.
+
+## Edited cuts of live clips
+
+`ClipCut.tsx` re-cuts a clip from Clips (vertical, with its sound): a lower third naming the messenger and the
+test, then an end card with what the test measured, from the clip's report in `src/components/clips/catalog.ts`.
+Download the clip from the CDN into `capture/clips/`, then:
+
+```
+npx remotion render scripts/docs-media/index.ts ClipCut $M/edits/dustin-cut.mp4 --props=$M/dustin.json --public-dir=$M --codec=h264 --crf=22
+```
+
+The first two (Dustin Cathcart and Danielle Allen, Massachusetts Wave 1) are at the CDN's `docs/edits/`.
