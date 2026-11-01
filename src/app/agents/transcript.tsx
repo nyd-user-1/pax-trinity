@@ -2,6 +2,7 @@
 
 import * as React from "react"
 
+import { CLIPS_CDN } from "@/components/clips/catalog"
 import { cn } from "@/lib/utils"
 import { type Step } from "@/lib/agents/run-client"
 
@@ -12,14 +13,37 @@ import { type Step } from "@/lib/agents/run-client"
 // The models write **bold**, *italic*, `code`, [label](url), and plain markdown
 // headings, and the panel used to print the punctuation. This renders those and
 // nothing else — not a markdown library, and deliberately not lists or tables,
-// which would start dictating the shape of an answer.
+// which would start dictating the shape of an answer. An image, ![alt](src) or
+// linked [![alt](src)](href), is drawn only from the clips CDN (a result video's
+// poster in the Analyst's readout); from anywhere else it is a link, so text a
+// model wrote can never make the page load an address of its choosing.
 const INLINE =
-  /(\*\*[^*\n]+\*\*|~~[^~\n]+~~|<u>[^<\n]+<\/u>|\*[^*\n]+\*|`[^`\n]+`|\[[^\]\n]+\]\([^)\s]+\))/g
+  /(\[!\[[^\]\n]*\]\([^)\s]+\)\]\([^)\s]+\)|!\[[^\]\n]*\]\([^)\s]+\)|\*\*[^*\n]+\*\*|~~[^~\n]+~~|<u>[^<\n]+<\/u>|\*[^*\n]+\*|`[^`\n]+`|\[[^\]\n]+\]\([^)\s]+\))/g
+const LINKED_IMAGE = /^\[!\[([^\]\n]*)\]\(([^)\s]+)\)\]\(([^)\s]+)\)$/
+const IMAGE = /^!\[([^\]\n]*)\]\(([^)\s]+)\)$/
+const drawable = (src: string) => src.startsWith(`${CLIPS_CDN}/`)
+
+function Picture({ alt, src, href }: { alt: string; src: string; href?: string }) {
+  const to = href ?? src
+  const link = (inner: React.ReactNode) => (
+    <a href={to} className={drawable(src) ? "inline-block align-top" : "underline underline-offset-4"} target={to.startsWith("http") ? "_blank" : undefined} rel="noreferrer">
+      {inner}
+    </a>
+  )
+  if (!drawable(src)) return link(alt || to)
+  // eslint-disable-next-line @next/next/no-img-element
+  const img = <img src={src} alt={alt} className="my-1 inline-block w-60 max-w-full rounded-xl align-top" />
+  return href ? link(img) : img
+}
 
 function Inline({ text }: { text: string }) {
   return (
     <>
       {text.split(INLINE).map((piece, i) => {
+        const linked = LINKED_IMAGE.exec(piece)
+        if (linked) return <Picture key={i} alt={linked[1]} src={linked[2]} href={linked[3]} />
+        const image = IMAGE.exec(piece)
+        if (image) return <Picture key={i} alt={image[1]} src={image[2]} />
         if (piece.startsWith("**") && piece.endsWith("**") && piece.length > 4)
           return <strong key={i}>{piece.slice(2, -2)}</strong>
         if (piece.startsWith("~~") && piece.endsWith("~~") && piece.length > 4)

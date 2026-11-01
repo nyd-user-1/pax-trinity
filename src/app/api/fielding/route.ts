@@ -5,8 +5,10 @@ import { armName } from "@/lib/fielding/arms"
 import { readout, startFielding, summary } from "@/lib/fielding/engine"
 import { fieldingIds } from "@/lib/fielding/store"
 import { origin } from "@/lib/mail/send"
+import { videoOf, type VideoState } from "@/lib/results/video"
 
-// GET /api/fielding: every fielding with its counts, for the Inbox's live threads.
+// GET /api/fielding: every fielding with its counts, for the Inbox's live threads. A closed test's
+// readout carries its result video, as its mail did (lib/results/video.ts).
 // POST /api/fielding: the Pollster fields a test or a survey to a contact group
 // ({ type, target, group, quota?, closeAt?, remindAfterHours?, finalBeforeHours? }). Admins only.
 
@@ -15,8 +17,14 @@ export const dynamic = "force-dynamic"
 export async function GET() {
   if (!(await currentUser())?.admin) return NextResponse.json({ error: "Admins only." }, { status: 401 })
   try {
-    const all = await Promise.all((await fieldingIds()).map((fid) => summary(fid)))
-    return NextResponse.json({ fieldings: all.filter(Boolean).map((s) => ({ ...s!, arms: s!.arms.map((a) => ({ ...a, name: a.arm ? armName(a.arm) : "" })), readout: s!.report ? readout(s!.def, s!.report, armName) : null })) })
+    const all = (await Promise.all((await fieldingIds()).map((fid) => summary(fid)))).filter((s) => s !== null)
+    const fieldings = await Promise.all(
+      all.map(async (s) => {
+        const video: VideoState = s.report && s.def.type === "test" ? await videoOf(s.def.target).catch((): VideoState => ({ state: "none" })) : { state: "none" }
+        return { ...s, arms: s.arms.map((a) => ({ ...a, name: a.arm ? armName(a.arm) : "" })), readout: s.report ? readout(s.def, s.report, armName, video) : null }
+      }),
+    )
+    return NextResponse.json({ fieldings })
   } catch (error) {
     return NextResponse.json({ fieldings: [], error: error instanceof Error ? error.message : "unreadable" })
   }
