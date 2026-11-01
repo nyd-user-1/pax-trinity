@@ -16,6 +16,7 @@ export const HOST_CSS = [
 /** Applied to the page while sonar is active: hide the native cursor everywhere. */
 export const PAGE_CSS = `
 html, html *, html *::before, html *::after { cursor: none !important; }
+[data-sonar-exempt], [data-sonar-exempt] *, [data-devinspector], [data-devinspector] * { cursor: auto !important; }
 `;
 
 const EASE = "cubic-bezier(.2,.8,.2,1)";
@@ -30,9 +31,9 @@ export const OVERLAY_CSS = `
   position: fixed;
   top: 0; left: 0; width: 0; height: 0;
   box-sizing: border-box;
-  border: 2px solid #3b82f6;
+  border: 2px solid var(--tone, #3b82f6);
   border-radius: 3px;
-  background: rgba(59,130,246,.07);
+  background: color-mix(in srgb, var(--tone, #3b82f6) 7%, transparent);
   box-shadow: 0 0 0 1px rgba(0,0,0,.35);
   pointer-events: none;
   z-index: 2147483646;
@@ -42,7 +43,9 @@ export const OVERLAY_CSS = `
     opacity 80ms linear, background-color 120ms linear;
 }
 .box.on { opacity: 1; }
-.box.locked { background: rgba(59,130,246,.15); }
+.box.locked { background: color-mix(in srgb, var(--tone, #3b82f6) 15%, transparent); }
+.box.inspector { border-style: dotted; background: transparent; }
+.box.inspector.locked { background: color-mix(in srgb, var(--tone, #3b82f6) 10%, transparent); }
 .box.snap { transition: opacity 80ms linear; }
 
 .chip {
@@ -55,7 +58,7 @@ export const OVERLAY_CSS = `
   gap: 6px;
   padding: 2px 7px;
   border-radius: 4px;
-  background: #c2410c;
+  background: var(--tone, #c2410c);
   color: #fff;
   font: 500 11px/16px ${MONO};
   white-space: nowrap;
@@ -90,7 +93,12 @@ export const OVERLAY_CSS = `
 .cross { width: 14px; height: 14px; margin: -7px 0 0 -7px; overflow: visible; }
 .cross .halo { stroke: rgba(255,255,255,.9); stroke-width: 3; }
 .cross .line { stroke: #1d4ed8; stroke-width: 1; }
-.cursor-off .dot, .cursor-off .cross { opacity: 0; }
+.cursor-off .dot, .cursor-off .cross, .cursor-off .hair { opacity: 0; }
+.hair { position: fixed; top: 0; left: 0; display: none; background: rgba(37,99,235,.55); pointer-events: none; }
+.hair.h { width: 100vw; height: 1px; }
+.hair.v { width: 1px; height: 100vh; }
+.inspector .hair { display: block; }
+.inspector .dot { display: none; }
 
 .panel {
   position: fixed;
@@ -171,24 +179,29 @@ export const OVERLAY_CSS = `
   cursor: auto;
   display: flex;
   flex-direction: column;
-  background: #f8fafc;
-  color: #0f172a;
-  border: 1px solid #e2e8f0;
+  background: #26262b;
+  color: #e5e7eb;
+  border: 1px solid rgba(255,255,255,.12);
   border-radius: 18px;
   padding: 4px;
-  box-shadow: 0 16px 40px rgba(15,23,42,.18), 0 2px 6px rgba(15,23,42,.08);
+  box-shadow: 0 16px 40px rgba(0,0,0,.4), 0 2px 6px rgba(0,0,0,.25);
   font: 13px/1.45 ${SANS};
 }
 .pc-head { display: flex; align-items: center; gap: 4px; padding: 3px 2px 5px 4px; }
-.pc-grip { display: grid; place-items: center; width: 24px; height: 24px; color: #94a3b8; cursor: grab; touch-action: none; }
+.pc-grip { display: grid; place-items: center; width: 24px; height: 24px; color: #8b8f98; cursor: grab; touch-action: none; }
 .pc-grip:active { cursor: grabbing; }
-.pc-title { flex: 1; font: 600 13px/16px ${SANS}; color: #0f172a; user-select: none; }
-.pc-kebab { display: grid; place-items: center; width: 26px; height: 26px; border: 0; border-radius: 8px; background: transparent; color: #475569; cursor: pointer; }
-.pc-kebab:hover { background: #e2e8f0; color: #0f172a; }
-.pc-menu { position: absolute; top: 32px; right: 6px; z-index: 5; min-width: 168px; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 10px 28px rgba(15,23,42,.16); padding: 4px; }
+.pc-title { font: 600 13px/16px ${SANS}; color: #f3f4f6; user-select: none; }
+.pc-head .chip-ways { gap: 4px; color: #93c5fd; margin-left: 10px; }
+.pc-head .chip-ways .chip-icon { width: 12px; height: 12px; }
+.pc-head .chip-ways .chip-cmd { font-size: 12px; line-height: 12px; }
+.pc-grow2 { flex: 1; }
+.pc-kebab { display: grid; place-items: center; width: 26px; height: 26px; border: 0; border-radius: 8px; background: transparent; color: #cbd5e1; cursor: pointer; }
+.pc-kebab:hover { background: rgba(255,255,255,.08); color: #fff; }
+.pc-menu { position: absolute; top: 32px; right: 6px; z-index: 5; min-width: 188px; background: #2b2b31; border: 1px solid rgba(255,255,255,.1); border-radius: 12px; box-shadow: 0 10px 28px rgba(0,0,0,.4); padding: 4px; }
 .pc-menu[hidden] { display: none; }
-.pc-mi { display: flex; width: 100%; align-items: center; gap: 8px; padding: 7px 10px; border: 0; border-radius: 8px; background: none; font: 500 13px/16px ${SANS}; color: #0f172a; cursor: pointer; text-align: left; }
-.pc-mi:hover { background: #f1f5f9; }
+.pc-mi { display: flex; width: 100%; align-items: center; gap: 8px; padding: 7px 10px; border: 0; border-radius: 8px; background: none; font: 500 13px/16px ${SANS}; color: #e5e7eb; cursor: pointer; text-align: left; }
+.pc-mi:hover { background: rgba(255,255,255,.07); }
+.pc-mi svg { color: #9ca3af; flex-shrink: 0; }
 .pc-mi-on { margin-left: auto; color: #2563eb; font-weight: 700; }
 .pc-inner {
   flex: 1;
@@ -204,7 +217,7 @@ export const OVERLAY_CSS = `
 .pc-meta { color: #9ca3af; font: 11px/16px ${MONO}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: -4px 0 8px; }
 .pc-meta:empty { display: none; }
 .pc-size { position: absolute; right: 2px; bottom: 2px; width: 16px; height: 16px; cursor: nwse-resize; touch-action: none; }
-.pc-crumb { color: #8b8b8b; font: 11px/16px ${MONO}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 8px; }
+.pc-crumb { display: none; color: #8b8b8b; font: 11px/16px ${MONO}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 8px; }
 .pc-ways { display: flex; margin-bottom: 6px; }
 .pc-ways .chip-ways { gap: 4px; }
 .pc-ways .chip-icon { width: 12px; height: 12px; }

@@ -46,6 +46,7 @@ export type Message = {
   path?: string
   /** The overlay's full locator bundle, for whoever fixes it. */
   bundle?: string
+  point?: { xf: number; yf: number }
   /** S3 keys of the screenshots. */
   images?: string[]
   status: "open" | "resolved"
@@ -103,6 +104,7 @@ export async function post(input: {
   target?: string
   path?: string
   bundle?: string
+  point?: { xf: number; yf: number }
   images?: { mime: string; data: string }[]
 }): Promise<Message> {
   const id = randomUUID()

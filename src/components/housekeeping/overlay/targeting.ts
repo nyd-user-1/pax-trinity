@@ -48,7 +48,7 @@ export function hitTest(doc: Document, x: number, y: number, overlay: Element): 
   for (const el of doc.elementsFromPoint(x, y)) {
     if (el === overlay) continue;
     // Sonar's own on/off control is never a target.
-    if (el.closest("[data-sonar-exempt]")) return null;
+    if (el.closest("[data-sonar-exempt]") || el.closest("[data-devinspector]")) return null;
     return el;
   }
   return null;

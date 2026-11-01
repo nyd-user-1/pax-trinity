@@ -32,7 +32,7 @@ export async function GET(req: Request) {
   if (route) {
     try {
       const open = await openOnRoute(route, user.email)
-      const marks = open.map((m) => ({ id: m.id, pk: m.pk, sk: m.sk, path: m.path, target: m.target, author: m.author, authorName: m.authorName, photo: PEOPLE.find((p) => p.email === m.author)?.photo, text: m.text.slice(0, 140) }))
+      const marks = open.map((m) => ({ id: m.id, pk: m.pk, sk: m.sk, path: m.path, target: m.target, point: m.point, author: m.author, authorName: m.authorName, photo: PEOPLE.find((p) => p.email === m.author)?.photo, text: m.text.slice(0, 140) }))
       return NextResponse.json({ marks })
     } catch (e) {
       return NextResponse.json({ error: (e as Error).message }, { status: 500 })
@@ -67,6 +67,7 @@ export async function POST(req: Request) {
     target?: string
     path?: string
     bundle?: string
+    point?: { xf: number; yf: number }
     images?: { mime: string; data: string }[]
   } | null
   if (!body) return NextResponse.json({ error: "The body is not JSON." }, { status: 400 })

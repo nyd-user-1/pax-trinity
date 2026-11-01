@@ -9,6 +9,8 @@ export class Cursor {
   private readonly layer: HTMLDivElement;
   private readonly dot: HTMLDivElement;
   private readonly cross: SVGElement;
+  private readonly hx: HTMLDivElement;
+  private readonly hy: HTMLDivElement;
   private x = 0;
   private y = 0;
   private dx = 0;
@@ -26,8 +28,15 @@ export class Cursor {
       }
       this.cross.appendChild(g);
     }
-    this.layer.append(this.cross, this.dot);
+    this.hx = h(doc, "div", "hair h");
+    this.hy = h(doc, "div", "hair v");
+    this.layer.append(this.hx, this.hy, this.cross, this.dot);
     parent.appendChild(this.layer);
+  }
+
+  /** Inspector dress: the two hairlines and no dot; sonar's dot otherwise (Brendan, 2026-11-01). */
+  setMode(m: "sonar" | "inspector"): void {
+    this.layer.classList.toggle("inspector", m === "inspector");
   }
 
   move(x: number, y: number): void {
@@ -47,6 +56,8 @@ export class Cursor {
   frame(): void {
     if (!this.placed) return;
     this.cross.style.transform = `translate3d(${this.x}px, ${this.y}px, 0)`;
+    this.hx.style.transform = `translate3d(0, ${this.y}px, 0)`;
+    this.hy.style.transform = `translate3d(${this.x}px, 0, 0)`;
     this.dx += (this.x - this.dx) * LERP;
     this.dy += (this.y - this.dy) * LERP;
     if (Math.abs(this.x - this.dx) < 0.1 && Math.abs(this.y - this.dy) < 0.1) {

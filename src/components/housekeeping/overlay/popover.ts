@@ -13,8 +13,8 @@ export interface PopoverActions {
   copy(): void;
   /** Delete a committed pin (view mode). */
   remove(): void;
-  /** The menu's "Inspector mode": hand the pointer to the Inspector's experience. */
-  inspector(): void;
+  /** The menu's mode rows: one tool, two dresses (Brendan, 2026-11-01). */
+  mode(m: "sonar" | "inspector"): void;
 }
 
 export type PopoverMode = "compose" | "view";
@@ -41,6 +41,8 @@ export class Popover {
   private readonly removeBtn: HTMLButtonElement;
   private readonly meta: HTMLDivElement;
   private readonly menu: HTMLDivElement;
+  private sonarOn!: HTMLSpanElement;
+  private inspectorOn!: HTMLSpanElement;
   private readonly win: Window;
   private size = { w: WIDTH, h: 0 };
   /** Dragged or resized: the box stays where the reader put it (Brendan, 2026-11-01). */
@@ -59,7 +61,7 @@ export class Popover {
     this.chip = h(doc, "span", "pc-ways");
     this.note = h(doc, "div", "pc-note");
     this.textarea = h(doc, "textarea", "pc-text");
-    this.textarea.placeholder = "Leave a comment… (paste a screenshot to attach it)";
+    this.textarea.placeholder = "Leave a comment…";
     this.textarea.rows = 2;
 
     // Options row: send toggle, session (PAX: dictation is gone, Brendan 2026-10-30)
@@ -90,7 +92,7 @@ export class Popover {
     actionsRow.append(this.copyBtn, this.removeBtn, h(doc, "span", "pc-grow"), this.primary);
 
     this.compose = h(doc, "div", "pc-compose");
-    this.compose.append(this.chip, this.textarea, options);
+    this.compose.append(this.textarea, options);
 
     // The note card's wrapper (Brendan, 2026-11-01): the tinted frame, a header with the grip, the
     // title and the three-dot menu, then the dark comment box as the card's body, and the resize
@@ -100,19 +102,33 @@ export class Popover {
     grip.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>';
     grip.title = "Move";
     const title = h(doc, "span", "pc-title", "Comment");
+    const grow = h(doc, "span", "pc-grow2");
     const kebab = h(doc, "button", "pc-kebab");
     kebab.type = "button";
     kebab.setAttribute("aria-label", "Comment box options");
     kebab.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>';
-    head.append(grip, title, kebab);
+    // The walk's marks ride the header, after the title (Brendan, 2026-11-01).
+    head.append(grip, title, this.chip, grow, kebab);
 
     this.menu = h(doc, "div", "pc-menu");
     this.menu.hidden = true;
-    const sonarRow = h(doc, "button", "pc-mi", "Sonar mode");
-    sonarRow.type = "button";
-    sonarRow.append(h(doc, "span", "pc-mi-on", "\u2713"));
-    const inspectorRow = h(doc, "button", "pc-mi", "Inspector mode");
-    inspectorRow.type = "button";
+    // Each mode row wears its cursor: sonar the dot crosshair, inspector the hairline plus.
+    const SONAR_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="2.6" fill="currentColor" stroke="none"/><line x1="12" y1="2" x2="12" y2="7"/><line x1="12" y1="17" x2="12" y2="22"/><line x1="2" y1="12" x2="7" y2="12"/><line x1="17" y1="12" x2="22" y2="12"/></svg>';
+    const INSPECTOR_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="3" x2="12" y2="21" stroke-dasharray="2 2.5"/><line x1="3" y1="12" x2="21" y2="12" stroke-dasharray="2 2.5"/><line x1="12" y1="8.5" x2="12" y2="15.5" stroke-width="2.5"/><line x1="8.5" y1="12" x2="15.5" y2="12" stroke-width="2.5"/></svg>';
+    const row = (icon: string, text: string) => {
+      const b = h(doc, "button", "pc-mi");
+      b.type = "button";
+      b.innerHTML = icon;
+      b.append(h(doc, "span", "", text));
+      return b;
+    };
+    const sonarRow = row(SONAR_ICON, "Sonar mode");
+    this.sonarOn = h(doc, "span", "pc-mi-on", "\u2713");
+    sonarRow.append(this.sonarOn);
+    const inspectorRow = row(INSPECTOR_ICON, "Inspector mode");
+    this.inspectorOn = h(doc, "span", "pc-mi-on", "\u2713");
+    this.inspectorOn.hidden = true;
+    inspectorRow.append(this.inspectorOn);
     this.menu.append(sonarRow, inspectorRow);
 
     this.meta = h(doc, "div", "pc-meta");
@@ -127,10 +143,13 @@ export class Popover {
       e.stopPropagation();
       this.menu.hidden = !this.menu.hidden;
     });
-    sonarRow.addEventListener("click", () => (this.menu.hidden = true));
+    sonarRow.addEventListener("click", () => {
+      this.menu.hidden = true;
+      actions.mode("sonar");
+    });
     inspectorRow.addEventListener("click", () => {
       this.menu.hidden = true;
-      actions.inspector();
+      actions.mode("inspector");
     });
     this.el.addEventListener("pointerdown", (e) => {
       if (!this.menu.hidden && !this.menu.contains(e.target as Node) && e.target !== kebab && !kebab.contains(e.target as Node)) this.menu.hidden = true;
@@ -258,6 +277,12 @@ export class Popover {
 
   setCrumb(text: string): void {
     this.crumb.textContent = text;
+  }
+
+  /** The menu's check follows the dress in force. */
+  setModeChecked(m: "sonar" | "inspector"): void {
+    this.sonarOn.hidden = m !== "sonar";
+    this.inspectorOn.hidden = m !== "inspector";
   }
 
   /** The DOM's live line (tag · size · layout · "name"), context under the crumb (Brendan, 2026-11-01). */

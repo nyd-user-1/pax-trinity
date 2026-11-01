@@ -97,15 +97,7 @@ export async function togglePointer() {
   running = mount({
     initial: (me.name ?? "?").trim().charAt(0).toUpperCase() || "?",
     photo: me.photo,
-    // The comment box's menu (Brendan, 2026-11-01): Inspector mode puts sonar away and arms the dock's scope.
-    onInspector: () => {
-      if (running) {
-        running.unmount()
-        running = null
-        announce()
-      }
-      window.dispatchEvent(new CustomEvent("inspector:set", { detail: { on: true } }))
-    },
+
     // sonar's developer panel stays off; ⌥ precise, ↑↓ walk and Esc still work.
     debug: false,
     sessions: async () => [{ id: "housekeeping" }],
@@ -114,7 +106,7 @@ export async function togglePointer() {
       const res = await fetch("/api/housekeeping", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind: "comment", text: c.comment, page: c.page, route: c.route, target: c.target, path: c.path, bundle: c.content, images }),
+        body: JSON.stringify({ kind: "comment", text: c.comment, page: c.page, route: c.route, target: c.target, path: c.path, bundle: c.content, point: c.point, images }),
       })
       if (!res.ok) return false
       const { message } = (await res.json().catch(() => ({}))) as { message?: { id: string; pk: string; sk: string } }
@@ -196,12 +188,19 @@ export function usePointer(): [boolean, () => void] {
   return [on, () => void togglePointer()]
 }
 
-type Mark = { id: string; path: string; target?: string; author: string; authorName: string; photo?: string; text: string }
+type Mark = { id: string; path: string; target?: string; author: string; authorName: string; photo?: string; text: string; point?: { xf: number; yf: number } }
 
 /** The header's crosshair, the page's comment markers, and the outline that waits for a page to arrive. */
 export function HousekeepingTool() {
-  // The crosshair shows only while Dev Tools' Sonar has the pointer on, and turns it off (Brendan, 2026-10-31).
+  // One tool now (Brendan, 2026-11-01): the button shows while Point and Click or the dock's scope is
+  // on — indicator and control for both — and its x puts whichever is running away.
   const [on, setOn] = React.useState(false)
+  const [scopeOn, setScopeOn] = React.useState(false)
+  React.useEffect(() => {
+    const hear = (e: Event) => setScopeOn(!!(e as CustomEvent<{ on?: boolean }>).detail?.on)
+    window.addEventListener("inspector:changed", hear)
+    return () => window.removeEventListener("inspector:changed", hear)
+  }, [])
   const [marks, setMarks] = React.useState<Mark[]>([])
   const path = usePathname()
 
@@ -255,22 +254,25 @@ export function HousekeepingTool() {
 
   return (
     <>
-      {on && (
+      {(on || scopeOn) && (
         // Sonar's header button (Brendan, 2026-11-01): the comment marks' pulse around it, and the
         // profile-badge x — a white x in a black circle — that puts sonar away and flips the Dev
         // Tools switch back off (one shared state does both).
         <span data-sonar-exempt className="relative inline-flex">
           <span aria-hidden className="absolute inset-0 animate-ping rounded-full bg-pax2-light-blue/35 [animation-duration:2.2s]" />
           <span aria-hidden className="pointer-events-none absolute -inset-1 rounded-full ring-2 ring-pax2-light-blue/30" />
-          <button type="button" data-sonar-exempt aria-pressed aria-label="Sonar is on" title="Sonar is on" className={whiteButton("circle", "relative ring-2 ring-pax2-light-blue")}>
+          <button type="button" data-sonar-exempt aria-pressed aria-label="Point and Click is on" title="Point and Click is on" className={whiteButton("circle", "relative ring-2 ring-pax2-light-blue")}>
             <Crosshair className="size-4 text-pax2-blue" />
           </button>
           <button
             type="button"
             data-sonar-exempt
-            onClick={() => void togglePointer()}
-            aria-label="Turn sonar off"
-            title="Turn sonar off"
+            onClick={() => {
+              if (running) void togglePointer()
+              window.dispatchEvent(new CustomEvent("inspector:set", { detail: { on: false } }))
+            }}
+            aria-label="Turn Point and Click off"
+            title="Turn Point and Click off"
             className="absolute -top-1 -right-1 z-10 flex size-4 items-center justify-center rounded-full bg-night-900 text-white shadow-e1 transition-transform hover:scale-110"
           >
             <X className="size-2.5" strokeWidth={3} />
@@ -295,6 +297,14 @@ function Marks({ marks }: { marks: Mark[] }) {
       for (const m of marks) {
         const btn = refs.current.get(m.id)
         if (!btn) continue
+        // A pin holds the spot it was made (Brendan, 2026-11-01): the stored point, as fractions of
+        // the document, beats the element lookup — it cannot wander to another box.
+        if (m.point) {
+          const de = document.documentElement
+          btn.style.display = ""
+          btn.style.transform = `translate3d(${Math.round(m.point.xf * de.scrollWidth - window.scrollX - 12)}px, ${Math.round(m.point.yf * de.scrollHeight - window.scrollY - 12)}px, 0)`
+          continue
+        }
         let el = cache.get(m.id)
         if (!el || !el.isConnected) {
           el = findElement(m.path, m.target)
@@ -331,11 +341,12 @@ function Marks({ marks }: { marks: Mark[] }) {
             onClick={() => openHousekeeping(m.id)}
             title={`${m.authorName}: ${m.text}`}
             aria-label={`Open ${m.authorName}'s comment`}
+            data-sonar-exempt
             style={{ display: "none" }}
-            className="group fixed top-0 left-0 z-[60] size-6 rounded-full"
+            className="group fixed top-0 left-0 z-[60] size-6 rounded-[12px] rounded-bl-[2px]"
           >
-            <span className="absolute inset-0 animate-ping rounded-full bg-pax2-light-blue/60" />
-            <span className="relative flex size-6 items-center justify-center overflow-hidden rounded-full bg-pax2-blue text-[10px] font-semibold text-white ring-2 ring-pax2-surface shadow-e2 transition-transform group-hover:scale-110">
+            <span className="absolute inset-0 animate-ping rounded-[12px] rounded-bl-[2px] bg-pax2-light-blue/60" />
+            <span className="relative flex size-6 items-center justify-center overflow-hidden rounded-[12px] rounded-bl-[2px] bg-pax2-blue text-[10px] font-semibold text-white ring-2 ring-pax2-surface shadow-e2 transition-transform group-hover:scale-110">
               {photo ? (
                 // eslint-disable-next-line @next/next/no-img-element -- a 24px headshot from public/
                 <img src={photo} alt="" className="size-full object-cover" />

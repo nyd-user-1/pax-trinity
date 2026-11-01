@@ -8,7 +8,7 @@ import { adopt, h, isEditable, outsideBy } from "./dom";
 import { Box } from "./box";
 import { Cursor } from "./cursor";
 import { labelOf, shortSel, visibleText } from "./describe";
-import { metricsLine, sourceLabel } from "./source";
+import { metricsLine, sourceLabel, toneOf } from "./source";
 import { locatorBundle, uniquePath } from "./locator";
 import { describe } from "./describe";
 import { DebugPanel } from "./panels";
@@ -39,6 +39,8 @@ export interface OutgoingComment {
   path: string;
   /** Screenshots pasted into the comment box, as data URLs. */
   images?: { mime: string; data: string }[];
+  /** Where on the page the pin was made, as fractions of the document (Brendan, 2026-11-01). */
+  point?: { xf: number; yf: number };
 }
 
 export interface MountOptions {
@@ -52,8 +54,7 @@ export interface MountOptions {
   initial?: string;
   /** The commenter's headshot, shown on the pin in place of the initial. */
   photo?: string;
-  /** Switches to the Inspector's experience (the comment box's menu, Brendan 2026-11-01). */
-  onInspector?: () => void;
+
   /** Show the debug panel (breadcrumb + promotion chain). */
   debug?: boolean;
   /** Called after the overlay removes itself (Esc). */
@@ -135,8 +136,19 @@ export function mount(opts: MountOptions = {}): Sonar {
     submit: () => void submit(),
     copy: () => void copyPrompt(),
     remove: () => removeViewed(),
-    inspector: () => opts.onInspector?.(),
+    mode: (m) => setDress(m),
   });
+
+  // One tool, two dresses (Brendan, 2026-11-01): sonar's solid line, tinted box and dot crosshair,
+  // or the inspector's dotted line, hairline cross and plus cursor. The comment box's menu switches.
+  let dress: "sonar" | "inspector" = "sonar";
+  function setDress(m: "sonar" | "inspector"): void {
+    dress = m;
+    void dress;
+    cursor.setMode(m);
+    box.el.classList.toggle("inspector", m === "inspector");
+    popover.setModeChecked(m);
+  }
   doc.documentElement.appendChild(host);
 
   let px = 0;
@@ -180,13 +192,17 @@ export function mount(opts: MountOptions = {}): Sonar {
     const el = current;
     const src = sourceLabel(el);
     crumb = src.name ?? label.text;
+    box.el.style.removeProperty("--tone");
     box.to(el.getBoundingClientRect(), { x: px, y: py }, now);
     box.setLabel(crumb, { hidden: label.hidden, ways: label.ways });
     if (draft) popover.setWays(label.ways);
     if (src.name)
-      void src.file.then((f) => {
-        if (current !== el || !f) return;
-        crumb = `${src.name} ${f}`;
+      void src.located.then(({ file, layer }) => {
+        if (current !== el) return;
+        // The classifier's color code, one tool's palette: the box and label take the layer's tone.
+        if (layer) box.el.style.setProperty("--tone", toneOf(layer));
+        if (!file) return;
+        crumb = `${src.name} ${file}`;
         box.setLabel(crumb, { hidden: label.hidden, ways: label.ways });
         if (draft) popover.setCrumb(crumb);
       });
@@ -324,6 +340,13 @@ export function mount(opts: MountOptions = {}): Sonar {
         target: describe(pin.target),
         path: uniquePath(pin.target),
         images,
+        // Where the pin was made, as fractions of the whole document, so the marker holds the spot
+        // whatever becomes of the element (Brendan, 2026-11-01).
+        point: (() => {
+          const pt = pin.point();
+          const de = doc.documentElement;
+          return { xf: (pt.x + win.scrollX) / Math.max(1, de.scrollWidth), yf: (pt.y + win.scrollY) / Math.max(1, de.scrollHeight) };
+        })(),
       })
       .then(
         (r) => r !== false,
