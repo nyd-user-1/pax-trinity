@@ -39,6 +39,8 @@ const config: NextConfig = {
     "@aws-sdk/client-sesv2",
     "@aws-sdk/client-ssm",
     "@aws-sdk/s3-request-presigner",
+    // Remotion Lambda's client (src/video/render-server.ts): AWS calls only, kept out of the route chunks the same way.
+    "@remotion/lambda",
   ],
   // No next/image anywhere (every thumbnail is a plain img from YouTube's host), so sharp's 17 MB
   // of binaries has no caller; excluding it keeps the server bundle under Amplify's 220 MB cap.

@@ -58,6 +58,11 @@ editing them locally, delete `node_modules/.cache/webpack/remotion-*` to see the
   in the browser. No file is made. A failure shows zod's message in development, and
   a short notice in production.
 - **A file**: `POST /api/video/render { templateId, props, format: "mp4" | "webm" }`
-  validates, refuses anything over 60 seconds, and returns the file. This runs locally
-  in development only. `@remotion/renderer` stays out of the Amplify bundle, and
-  production waits on `@remotion/lambda` (the stub is in `render-server.ts`).
+  (admins only) validates and refuses anything over 60 seconds. On Remotion Lambda
+  (`REMOTION_LAMBDA_FUNCTION` and `REMOTION_LAMBDA_SERVE_URL` set) it answers
+  `{ url, poster }` on the clips CDN, the files under `rendered/<template>-<props hash>`,
+  or a 202 with the render to poll by GET when it takes longer than the request may.
+  Without Lambda, local development renders in-process and answers the file;
+  `@remotion/renderer` stays out of the Amplify bundle.
+- **After changing a template**, run `npm run video:site`: the Lambda draws whatever the
+  deployed site holds.

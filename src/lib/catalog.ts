@@ -4,6 +4,7 @@ import takesJson from "../../data/generated/takes.json"
 import type { Measure, MetricKey, Provenance, Script, ScriptWhy, Snapshot, Take } from "@/lib/types"
 import { METRICS } from "@/lib/types"
 import { featuresFile } from "@/lib/data-files"
+import { hash } from "@/lib/fnv"
 
 const featuresJson = featuresFile()
 
@@ -137,12 +138,7 @@ function parseCsv(text: string): string[][] {
   return rows
 }
 
-/** FNV-1a, enough to key a file and a snapshot deterministically. */
-export function hash(s: string) {
-  let h = 2166136261
-  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619)
-  return (h >>> 0).toString(36)
-}
+export { hash }
 
 export type Parsed = { snapshots: Snapshot[]; unmatched: string[]; missingColumns: string[]; fileHash: string }
 
