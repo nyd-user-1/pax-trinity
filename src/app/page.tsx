@@ -16,7 +16,7 @@ import "./paper.css"
 export default async function HomePage() {
   const digest = await getDigest()
   return (
-    <div className="nysgpt-app relative min-h-0 flex-1 overflow-y-auto" style={{ backgroundColor: "var(--white)", ...PAPER_BRIDGE }}>
+    <div className="nysgpt-app home-themed relative min-h-0 flex-1 overflow-y-auto" style={{ backgroundColor: "var(--white)", ...PAPER_BRIDGE }}>
       <LandingGrid />
       <SwitchboardProvider cards={CARDS} digest={digest}>
         {/* min-h-full + justify-center: the two plates sit at the true middle of the

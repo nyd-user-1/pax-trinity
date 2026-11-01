@@ -42,3 +42,21 @@
   --paper-quiet: rgba(240, 233, 216, 0.035);
   --paper-strong: #b6d0f4;
 }
+
+/* The home alone (Brendan, 2026-11-01): the one surface still off the six themes. Its paper
+   tokens re-point at the theme's own, so every theme carries the front door too; /reports and
+   the other editorial pages keep the paper palette above. Written after the dark block so it
+   wins under the dark themes as well. */
+.nysgpt-app.home-themed,
+.dark .nysgpt-app.home-themed {
+  --white: var(--t-surface, #ffffff);
+  --bg: var(--t-tint, #f9f9f9);
+  --paper: var(--t-surface, #ffffff);
+  --paper-text: var(--t-ink, #16181d);
+  --paper-muted: var(--t-ink-3, rgba(22, 24, 29, 0.58));
+  --paper-faint: var(--t-ink-4, rgba(22, 24, 29, 0.4));
+  --paper-rule: var(--t-ink, #16181d);
+  --paper-rule-soft: var(--t-rule, rgba(22, 24, 29, 0.06));
+  --paper-quiet: color-mix(in srgb, var(--t-ink, #16181d) 4%, transparent);
+  --paper-strong: var(--t-accent, var(--pax2-blue));
+}
