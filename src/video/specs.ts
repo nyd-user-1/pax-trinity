@@ -7,6 +7,9 @@ import { liftLeaderboardSpec } from "./templates/lift-leaderboard/spec"
 import { metricTrendSpec } from "./templates/metric-trend/spec"
 import { surveySplitSpec } from "./templates/survey-split/spec"
 import { yesOn3CardSpec } from "./templates/yes-on-3-card/spec"
+import { yesOn3CaptionsSpec } from "./templates/yes-on-3-captions/spec"
+import { yesOn3ExplainerSpec } from "./templates/yes-on-3-explainer/spec"
+import { yesOn3QuoteSpec } from "./templates/yes-on-3-quote/spec"
 
 // Every template's spec by id: its schema, frame, length and fixture, without
 // its component. Server-safe, so /api/video/render and the chat agent validate
@@ -19,7 +22,12 @@ import { yesOn3CardSpec } from "./templates/yes-on-3-card/spec"
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnySpec = TemplateSpec<any>
 
-const SPECS: AnySpec[] = [exampleSpec, liftCardSpec, liftLeaderboardSpec, surveySplitSpec, metricTrendSpec, yesOn3CardSpec]
+const SPECS: AnySpec[] = [exampleSpec, liftCardSpec, liftLeaderboardSpec, surveySplitSpec, metricTrendSpec, yesOn3CardSpec, yesOn3CaptionsSpec, yesOn3ExplainerSpec, yesOn3QuoteSpec]
+
+/** The Yes on 3 family, the four cards a recorded take can be set in (docs/briefs/record-template-flow.md):
+ *  each vertical, its length from `seconds`, a take under it as `backdrop`. */
+export const YES_ON_3_FAMILY = ["yes-on-3-card", "yes-on-3-captions", "yes-on-3-explainer", "yes-on-3-quote"] as const
+export type YesOn3TemplateId = (typeof YES_ON_3_FAMILY)[number]
 
 const BY_ID: Readonly<Record<string, AnySpec>> = Object.fromEntries(SPECS.map((s) => [s.id, s]))
 

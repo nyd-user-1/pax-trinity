@@ -7,7 +7,7 @@ import { renderStill, selectComposition } from "@remotion/renderer"
 import { beforeAll, describe, expect, it } from "vitest"
 
 import { allTemplates, unpaired } from "./registry"
-import { allSpecs, durationOf, validate } from "./specs"
+import { allSpecs, durationOf, validate, YES_ON_3_FAMILY } from "./specs"
 import { GRAPHICS, versionEntries } from "./studio"
 
 // Every spec has its component; every template's fixture passes its schema,
@@ -42,6 +42,21 @@ describe.each(allSpecs().map((t) => [t.id, t] as const))("%s", (id, t) => {
     expect(composition.durationInFrames).toBe(durationOf(t, inputProps))
     for (const frame of [0, composition.durationInFrames - 1]) {
       await renderStill({ composition, serveUrl, frame, inputProps, output: path.join(os.tmpdir(), `pax-video-test-${id}-${frame}.png`) })
+    }
+  })
+})
+
+describe("the yes-on-3 family", () => {
+  it("is four vertical templates, each taking a recorded take as its backdrop and its length from seconds", () => {
+    expect(YES_ON_3_FAMILY).toHaveLength(4)
+    for (const id of YES_ON_3_FAMILY) {
+      const t = allSpecs().find((s) => s.id === id)!
+      expect(t, id).toBeDefined()
+      expect(t.height > t.width, id).toBe(true)
+      // A take as the chooser passes it: the clips CDN's address and the take's whole length.
+      const v = validate(id, { ...t.fixture, backdrop: "https://d19bx9wfmnrb34.cloudfront.net/recorded/rec-01jbx3c6c8ka7m2v0rq5n4dfgh.webm", seconds: 45 })
+      expect(v.ok, v.ok ? id : v.error).toBe(true)
+      if (v.ok) expect(v.durationInFrames, id).toBe(45 * t.fps)
     }
   })
 })

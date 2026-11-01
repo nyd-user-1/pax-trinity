@@ -21,8 +21,9 @@ export const YesOn3CardProps = z.object({
   entrance: z.enum(["cut", "rise"]).default("cut"),
   /** What the card sits over: a recorded take's URL (it plays), or a picture. Without one, a plain field. */
   backdrop: z.string().max(500).optional(),
-  /** How long the card holds. Wave 2 held it about thirteen seconds. */
-  seconds: z.number().min(2).max(20).default(6),
+  /** How long the card holds. Wave 2 held it about thirteen seconds; over a recorded take, up to the
+   *  take's length (Record stops at sixty). */
+  seconds: z.number().min(2).max(60).default(6),
 })
 
 export type YesOn3CardProps = z.infer<typeof YesOn3CardProps>

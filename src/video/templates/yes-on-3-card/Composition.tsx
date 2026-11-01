@@ -1,22 +1,16 @@
 import * as React from "react"
 import { AbsoluteFill } from "remotion"
-import { loadFont } from "@remotion/google-fonts/BebasNeue"
 
 import { Backdrop, PLAIN_FIELD } from "../../backdrop"
 import { FONT, YES_ON_3 } from "../../theme"
 import { CARD, QuestionCard } from "./Card"
+import { CAPTION_STACK, Words } from "./kit"
 import type { YesOn3CardProps } from "./schema"
 
 // The Yes on 3 card over its footage (or a plain field), in the campaign's own kit. The caption line
-// is set in Bebas Neue, the nearest open face to the Wave 2 videos' condensed capitals.
-
-const { fontFamily: CAPTION_FONT } = loadFont("normal", { weights: ["400"], subsets: ["latin"] })
-
-const bare = (w: string) => w.toUpperCase().replace(/[^\p{L}\p{N}]/gu, "")
+// is set in Bebas Neue, the nearest open face to the Wave 2 videos' condensed capitals (./kit.tsx).
 
 function Caption({ text, highlight }: { text: string; highlight?: string }) {
-  const hot = bare(highlight ?? "")
-  const words = text.split(/\s+/).filter(Boolean)
   return (
     <div
       style={{
@@ -25,7 +19,7 @@ function Caption({ text, highlight }: { text: string; highlight?: string }) {
         right: 40,
         bottom: 1920 - CARD.panelTop + 22,
         textAlign: "center",
-        fontFamily: `${CAPTION_FONT}, 'Arial Narrow', sans-serif`,
+        fontFamily: CAPTION_STACK,
         fontSize: 110,
         lineHeight: 1,
         textTransform: "uppercase",
@@ -33,12 +27,7 @@ function Caption({ text, highlight }: { text: string; highlight?: string }) {
         whiteSpace: "nowrap",
       }}
     >
-      {words.map((w, i) => (
-        <span key={i} style={{ color: hot && bare(w) === hot ? YES_ON_3.orange : "#fff" }}>
-          {w}
-          {i < words.length - 1 ? " " : ""}
-        </span>
-      ))}
+      <Words text={text} highlight={highlight} />
     </div>
   )
 }
