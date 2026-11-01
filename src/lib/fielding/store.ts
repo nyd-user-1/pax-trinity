@@ -19,7 +19,7 @@ import { ENV, ulid } from "@/lib/tests/responses"
 // already keep the pid, which is how a fielding counts who started and finished.
 
 const TABLE = process.env.PAX_TRINITY_TEST_RESPONSES_TABLE ?? "pax-trinity-test-responses"
-const client = DynamoDBDocumentClient.from(new DynamoDBClient({ region: process.env.PAX_TRINITY_TABLES_REGION ?? process.env.PAX2_REGION ?? "us-east-1" }), {
+const client = DynamoDBDocumentClient.from(new DynamoDBClient({ region: process.env.PAX_TRINITY_TABLES_REGION ?? "us-east-2" }), {
   marshallOptions: { removeUndefinedValues: true },
 })
 

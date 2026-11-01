@@ -22,7 +22,7 @@ import { ENV } from "@/lib/tests/responses"
 // everything a demo account makes does. Chat keeps its recordings private; Clips' Record asks.
 
 const TABLE = process.env.PAX_TRINITY_TEST_RESPONSES_TABLE ?? "pax-trinity-test-responses"
-const client = DynamoDBDocumentClient.from(new DynamoDBClient({ region: process.env.PAX_TRINITY_TABLES_REGION ?? process.env.PAX2_REGION ?? "us-east-1" }), {
+const client = DynamoDBDocumentClient.from(new DynamoDBClient({ region: process.env.PAX_TRINITY_TABLES_REGION ?? "us-east-2" }), {
   marshallOptions: { removeUndefinedValues: true },
 })
 const PK = "clips"

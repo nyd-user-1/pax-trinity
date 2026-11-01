@@ -17,7 +17,7 @@ export type { Choice, EntryQuestion, PanelConfig, Status, TestRecord } from "@/l
 
 const TABLE = process.env.PAX_TRINITY_TESTS_TABLE ?? "pax-trinity-tests"
 // The tables can sit in another region than Cognito, which PAX2_REGION names (the new account allows us-east-2 only).
-const client = DynamoDBDocumentClient.from(new DynamoDBClient({ region: process.env.PAX_TRINITY_TABLES_REGION ?? process.env.PAX2_REGION ?? "us-east-1" }), {
+const client = DynamoDBDocumentClient.from(new DynamoDBClient({ region: process.env.PAX_TRINITY_TABLES_REGION ?? "us-east-2" }), {
   marshallOptions: { removeUndefinedValues: true },
 })
 
