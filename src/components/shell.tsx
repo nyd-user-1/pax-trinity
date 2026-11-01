@@ -120,6 +120,8 @@ type PanelState = {
   discussSeed: DiscussSeed | null
   /** The signed-in user is an admin: the Studio and Housekeeping are theirs. */
   admin: boolean
+  /** The super admin alone: the account menu's To Review. */
+  superAdmin: boolean
   /** Opens a page in the second panel, beside the main one (lib/pane.ts). */
   openPane: (href: string) => void
 }
@@ -129,10 +131,10 @@ export type DiscussSeed = { context: () => string; chipVideo?: string; ask?: Chi
  *  Discussion panel's back arrow before the title; `flush` lets rows run to the panel's edges. */
 export type Aside = { key: string; title: string; body: React.ReactNode; back?: () => void; flush?: boolean }
 export type PanelSize = "third" | "half" | "full" | "custom"
-const PanelCtx = React.createContext<PanelState>({ setOpen: () => {}, wide: false, setWide: () => {}, size: "third", nextSize: "half", cycleSize: () => {}, panelOpen: false, sidebarOpen: false, toggleSidebar: () => {}, discuss: false, toggleDiscuss: () => {}, openAside: () => {}, asideKey: null, askAbout: () => {}, discussSeed: null, admin: false, openPane: () => {} })
+const PanelCtx = React.createContext<PanelState>({ setOpen: () => {}, wide: false, setWide: () => {}, size: "third", nextSize: "half", cycleSize: () => {}, panelOpen: false, sidebarOpen: false, toggleSidebar: () => {}, discuss: false, toggleDiscuss: () => {}, openAside: () => {}, asideKey: null, askAbout: () => {}, discussSeed: null, admin: false, superAdmin: false, openPane: () => {} })
 export const useShellPanel = () => React.useContext(PanelCtx)
 
-export function Shell({ children, drawer, signedIn = false, admin = false, partner = false }: { children: React.ReactNode; drawer: React.ReactNode; signedIn?: boolean; admin?: boolean; /** A partner's account: their Delivery Board joins the list. */ partner?: boolean }) {
+export function Shell({ children, drawer, signedIn = false, admin = false, superAdmin = false, partner = false }: { children: React.ReactNode; drawer: React.ReactNode; signedIn?: boolean; admin?: boolean; superAdmin?: boolean; /** A partner's account: their Delivery Board joins the list. */ partner?: boolean }) {
   const path = usePathname()
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = React.useState(false)
@@ -238,9 +240,10 @@ export function Shell({ children, drawer, signedIn = false, admin = false, partn
       askAbout: (s: Omit<DiscussSeed, "nonce">) => (setAside(null), setSeed({ ...s, nonce: Date.now() }), setDiscuss(true)),
       discussSeed: seed,
       admin,
+      superAdmin,
       openPane,
     }),
-    [wide, size, nextSize, panelOpen, sidebarOpen, discuss, aside?.key, seed, admin, openPane],
+    [wide, size, nextSize, panelOpen, sidebarOpen, discuss, aside?.key, seed, admin, superAdmin, openPane],
   )
   // Housekeeping's pointer and page markers open the discussion panel on Housekeeping; a chat video's
   // Open in Studio opens it on the Studio.
@@ -795,12 +798,24 @@ function Initials({ name, size }: { name: string; size: "sm" | "md" }) {
   )
 }
 
+// The routes kept out of the sidebar but still compiled, parked for Brendan's keep-or-kill pass
+// (Brendan, 2026-11-01). A route he kills leaves the list by leaving the repo.
+const TO_REVIEW: [string, string][] = [
+  ["/changelog", "Changelog"],
+  ["/constructs", "Constructs"],
+  ["/electorate", "Electorate"],
+  ["/erd", "ERD"],
+  ["/glossary", "Glossary"],
+  ["/inbox-2", "Inbox 2"],
+  ["/schema", "Schema"],
+]
+
 export function AccountMenu() {
   const router = useRouter()
   const path = usePathname()
   const [user, setUser] = React.useState<User | null | undefined>(undefined)
   const [themePanel, setThemePanel] = useThemePanel()
-  const { admin } = useShellPanel()
+  const { admin, superAdmin } = useShellPanel()
   // /settings' tabs, as the account menu opens them; General has the bare address.
   const openSettings = (tab: string) => router.push(tab === "general" ? "/settings" : `/settings?tab=${tab}`)
   React.useEffect(() => {
@@ -905,6 +920,20 @@ export function AccountMenu() {
               <DropdownMenuItem onClick={() => router.push(testsHref())} className={item}>
                 <FlaskConical /> Tests
               </DropdownMenuItem>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        )}
+        {superAdmin && (
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger className={item}>
+              <ClipboardList /> To Review
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className={sub}>
+              {TO_REVIEW.map(([href, label]) => (
+                <DropdownMenuItem key={href} onClick={() => router.push(href)} className={item}>
+                  {label}
+                </DropdownMenuItem>
+              ))}
             </DropdownMenuSubContent>
           </DropdownMenuSub>
         )}

@@ -32,7 +32,7 @@ export default async function RootLayout({ children, drawer }: LayoutProps<"/">)
       </head>
       <body className="min-h-dvh font-sans text-foreground antialiased">
         <LoadCurtainGate />
-        <Shell drawer={drawer} signedIn={!!user} admin={!!user?.admin} partner={!!user && memberByEmail(user.email)?.role === "partner"}>
+        <Shell drawer={drawer} signedIn={!!user} admin={!!user?.admin} superAdmin={!!user?.superAdmin} partner={!!user && memberByEmail(user.email)?.role === "partner"}>
           {children}
         </Shell>
         {/* GovBlock's inspector dock, bottom right, for admins (beside Housekeeping's pointer, to compare). */}
