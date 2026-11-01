@@ -17,11 +17,15 @@ import { fmtCount, isKeptRecording, type Clip } from "./store"
 // The feed: one clip after another down the page, each the height of the
 // viewport, snapping. The clip in view plays; the rest wait. Beside the
 // frame on a desktop, and over it on a phone, Instagram's rail: like,
-// comment, share, save, more. Under it on a phone, the author and the
-// caption; on a desktop the right rail carries those.
+// comment, share, save, more; for a clip that plays from a file, two Yes on 3
+// templates in place of the first four (docs/briefs/record-template-flow.md).
+// Under it on a phone, the author and the caption; on a desktop the right rail
+// carries those.
 
 // Remotion loads only when a generated clip is on screen.
 const CompositionPlayer = dynamic(() => import("./composition-player").then((m) => m.CompositionPlayer), { ssr: false })
+// The template pair's rail slots (./template-chooser.tsx), Remotion with them, load with the feed's first playable clip.
+const RailTemplates = dynamic(() => import("./template-chooser").then((m) => m.RailTemplates), { ssr: false })
 
 export type Reactions = {
   liked: Set<string>
@@ -38,6 +42,10 @@ export type Reactions = {
   onReport?: (clip: Clip) => void
   /** An admin's, for a clip in Aurora. */
   onTakeDown?: (clip: Clip) => void
+  /** A Yes on 3 template over a clip that plays from a file: a rail thumbnail's pick, or (no pick) the menu's
+   *  Apply a template, all four. Given, such a clip's rail carries the template pair in place of like,
+   *  comment, send and save; comments stay in the panel. */
+  onTemplate?: (clip: Clip, pick?: { shown: string[]; picked: string }) => void
 }
 
 export function Feed({
@@ -192,27 +200,36 @@ function FeedItem({ clip, active, near, muted, onMuted, reactions }: { clip: Cli
   const likes = clip.likes + (liked ? 1 : 0)
   const comments = reactions.commentCount(clip.id)
   const following = reactions.following?.has(clip.creatorId)
+  // A clip that plays from a file can take a template; a YouTube embed or a generated clip keeps today's rail.
+  const templated = !clip.youtube && !clip.composition && !!clip.src && !!reactions.onTemplate
 
   const rail = (
     <div className="flex flex-col items-center gap-4 text-white lg:text-foreground">
-      <RailButton label={fmtCount(likes)} active={liked} activeClass="text-red-500">
-        <ReactionButton Icon={HeartIcon} size={24} isLiked={liked} onToggle={() => reactions.onLike(clip)} />
-      </RailButton>
-      <RailButton label={fmtCount(comments)} onClick={() => reactions.onComment(clip)}>
-        <MessageCircleIcon className="size-6 -scale-x-100" />
-      </RailButton>
-      <RailButton onClick={() => reactions.onGoToPost(clip)} label="">
-        <SendIcon className="size-6" />
-      </RailButton>
-      <RailButton active={saved} label="">
-        <ReactionButton Icon={BookmarkIcon} size={24} isLiked={saved} colors={{ initial: "currentColor", liked: "currentColor" }} onToggle={() => reactions.onSave(clip)} />
-      </RailButton>
+      {templated ? (
+        <RailTemplates clip={clip} active={active} near={near} onPick={(pick) => reactions.onTemplate!(clip, pick)} />
+      ) : (
+        <>
+          <RailButton label={fmtCount(likes)} active={liked} activeClass="text-red-500">
+            <ReactionButton Icon={HeartIcon} size={24} isLiked={liked} onToggle={() => reactions.onLike(clip)} />
+          </RailButton>
+          <RailButton label={fmtCount(comments)} onClick={() => reactions.onComment(clip)}>
+            <MessageCircleIcon className="size-6 -scale-x-100" />
+          </RailButton>
+          <RailButton onClick={() => reactions.onGoToPost(clip)} label="">
+            <SendIcon className="size-6" />
+          </RailButton>
+          <RailButton active={saved} label="">
+            <ReactionButton Icon={BookmarkIcon} size={24} isLiked={saved} colors={{ initial: "currentColor", liked: "currentColor" }} onToggle={() => reactions.onSave(clip)} />
+          </RailButton>
+        </>
+      )}
       <ClipMenu
         clip={clip}
         onGoToPost={() => reactions.onGoToPost(clip)}
         onDelete={clip.mine && !isKeptRecording(clip.id) && reactions.onDelete ? () => reactions.onDelete!(clip) : undefined}
         onReport={!clip.mine && reactions.onReport ? () => reactions.onReport!(clip) : undefined}
         onTakeDown={clip.origin && reactions.onTakeDown ? () => reactions.onTakeDown!(clip) : undefined}
+        onApplyTemplate={templated ? () => reactions.onTemplate!(clip) : undefined}
       >
         <button type="button" className="flex size-10 items-center justify-center rounded-full transition-colors hover:bg-white/15 lg:hover:bg-accent" aria-label="More">
           <MoreHorizontalIcon className="size-6" />

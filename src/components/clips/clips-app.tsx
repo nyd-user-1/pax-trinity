@@ -22,6 +22,7 @@ import { Feed, type Reactions } from "./feed"
 import { Grid } from "./grid"
 import { ReportDialog } from "./report"
 import type { From as TemplateFrom, Take } from "./template-chooser"
+import { YES_ON_3_FAMILY } from "@/video/specs"
 import { Upload } from "./upload"
 import { isTested } from "./clip-test"
 import { openTools, publishClipsPanel } from "@/lib/clips-panel"
@@ -259,6 +260,11 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
       } else setSheet(true)
     },
     onGoToPost: goToPost,
+    // A rail thumbnail opens the chooser on its pick; the menu's Apply a template opens all four.
+    onTemplate: (clip, pick) => {
+      const take = { id: clip.id, src: clip.src, seconds: clip.duration ?? null }
+      setChooser(pick ? { take, from: "rail", shown: pick.shown, picked: pick.picked } : { take, from: "menu", shown: YES_ON_3_FAMILY })
+    },
   }
 
   const post = (text: string) => {

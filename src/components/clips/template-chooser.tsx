@@ -32,9 +32,9 @@ const post = (body: Record<string, unknown>) => fetch("/api/clips/template-pair"
 // One offer per recording per page load, however often its chooser or its rail draws.
 const offers = new Map<string, Promise<string[] | null>>()
 
-/** The recording's pair, null until it arrives (or when it cannot be had). */
-export function useTemplatePair(recording: string | null, from: From): string[] | null {
-  const [shown, setShown] = React.useState<string[] | null>(null)
+/** The recording's pair: undefined until it arrives, null when it cannot be had (signed out, offline). */
+export function useTemplatePair(recording: string | null, from: From): string[] | null | undefined {
+  const [shown, setShown] = React.useState<string[] | null | undefined>(undefined)
   React.useEffect(() => {
     if (!recording) return
     let live = true
@@ -128,6 +128,7 @@ export function TemplateChoices({ take, from, shown: given, picked: handed }: { 
     )
   }
 
+  if (shown === null) return <p className="text-sm text-muted-foreground">I couldn&apos;t load the templates.</p>
   const four = (shown?.length ?? 2) > 2
   return (
     <div className={cn("grid gap-3", four ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-2")}>
@@ -135,6 +136,27 @@ export function TemplateChoices({ take, from, shown: given, picked: handed }: { 
         ? shown.map((id) => <TemplateThumb key={id} templateId={id} props={overTake(id, take)} live={!four} onPick={() => pick(id)} />)
         : [0, 1].map((i) => <Skeleton key={i} className="aspect-[9/16] w-full rounded-xl" />)}
     </div>
+  )
+}
+
+/** The /clips rail's two slots for a clip that plays from a file: its pair, small and held on a frame, drawn
+ *  over a plain field (the clip already plays beside them). The offer is asked for when the clip is the one in
+ *  view; the thumbnails draw only while it is near, so a long scroll does not pile up players. A press opens
+ *  the chooser on that template. Nothing shows when the pair cannot be had. */
+export function RailTemplates({ clip, active, near, onPick }: { clip: { id: string; src: string; duration?: number }; active: boolean; near: boolean; onPick: (pick: { shown: string[]; picked: string }) => void }) {
+  const shown = useTemplatePair(active ? clip.id : null, "rail")
+  if (shown === null) return null
+  return (
+    <>
+      {[0, 1].map((i) => {
+        const id = near ? shown?.[i] : undefined
+        return id && shown ? (
+          <TemplateThumb key={id} templateId={id} props={overTake(id, { src: clip.src, seconds: clip.duration }, false)} live={false} onPick={() => onPick({ shown, picked: id })} className="w-10 rounded-lg ring-white/40 lg:ring-slate-200" />
+        ) : (
+          <span key={i} className="block aspect-[9/16] w-10 rounded-lg bg-white/15 lg:bg-muted" />
+        )
+      })}
+    </>
   )
 }
 
