@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest"
 
-import { enroll, flowFor, flowsTick, isDue, recipientName, tickDay, type FlowDeps, type FlowLike } from "./engine"
+import { enroll, flowFor, flowsTick, isDue, linkFields, recipientName, tickDay, type FlowDeps, type FlowLike } from "./engine"
 import type { FlowStore, Row } from "./store"
 
 // The flows engine against a table double (Brendan, 2026-11-01): the ledger's putOnce and query, with the
@@ -177,6 +177,15 @@ describe("the tick", () => {
     expect([...store.rows.keys()].some((k) => k.startsWith(`FLOWSEND#`))).toBe(false)
     await flowsTick("https://x", deps())
     expect(mails.map((m) => m.subject)).toEqual(["Chat 0 for Reader"])
+  })
+
+  it("fills PAGE_URL and SITE_URL with no trailing slash, whatever the origin or page carries", async () => {
+    expect(linkFields("https://x.app/", "/chat/", EMAIL)).toEqual({ RECIPIENT_NAME: "Reader", PAGE_URL: "https://x.app/chat", SITE_URL: "https://x.app" })
+    expect(linkFields("https://x.app", "/lift", EMAIL)).toMatchObject({ PAGE_URL: "https://x.app/lift", SITE_URL: "https://x.app" })
+    const templates = [{ name: "Chat 0", subject: "Hi", body: "{{PAGE_URL}}?record=1 and {{SITE_URL}}/docs/chat" }]
+    await enroll(USER, "/chat", deps())
+    await flowsTick("https://x.app/", deps({ templates }))
+    expect(mails[0].markdown).toBe("https://x.app/chat?record=1 and https://x.app/docs/chat")
   })
 
   it("fills the recipient's name from the member, else the address's name part", () => {

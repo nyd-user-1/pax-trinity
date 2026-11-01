@@ -63,6 +63,13 @@ export function recipientName(email: string): string {
   return word.charAt(0).toUpperCase() + word.slice(1)
 }
 
+/** The fields a flow template may use. PAGE_URL and SITE_URL never end in a slash: templates append to
+ *  them ({{PAGE_URL}}?record=1, {{SITE_URL}}/docs/<slug>). */
+export function linkFields(base: string, page: string, email: string) {
+  const site = base.replace(/\/+$/, "")
+  return { RECIPIENT_NAME: recipientName(email), PAGE_URL: `${site}${page.replace(/\/+$/, "")}`, SITE_URL: site }
+}
+
 export type TickLine = { email: string; did: string }
 
 /** One pass: for each enrolled user, the first due step (lowest priority number, then lowest day) that has
@@ -95,7 +102,7 @@ export async function flowsTick(base: string, deps: FlowDeps): Promise<TickLine[
         out.push({ email, did: `skipped ${flow.id} day ${step.day}: no template "${step.template}"` })
         continue
       }
-      const fields = { RECIPIENT_NAME: recipientName(email), PAGE_URL: `${base}${flow.page}`, SITE_URL: base }
+      const fields = linkFields(base, flow.page, email)
       const subject = deps.fill(tpl.subject, fields)
       const body = deps.fill(tpl.body, fields)
       const missing = [...new Set([...subject.missing, ...body.missing])]
