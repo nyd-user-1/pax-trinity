@@ -178,7 +178,11 @@ export function Shell({ children, drawer, signedIn = false, admin = false, super
     return window.location.pathname + (q ? `?${q}` : "")
   }
   React.useEffect(() => {
-    if (!isEmbedded()) recordVisit(mainHere())
+    if (isEmbedded()) return
+    const here = mainHere()
+    recordVisit(here)
+    // A signed-in arrival may enroll the reader in the page's email flow (lib/flows); never waited on.
+    if (signedIn) void fetch("/api/flows/enroll", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: here }), keepalive: true }).catch(() => {})
   }, [path])
   React.useEffect(() => {
     if (pane?.href) recordVisit(pane.href)
