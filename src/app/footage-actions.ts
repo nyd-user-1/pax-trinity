@@ -11,7 +11,6 @@ import { fallbackChain, type VideoProvider } from "@/lib/video-model-options"
 // by one model call the first time anyone opens that script) and shot-<id>.json (one per finished
 // clip). The key is the script text's hash, so the same script reaches the same plan and clips.
 
-const REGION = process.env.PAX2_REGION ?? "us-east-1"
 const BUCKET = process.env.PAX2_BUCKET ?? "pax-trinity-audience-613473203863"
 const BUCKET_REGION = process.env.PAX2_BUCKET_REGION ?? "us-east-2"
 const MODEL = process.env.PAX2_MODEL ?? "us.anthropic.claude-sonnet-4-6"
@@ -75,7 +74,7 @@ export async function footagePlan(script: string): Promise<FootagePlan> {
   if (kept) return kept
   await anonSpend("write")
   const { BedrockRuntimeClient, ConverseCommand } = await import("@aws-sdk/client-bedrock-runtime")
-  const r = await new BedrockRuntimeClient({ region: REGION }).send(new ConverseCommand({ modelId: MODEL, messages: [{ role: "user", content: [{ text: prompt(text) }] }], inferenceConfig: { maxTokens: 3000 } }))
+  const r = await new BedrockRuntimeClient({ region: process.env.PAX2_BEDROCK_REGION ?? "us-east-2" }).send(new ConverseCommand({ modelId: MODEL, messages: [{ role: "user", content: [{ text: prompt(text) }] }], inferenceConfig: { maxTokens: 3000 } }))
   const raw = r.output?.message?.content?.map((c) => ("text" in c ? c.text : "")).join("") ?? ""
   const j = JSON.parse(raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1)) as { shots: Omit<Shot, "id">[]; graphics: Graphics }
   let b = 0

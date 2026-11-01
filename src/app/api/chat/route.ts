@@ -14,7 +14,7 @@ import { videoGuide } from "@/lib/video-guide"
 // The /chat answer, after solar's /api/chat: a system prompt carrying the record (here, every take
 // and its reach, and the scripts), then the reply streamed back as plain text.
 
-const client = new BedrockRuntimeClient({ region: process.env.PAX2_BEDROCK_REGION ?? process.env.PAX2_REGION ?? "us-east-1" })
+const client = new BedrockRuntimeClient({ region: process.env.PAX2_BEDROCK_REGION ?? "us-east-2" })
 const MODEL = process.env.PAX2_CHAT_MODEL ?? process.env.PAX2_MODEL ?? "us.anthropic.claude-sonnet-4-6"
 // The templates the chat fills and the lift results it fills them from (lib/video-guide.ts); the same for every request.
 const VIDEO_GUIDE = videoGuide()

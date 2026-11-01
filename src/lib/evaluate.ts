@@ -75,7 +75,7 @@ Reply with JSON only: {"summary": "...", "title": "...", "traits": [{"key": "...
 
 export async function evaluate(o: Original): Promise<Evaluation> {
   const { BedrockRuntimeClient, ConverseCommand } = await import("@aws-sdk/client-bedrock-runtime")
-  const client = new BedrockRuntimeClient({ region: process.env.PAX2_REGION ?? "us-east-1" })
+  const client = new BedrockRuntimeClient({ region: process.env.PAX2_BEDROCK_REGION ?? "us-east-2" })
   const r = await client.send(new ConverseCommand({ modelId: MODEL, messages: [{ role: "user", content: [{ text: prompt(o) }] }], inferenceConfig: { maxTokens: 4000, temperature: 0 } }))
   const raw = r.output?.message?.content?.map((c) => ("text" in c ? c.text : "")).join("") ?? ""
   const coded = JSON.parse(raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1)) as Coded

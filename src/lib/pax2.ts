@@ -14,7 +14,7 @@ const referenceModel = referenceModelFile()
 // below, must cite one for every claim, and anything it cites that does not exist is removed.
 
 const MODEL = process.env.PAX2_MODEL ?? "us.anthropic.claude-sonnet-4-6"
-const client = new BedrockRuntimeClient({ region: process.env.PAX2_REGION ?? "us-east-1" })
+const client = new BedrockRuntimeClient({ region: process.env.PAX2_BEDROCK_REGION ?? "us-east-2" })
 
 export type Cited = { kind: "observed" | "interpretation" | "hypothesis"; text: string; evidence: string[] }
 export type Proposal = { change: string; prompted: string; uncertain: string; measure: string; evidence: string[] }

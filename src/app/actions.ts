@@ -102,7 +102,7 @@ export async function writeScript(input: { name: string; role: string; town: str
   }
   const ranked = SCRIPTS.map((s) => ({ s, m: mean(s.id) })).sort((a, b) => (b.m ?? -1) - (a.m ?? -1))
   const base = ranked[0].m != null ? ranked[0] : { s: SCRIPTS.find((s) => s.id === "calm")!, m: null }
-  const client = new BedrockRuntimeClient({ region: process.env.PAX2_REGION ?? "us-east-1" })
+  const client = new BedrockRuntimeClient({ region: process.env.PAX2_BEDROCK_REGION ?? "us-east-2" })
   const prompt = writerPrompt(base.s, input)
   const r = await client.send(new ConverseCommand({ modelId: process.env.PAX2_MODEL ?? "us.anthropic.claude-sonnet-4-6", messages: [{ role: "user", content: [{ text: prompt }] }], inferenceConfig: { maxTokens: 500, temperature: 0.6 } }))
   const text = r.output?.message?.content?.map((c) => ("text" in c ? c.text : "")).join("").trim() ?? ""

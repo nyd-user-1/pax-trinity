@@ -21,7 +21,7 @@ import { MODELS, costOf, type ModelTier, type Usage } from "@/lib/agents/models"
 // system prompts and usage accounting in the same vocabulary for every model —
 // swapping Opus 4.6 for Haiku 4.5 is a string change, not a rewrite.
 
-const REGION = process.env.AWS_REGION || process.env.BEDROCK_REGION || "us-east-1"
+const REGION = process.env.AWS_REGION || process.env.BEDROCK_REGION || "us-east-2"
 
 let client: BedrockRuntimeClient | null = null
 
