@@ -360,7 +360,9 @@ export async function kick(channelId: string, by: string, hop = 0) {
   const at = now()
   await putOnce({ pk: `YTCH#${channelId}`, sk: `KICK#${at}`, at, by, hop })
   const { LambdaClient, InvokeCommand } = await import("@aws-sdk/client-lambda")
-  const lambda = new LambdaClient({ region: process.env.PAX2_REGION ?? "us-east-1" })
+  // The function lives in the new account, us-east-2 (lambda/channel-ingest/deploy.sh). PAX2_REGION is
+  // Cognito's region in production, so it can't name this one.
+  const lambda = new LambdaClient({ region: process.env.PAX2_INGEST_REGION ?? "us-east-2" })
   await lambda.send(new InvokeCommand({ FunctionName: FN, InvocationType: "Event", Payload: new TextEncoder().encode(JSON.stringify({ channelId, by, hop })) }))
 }
 
