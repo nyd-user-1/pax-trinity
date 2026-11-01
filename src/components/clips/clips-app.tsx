@@ -422,7 +422,8 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
               }
               tools={
                 <div className="flex min-w-0 items-center gap-3">
-                  <span className="hidden truncate text-base font-medium @min-[1056px]/clips:inline">{creatorLabel}</span>
+                  {/* The default view carries no label (Brendan, 2026-11-01); a chosen partner or library is named. */}
+                  {creator !== "all" && <span className="hidden truncate text-base font-medium @min-[1056px]/clips:inline">{creatorLabel}</span>}
                   <Select value={creator} onValueChange={(v) => v && setCreator(String(v))}>
                     <SelectTrigger className="h-8 w-max min-w-36 @min-[1056px]/clips:hidden" size="sm" aria-label="Partner">
                       <SelectValue>{() => creatorLabel}</SelectValue>

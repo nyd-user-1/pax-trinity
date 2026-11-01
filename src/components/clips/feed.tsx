@@ -177,6 +177,16 @@ function FeedItem({ clip, active, near, muted, onMuted, reactions }: { clip: Cli
     }
   }
 
+  /** The timeline's press or drag, as a fraction of the clip. */
+  const seekTo = (e: React.PointerEvent<HTMLDivElement>) => {
+    const v = videoRef.current
+    if (!v?.duration) return
+    const r = e.currentTarget.getBoundingClientRect()
+    const f = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width))
+    v.currentTime = f * v.duration
+    setProgress(f)
+  }
+
   const liked = reactions.liked.has(clip.id)
   const saved = reactions.saved.has(clip.id)
   const likes = clip.likes + (liked ? 1 : 0)
@@ -271,8 +281,24 @@ function FeedItem({ clip, active, near, muted, onMuted, reactions }: { clip: Cli
           </button>
         )}
         {!clip.youtube && !clip.composition && (
-          <div className="absolute inset-x-0 bottom-0 h-0.5 bg-white/25">
-            <div className="h-full bg-pax2-surface" style={{ width: `${progress * 100}%` }} />
+          // The player's timeline (Brendan, 2026-11-01): a bar the eye can find, white over the footage
+          // whatever the theme, and a press anywhere on it seeks; the hit area stands taller than the bar.
+          <div
+            role="slider"
+            aria-label="Seek"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(progress * 100)}
+            onPointerDown={(e) => {
+              e.currentTarget.setPointerCapture(e.pointerId)
+              seekTo(e)
+            }}
+            onPointerMove={(e) => e.currentTarget.hasPointerCapture(e.pointerId) && seekTo(e)}
+            className="absolute inset-x-0 bottom-0 z-10 flex h-4 cursor-pointer touch-none items-end"
+          >
+            <div className="h-[3px] w-full bg-white/30">
+              <div className="h-full bg-white" style={{ width: `${progress * 100}%` }} />
+            </div>
           </div>
         )}
         {/* On a phone the rail and the caption sit over the picture. */}
