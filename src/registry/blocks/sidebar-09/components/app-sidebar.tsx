@@ -37,7 +37,9 @@ const INTENTS: { label: string; names: string[] }[] = [
   { label: "Account", names: ["Invitation", "Your login", "Password reset"] },
 ]
 const NAMED = new Set(INTENTS.flatMap((i) => i.names))
-const OTHER = TEMPLATES.filter((t) => !NAMED.has(t.name))
+// The flows' mail (lib/flows/defs.ts) folds as its own group, by kind, after the named intents.
+const FLOWS = TEMPLATES.filter((t) => t.kind === "Flows")
+const OTHER = TEMPLATES.filter((t) => !NAMED.has(t.name) && t.kind !== "Flows")
 
 function Intent({ label }: { label: string }) {
   return <p className="px-2.5 pt-2 pb-0.5 text-[11px] font-medium text-slate-400">{label}</p>
@@ -101,7 +103,7 @@ export function InboxRail({
         {REQUESTS.map((r) => (
           <RailRow key={r.kind} onClick={() => onNew(r.kind)} lead={<TemplateThumb template={r} />} label={r.name} />
         ))}
-        {[...INTENTS.map((i) => ({ label: i.label, rows: i.names.map((n) => TEMPLATES.find((t) => t.name === n)).filter((t): t is Template => !!t) })), { label: "Other", rows: OTHER }]
+        {[...INTENTS.map((i) => ({ label: i.label, rows: i.names.map((n) => TEMPLATES.find((t) => t.name === n)).filter((t): t is Template => !!t) })), { label: "Flows", rows: FLOWS }, { label: "Other", rows: OTHER }]
           .filter((g) => g.rows.length)
           .map((g) => (
             <React.Fragment key={g.label}>

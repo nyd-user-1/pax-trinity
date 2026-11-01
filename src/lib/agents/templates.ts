@@ -4,10 +4,13 @@
 // the composer. Agents send from their AgentMail inboxes (pax-pollster,
 // pax-analyst, pax-assistant), a person from their own address. {{NAME}} marks
 // what the sender fills in. Written by a script from the Resend side; edit both.
+// Flows (Brendan, 2026-11-01) are the mail a page visit enrolls a signed-in reader
+// in, each teaching that page (lib/flows/defs.ts). They carry local- ids until
+// they are published to Resend; a rewrite from the Resend side must keep them.
 
-export type TemplateKind = "Consensus" | "Surveys" | "Tests" | "Results" | "Notifications" | "Reminders" | "Onboarding"
+export type TemplateKind = "Consensus" | "Surveys" | "Tests" | "Results" | "Notifications" | "Reminders" | "Onboarding" | "Flows"
 
-export const TEMPLATE_KINDS: TemplateKind[] = ["Consensus", "Surveys", "Tests", "Results", "Notifications", "Reminders", "Onboarding"]
+export const TEMPLATE_KINDS: TemplateKind[] = ["Consensus", "Surveys", "Tests", "Results", "Notifications", "Reminders", "Onboarding", "Flows"]
 
 export type Template = {
   /** The template's id in Resend. */
