@@ -5,8 +5,8 @@ import fs from "node:fs"
 // Large generated JSON read at request time, never bundled: a static import inlines the file into every
 // route chunk that renders it, and a literal fs path gets traced into the build (Amplify's 220 MB cap).
 // The path below is assembled, so the file tracer cannot follow it; a local copy serves development and
-// production reads generated/<name>.json from PAX2_BUCKET. On 2026-11-01 only the old account's
-// pax-2-638175140432 holds generated/; the new bucket has none yet, so production reads null.
+// production reads generated/<name>.json from PAX2_BUCKET (generated/ copied over from the old
+// account's pax-2-638175140432, 2026-11-01).
 // One read per server, cached.
 
 export const GENERATED = {

@@ -16,8 +16,7 @@
 //   --print       derive and print; write nothing
 //
 // Reads, never writes: the audience export (exports/index.json and the source files it names) from
-// pax-trinity-audience-613473203863 with profile pax-new in us-east-2, falling back to
-// pax-trinity-audience-638175140432 with the default profile in us-east-1. Every number comes from
+// pax-trinity-audience-613473203863 with profile pax-new in us-east-2. Every number comes from
 // the store's rows; a factor the store cannot supply is reported and left out, never filled in.
 //
 // The factors, for a state population (rows at the state's geo code):
@@ -100,10 +99,7 @@ function applyMap(factor, shares) {
 
 // -- reading the store ---------------------------------------------------------------------------
 
-const BUCKETS = [
-  { bucket: "pax-trinity-audience-613473203863", profile: "pax-new", region: "us-east-2" },
-  { bucket: "pax-trinity-audience-638175140432", profile: "default", region: "us-east-1" },
-]
+const BUCKETS = [{ bucket: "pax-trinity-audience-613473203863", profile: "pax-new", region: "us-east-2" }]
 let store
 async function get(key) {
   const tries = store ? [store] : BUCKETS

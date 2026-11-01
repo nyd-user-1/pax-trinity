@@ -5,8 +5,9 @@
 //
 //   --test <id>      the test whose results the completion hook kept (src/lib/results/complete.ts)
 //   --from <origin>  where to read them: GET <origin>/api/results/<id>; default http://localhost:3000
-//   --sync           also merge the export rows into both audience export buckets (exports/pax_test.json
-//                    and exports/index.json, read from the bucket first so nothing else there is lost)
+//   --sync           also merge the export rows into the audience export bucket (exports/pax_test.json
+//                    and exports/index.json, read from the bucket first so nothing else there is lost);
+//                    the new account's only, since 2026-11-01
 //
 // Writes:
 //   src/lib/results/computed/<resultSet id>.json   the ResultSet, as the hook derived it
@@ -84,10 +85,7 @@ const local = merge(path.join(ROOT, "public/audience-data/pax_test.json"), path.
 console.log(`export (local): ${local.replaced} earlier row(s) of this test replaced, ${rows.length} written, ${local.total} PAX_TEST rows`)
 
 if (argv.includes("--sync")) {
-  for (const [bucket, profile] of [
-    ["pax-trinity-audience-638175140432", "default"],
-    ["pax-trinity-audience-613473203863", "pax-new"],
-  ]) {
+  for (const [bucket, profile] of [["pax-trinity-audience-613473203863", "pax-new"]]) {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "publish-"))
     const aws = (...a) => execFileSync("aws", [...a, "--profile", profile, "--only-show-errors"], { stdio: "inherit" })
     aws("s3", "cp", `s3://${bucket}/exports/pax_test.json`, path.join(tmp, "pax_test.json"))

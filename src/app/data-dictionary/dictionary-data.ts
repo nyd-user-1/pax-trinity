@@ -4,7 +4,8 @@
 // all 41 source files, ~140 MB, that made a fresh server's first request take 11 s;
 // the two agree on all 8,028 constructs). Built rows are reused for five minutes.
 
-const BASE = "https://pax-trinity-audience-638175140432.s3.amazonaws.com/exports"
+// The new account's audience bucket (us-east-2), whose exports/ the bucket policy opens to public reads.
+const BASE = "https://pax-trinity-audience-613473203863.s3.us-east-2.amazonaws.com/exports"
 
 /** Copied from src/app/audience/audience-data.ts (the rail's short names). */
 const SHORT_SOURCE: Record<string, string> = {
