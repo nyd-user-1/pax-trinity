@@ -547,9 +547,11 @@ export function Shell({ children, drawer, signedIn = false, admin = false, super
               {/* The header's empty run is the right-click page switcher's ground, and nothing said so
                   (Brendan, 2026-11-01): resting on it draws the drop target's dashed blue line and the
                   one instruction, after a beat so a passing pointer never flashes it. */}
-              <div className="group/deadspace relative flex flex-1 items-center self-stretch">
-                <span aria-hidden className="pointer-events-none absolute inset-x-0 inset-y-3 flex items-center justify-center rounded-xl border-2 border-dashed border-pax2-light-blue/60 opacity-0 transition-opacity duration-200 group-hover/deadspace:opacity-100 group-hover/deadspace:delay-700">
-                  <span className="rounded-full bg-pax2-surface px-3 py-1 text-xs font-medium text-pax2-blue">Right-click to go to any page</span>
+              <div className="group/deadspace flex flex-1 items-center self-stretch">
+                {/* The hint spans the whole header, the drop target's dress: the dashed blue line, the light
+                    blue wash inside (hover is still the dead space alone, so the controls never trigger it). */}
+                <span aria-hidden className="pointer-events-none absolute inset-2 z-20 flex items-center justify-center rounded-xl border-2 border-dashed border-pax2-light-blue bg-pax2-light-blue/10 opacity-0 transition-opacity duration-200 group-hover/deadspace:opacity-100 group-hover/deadspace:delay-700">
+                  <span className="rounded-full bg-pax2-surface px-3.5 py-1.5 text-sm font-medium text-pax2-blue shadow-e1">Right-click to go to any page</span>
                 </span>
               </div>
               {/* A page's own header controls (the dashboard's poller switch and pipeline run) portal in here. */}
