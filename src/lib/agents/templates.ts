@@ -207,5 +207,197 @@ export const TEMPLATES: Template[] = [
     "from": "assistant",
     "subject": "Reset your PAX password",
     "body": "**Reset your PAX password**\n\nSomeone asked to reset the password for this account. If it wasn't you, ignore this and nothing changes.\n\n**Username:** {{USERNAME}}\n\n**The link works for:** one hour\n\n[Choose a new password]({{RESET_URL}})\n\nAssistant"
+  },
+  {
+    "id": "local-chat-flow-1-ask-in-plain-words",
+    "kind": "Flows",
+    "name": "Chat flow 1: Ask in plain words",
+    "from": "assistant",
+    "subject": "Ask me anything in Chat",
+    "body": "**Ask me anything in Chat**\n\nHi {{RECIPIENT_NAME}},\n\nChat is where you ask me in plain words, from how a short performed to what a lift means. I answer from the record: the scored takes, the scripts, the shorts on file and the metric definitions. When a number isn't on file, I say so rather than make one up.\n\nNot sure where to start? The + menu's **Onboarding** holds twenty questions, each one teaching a page or the loop that joins them.\n\nEvery chat is saved under **Chats** in the sidebar, so you can pick one up where you left off.\n\n[Open Chat]({{PAGE_URL}})\n\nAssistant"
+  },
+  {
+    "id": "local-chat-flow-2-write-and-record-a-video",
+    "kind": "Flows",
+    "name": "Chat flow 2: Write and record a video",
+    "from": "assistant",
+    "subject": "Write and record a video in Chat",
+    "body": "**Write and record a video in Chat**\n\nHi {{RECIPIENT_NAME}},\n\nThe road from an idea to a video on file runs through one chat:\n\n1. Press the camera beside the box. I ask a few short questions, one at a time: who you are, your town, and why open primaries matter to you.\n2. I draft a script in your words: a hook under 12 words, one concrete number, about 25 seconds spoken, ending with what the viewer should do. Each line that leans on evidence carries its source.\n3. Revise it with me until it sounds like you.\n4. Press **Record** on the script card. The camera opens in the chat with a teleprompter that scrolls at your pace.\n5. Watch it back, give it a title and send it.\n\nThe take is kept in Clips, in Your library, where only you see it. Once it's kept, I show it inside two Yes on 3 templates; pick one to play your take in it.\n\n[Record a video]({{PAGE_URL}}?record=1)\n\nAssistant"
+  },
+  {
+    "id": "local-chat-flow-3-skills",
+    "kind": "Flows",
+    "name": "Chat flow 3: Skills",
+    "from": "assistant",
+    "subject": "Set how I work for a whole chat",
+    "body": "**Set how I work for a whole chat**\n\nHi {{RECIPIENT_NAME}},\n\nThe top of the + menu holds **Skills**. Pick one and it rides the chat as a chip in the box, shaping every answer after it until you drop it.\n\n- **Script doctor** tightens a script to the house rules and lists each change.\n- **Read a test** explains a message test's result to someone who has never read one.\n- **Pick the audience** proposes video and audience pairings to test next.\n- **Draft a survey question** writes a neutral question, matched to America Thinks.\n- **Brief a partner** turns what the chat found into a short update.\n- **Make a video** turns a result into a video from a template.\n\nTry **Read a test** and name a report, then ask your follow-ups in the same chat.\n\n[Pick a skill]({{PAGE_URL}})\n\nAssistant"
+  },
+  {
+    "id": "local-chat-flow-4-ask-about-the-page-on-screen",
+    "kind": "Flows",
+    "name": "Chat flow 4: Ask about the page on screen",
+    "from": "assistant",
+    "subject": "Ask about the page in front of you",
+    "body": "**Ask about the page in front of you**\n\nHi {{RECIPIENT_NAME}},\n\nHold Shift and drag across a blank part of any page, and a note opens where you drew it, as large as you drew it. Switch it from **Note** to **Chat** in its header, type your question, and press Shift Enter.\n\nEach question carries the page you have open, and the one beside it in the second panel, so I answer from the numbers on show: a question's Crosstab in America Thinks, a row in Lift, a report. The chat stays with the note, and the note keeps itself under **My notes** in the Inbox.\n\nThe rest of Chat, from the + menu to recording, is in the guide.\n\n[Read the Chat guide]({{SITE_URL}}/docs/chat)\n\nAssistant"
+  },
+  {
+    "id": "local-lift-flow-1-read-a-lift",
+    "kind": "Flows",
+    "name": "Lift flow 1: Read a lift",
+    "from": "assistant",
+    "subject": "Read Lift in a minute",
+    "body": "**Read Lift in a minute**\n\nHi {{RECIPIENT_NAME}},\n\nLift sets every tested video's effect side by side, so a strong result stands out from an ordinary one before you scale it.\n\nEach row is a video and each column one measure: Support and Comprehension for the message tests. In each cell:\n\n- The small number at the left is the placebo group's level.\n- The bar runs from it by the lift, in percentage points, and the number past its tip is the lift.\n- A lift drawn in grey didn't clear its test: the test couldn't tell it from no effect.\n\n[Open Lift]({{PAGE_URL}})\n\nAssistant"
+  },
+  {
+    "id": "local-lift-flow-2-what-one-lift-means",
+    "kind": "Flows",
+    "name": "Lift flow 2: What one lift means",
+    "from": "assistant",
+    "subject": "What one lift means",
+    "body": "**What one lift means**\n\nHi {{RECIPIENT_NAME}},\n\nClick any lift in the table and Lift Analysis opens beside it:\n\n1. **Result**: each group's level and sample size, the lift with four bars for its strength, and its 90% interval. An interval that crosses zero means the test couldn't tell the effect from none.\n2. **Benchmarks**: where the lift falls among every other on the same measure and segment, across all tests, the folder's own and this test, by fifths.\n3. **Compare Rank**: every video in the same test, ranked on this measure.\n4. **Explainer**, the second tab: all of it in plain sentences.\n\nThe ‹ › arrows in the toolbar step to the row before or after, and the panel follows.\n\n[Open Lift]({{PAGE_URL}})\n\nAssistant"
+  },
+  {
+    "id": "local-lift-flow-3-every-segment-at-once",
+    "kind": "Flows",
+    "name": "Lift flow 3: Every segment at once",
+    "from": "assistant",
+    "subject": "See every segment at once",
+    "body": "**See every segment at once**\n\nHi {{RECIPIENT_NAME}},\n\nBelow Everyone, each video's lift breaks down by age, education, gender, party and more. The heatmap lays every segment out at once.\n\nIn the toolbar's ⋮ menu, choose **View**, then **Heatmap**. Each cell is coloured by how far it sits from the benchmark, and **Benchmark** in the same menu sets what that is: the median of every lift on file, or zero. The key on the toolbar reads the colours.\n\n[Open Lift]({{PAGE_URL}})\n\nAssistant"
+  },
+  {
+    "id": "local-lift-flow-4-filter-share-and-the-archive",
+    "kind": "Flows",
+    "name": "Lift flow 4: Filter, share and the Archive",
+    "from": "assistant",
+    "subject": "Filter Lift down, then share exactly that",
+    "body": "**Filter Lift down, then share exactly that**\n\nHi {{RECIPIENT_NAME}},\n\nThe toolbar's ⋮ **Filter** keeps only what you need: which waves the table reads and, for each measure, only the results that clear their test. The sidebar's Treatments, Metrics and Segments checklists take rows and columns out.\n\nThen **Share** in the same menu copies a link to exactly what you're looking at, and **Download** saves the table as a CSV.\n\nTo set a result against what campaigns' own experiments found, switch the sidebar's folder to the **Archive**: 1,583 effects from randomized persuasion experiments campaigns ran on their own ads.\n\n[Read the Lift guide]({{SITE_URL}}/docs/lift)\n\nAssistant"
+  },
+  {
+    "id": "local-america-thinks-flow-1-where-opinion-stands",
+    "kind": "Flows",
+    "name": "America Thinks flow 1: Where opinion stands",
+    "from": "assistant",
+    "subject": "Start from where opinion stands",
+    "body": "**Start from where opinion stands**\n\nHi {{RECIPIENT_NAME}},\n\nEvery message rests on a guess about what voters already believe. America Thinks swaps the guess for the record: the General Social Survey, ANES and CES beside public polls, official results, the census, and turnout, voting-age and enrollment records.\n\nPick a topic under **Index** in the sidebar. Each row is one question, its headline after the dash. Click one and it opens beside the list.\n\n[Open America Thinks]({{PAGE_URL}})\n\nAssistant"
+  },
+  {
+    "id": "local-america-thinks-flow-2-one-question-five-views",
+    "kind": "Flows",
+    "name": "America Thinks flow 2: One question, five views",
+    "from": "assistant",
+    "subject": "One question, five ways to read it",
+    "body": "**One question, five ways to read it**\n\nHi {{RECIPIENT_NAME}},\n\nOpen a question and the toggle in its bar switches the view:\n\n- **Data**: every figure, newest wave first, the total before its groups.\n- **Crosstab**: the answers broken down by group, each share with its margin.\n- **Trend**: how it moved across the years it was asked.\n- **Topline**: the wording as asked, and every answer at the latest wave with the earlier waves beside it.\n- **Global view**: all of them in one column.\n\nRead the wording before the numbers: two surveys can ask the same thing differently.\n\n[Pick a question]({{PAGE_URL}})\n\nAssistant"
+  },
+  {
+    "id": "local-america-thinks-flow-3-marks-and-sources",
+    "kind": "Flows",
+    "name": "America Thinks flow 3: Marks and sources",
+    "from": "assistant",
+    "subject": "Keep the questions you come back to",
+    "body": "**Keep the questions you come back to**\n\nHi {{RECIPIENT_NAME}},\n\nEach row in America Thinks carries three marks:\n\n- **The box** adds the question as a column, so several read side by side.\n- **The arrow** marks it Important.\n- **The star** adds it to Favorites.\n\n**Favorites** and **Important** in the sidebar then list just those, and the **Data** group at the sidebar's foot browses one source at a time.\n\n[Open America Thinks]({{PAGE_URL}})\n\nAssistant"
+  },
+  {
+    "id": "local-america-thinks-flow-4-results-against-the-norm",
+    "kind": "Flows",
+    "name": "America Thinks flow 4: Results against the norm",
+    "from": "assistant",
+    "subject": "Read a result against where opinion stands",
+    "body": "**Read a result against where opinion stands**\n\nHi {{RECIPIENT_NAME}},\n\nA lift says how far a video moved people; America Thinks says where opinion stood to begin with. Open the two side by side: on Lift, hover **America Thinks** in the sidebar and click its arrow, and it opens in a second panel. Drag the line between them to resize.\n\nFor one idea measured across every survey that asked it, however each one worded it, open **Constructs**: each with every source it's asked in, its latest figures and its trend.\n\n[Read the America Thinks guide]({{SITE_URL}}/docs/america-thinks)\n\nAssistant"
+  },
+  {
+    "id": "local-studio-flow-1-templates-and-versions",
+    "kind": "Flows",
+    "name": "Studio flow 1: Templates and versions",
+    "from": "assistant",
+    "subject": "Every video template, in one place",
+    "body": "**Every video template, in one place**\n\nHi {{RECIPIENT_NAME}},\n\nStudio is where the video templates live: the templates themselves, the graphics the Enhance flow draws, and every version you've made in Chat.\n\nPick a composition in the list at the left. The canvas plays it, the timeline scrubs to any frame, and the panel at the right shows the props it was made from: the same data Chat filled in.\n\n[Open Studio]({{PAGE_URL}})\n\nAssistant"
+  },
+  {
+    "id": "local-studio-flow-2-from-chat-to-studio",
+    "kind": "Flows",
+    "name": "Studio flow 2: From Chat to Studio",
+    "from": "assistant",
+    "subject": "Make a video in Chat, check it in Studio",
+    "body": "**Make a video in Chat, check it in Studio**\n\nHi {{RECIPIENT_NAME}},\n\nVersions are made in Chat and checked here:\n\n1. In Chat, ask for a video in plain words: “Make a lift card for the best-tested video.”\n2. I fill a template from the figures on file. The video plays in my reply, saved as your next version of that template.\n3. Ask for a change and I write it again as a new version. The old one stays.\n4. **Open in Studio** under the video opens that exact version here, every frame and every prop.\n\n[How Chat makes videos]({{SITE_URL}}/docs/videos-in-chat)\n\nAssistant"
+  },
+  {
+    "id": "local-studio-flow-3-graphics",
+    "kind": "Flows",
+    "name": "Studio flow 3: Graphics",
+    "from": "assistant",
+    "subject": "The graphics beside the templates",
+    "body": "**The graphics beside the templates**\n\nHi {{RECIPIENT_NAME}},\n\nBelow the templates, Studio's **Graphics** folder holds the cards the Enhance flow draws: a checklist, a callout, a stat, a quote, an intro and an end card. Each takes an optional backdrop, a recorded take that plays under it.\n\nIn Chat, the + menu's **Graphics** draws a script's cards; here you check each one frame by frame.\n\n[Open Studio]({{PAGE_URL}})\n\nAssistant"
+  },
+  {
+    "id": "local-studio-flow-4-studio-beside-chat",
+    "kind": "Flows",
+    "name": "Studio flow 4: Studio beside Chat",
+    "from": "assistant",
+    "subject": "Keep Studio open beside Chat",
+    "body": "**Keep Studio open beside Chat**\n\nHi {{RECIPIENT_NAME}},\n\nOpen **Tools** at the top right of any page and choose **Studio**: it sits beside the page you're on. Keep it there while you work in Chat, and every version Chat saves loads into it as it lands, so each change is checked the moment it's made.\n\nWhen a version is right, **Get MP4** under the video in Chat renders the file.\n\n[Read the Studio guide]({{SITE_URL}}/docs/studio)\n\nAssistant"
+  },
+  {
+    "id": "local-inbox-flow-1-three-agents",
+    "kind": "Flows",
+    "name": "Inbox flow 1: Three agents",
+    "from": "assistant",
+    "subject": "Mail between you and three agents",
+    "body": "**Mail between you and three agents**\n\nHi {{RECIPIENT_NAME}},\n\nThe Inbox is mail between you and three agents, each with an address of its own. Send a task and the work comes back as replies on the same thread.\n\n- **The Pollster** fields consensus conversations, surveys and tests to a contact group.\n- **The Analyst** writes the question cards, toplines and readouts.\n- **The Assistant** sends the notices, reminders, digests and onboarding mail, this one included.\n\n[Open the Inbox]({{PAGE_URL}})\n\nAssistant"
+  },
+  {
+    "id": "local-inbox-flow-2-field-a-survey-or-a-test",
+    "kind": "Flows",
+    "name": "Inbox flow 2: Field a survey or a test",
+    "from": "assistant",
+    "subject": "Field a survey or a test",
+    "body": "**Field a survey or a test**\n\nHi {{RECIPIENT_NAME}},\n\nA fielding runs end to end on one thread:\n\n1. Under **Templates** in the Inbox's sidebar, **New test** or **New survey** opens a request to the Pollster.\n2. Fill in the test or survey, a quota and a close date, and add a group from the address book as a recipient.\n3. The Pollster mails each member a link of their own, tracks who opened, started and finished, and reminds whoever hasn't.\n4. It closes at the quota or the deadline, and the Analyst's readout lands on the same thread.\n\nSending a task needs a staff account.\n\n[Open the Inbox]({{PAGE_URL}})\n\nAssistant"
+  },
+  {
+    "id": "local-inbox-flow-3-templates",
+    "kind": "Flows",
+    "name": "Inbox flow 3: Templates",
+    "from": "assistant",
+    "subject": "Start from a template",
+    "body": "**Start from a template**\n\nHi {{RECIPIENT_NAME}},\n\nEvery message that goes out more than once has a template: invitations, reminders, updates, results and account mail. Open **Templates** in the Inbox's sidebar and pick one, and the composer fills with it. The parts in capitals between double braces are the ones you fill in.\n\nEach goes out in the same design: the mark, a white card headed by the message's first line, and its details in a pale panel. This mail started as one.\n\n[Open the Inbox]({{PAGE_URL}})\n\nAssistant"
+  },
+  {
+    "id": "local-inbox-flow-4-from-a-conversation-to-a-test",
+    "kind": "Flows",
+    "name": "Inbox flow 4: From a conversation to a test",
+    "from": "assistant",
+    "subject": "From a conversation to a test",
+    "body": "**From a conversation to a test**\n\nHi {{RECIPIENT_NAME}},\n\nThe Inbox is where the loop meets. On a consensus survey's **Results** in Survey, **Make question card** sets the Open Primaries survey's questions beside the statements every group shared and the ones that split them, and hands the card to the Inbox as a New test for the Pollster.\n\nFrom there the fielding runs on one thread, and the readout comes back to it when the test closes. Your notes live here too, under **My notes** in the sidebar.\n\n[Read the Inbox guide]({{SITE_URL}}/docs/inbox)\n\nAssistant"
+  },
+  {
+    "id": "local-survey-flow-1-agree-disagree-or-pass",
+    "kind": "Flows",
+    "name": "Survey flow 1: Agree, disagree or pass",
+    "from": "assistant",
+    "subject": "Where does the room agree?",
+    "body": "**Where does the room agree?**\n\nHi {{RECIPIENT_NAME}},\n\nSurvey holds the consensus conversations. Each is a set of short statements, answered one at a time: **Agree**, **Disagree** or **Pass**. I find the opinion groups in the votes, so you see where a coalition already agrees, and where it splits, before you take a position.\n\nOpen **Questions** under Consensus in the sidebar to answer a conversation's cards.\n\n[Answer the questions]({{PAGE_URL}}?s=questions)\n\nAssistant"
+  },
+  {
+    "id": "local-survey-flow-2-from-answers-to-results",
+    "kind": "Flows",
+    "name": "Survey flow 2: From answers to results",
+    "from": "assistant",
+    "subject": "From your answers to where people agree",
+    "body": "**From your answers to where people agree**\n\nHi {{RECIPIENT_NAME}},\n\n1. Answer each card: Agree, Disagree or Pass. The blue outline marks the next one you haven't answered, and the bar at the top counts your progress.\n2. When the last card leaves, the results open: the statements consensus emerged on, each with your own answer beside the room's.\n3. **Results** in the sidebar shows the whole conversation: where the groups agree, where they split, and every statement's shares.\n\nChanged your mind? Once you finish, **Review my answers** brings every card back.\n\n[See the results]({{PAGE_URL}}?s=results)\n\nAssistant"
+  },
+  {
+    "id": "local-survey-flow-3-two-rules-for-consensus",
+    "kind": "Flows",
+    "name": "Survey flow 3: Two rules for consensus",
+    "from": "assistant",
+    "subject": "Most agree, or every group agrees?",
+    "body": "**Most agree, or every group agrees?**\n\nHi {{RECIPIENT_NAME}},\n\n“Most people agree” and “everyone agrees” aren't the same thing, and the results carry a switch so you can read the same votes both ways.\n\n- **Trinity**: most of the room is on one side, and no opinion group has a majority on the other.\n- **Walkthrough**: every opinion group agrees at 7 in 10 or more. The least agreeable group decides, so a big group can't carry a small one.\n\nThe Walkthrough rule is stricter and slower to find anything; with few votes or a divided room it can come back empty. The switch is remembered in your browser.\n\n[Compare the rules]({{PAGE_URL}}?s=results)\n\nAssistant"
+  },
+  {
+    "id": "local-survey-flow-4-toplines",
+    "kind": "Flows",
+    "name": "Survey flow 4: Toplines",
+    "from": "assistant",
+    "subject": "Ask everyone the same questions",
+    "body": "**Ask everyone the same questions**\n\nHi {{RECIPIENT_NAME}},\n\nBeside the conversations, Survey keeps **Toplines**: surveys that ask everyone the same questions, with no video and no comparison group. The Open Primaries topline sets out its methodology and each question's shares, and its questions are America Thinks' own primaries items, worded the same way.\n\n**Copy link** on the topline carries its answer page. Share it yourself, or ask the Pollster in the Inbox to mail it to a group, a link for each member.\n\n[Read about toplines]({{SITE_URL}}/docs/survey-toplines)\n\nAssistant"
   }
 ]
