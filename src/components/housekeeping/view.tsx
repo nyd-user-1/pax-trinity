@@ -182,7 +182,8 @@ export function HousekeepingView() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* The threads: everyone's stream, then one-to-one with each person; the pointer and the archive at the right. */}
-      <div className="flex shrink-0 flex-wrap items-center gap-1.5 px-5 pb-3">
+      {/* pt-4: room under the panel header, which the row sat wedged against (Brendan, 2026-11-01). */}
+      <div className="flex shrink-0 flex-wrap items-center gap-1.5 px-5 pt-4 pb-3">
         <ThreadChip on={!withEmail} onClick={() => setWith(null)}>
           Everyone
         </ThreadChip>
