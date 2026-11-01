@@ -16,6 +16,7 @@ import Link from 'next/link'
 import { myAnalysis, viewer } from '@/app/original-actions'
 import { keepRecording, recordingUpload } from '@/app/recording-actions'
 import { putSigned } from '@/components/clips/store'
+import { TemplateChoices } from '@/components/clips/template-chooser'
 import { ConsensusVote } from '@/components/consensus-vote'
 import { Teleprompter } from '@/components/record/teleprompter'
 import { useDraft } from '@/components/record/draft'
@@ -59,7 +60,7 @@ export function RecordFlow({ script, onDone }: Props) {
   const [title, setTitle] = React.useState(() => titleOf(script))
   const [name, setName] = React.useState('')
   const [lastName, setLastName] = React.useState('')
-  const [kept, setKept] = React.useState<{ id: string; href: string } | null>(null)
+  const [kept, setKept] = React.useState<{ id: string; href: string; src: string; seconds: number | null } | null>(null)
   const file = React.useRef<HTMLInputElement>(null)
   // Who is signed in, read again when the tab comes back (a sign-in finished in the other tab).
   React.useEffect(() => {
@@ -93,7 +94,7 @@ export function RecordFlow({ script, onDone }: Props) {
       await putSigned(u.url, clip.blob, u.type, setProgress)
       const messenger = [name, lastName].map((x) => x.trim()).filter(Boolean).join(' ') || undefined
       const k = await keepRecording({ id: u.id, key: u.key, title, messenger, seconds: clip.seconds, script })
-      setKept(k)
+      setKept({ id: k.id, href: k.href, src: k.clip.src, seconds: k.clip.duration ?? clip.seconds })
       setStage('done')
       onDone(k.id)
     } catch (e) {
@@ -113,6 +114,8 @@ export function RecordFlow({ script, onDone }: Props) {
           <Link href={kept.href} className="flex w-fit items-center gap-1.5 rounded-full bg-pax2-blue px-5 py-2.5 font-medium text-white transition-opacity hover:opacity-85">
             Open it in Clips
           </Link>
+          {/* Two of the four Yes on 3 templates over the take (the tracked pair); passing them by is the skip. */}
+          <TemplateChoices take={{ id: kept.id, src: kept.src, seconds: kept.seconds }} from="record" />
         </CardContent>
       </Card>
     )

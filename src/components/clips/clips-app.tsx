@@ -21,6 +21,7 @@ import { LoadingFlag } from "@/components/loading-flag"
 import { Feed, type Reactions } from "./feed"
 import { Grid } from "./grid"
 import { ReportDialog } from "./report"
+import type { From as TemplateFrom, Take } from "./template-chooser"
 import { Upload } from "./upload"
 import { isTested } from "./clip-test"
 import { openTools, publishClipsPanel } from "@/lib/clips-panel"
@@ -84,6 +85,8 @@ function Frame({ children, onClose }: { children: React.ReactNode; onClose: () =
 
 // Remotion loads only when Generate opens.
 const Generate = dynamic(() => import("./generate").then((m) => m.Generate), { ssr: false })
+// Remotion and the templates load only when the chooser opens.
+const TemplateChooser = dynamic(() => import("./template-chooser").then((m) => m.TemplateChooser), { ssr: false })
 
 // The feed, the creators and the comments fit the page under the header, or the right rail's sheet (Brendan, 2026-09-14): the sheet is 1.2rem shorter than the page and its content sits in 0.5rem of padding. The page's feed gives back a rem so its foot is never cut.
 // The page's side panels stop 1rem above the frame's foot (Brendan, 2026-10-29): a column starts 2.25rem below the
@@ -113,6 +116,8 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
   const [likedComments, setLikedComments] = React.useState<Set<string>>(new Set())
   const [myComments, setMyComments] = React.useState<Comment[]>([])
   const [mode, setMode] = React.useState<"capture" | "upload" | "generate" | "gate" | null>(null)
+  // The template chooser over a take (./template-chooser.tsx): after Record keeps one, from a rail thumbnail or the clip menu.
+  const [chooser, setChooser] = React.useState<{ take: Take; from: TemplateFrom; shown?: readonly string[]; picked?: string } | null>(null)
   const [sheet, setSheet] = React.useState(false)
   const [focusKey, setFocusKey] = React.useState(0)
   // Until the feed has been read, the gallery shows the loader rather than a
@@ -273,6 +278,8 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
     setView("feed")
     setMode(null)
     pendingId.current = saved.id
+    // The take is kept; the chooser offers it two templates, and closing it is the skip.
+    setChooser({ take: { id: saved.id, src: saved.src, seconds: saved.duration ?? clip.duration ?? null }, from: "record" })
   }
 
   const remove = async (clip: Clip) => {
@@ -535,6 +542,7 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
       </Drawer>
 
       {reporting && <ReportDialog clip={reporting} open={!!reporting} onOpenChange={(o) => !o && setReporting(null)} defaultContact={account?.email ?? ""} />}
+      {chooser && <TemplateChooser {...chooser} onClose={() => setChooser(null)} />}
 
       {mode === "capture" && (
         <Frame onClose={() => setMode(null)}>
