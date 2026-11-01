@@ -1,8 +1,8 @@
 import "server-only"
 
 import type { Connection } from "@/lib/agents/connections"
-import { readSecret } from "@/lib/agents/connections/secret"
 import type { Posted } from "@/lib/agents/connections/slack"
+import { param } from "@/lib/ssm-param"
 
 // Discord, the second connection — and the test of whether the contract in this
 // directory was real. It is one file and one line in CONNECTIONS; nothing in the
@@ -12,7 +12,8 @@ import type { Posted } from "@/lib/agents/connections/slack"
 // posts to, so unlike a bot token there is no way for a caller to redirect a
 // post somewhere else. That answers, by construction, the question of what
 // happens when a public route holds an actuator — the destination is not a
-// parameter anywhere in this system.
+// parameter anywhere in this system. It is stored in SSM at
+// /pax2/discord/agents-webhook-url, beside the PAX bot's own entries.
 //
 // Three Discord facts shape the code:
 //
@@ -31,7 +32,7 @@ import type { Posted } from "@/lib/agents/connections/slack"
 //    success, and gives the thread id that keeps a split digest in one thread
 //    instead of starting a new one per part.
 
-const SECRET_ID = process.env.DISCORD_SECRET_ID || "govblock/discord"
+const WEBHOOK_PARAM = "/pax2/discord/agents-webhook-url"
 const CONTENT_MAX = 2000
 const EMBED_MAX = 4096
 const THREAD_NAME_MAX = 100
@@ -86,13 +87,12 @@ async function send(url: string, payload: Record<string, unknown>) {
 }
 
 export async function postToDiscord({ text }: { text: string }): Promise<Posted> {
-  const secret = await readSecret(SECRET_ID)
-  const url = secret.webhook_url?.trim()
+  const url = await param(WEBHOOK_PARAM)
 
   if (!url)
     return {
       ok: false,
-      error: `Discord is not connected — the secret ${SECRET_ID} holds no webhook_url.`,
+      error: `Discord is not connected — ${WEBHOOK_PARAM} holds no webhook URL.`,
     }
 
   const parts = text.length <= CONTENT_MAX ? [text] : chunk(text, EMBED_MAX)
@@ -141,18 +141,17 @@ export async function postToDiscord({ text }: { text: string }): Promise<Posted>
 export const discord: Connection = {
   id: "discord",
   name: "Discord",
-  summary: "Post a finished digest into the PolicyBot channel, so a tracking run ends somewhere people already look.",
+  summary: "Post a finished digest into a Discord channel, so a tracking run ends somewhere people already look.",
   logo: "/logos/discord.svg",
   tint: "#5865F2",
-  auth: `Incoming-webhook URL in Secrets Manager, ${SECRET_ID}, read by the govblock-amplify-compute role. The URL names its own channel, so the destination is not a parameter anywhere in this system.`,
+  auth: `Incoming-webhook URL in SSM, ${WEBHOOK_PARAM}, read by the pax-trinity-amplify-compute role. The URL names its own channel, so the destination is not a parameter anywhere in this system.`,
   tools: ["post_to_discord"],
   async status() {
-    const secret = await readSecret(SECRET_ID)
-    if (secret.webhook_url?.trim())
-      return { connected: true, detail: "Posting to the PolicyBot channel." }
+    if (await param(WEBHOOK_PARAM))
+      return { connected: true, detail: "Posting to the webhook's channel." }
     return {
       connected: false,
-      detail: `Waiting on the webhook. The secret ${SECRET_ID} exists; its webhook_url is empty, so this contributes no tools.`,
+      detail: `Waiting on the webhook: ${WEBHOOK_PARAM} holds none, so this contributes no tools.`,
     }
   },
 }

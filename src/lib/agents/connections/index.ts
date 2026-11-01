@@ -12,7 +12,7 @@ import type { Posted } from "@/lib/agents/connections/slack"
 // the ruling live in prompts/2026-09-01-bedrock-agents.md §3.
 //
 // The adoption trigger, ruled 2026-09-01: Slack ships now as a bot token in
-// Secrets Manager, because one workspace bot posting to one channel needs no
+// SSM (Secrets Manager until 2026-11-01), because one workspace bot posting to one channel needs no
 // OAuth flow and AgentCore Identity would want a Cognito pool and a
 // workload-identity token to hand back a string we can already read. Move to
 // AgentCore Identity at whichever comes first — a SECOND workspace, or the
