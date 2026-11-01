@@ -10,13 +10,13 @@ import type { LiftCardProps } from "./schema"
 // left to right on a 0–100 track, and the lift springs out from its end, right
 // in blue when it rose, left in red over the placebo's bar when it fell. A lift
 // that did not clear its test is hollow and at half strength. The trial's
-// badge fades in last; the partner's handle holds the foot.
+// badge fades in last (a simulated result's says so instead); the partner's handle holds the foot.
 
 type Metric = LiftCardProps["metrics"][number]
 
 const ROWS_AT = 1 // seconds
 
-export function LiftCardComposition({ treatment, segment, metrics, rct, n }: LiftCardProps) {
+export function LiftCardComposition({ treatment, segment, metrics, rct, simulated, n }: LiftCardProps) {
   const frame = useCurrentFrame()
   const { fps, width } = useVideoConfig()
   const head = enter(frame, fps)
@@ -43,9 +43,10 @@ export function LiftCardComposition({ treatment, segment, metrics, rct, n }: Lif
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: LAYOUT.gap }}>
         <span style={{ fontSize: TYPE.label, fontWeight: 600, color: COLOR.secondary, opacity: head }}>{treatment.partner ?? ""}</span>
-        {rct && (
+        {(rct || simulated) && (
           <span style={{ opacity: badge, padding: "12px 24px", borderRadius: 999, backgroundColor: COLOR.white, boxShadow: "0 1px 2px rgb(15 23 42 / 0.06)", fontSize: TYPE.caption, fontWeight: 600, color: COLOR.blue }}>
-            Randomized controlled trial{n ? ` · n ${n.toLocaleString("en-US")}` : ""}
+            {simulated ? "Simulated data" : "Randomized controlled trial"}
+            {n ? ` · n ${n.toLocaleString("en-US")}` : ""}
           </span>
         )}
       </div>

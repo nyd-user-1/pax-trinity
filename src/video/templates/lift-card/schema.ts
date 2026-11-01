@@ -26,6 +26,8 @@ export const LiftCardProps = z
       .min(1)
       .max(3),
     rct: z.boolean().default(true),
+    /** Seeded demo respondents, not a fielded panel: the badge says "Simulated data" in place of the trial's. */
+    simulated: z.boolean().optional(),
     n: z.number().int().positive().optional(),
   })
   .superRefine((p, ctx) =>

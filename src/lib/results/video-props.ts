@@ -29,7 +29,9 @@ export function liftCardProps(rs: ResultSet, partnerOf: (clipId: string) => stri
     treatment: { title: arm.name.length > 60 ? `${arm.name.slice(0, 59).trimEnd()}…` : arm.name, ...(partner ? { partner } : {}) },
     segment: "Everyone",
     metrics: metrics.slice(0, 3),
-    rct: true,
+    // A seeded demo run is no trial: its card says it is simulated (ResultSet.simulated).
+    rct: !rs.simulated,
+    ...(rs.simulated ? { simulated: true } : {}),
     n: Math.round(arm.nWeighted),
   }
 }

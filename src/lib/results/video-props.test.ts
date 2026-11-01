@@ -10,9 +10,13 @@ import { liftCardProps } from "./video-props"
 const partner = (clipId: string) => ({ "px-dustin": "@pax", "px-gaby": "@voterfreedom" })[clipId]
 
 describe("liftCardProps", () => {
-  it("draws Massachusetts Wave 3's strongest treatment as the lift card's own fixture does", () => {
-    // The fixture was written from this result: Dustin Cathcart against the placebo, everyone.
-    expect(liftCardProps(MA_WAVE_3 as ResultSet, partner)).toEqual(liftCardSpec.fixture)
+  it("draws Massachusetts Wave 3's strongest treatment as the lift card's fixture does, marked simulated as the result is", () => {
+    // The fixture was written from this result: Dustin Cathcart against the placebo, everyone. The result is
+    // a seeded demo run (simulated: true), so the card is no trial.
+    expect((MA_WAVE_3 as ResultSet).simulated).toBe(true)
+    const props = liftCardProps(MA_WAVE_3 as ResultSet, partner)
+    expect(props).toEqual({ ...liftCardSpec.fixture, rct: false, simulated: true })
+    expect(validate("lift-card", props).ok).toBe(true)
   })
 
   it("draws the open primaries test's strongest treatment, both outcomes, and passes the schema", () => {
