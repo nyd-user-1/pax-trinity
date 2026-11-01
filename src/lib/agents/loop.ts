@@ -43,10 +43,9 @@ const VERBATIM_ROUNDS = 2
 const COMPACTED_MAX = 700
 
 /**
- * The records a tool result carries, as things that can be cited. A story
- * names its outlet and links where it ran; a bill links to its page here. A
- * result that holds neither cites nothing, which is the common case — the
- * model still reasons over it, it just is not a source the reader can open.
+ * The pages a tool result carries, as things that can be cited: a search hit
+ * or a page read names its address. A result that holds none cites nothing —
+ * the model still reasons over it, it just is not a source the reader can open.
  */
 const SOURCE_LIMIT = 24
 function sourcesOf(payload: unknown): Source[] {
@@ -78,16 +77,6 @@ function sourcesOf(payload: unknown): Source[] {
     if (typeof node !== "object") return
     const row = node as Record<string, unknown>
     if (typeof row.url === "string") add(row.title ?? row.name ?? row.headline, row.url, typeof row.source_name === "string" ? row.source_name : undefined)
-    // A bill the agent opened is a source, and its page here is where the
-    // reader can check it.
-    const billId = row.bill_id ?? row.id
-    // A record's own page is a path here, not an address elsewhere, and the
-    // reader opens it here. A story says which outlet ran it; a bill is the
-    // record itself.
-    if (typeof row.page === "string" && row.page.startsWith("/") && typeof row.title === "string")
-      push(row.title, row.page, typeof row.source === "string" && row.source ? row.source : "the record")
-    if (row.bill_number && (typeof billId === "string" || typeof billId === "number"))
-      push(`${row.bill_number}${row.title ? ` — ${row.title}` : ""}`, `/bills/${billId}`, "the record")
     for (const value of Object.values(row)) if (value && typeof value === "object") walk(value, depth + 1)
   }
   walk(payload, 0)

@@ -8,9 +8,9 @@ import { postToDiscord } from "@/lib/agents/connections/discord"
 import { postToSlack } from "@/lib/agents/connections/slack"
 import { readPage, webSearch } from "@/lib/agents/search"
 
-// Executing a tool call. Everything except the connections and the web reads
-// goes out over HTTPS to this same deployment's /api/policy, which is what puts
-// the agents behind the CloudFront cache the pages already warm.
+// Executing a tool call, all of it in this process: the web reads, the
+// connections and the Filer's schema. Trinity's agents read no legislative
+// record (Brendan, 2026-11-01), so nothing goes out to /api/policy any more.
 
 export type ToolOutcome = {
   ok: boolean
@@ -19,16 +19,6 @@ export type ToolOutcome = {
   /** One line for the transcript the browser renders. */
   summary: string
   ms: number
-}
-
-function origin() {
-  // Amplify sets neither a site URL nor a VERCEL_URL equivalent, so the branch
-  // variable is the one honest source; the localhost fallback is for a laptop.
-  return (
-    process.env.AGENTS_ORIGIN ||
-    process.env.SITE_ORIGIN ||
-    "https://policy.nysgpt.com"
-  ).replace(/\/$/, "")
 }
 
 function count(payload: unknown): string {
@@ -72,7 +62,7 @@ export async function runTool(
 
   if (name === "deliver_report") {
     const title =
-      (context?.title ?? "").trim() || String(rawInput.title ?? "").trim() || "govblock report"
+      (context?.title ?? "").trim() || String(rawInput.title ?? "").trim() || "Report"
     const body = (context?.report ?? "").trim()
     if (!body)
       return {
@@ -136,8 +126,7 @@ export async function runTool(
     }
   }
 
-  // A shape may decide that a 200 was not an answer — get_bill does, when the
-  // route hands back a different bill than the number asked for. That is a
+  // A shape may decide an answer was not one, by returning an error. That is a
   // miss, and the transcript should say so rather than print "1 record".
   const settle = (body: unknown): ToolOutcome => {
     const shaped = definition?.shape ? definition.shape(body, input) : body
@@ -153,9 +142,8 @@ export async function runTool(
     }
   }
 
-  // The web is read here, in this process. Over HTTP it went to whatever
-  // origin() named — another deployment while AGENTS_ORIGIN is unset — and
-  // /api/agents/search had to stand open, since this runner carries no session.
+  // The web is read here, in this process (2026-11-01): over HTTP it needed an
+  // origin and an open /api/agents/search, since this runner carries no session.
   if (name === "web_search" || name === "read_page") {
     try {
       if (name === "web_search") {
@@ -175,43 +163,5 @@ export async function runTool(
     }
   }
 
-  if (!definition?.request) {
-    return { ok: false, payload: { error: `no such tool ${name}` }, summary: "unknown tool", ms: 0 }
-  }
-
-  const path = definition.request(input)
-  // A leading slash would name the whole path; every tool now names a
-  // /api/policy resource and says only its name.
-  const url = path.startsWith("/") ? `${origin()}${path}` : `${origin()}/api/policy/${path}`
-
-  try {
-    const response = await fetch(url, {
-      headers: { accept: "application/json", "user-agent": "govblock-agents/1" },
-      // The route's own cache-control governs; this just declines to add a
-      // second layer of Next's fetch cache on top of it.
-      cache: "no-store",
-      signal: AbortSignal.timeout(30_000),
-    })
-    const body = await response.json().catch(() => null)
-
-    if (!response.ok) {
-      // The policy route answers 503 with a sentence when a jurisdiction does
-      // not hold a dataset. That sentence is the honest answer — hand it to the
-      // model rather than an HTTP status it cannot interpret.
-      const message =
-        (body && typeof body === "object" && "error" in body && String(body.error)) ||
-        `${response.status} from /api/policy/${path.split("?")[0]}`
-      return {
-        ok: false,
-        payload: { error: message },
-        summary: message.slice(0, 120),
-        ms: Date.now() - started,
-      }
-    }
-
-    return settle(body)
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    return { ok: false, payload: { error: message }, summary: message.slice(0, 120), ms: Date.now() - started }
-  }
+  return { ok: false, payload: { error: `no such tool ${name}` }, summary: "unknown tool", ms: 0 }
 }
