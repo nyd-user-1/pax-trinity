@@ -11,6 +11,7 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "video:studio": "remotion studio src/video/index.ts",
+    "video:site": "remotion lambda sites create src/video/index.ts --site-name=pax-video --region=us-east-2 --public-dir=src/video/public",
     "test:video": "vitest run",
     "studio:bundle": "remotion bundle src/video/index.ts --out-dir .studio-bundle --public-path /studio-app/ --public-dir src/video/public --bundle-cache=false --disable-git-source --disable-ask-ai",
     "postinstall": "patch-package"
@@ -35,6 +36,7 @@
     "@codemirror/merge": "^6.12.3",
     "@higgsfield/client": "^0.2.6",
     "@remotion/google-fonts": "4.0.524",
+    "@remotion/lambda": "4.0.524",
     "@remotion/player": "4.0.524",
     "@remotion/web-renderer": "4.0.524",
     "@tabler/icons-react": "^3.49.0",
