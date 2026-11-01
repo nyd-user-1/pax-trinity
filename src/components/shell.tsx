@@ -550,7 +550,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false, super
               <div className="group/deadspace flex flex-1 items-center self-stretch">
                 {/* The hint spans the whole header, the drop target's dress: the dashed blue line, the light
                     blue wash inside (hover is still the dead space alone, so the controls never trigger it). */}
-                <span aria-hidden className="pointer-events-none absolute inset-2 z-20 flex items-center justify-center rounded-xl border-2 border-dashed border-pax2-light-blue bg-pax2-light-blue/10 opacity-0 transition-opacity duration-200 group-hover/deadspace:opacity-100 group-hover/deadspace:delay-700">
+                <span aria-hidden className="pointer-events-none absolute inset-y-2 left-1/2 z-20 flex w-[min(1250px,calc(100%-128px))] -translate-x-1/2 items-center justify-center rounded-xl border border-dashed border-pax2-light-blue bg-pax2-light-blue/10 opacity-0 transition-opacity duration-150 group-hover/deadspace:opacity-100 group-hover/deadspace:delay-150">
                   <span className="rounded-full bg-pax2-surface px-3.5 py-1.5 text-sm font-medium text-pax2-blue shadow-e1">Right-click to go to any page</span>
                 </span>
               </div>
