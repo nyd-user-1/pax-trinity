@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { flushSync } from "react-dom"
 
 import { CUSTOM_KEY, THEME_EVENT, THEME_KEY, themeOf, themeVars, type Custom, type Theme, type ThemeName } from "@/lib/theme"
 
@@ -43,8 +44,60 @@ export function applyTheme(theme: Theme, custom: Custom) {
   paintTheme(theme, custom)
 }
 
+// A theme change the reader makes here is drawn in as a circle that spreads from the top-right corner over
+// the old page (Brendan, 2026-11-01), ported from the light/dark toggle in ~/Code/sports (AppLayout's
+// toggleTheme, 2026-05-18; 44b carries the same code): the View Transitions API snapshots the page as it
+// was, the update paints the new theme, and the new view is uncovered by a growing circle clip. The update
+// runs under flushSync, so whatever repaints from the theme event (useThemeVersion's charts, retheme) has
+// committed before the new view is shown; the new view is live, so a canvas that draws on its next frame
+// draws inside the circle while it is still small. Without view transitions, or when the reader asks for
+// reduced motion, the change applies at once. html.theme-change scopes the pseudo-elements' rules
+// (pax2.css) to this transition alone.
+
+/** How a theme change made here is shown: "circle" where the browser can and the reader allows motion. */
+export function themeMotion(): "circle" | "instant" {
+  if (typeof document === "undefined" || typeof document.startViewTransition !== "function") return "instant"
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "instant" : "circle"
+}
+
+export const THEME_CHANGE = { duration: 600, easing: "cubic-bezier(.76,.32,.29,.99)" } as const
+
+// The transition running now: a quick second pick skips the first, whose end must not take the class off
+// the second's.
+let running: ViewTransition | null = null
+
+/** Applies a theme the reader picked here, as applyTheme does, drawn in as the circle from the top-right.
+ *  `alongside` runs inside the same update (the picker's own state), so it lands in the new view only. */
+export function changeTheme(theme: Theme, custom: Custom, alongside?: () => void) {
+  const apply = () => {
+    alongside?.()
+    applyTheme(theme, custom)
+  }
+  if (themeMotion() === "instant") return apply()
+  const root = document.documentElement
+  const x = window.innerWidth
+  const y = 0
+  // From the corner, the farthest point is the bottom-left: the circle's last radius reaches it.
+  const radius = Math.hypot(window.innerWidth, window.innerHeight)
+  root.classList.add("theme-change")
+  const t = document.startViewTransition(() => flushSync(apply))
+  running = t
+  t.ready
+    .then(() => root.animate({ clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${radius}px at ${x}px ${y}px)`] }, { ...THEME_CHANGE, pseudoElement: "::view-transition-new(root)" }))
+    // A second pick before this one finishes skips it; the new theme is applied all the same.
+    .catch(() => {})
+  t.finished
+    .finally(() => {
+      if (running !== t) return
+      running = null
+      root.classList.remove("theme-change")
+    })
+    .catch(() => {})
+}
+
 /** Repaints this page when the theme saved in this browser changes elsewhere: another tab, or the page
- *  around the second panel's frame (lib/pane.ts). The storage event fires only in the other pages. */
+ *  around the second panel's frame (lib/pane.ts). The storage event fires only in the other pages. It
+ *  paints at once: only a change the reader makes in this page is drawn in as the circle. */
 export function useThemeFollow() {
   React.useEffect(() => {
     const on = (e: StorageEvent) => {

@@ -191,6 +191,21 @@ html[data-embed] [data-shell-main] {
   box-shadow: none !important;
 }
 
+/* A theme change drawn in as a circle from the top-right (lib/theme-client.ts changeTheme): the old page
+   holds still underneath, with no crossfade or blending, and the new page above it is uncovered by the
+   circle's clip. Scoped to html.theme-change, which is on only for that transition. */
+html.theme-change::view-transition-old(root),
+html.theme-change::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+html.theme-change::view-transition-new(root) {
+  z-index: 9999;
+}
+html.theme-change::view-transition-old(root) {
+  z-index: 1;
+}
+
 /* Headings: the body family at heavier weight and tighter tracking. */
 .font-display {
   font-family: var(--font-sans), system-ui, sans-serif;

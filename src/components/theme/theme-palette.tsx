@@ -5,7 +5,7 @@ import { Check, Copy, RotateCcw } from "lucide-react"
 
 import { cn } from "@/ui/lib/utils"
 import { PANEL_KEY, THEMES, TOKENS, themeOf, themeVars, type Custom, type GridColorKey, type NumberKey, type Theme, type TokenKey } from "@/lib/theme"
-import { applyTheme, savedCustom, savedThemeName } from "@/lib/theme-client"
+import { applyTheme, changeTheme, savedCustom, savedThemeName } from "@/lib/theme-client"
 
 // The theme panel (Brendan, 2026-10-30), on leuk's watercolor playground's controls (leuk
 // components/marketing/watercolor-playground.tsx), shown as the right-hand panel's Theme view: presets
@@ -59,21 +59,22 @@ export function ThemeControls() {
     setCustom(savedCustom(t.name))
   }, [])
 
+  // Picking a theme, or resetting one, is drawn in as the circle from the top-right (changeTheme); the
+  // picker's own state changes inside it, so the old page under the circle keeps its old selection. An
+  // edit (a colour, a slider) paints at once: a drag would start a transition on every step.
   const pickTheme = (t: Theme) => {
     const c = savedCustom(t.name)
-    setTheme(t)
-    setCustom(c)
-    applyTheme(t, c)
+    changeTheme(t, c, () => {
+      setTheme(t)
+      setCustom(c)
+    })
   }
   const edit = (k: TokenKey | GridColorKey | NumberKey, v: string | number) => {
     const next = { ...custom, [k]: v } as Custom
     setCustom(next)
     applyTheme(theme, next)
   }
-  const reset = () => {
-    setCustom({})
-    applyTheme(theme, {})
-  }
+  const reset = () => changeTheme(theme, {}, () => setCustom({}))
   const copyCss = async () => {
     const vars = themeVars(theme, custom)
     const css = `[data-theme="${theme.name}"] {\n${Object.entries(vars).map(([k, v]) => `  ${k}: ${v};`).join("\n")}\n}`
