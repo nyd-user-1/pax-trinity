@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils"
 
 import type { Clip } from "./catalog"
 import { creatorOf } from "./desks"
+import { MailMessage, ReportThread } from "./report-thread"
 
 // The Report Panel: the arm the results register joins to a clip by clipId,
 // read as /lift reads a cell. Each outcome's lift against the wave's own
@@ -147,6 +148,29 @@ const liftHref = (rs: ResultSet, arm: Arm, outcomeId: string) =>
 
 const lower = (s: string) => (/^[A-Z][a-z]/.test(s) ? s.charAt(0).toLowerCase() + s.slice(1) : s)
 
+/** The readout as markdown — the thread's first message put into words an editor can pick up,
+ *  the same figures the panel draws (Brendan, 2026-11-01). */
+export function readoutMarkdown(rs: ResultSet, arm: Arm): string {
+  const placebo = placeboOf(rs)
+  const line = [arm.producer, arm.durationSeconds ? `${arm.durationSeconds}s` : null, arm.note].filter(Boolean).join(" · ")
+  const out: string[] = [`# ${rs.study} — ${arm.name}`, "", `Wave ${rs.wave} · ${fielding(rs.fielded.start, rs.fielded.end)}`]
+  if (line) out.push("", line)
+  for (const o of rs.outcomes) {
+    const t = toplineOf(rs, arm.id, o.id)
+    if (t?.liftPp == null) continue
+    const pl = placebo ? toplineOf(rs, placebo.id, o.id) : undefined
+    const level = t.levelPct != null && pl?.levelPct != null ? ` (${t.levelPct}% vs ${pl.levelPct}% placebo)` : ""
+    out.push("", `**${o.name}:** ${approx(t.derivation)}${signed(t.liftPp)} pp${t.verdict ? ` — ${verdictWord(t.verdict)}` : ""}${level}`)
+  }
+  out.push("", `${arm.nWeighted.toLocaleString("en-US")} weighted saw this cut${placebo ? `; ${placebo.nWeighted.toLocaleString("en-US")} weighted saw the placebo` : ""}.`, "", `Lifts are against the wave's own placebo at the ${lower(rs.threshold.label)}.`)
+  const pairings = rs.pairings.filter((p) => p.armIds.includes(arm.id)).sort((a, b) => a.rank - b.rank)
+  if (pairings.length) {
+    out.push("", "## Pairings", "")
+    for (const p of pairings) out.push(`${p.rank}. **${p.audience}** — ${p.finding}${p.caveat ? ` ${p.caveat}` : ""}`)
+  }
+  return out.join("\n")
+}
+
 export function ClipTest({ tests }: { tests: ClipTestRef[] }) {
   return (
     <div className="scrollbar-none min-h-0 flex-1 overflow-y-auto px-4 py-4">
@@ -166,8 +190,11 @@ function ArmTest({ rs, arm, linked = true }: ClipTestRef) {
   const primary = rs.outcomes[0]
   const lead = primary ? toplineOf(rs, arm.id, primary.id)?.liftPp : null
   const score = primary && lead != null ? resonance(primary.id, lead) : null
+  // The readout as the agentic inbox's mail (Brendan, 2026-11-01): the Analyst's message opens the
+  // thread and stays as written; the thread below holds every saved version and the exports.
   return (
     <section>
+      <MailMessage who="Analyst" note="the readout" date={new Date(rs.fielded.end).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}>
       <p className="flex items-baseline gap-2 text-sm font-semibold">
         <span className="min-w-0 flex-1">{rs.study}</span>
         {score != null && (
@@ -249,6 +276,8 @@ function ArmTest({ rs, arm, linked = true }: ClipTestRef) {
           </Link>
         </p>
       )}
+      </MailMessage>
+      <ReportThread thread={`${rs.id}~${arm.id}`} title={`${rs.study} — ${arm.name}`} seed={() => readoutMarkdown(rs, arm)} canVersion={linked} />
     </section>
   )
 }
