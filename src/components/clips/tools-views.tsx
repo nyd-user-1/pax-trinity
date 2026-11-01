@@ -64,20 +64,32 @@ export function ClipReports({ onNav }: { onNav: (nav: Nav) => void }) {
     return () => ro.disconnect()
   }, [clip])
 
-  if (clip)
-    return (
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <ClipReport clip={clip} />
-      </div>
-    )
-
-  const cols = Math.min(6, Math.max(3, Math.floor((size.w + GAP) / (MIN_TILE + GAP))))
-  const tileSide = (size.w - GAP * (cols - 1)) / cols
-  const rows = Math.max(Math.ceil(TESTED.length / cols), Math.ceil((size.h + GAP) / (tileSide + GAP)))
   const open = (id: string) => {
     setPicked(id)
     p?.onOpen(id)
   }
+
+  if (clip) {
+    // Gmail's "n of m" and stepper: the thread's place among the tested clips, newest wave first.
+    const i = TESTED.findIndex((x) => x.clip.id === clip.id)
+    return (
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <ClipReport
+          clip={clip}
+          nav={{
+            index: i,
+            count: TESTED.length,
+            onBack: () => setPicked(null),
+            onStep: TESTED.length > 1 ? (d) => open(TESTED[((i < 0 ? 0 : i) + d + TESTED.length) % TESTED.length].clip.id) : undefined,
+          }}
+        />
+      </div>
+    )
+  }
+
+  const cols = Math.min(6, Math.max(3, Math.floor((size.w + GAP) / (MIN_TILE + GAP))))
+  const tileSide = (size.w - GAP * (cols - 1)) / cols
+  const rows = Math.max(Math.ceil(TESTED.length / cols), Math.ceil((size.h + GAP) / (tileSide + GAP)))
   return (
     <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6 pt-1">
       <div ref={box} className="h-full">

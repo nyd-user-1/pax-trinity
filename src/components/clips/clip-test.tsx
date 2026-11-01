@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils"
 
 import type { Clip } from "./catalog"
 import { creatorOf } from "./desks"
-import { MailMessage, ReportThread } from "./report-thread"
+import { MailThread, MailToolbar, type MailNav } from "./report-thread"
 
 // The Report Panel: the arm the results register joins to a clip by clipId,
 // read as /lift reads a cell. Each outcome's lift against the wave's own
@@ -171,10 +171,12 @@ export function readoutMarkdown(rs: ResultSet, arm: Arm): string {
   return out.join("\n")
 }
 
-export function ClipTest({ tests }: { tests: ClipTestRef[] }) {
+export function ClipTest({ tests, nav }: { tests: ClipTestRef[]; nav?: MailNav }) {
   return (
-    <div className="scrollbar-none min-h-0 flex-1 overflow-y-auto px-4 py-4">
-      <div className="flex flex-col gap-8">
+    // The nearest panel scrolls; the toolbar sticks to its top, Gmail's way.
+    <div className="min-h-0 flex-1">
+      <MailToolbar nav={nav} />
+      <div className="flex flex-col gap-8 divide-y divide-slate-200/70 pb-4">
         {tests.map((t) => (
           <ArmTest key={`${t.rs.id}-${t.arm.id}`} {...t} />
         ))}
@@ -190,11 +192,10 @@ function ArmTest({ rs, arm, linked = true }: ClipTestRef) {
   const primary = rs.outcomes[0]
   const lead = primary ? toplineOf(rs, arm.id, primary.id)?.liftPp : null
   const score = primary && lead != null ? resonance(primary.id, lead) : null
-  // The readout as the agentic inbox's mail (Brendan, 2026-11-01): the Analyst's message opens the
-  // thread and stays as written; the thread below holds every saved version and the exports.
+  // The readout as true email (Brendan, 2026-11-01): Gmail's subject line and sender row around the
+  // Analyst's message, which stays exactly as derived; Reply files a version, Forward really mails.
   return (
-    <section>
-      <MailMessage who="Analyst" note="the readout" date={new Date(rs.fielded.end).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}>
+    <MailThread subject={rs.study} tag={`Wave ${rs.wave}`} reportHref={linked ? `/reports-2/${slugOf(rs.study)}` : undefined} thread={`${rs.id}~${arm.id}`} canVersion={linked} seed={() => readoutMarkdown(rs, arm)} date={rs.fielded.end}>
       <p className="flex items-baseline gap-2 text-sm font-semibold">
         <span className="min-w-0 flex-1">{rs.study}</span>
         {score != null && (
@@ -276,8 +277,6 @@ function ArmTest({ rs, arm, linked = true }: ClipTestRef) {
           </Link>
         </p>
       )}
-      </MailMessage>
-      <ReportThread thread={`${rs.id}~${arm.id}`} title={`${rs.study} — ${arm.name}`} seed={() => readoutMarkdown(rs, arm)} canVersion={linked} />
-    </section>
+    </MailThread>
   )
 }

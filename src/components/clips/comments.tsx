@@ -145,9 +145,9 @@ const EDITS = [
 
 // The cut's readout (clip-test.tsx): the register's arm where it joins the clip, else the panel drawn for it.
 // Tools' Reports opens it (the shell's right panel).
-export function ClipReport({ clip }: { clip: Clip }) {
+export function ClipReport({ clip, nav }: { clip: Clip; nav?: import("./report-thread").MailNav }) {
   const tests = testsOf(clip.id)
-  return <ClipTest tests={tests.length ? tests : [drawnTest(clip)]} />
+  return <ClipTest tests={tests.length ? tests : [drawnTest(clip)]} nav={nav} />
 }
 
 
