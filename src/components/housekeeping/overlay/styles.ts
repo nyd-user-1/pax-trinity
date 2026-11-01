@@ -53,10 +53,10 @@ export const OVERLAY_CSS = `
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 2px 6px;
+  padding: 2px 7px;
   border-radius: 4px;
-  background: #111;
-  color: #e5e7eb;
+  background: #c2410c;
+  color: #fff;
   font: 500 11px/16px ${MONO};
   white-space: nowrap;
   overflow: hidden;
@@ -67,7 +67,7 @@ export const OVERLAY_CSS = `
 .chip-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .chip-icon { flex-shrink: 0; display: block; }
 .chip-icon.off { opacity: .28; }
-.chip-ways { display: flex; flex-shrink: 0; align-items: center; gap: 2px; color: #93c5fd; }
+.chip-ways { display: flex; flex-shrink: 0; align-items: center; gap: 2px; color: #fed7aa; }
 .chip-cmd { font: 600 10px/10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin-left: 2px; }
 .chip-cmd.off { opacity: .28; }
 .chip:empty { display: none; }
@@ -165,18 +165,45 @@ export const OVERLAY_CSS = `
 .popover {
   position: fixed;
   top: 0; left: 0;
-  width: 320px;
-  padding: 10px 12px;
+  width: 340px;
   z-index: 2147483647;
   pointer-events: auto;
   cursor: auto;
+  display: flex;
+  flex-direction: column;
+  background: #f8fafc;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 4px;
+  box-shadow: 0 16px 40px rgba(15,23,42,.18), 0 2px 6px rgba(15,23,42,.08);
+  font: 13px/1.45 ${SANS};
+}
+.pc-head { display: flex; align-items: center; gap: 4px; padding: 3px 2px 5px 4px; }
+.pc-grip { display: grid; place-items: center; width: 24px; height: 24px; color: #94a3b8; cursor: grab; touch-action: none; }
+.pc-grip:active { cursor: grabbing; }
+.pc-title { flex: 1; font: 600 13px/16px ${SANS}; color: #0f172a; user-select: none; }
+.pc-kebab { display: grid; place-items: center; width: 26px; height: 26px; border: 0; border-radius: 8px; background: transparent; color: #475569; cursor: pointer; }
+.pc-kebab:hover { background: #e2e8f0; color: #0f172a; }
+.pc-menu { position: absolute; top: 32px; right: 6px; z-index: 5; min-width: 168px; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 10px 28px rgba(15,23,42,.16); padding: 4px; }
+.pc-menu[hidden] { display: none; }
+.pc-mi { display: flex; width: 100%; align-items: center; gap: 8px; padding: 7px 10px; border: 0; border-radius: 8px; background: none; font: 500 13px/16px ${SANS}; color: #0f172a; cursor: pointer; text-align: left; }
+.pc-mi:hover { background: #f1f5f9; }
+.pc-mi-on { margin-left: auto; color: #2563eb; font-weight: 700; }
+.pc-inner {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 10px 12px;
   background: #1f1f1f;
   color: #e5e7eb;
   border: 1px solid rgba(255,255,255,.08);
-  border-radius: 12px;
-  box-shadow: 0 12px 32px rgba(0,0,0,.35), 0 2px 6px rgba(0,0,0,.2);
-  font: 13px/1.45 ${SANS};
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.2);
 }
+.pc-meta { color: #9ca3af; font: 11px/16px ${MONO}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: -4px 0 8px; }
+.pc-meta:empty { display: none; }
+.pc-size { position: absolute; right: 2px; bottom: 2px; width: 16px; height: 16px; cursor: nwse-resize; touch-action: none; }
 .pc-crumb { color: #8b8b8b; font: 11px/16px ${MONO}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 8px; }
 .pc-ways { display: flex; margin-bottom: 6px; }
 .pc-ways .chip-ways { gap: 4px; }

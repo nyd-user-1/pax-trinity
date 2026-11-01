@@ -13,6 +13,8 @@ export interface PopoverActions {
   copy(): void;
   /** Delete a committed pin (view mode). */
   remove(): void;
+  /** The menu's "Inspector mode": hand the pointer to the Inspector's experience. */
+  inspector(): void;
 }
 
 export type PopoverMode = "compose" | "view";
@@ -37,8 +39,12 @@ export class Popover {
   private readonly shots: HTMLSpanElement;
   private pasted: { mime: string; data: string }[] = [];
   private readonly removeBtn: HTMLButtonElement;
+  private readonly meta: HTMLDivElement;
+  private readonly menu: HTMLDivElement;
   private readonly win: Window;
   private size = { w: WIDTH, h: 0 };
+  /** Dragged or resized: the box stays where the reader put it (Brendan, 2026-11-01). */
+  private moved = false;
   mode: PopoverMode = "compose";
   isOpen = false;
 
@@ -85,8 +91,89 @@ export class Popover {
 
     this.compose = h(doc, "div", "pc-compose");
     this.compose.append(this.chip, this.textarea, options);
-    this.el.append(this.crumb, this.note, this.compose, actionsRow);
+
+    // The note card's wrapper (Brendan, 2026-11-01): the tinted frame, a header with the grip, the
+    // title and the three-dot menu, then the dark comment box as the card's body, and the resize
+    // corner — dragged and resized the drawn note's way.
+    const head = h(doc, "div", "pc-head");
+    const grip = h(doc, "span", "pc-grip");
+    grip.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>';
+    grip.title = "Move";
+    const title = h(doc, "span", "pc-title", "Comment");
+    const kebab = h(doc, "button", "pc-kebab");
+    kebab.type = "button";
+    kebab.setAttribute("aria-label", "Comment box options");
+    kebab.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>';
+    head.append(grip, title, kebab);
+
+    this.menu = h(doc, "div", "pc-menu");
+    this.menu.hidden = true;
+    const sonarRow = h(doc, "button", "pc-mi", "Sonar mode");
+    sonarRow.type = "button";
+    sonarRow.append(h(doc, "span", "pc-mi-on", "\u2713"));
+    const inspectorRow = h(doc, "button", "pc-mi", "Inspector mode");
+    inspectorRow.type = "button";
+    this.menu.append(sonarRow, inspectorRow);
+
+    this.meta = h(doc, "div", "pc-meta");
+    const inner = h(doc, "div", "pc-inner");
+    inner.append(this.crumb, this.meta, this.note, this.compose, actionsRow);
+    const corner = h(doc, "span", "pc-size");
+    corner.setAttribute("aria-label", "Resize");
+    this.el.append(head, inner, this.menu, corner);
     parent.appendChild(this.el);
+
+    kebab.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this.menu.hidden = !this.menu.hidden;
+    });
+    sonarRow.addEventListener("click", () => (this.menu.hidden = true));
+    inspectorRow.addEventListener("click", () => {
+      this.menu.hidden = true;
+      actions.inspector();
+    });
+    this.el.addEventListener("pointerdown", (e) => {
+      if (!this.menu.hidden && !this.menu.contains(e.target as Node) && e.target !== kebab && !kebab.contains(e.target as Node)) this.menu.hidden = true;
+    });
+
+    // The grip moves the card, held inside the window — the drawn note's drag.
+    let drag: { dx: number; dy: number } | null = null;
+    grip.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      grip.setPointerCapture(e.pointerId);
+      const r = this.el.getBoundingClientRect();
+      drag = { dx: e.clientX - r.left, dy: e.clientY - r.top };
+    });
+    grip.addEventListener("pointermove", (e) => {
+      if (!drag) return;
+      this.moved = true;
+      const vw = this.win.innerWidth;
+      const vh = this.win.innerHeight;
+      const r = this.el.getBoundingClientRect();
+      this.el.style.left = `${Math.max(8, Math.min(e.clientX - drag.dx, vw - r.width - 8))}px`;
+      this.el.style.top = `${Math.max(8, Math.min(e.clientY - drag.dy, vh - r.height - 8))}px`;
+    });
+    grip.addEventListener("pointerup", () => (drag = null));
+
+    // The bottom-right corner resizes it — the drawn note's corner, same floors.
+    let from: { x: number; y: number; w: number; h: number } | null = null;
+    corner.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      corner.setPointerCapture(e.pointerId);
+      const r = this.el.getBoundingClientRect();
+      from = { x: e.clientX, y: e.clientY, w: r.width, h: r.height };
+    });
+    corner.addEventListener("pointermove", (e) => {
+      if (!from) return;
+      this.moved = true;
+      const r = this.el.getBoundingClientRect();
+      const w = Math.max(320, Math.min(from.w + e.clientX - from.x, this.win.innerWidth - 8 - r.left));
+      const ht = Math.max(200, Math.min(from.h + e.clientY - from.y, this.win.innerHeight - 8 - r.top));
+      this.el.style.width = `${Math.round(w)}px`;
+      this.el.style.height = `${Math.round(ht)}px`;
+      this.measure();
+    });
+    corner.addEventListener("pointerup", () => (from = null));
 
     this.textarea.addEventListener("input", () => this.autosize());
     // Screenshots pasted into the box ride along with the comment.
@@ -143,6 +230,11 @@ export class Popover {
     this.note.textContent = o.mode === "view" ? o.text ?? "" : "";
     this.textarea.value = o.mode === "compose" ? o.text ?? "" : "";
     this.pasted = [];
+    this.moved = false;
+    this.el.style.width = "";
+    this.el.style.height = "";
+    this.menu.hidden = true;
+    this.meta.textContent = "";
     this.shots.textContent = "";
     this.shots.style.color = "";
     this.setSessions(o.sessions ?? []);
@@ -168,6 +260,11 @@ export class Popover {
     this.crumb.textContent = text;
   }
 
+  /** The DOM's live line (tag · size · layout · "name"), context under the crumb (Brendan, 2026-11-01). */
+  setMeta(text: string): void {
+    if (this.meta.textContent !== text) this.meta.textContent = text;
+  }
+
   /** Brief nudge when a click can't unlock because there's a draft. */
   nudge(): void {
     this.el.animate([{ translate: "0 0" }, { translate: "-4px 0" }, { translate: "4px 0" }, { translate: "0 0" }], { duration: 180 });
@@ -189,7 +286,7 @@ export class Popover {
 
   /** Position next to the pin whose tip is at `p`. */
   place(p: { x: number; y: number }): void {
-    if (!this.isOpen) return;
+    if (!this.isOpen || this.moved) return;
     const doc = this.el.ownerDocument;
     const vw = doc.documentElement.clientWidth;
     const vh = this.win.innerHeight;

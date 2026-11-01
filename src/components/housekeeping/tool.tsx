@@ -3,7 +3,7 @@
 import * as React from "react"
 import { createPortal } from "react-dom"
 import { usePathname } from "next/navigation"
-import { Crosshair } from "lucide-react"
+import { Crosshair, X } from "lucide-react"
 
 import { whiteButton } from "@/components/white-button"
 import { describe, describeV2, legacyDescribe } from "./overlay/describe"
@@ -97,6 +97,15 @@ export async function togglePointer() {
   running = mount({
     initial: (me.name ?? "?").trim().charAt(0).toUpperCase() || "?",
     photo: me.photo,
+    // The comment box's menu (Brendan, 2026-11-01): Inspector mode puts sonar away and arms the dock's scope.
+    onInspector: () => {
+      if (running) {
+        running.unmount()
+        running = null
+        announce()
+      }
+      window.dispatchEvent(new CustomEvent("inspector:set", { detail: { on: true } }))
+    },
     // sonar's developer panel stays off; ⌥ precise, ↑↓ walk and Esc still work.
     debug: false,
     sessions: async () => [{ id: "housekeeping" }],
@@ -173,6 +182,20 @@ export function goToComment(route: string, path: string, target: string | undefi
   push(route)
 }
 
+/** Sonar on or off, with the one handle that flips it — the Dev Tools switch and the header button share it. */
+export function usePointer(): [boolean, () => void] {
+  const [on, setOn] = React.useState(false)
+  React.useEffect(() => {
+    const hear = (v: boolean) => setOn(v)
+    hear(!!running)
+    listeners.add(hear)
+    return () => {
+      listeners.delete(hear)
+    }
+  }, [])
+  return [on, () => void togglePointer()]
+}
+
 type Mark = { id: string; path: string; target?: string; author: string; authorName: string; photo?: string; text: string }
 
 /** The header's crosshair, the page's comment markers, and the outline that waits for a page to arrive. */
@@ -233,17 +256,26 @@ export function HousekeepingTool() {
   return (
     <>
       {on && (
-        <button
-          type="button"
-          data-sonar-exempt
-          onClick={() => void togglePointer()}
-          aria-pressed
-          aria-label="Turn sonar off"
-          title="Turn sonar off"
-          className={whiteButton("circle", "ring-2 ring-pax2-light-blue")}
-        >
-          <Crosshair className="size-4 text-pax2-blue" />
-        </button>
+        // Sonar's header button (Brendan, 2026-11-01): the comment marks' pulse around it, and the
+        // profile-badge x — a white x in a black circle — that puts sonar away and flips the Dev
+        // Tools switch back off (one shared state does both).
+        <span data-sonar-exempt className="relative inline-flex">
+          <span aria-hidden className="absolute inset-0 animate-ping rounded-full bg-pax2-light-blue/35 [animation-duration:2.2s]" />
+          <span aria-hidden className="pointer-events-none absolute -inset-1 rounded-full ring-2 ring-pax2-light-blue/30" />
+          <button type="button" data-sonar-exempt aria-pressed aria-label="Sonar is on" title="Sonar is on" className={whiteButton("circle", "relative ring-2 ring-pax2-light-blue")}>
+            <Crosshair className="size-4 text-pax2-blue" />
+          </button>
+          <button
+            type="button"
+            data-sonar-exempt
+            onClick={() => void togglePointer()}
+            aria-label="Turn sonar off"
+            title="Turn sonar off"
+            className="absolute -top-1 -right-1 z-10 flex size-4 items-center justify-center rounded-full bg-night-900 text-white shadow-e1 transition-transform hover:scale-110"
+          >
+            <X className="size-2.5" strokeWidth={3} />
+          </button>
+        </span>
       )}
       {marks.length > 0 && <Marks marks={marks} />}
     </>

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ArrowLeft, ChartColumn, ChevronRight, Clapperboard, Crosshair, FileText, Loader2, Columns2, Columns3, LayoutGrid, Maximize2, MessageSquareText, MessagesSquare, Palette, SquarePen, SquareDashedMousePointer, Video, Wrench, X } from "lucide-react"
+import { ArrowLeft, ChartColumn, ChevronRight, Clapperboard, Crosshair, FileText, Loader2, Columns2, Columns3, LayoutGrid, Maximize2, MessageSquareText, MessagesSquare, Palette, ScanSearch, SlidersHorizontal, SquarePen, SquareDashedMousePointer, Video, Wrench, X } from "lucide-react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -14,7 +14,7 @@ import { useHiddenBlocks, useShelf, type PageBlock, type ShelfBlock, type ShelfI
 import { setPageBlockDrag, setShelfDrag } from "@/lib/shelf-drag"
 import { cn } from "@/ui/lib/utils"
 import { whiteButton } from "@/components/white-button"
-import { DEVTOOLS_OPEN, HOUSEKEEPING_OPEN, takeDevTools, takeOpen, togglePointer } from "@/components/housekeeping/tool"
+import { DEVTOOLS_OPEN, HOUSEKEEPING_OPEN, takeDevTools, takeOpen, usePointer } from "@/components/housekeeping/tool"
 import { LIFT_ANALYSIS_OPEN, LIFT_TOOLS_OPEN, takeToolsOnCards } from "@/lib/lift-analyses"
 import { useDeliverables, type Deliverable } from "@/app/lift/deliverables"
 import { useThemePanel } from "@/components/theme/theme-palette"
@@ -30,18 +30,18 @@ import { TOOLS_OPEN, takeTools } from "@/lib/clips-panel"
 // It sits in the shell's right slot in the take panel's frame, so the two read as one panel. It wears the
 // rail's dress (Brendan, 2026-10-29, after America Thinks): the mist ground, its rows the rail's rows.
 
-type View = "welcome" | "blocks" | "chat" | "devtools" | "edits" | "lift" | "reports" | "housekeeping" | "inspector" | "theme" | "studio" | "slack" | "discord"
+type View = "welcome" | "blocks" | "chat" | "devtools" | "edits" | "lift" | "reports" | "housekeeping" | "devsettings" | "theme" | "studio" | "slack" | "discord"
 
 // Dev Tools (Brendan, 2026-10-30): one row for the admins' tools. Dev Comments is Housekeeping, renamed; the
 // Inspector item opens the inspector dock's two panels here, Classifier and Comments (the admin's own
 // notes); Sonar turns on Housekeeping's pointer. The header's crosshair and the dock stay as they are while
 // the combined design is worked out. Theme (the account menu's switch shows it) opens the theme panel.
 /** Where Back goes from a view; the welcome list when unnamed. */
-const PARENT: Partial<Record<View, View>> = { housekeeping: "devtools", inspector: "devtools" }
+const PARENT: Partial<Record<View, View>> = { housekeeping: "devtools", devsettings: "devtools" }
 
 /** The inspector dock (components/dev/inspector.tsx) draws its panel into the slot this sends it. */
 export const INSPECTOR_EMBED = "inspector:embed"
-type InspectorPanel = "classifier" | "comments"
+type InspectorPanel = "classifier" | "settings"
 
 // Housekeeping's stream loads when it is opened (components/housekeeping).
 const HousekeepingView = dynamic(() => import("@/components/housekeeping/view").then((m) => m.HousekeepingView), {
@@ -65,7 +65,7 @@ let keptSelected: string | null = null
 let keptStudio: string | null = null
 // The service a Slack or Discord view talks to, named by its logo in the header at every level.
 const LOGO: Partial<Record<View, string>> = { slack: "/logos/slack.png", discord: "/logos/discord-icon.svg" }
-const TITLE: Record<View, string> = { welcome: "Tools", blocks: "Blocks", chat: "Chat", devtools: "Dev Tools", edits: "Edits", lift: "Lift Analysis", reports: "Reports", housekeeping: "Dev Comments", inspector: "Inspector", theme: "Theme", studio: "Studio", slack: "Slack", discord: "Discord" }
+const TITLE: Record<View, string> = { welcome: "Tools", blocks: "Blocks", chat: "Chat", devtools: "Dev Tools", edits: "Edits", lift: "Lift Analysis", reports: "Reports", housekeeping: "Dev Comments", devsettings: "Settings", theme: "Theme", studio: "Studio", slack: "Slack", discord: "Discord" }
 
 /** A Tools row, its icon in the sidebar's (Brendan, 2026-10-31): 18px at a 1.75 stroke, filled raised and lavender
  *  on hover, popping as the sidebar's icons do (icon-pop, pax2.css), and the row lifting with the sidebar's shadow. */
@@ -448,15 +448,9 @@ export function DiscussionPanel({ onClose: close, admin = false }: { onClose: ()
         {view === "lift" && <LiftAnalyses />}
         {view === "edits" && <ClipEdits />}
         {view === "reports" && <ClipReports onNav={setSub} />}
-        {view === "devtools" && admin && (
-          <div className="flex flex-col px-3 pt-1">
-            <Row icon={<MessageSquareText />} label="Dev Comments" sub="Comments on the app, and direct messages" onClick={() => setView("housekeeping")} />
-            <Row icon={<SquareDashedMousePointer />} label="Inspector" sub="The classifier, and your own notes" onClick={() => setView("inspector")} />
-            <Row icon={<Crosshair />} label="Sonar" sub="Point at an element and comment on it" onClick={() => void togglePointer()} />
-          </div>
-        )}
+        {view === "devtools" && admin && <DevToolsRows onSettings={() => setView("devsettings")} onComments={() => setView("housekeeping")} />}
         {view === "housekeeping" && <HousekeepingView />}
-        {view === "inspector" && admin && <InspectorPanels />}
+        {view === "devsettings" && admin && <EmbedSlot view="settings" />}
         {view === "theme" && <ThemeControls />}
         {view === "studio" && admin && <StudioFrame id={studio} onMove={standOn} />}
         {view === "chat" && <Chat compact context={discussSeed?.context} chipVideo={discussSeed?.chipVideo} surface={discussSeed?.chipVideo ? "video-panel" : "chat"} explore={!discussSeed?.chipVideo} seedChip={discussSeed?.ask ?? null} seedNonce={discussSeed?.nonce} />}
@@ -467,34 +461,100 @@ export function DiscussionPanel({ onClose: close, admin = false }: { onClose: ()
 }
 
 /**
- * The Inspector item's two panels (Brendan, 2026-10-30): Classifier, the dock's classifier panel (opening it
- * turns the classifier on), and Comments, the notes an admin leaves for themselves. The dock
- * (components/dev/inspector.tsx) draws each into the slot this hands it, so the dock's own panels and these
- * are one state.
+ * Dev Tools' rows (Brendan, 2026-11-01): Dev Comments keeps its layer; Inspector and Sonar are
+ * switches — on arms the mode, nothing deeper; X-ray is the dock's classifier as a switch, the panel
+ * unfolding beneath it under a skeleton in its shape; Settings keeps the chevron and goes one layer
+ * deeper to the dock's switches. The dock itself keeps only the scope.
  */
-function InspectorPanels() {
-  const [tab, setTab] = React.useState<InspectorPanel>("classifier")
+function DevToolsRows({ onSettings, onComments }: { onSettings: () => void; onComments: () => void }) {
+  const [sonarOn, toggleSonar] = usePointer()
+  const [inspectorOn, setInspectorOn] = React.useState(false)
+  React.useEffect(() => {
+    const on = (e: Event) => setInspectorOn(!!(e as CustomEvent<{ on?: boolean }>).detail?.on)
+    window.addEventListener("inspector:changed", on)
+    return () => window.removeEventListener("inspector:changed", on)
+  }, [])
+  return (
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-3 pt-1">
+      <Row icon={<MessageSquareText />} label="Dev Comments" sub="Comments on the app, and direct messages" onClick={onComments} />
+      <ToggleRow icon={<SquareDashedMousePointer />} label="Inspector" sub="The scope: pick an element, read the code behind it" on={inspectorOn} onToggle={() => window.dispatchEvent(new CustomEvent("inspector:set", { detail: { on: !inspectorOn } }))} />
+      <ToggleRow icon={<Crosshair />} label="Sonar" sub="Point at an element and comment on it" on={sonarOn} onToggle={toggleSonar} />
+      <XRay />
+      <Row icon={<SlidersHorizontal />} label="Settings" sub="The pointer tools' switches" onClick={onSettings} />
+    </div>
+  )
+}
+
+/** Row's dress with a switch where the chevron stood. */
+function ToggleRow({ icon, label, sub, on, onToggle }: { icon: React.ReactNode; label: string; sub?: string; on: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-pressed={on}
+      className="group relative flex w-full items-center gap-3 border-b border-slate-200 px-3 py-3 text-left transition-[color,background-color,box-shadow] hover:z-10 hover:bg-pax2-lift/70 hover:shadow-e1"
+    >
+      <span className="icon-pop flex size-[18px] shrink-0 items-center justify-center text-slate-500 transition-colors group-hover:text-pax2-blue [&_img]:size-[18px] [&_svg]:size-[18px] [&_svg]:fill-pax2-raised [&_svg]:stroke-[1.75] [&_svg]:transition-colors group-hover:[&_svg]:fill-pax2-lavender">{icon}</span>
+      <span className="flex-1">
+        <span className="block text-[15px] font-medium text-slate-600 group-hover:text-pax2-blue">{label}</span>
+        {sub && <span className="block text-xs text-slate-400">{sub}</span>}
+      </span>
+      <span aria-hidden className={cn("inline-flex h-4 w-7 shrink-0 items-center rounded-full p-0.5 transition-colors", on ? "bg-pax2-light-blue" : "bg-slate-300")}>
+        <span className={cn("size-3 rounded-full bg-pax2-surface shadow-sm transition-transform", on && "translate-x-3")} />
+      </span>
+    </button>
+  )
+}
+
+/** X-ray: the dock's classifier under its own switch, the panel beneath the row, a skeleton in its shape first. */
+function XRay() {
+  const [on, setOn] = React.useState(false)
+  const [loading, setLoading] = React.useState(false)
   const slot = React.useRef<HTMLDivElement>(null)
   React.useEffect(() => {
-    window.dispatchEvent(new CustomEvent(INSPECTOR_EMBED, { detail: { slot: slot.current, view: tab } }))
-  }, [tab])
-  React.useEffect(() => () => void window.dispatchEvent(new CustomEvent(INSPECTOR_EMBED, { detail: null })), [])
+    if (!on) return
+    setLoading(true)
+    window.dispatchEvent(new CustomEvent(INSPECTOR_EMBED, { detail: { slot: slot.current, view: "classifier" } }))
+    const t = window.setTimeout(() => setLoading(false), 450)
+    return () => {
+      window.clearTimeout(t)
+      window.dispatchEvent(new CustomEvent(INSPECTOR_EMBED, { detail: null }))
+    }
+  }, [on])
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex shrink-0 gap-1.5 px-5 pb-3">
-        {(["classifier", "comments"] as const).map((t) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => setTab(t)}
-            aria-pressed={tab === t}
-            className={cn("rounded-full px-3 py-1.5 text-xs font-medium transition-colors", tab === t ? "bg-pax2-lift text-pax2-blue shadow-e1" : "text-slate-500 hover:bg-pax2-lift/70 hover:text-pax2-blue")}
-          >
-            {t === "classifier" ? "Classifier" : "Comments"}
-          </button>
-        ))}
-      </div>
-      <div ref={slot} className="flex min-h-0 flex-1 flex-col overflow-y-auto border-t border-slate-200" />
+    <>
+      <ToggleRow icon={<ScanSearch />} label="X-ray" sub="Every element on the page, classified in place" on={on} onToggle={() => setOn((v) => !v)} />
+      {on && (
+        <div className="relative my-2 flex min-h-[320px] flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-pax2-surface shadow-e1">
+          <div ref={slot} className="flex min-h-0 flex-1 flex-col overflow-y-auto" />
+          {loading && (
+            <div aria-hidden className="absolute inset-0 z-10 flex flex-col gap-3 bg-pax2-surface p-4">
+              <div className="flex gap-1.5">
+                {[0, 1, 2, 3].map((i) => (
+                  <span key={i} className="h-5 w-14 animate-pulse rounded-full bg-slate-200" />
+                ))}
+              </div>
+              {["w-2/3", "w-1/2", "w-5/6", "w-3/5", "w-3/4", "w-1/2", "w-2/3"].map((w, i) => (
+                <span key={i} style={{ marginLeft: (i % 3) * 12 }} className={cn("h-3 animate-pulse rounded bg-slate-200", w)} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </>
+  )
+}
+
+/** A dock panel drawn into this view's slot (the dock portals it in; one slot at a time). */
+function EmbedSlot({ view }: { view: InspectorPanel }) {
+  const slot = React.useRef<HTMLDivElement>(null)
+  React.useEffect(() => {
+    window.dispatchEvent(new CustomEvent(INSPECTOR_EMBED, { detail: { slot: slot.current, view } }))
+    return () => void window.dispatchEvent(new CustomEvent(INSPECTOR_EMBED, { detail: null }))
+  }, [view])
+  return (
+    <div className="flex min-h-0 flex-1 flex-col px-3">
+      <div ref={slot} className="flex min-h-0 flex-1 flex-col overflow-y-auto" />
     </div>
   )
 }

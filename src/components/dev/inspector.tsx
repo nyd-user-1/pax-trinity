@@ -310,10 +310,10 @@ export function DevInspector() {
   // PAX (Brendan, 2026-10-30): the right-hand panel's Dev Tools › Inspector item hands this a slot to draw
   // its classifier or its comments into (components/discussion-panel.tsx, "inspector:embed"). Opening the
   // item's Classifier turns the classifier on; leaving the item puts it away.
-  const [embed, setEmbed] = useState<{ slot: HTMLElement; view: "classifier" | "comments" } | null>(null)
+  const [embed, setEmbed] = useState<{ slot: HTMLElement; view: "classifier" | "settings" } | null>(null)
   useEffect(() => {
     const on = (e: Event) => {
-      const d = (e as CustomEvent<{ slot: HTMLElement | null; view: "classifier" | "comments" } | null>).detail
+      const d = (e as CustomEvent<{ slot: HTMLElement | null; view: "classifier" | "settings" } | null>).detail
       if (d?.slot) {
         setEmbed({ slot: d.slot, view: d.view })
         setOpen(d.view === "classifier")
@@ -325,6 +325,21 @@ export function DevInspector() {
     window.addEventListener("inspector:embed", on)
     return () => window.removeEventListener("inspector:embed", on)
   }, [])
+  // The Dev Tools panel's Inspector switch, and the sonar box's menu (Brendan, 2026-11-01): one event
+  // turns the scope on or off from outside, and every change is announced back for the switch to show.
+  useEffect(() => {
+    const on = (e: Event) => {
+      const d = (e as CustomEvent<{ on?: boolean } | null>).detail
+      setInspecting(!!d?.on)
+      setFrozen(null)
+      setHover(null)
+    }
+    window.addEventListener("inspector:set", on)
+    return () => window.removeEventListener("inspector:set", on)
+  }, [])
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("inspector:changed", { detail: { on: inspecting } }))
+  }, [inspecting])
   const [prefs, setPrefs] = useState<Prefs>(PREFS)
   const [comments, setComments] = useState<Comment[]>([])
   /** The dock waits for the saved prefs, or a dock you sent to the edge would
@@ -678,9 +693,9 @@ export function DevInspector() {
       />}
 
       {open && (embed?.view === "classifier" ? createPortal(panelEl(), embed.slot) : panelEl())}
-      {embed?.view === "comments" &&
+      {embed?.view === "settings" &&
         createPortal(
-          <CommentsPop embedded top={false} right={false} pinned={frozen} comments={comments} setComments={saveComments} hold={prefs.hold} onClose={() => {}} />,
+          <PrefsPop embedded top={false} right={false} prefs={prefs} setPrefs={savePrefs} inspecting={inspecting} onInspect={toggleInspect} latched={latched} setLatched={setLatched} onClose={() => {}} />,
           embed.slot,
         )}
     </>
@@ -1242,44 +1257,11 @@ function Dock({
           >
             <Crosshair className="size-4" aria-hidden />
           </DockButton>
-          <DockButton label="Classifier" on={open} onClick={onOpen}>
-            <SquareDashedMousePointer className="size-4" aria-hidden />
-          </DockButton>
-          <DockButton
-            label="Comments"
-            on={tool === "comments"}
-            badge={comments.length}
-            onClick={() => setTool(tool === "comments" ? null : "comments")}
-          >
-            <MessageSquare className="size-4" aria-hidden />
-          </DockButton>
-          <DockButton label="Settings" on={tool === "settings"} onClick={() => setTool(tool === "settings" ? null : "settings")}>
-            <Cog className="size-4" aria-hidden />
-          </DockButton>
         </>
       )}
+      {/* The classifier, comments and settings left the dock for Dev Tools (Brendan, 2026-11-01):
+          X-ray's switch, the regular comments, and the Settings layer. The scope is all that remains. */}
       {right && toggle}
-      {tool === "comments" && (
-        <CommentsPop top={top} right={right} pinned={pinned} comments={comments} setComments={setComments} hold={prefs.hold} onClose={() => setTool(null)} />
-      )}
-      {tool === "settings" && (
-        <PrefsPop
-          top={top}
-          right={right}
-          prefs={prefs}
-          setPrefs={(p) => {
-            setPrefs(p)
-            // A dragged bar goes back to its corner, or the new corner would
-            // never show.
-            d.reset()
-          }}
-          inspecting={inspecting}
-          onInspect={onInspect}
-          latched={latched}
-          setLatched={setLatched}
-          onClose={() => setTool(null)}
-        />
-      )}
     </div>
   )
 }
@@ -1520,6 +1502,7 @@ function PrefsPop({
   latched,
   setLatched,
   onClose,
+  embedded = false,
 }: {
   top: boolean
   right: boolean
@@ -1530,10 +1513,11 @@ function PrefsPop({
   latched: boolean
   setLatched: (v: boolean) => void
   onClose: () => void
+  embedded?: boolean
 }) {
   const row: React.CSSProperties = { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, fontSize: 12.5 }
   return (
-    <Pop top={top} right={right} title="Settings" onClose={onClose}>
+    <Pop top={top} right={right} title="Settings" onClose={onClose} embedded={embedded}>
       <label style={row}>
         <span>Hold to read the element under the pointer</span>
         <select

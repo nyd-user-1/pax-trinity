@@ -7,7 +7,8 @@
 import { adopt, h, isEditable, outsideBy } from "./dom";
 import { Box } from "./box";
 import { Cursor } from "./cursor";
-import { labelOf, shortSel } from "./describe";
+import { labelOf, shortSel, visibleText } from "./describe";
+import { metricsLine, sourceLabel } from "./source";
 import { locatorBundle, uniquePath } from "./locator";
 import { describe } from "./describe";
 import { DebugPanel } from "./panels";
@@ -51,6 +52,8 @@ export interface MountOptions {
   initial?: string;
   /** The commenter's headshot, shown on the pin in place of the initial. */
   photo?: string;
+  /** Switches to the Inspector's experience (the comment box's menu, Brendan 2026-11-01). */
+  onInspector?: () => void;
   /** Show the debug panel (breadcrumb + promotion chain). */
   debug?: boolean;
   /** Called after the overlay removes itself (Esc). */
@@ -132,6 +135,7 @@ export function mount(opts: MountOptions = {}): Sonar {
     submit: () => void submit(),
     copy: () => void copyPrompt(),
     remove: () => removeViewed(),
+    inspector: () => opts.onInspector?.(),
   });
   doc.documentElement.appendChild(host);
 
@@ -171,10 +175,21 @@ export function mount(opts: MountOptions = {}): Sonar {
       return;
     }
     const label = labelOf(current, chosen(current));
-    crumb = label.text;
-    box.to(current.getBoundingClientRect(), { x: px, y: py }, now);
-    box.setLabel(label.text, { hidden: label.hidden, ways: label.ways });
+    // The inspector's name stands as the label (Brendan, 2026-11-01): the component, then its file
+    // when the dev server answers; the DOM's own line moves into the comment box (metricsLine).
+    const el = current;
+    const src = sourceLabel(el);
+    crumb = src.name ?? label.text;
+    box.to(el.getBoundingClientRect(), { x: px, y: py }, now);
+    box.setLabel(crumb, { hidden: label.hidden, ways: label.ways });
     if (draft) popover.setWays(label.ways);
+    if (src.name)
+      void src.file.then((f) => {
+        if (current !== el || !f) return;
+        crumb = `${src.name} ${f}`;
+        box.setLabel(crumb, { hidden: label.hidden, ways: label.ways });
+        if (draft) popover.setCrumb(crumb);
+      });
   }
 
   function evaluate(now: number, force = false): void {
@@ -266,6 +281,7 @@ export function mount(opts: MountOptions = {}): Sonar {
     draft = pin;
     box.lock(true);
     popover.open({ mode: "compose", crumb });
+    popover.setMeta(metricsLine(current, visibleText(current, 40)));
     popover.setWays(labelOf(current, chosen(current)).ways);
     popover.place(pin.point());
     opts.sessions?.().then(
@@ -396,6 +412,7 @@ export function mount(opts: MountOptions = {}): Sonar {
         box.track(draft.target.getBoundingClientRect(), now);
         draft.place();
         popover.place(draft.point());
+        popover.setMeta(metricsLine(draft.target, visibleText(draft.target, 40)));
       }
     } else {
       if (current && !current.isConnected) evaluate(now, true);
