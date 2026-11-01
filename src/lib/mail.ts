@@ -2,11 +2,10 @@ import "server-only"
 
 import { now, putOnce, query, type Item } from "@/lib/ledger"
 
-// Email through Resend (nysgpt.com is a verified domain there, so any recipient), falling back to
-// Amazon SES when Resend is unset or fails; every message is also written to the ledger's outbox
-// (MAIL / <iso>) with the provider that carried it, sent or not, so a failed send is visible in the
-// app. SES is in its sandbox until production access is granted: it only delivers to verified
-// addresses, and the sender (PAX2_MAIL_FROM) must itself be verified.
+// Email through Resend (nysgpt.com is a verified domain there, so any recipient), the one mail path
+// (Brendan, 2026-11-01: the SES fallback is gone). Every message is also written to the ledger's
+// outbox (MAIL / <iso>) with the provider that carried it, sent or not, so a failed send is visible in
+// the app. Rows written before 2026-11-01 may say via "ses".
 
 const FROM = process.env.PAX2_MAIL_FROM ?? "brendan@nysgpt.com"
 export const SITE = (process.env.PAX2_URL ?? "http://localhost:3000").replace(/\/$/, "")
@@ -38,38 +37,21 @@ async function viaResend(key: string, to: string[], subject: string, body: { htm
   if (!res.ok) throw new Error(`Resend ${res.status}: ${(await res.text()).slice(0, 200)}`)
 }
 
-async function viaSes(to: string[], subject: string, body: { html: string; text: string }) {
-  const { SESv2Client, SendEmailCommand } = await import("@aws-sdk/client-sesv2")
-  const ses = new SESv2Client({ region: process.env.PAX2_REGION ?? "us-east-1" })
-  await ses.send(
-    new SendEmailCommand({
-      FromEmailAddress: `PAX <${FROM}>`,
-      Destination: { ToAddresses: to },
-      Content: { Simple: { Subject: { Data: subject }, Body: { Html: { Data: body.html }, Text: { Data: body.text } } } },
-    }),
-  )
-}
-
 export async function send(to: string[], subject: string, body: { html: string; text: string }, about?: string) {
   let status: Mail["status"] = "sent"
   let error: string | undefined
   let via: Mail["via"]
   const key = process.env.RESEND_API_KEY
-  if (key) {
+  if (!key) {
+    status = "failed"
+    error = "RESEND_API_KEY is not set."
+  } else {
     try {
       await viaResend(key, to, subject, body)
       via = "resend"
     } catch (e) {
-      error = (e as Error).message
-    }
-  }
-  if (!via) {
-    try {
-      await viaSes(to, subject, body)
-      via = "ses"
-    } catch (e) {
       status = "failed"
-      error = [error, (e as Error).message].filter(Boolean).join("; ")
+      error = (e as Error).message
     }
   }
   const at = now()
