@@ -8,6 +8,7 @@ import { MODELS } from "@/lib/agents/models"
 import { agent, maxRounds } from "@/lib/agents/registry"
 import { reportMode, reportPace } from "@/lib/agents/report-modes"
 import { liveTools } from "@/lib/agents/connections"
+import { currentUser } from "@/lib/auth"
 
 // The one route behind every agent on /agents. A specialist answering a
 // question and the Tracker carrying out a watch are the same loop with
@@ -94,6 +95,10 @@ function line(event: StreamEvent | { t: "state"; messages: Message[]; done: bool
 }
 
 export async function POST(request: Request) {
+  // Every round is Bedrock spend, so the door is sign-in; the rate limit above
+  // stays as the brake on a stuck client.
+  if (!(await currentUser())) return NextResponse.json({ error: "Sign in to use the agents." }, { status: 401 })
+
   let body: {
     agent?: string
     turns?: ChatTurn[]

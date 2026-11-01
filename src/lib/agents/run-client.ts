@@ -212,6 +212,12 @@ export async function runAgent({
         signal,
       })
 
+      // A refusal (signed out, unknown agent, rate limit) is one JSON object, not
+      // the stream; read as a stream it would retry every round to the ceiling.
+      if (!response.ok) {
+        const refusal = (await response.json().catch(() => null)) as { error?: string } | null
+        throw new Error(refusal?.error ?? `the agent did not answer (${response.status})`)
+      }
       if (!response.body) throw new Error(`no stream (${response.status})`)
 
       const reader = response.body.getReader()
