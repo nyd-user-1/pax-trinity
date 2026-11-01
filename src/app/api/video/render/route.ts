@@ -7,7 +7,8 @@ import { validate } from "@/video/specs"
 import { cdnUrl, FORMATS, lambdaConfigured, lambdaProgress, renderLocal, renderOnLambda, type Format } from "@/video/render-server"
 
 // POST { templateId, props, format: "mp4" | "webm", fresh? }: admins only, since a render
-// spends Lambda money. Validates first (a schema failure is a 422 with zod's message, before
+// spends Lambda money. Props already rendered are answered from the bucket unless `fresh`.
+// Validates first (a schema failure is a 422 with zod's message, before
 // any render), refuses anything over a minute, then renders. On Lambda the answer is JSON:
 // { url, poster } on the clips CDN when the render finishes within the request, else a 202
 // with { renderId, bucketName } to poll with GET ?renderId=&bucketName= until it is
@@ -41,7 +42,7 @@ export async function POST(req: Request) {
 
   if (lambdaConfigured()) {
     try {
-      const r = await renderOnLambda({ spec: v.spec, props: v.props, format })
+      const r = await renderOnLambda({ spec: v.spec, props: v.props, format, fresh: body.fresh === true })
       if (r.progress.done) return NextResponse.json({ url: r.url, poster: r.poster })
       if (r.progress.fatal) return NextResponse.json({ error: r.progress.fatal }, { status: 502 })
       return NextResponse.json({ renderId: r.renderId, bucketName: r.bucketName, progress: r.progress.progress }, { status: 202 })

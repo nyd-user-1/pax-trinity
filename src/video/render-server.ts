@@ -8,7 +8,7 @@ import path from "node:path"
 import { getRenderProgress, renderMediaOnLambda, renderStillOnLambda as lambdaStill, type AwsRegion } from "@remotion/lambda/client"
 
 import { CLIPS_CDN } from "@/components/clips/catalog"
-import { CLIPS_BUCKET } from "@/lib/clips/storage"
+import { CLIPS_BUCKET, stat } from "@/lib/clips/storage"
 import { canonicalJson, hash } from "@/lib/fnv"
 
 import { durationOf, type AnySpec } from "./specs"
@@ -116,6 +116,9 @@ export async function startOnLambda({ spec, props, format }: { spec: AnySpec; pr
       codec: FORMATS[format].codec,
       outName: { bucketName: CLIPS_BUCKET, key },
       privacy: PRIVACY,
+      // Rendering again means the file should be replaced; it also spares the Lambda a look for the file
+      // first, which a missing key answers 403 without s3:ListBucket on the whole clips bucket.
+      overwrite: true,
     }),
     poster.started,
   ])
@@ -144,9 +147,16 @@ export async function waitOnLambda(render: LambdaRender, budgetMs: number): Prom
 }
 
 /** Renders the video and its poster on Lambda, waiting up to budgetMs (Amplify cuts a response at about 30 s):
- *  the file's address when it is done in time, else the render to re-attach to with lambdaProgress. */
-export async function renderOnLambda({ spec, props, format, budgetMs = 20_000 }: { spec: AnySpec; props: unknown; format: Format; budgetMs?: number }) {
+ *  the file's address when it is done in time, else the render to re-attach to with lambdaProgress. Props
+ *  already rendered are answered from the bucket without a render, unless `fresh` (a template changed since). */
+export async function renderOnLambda({ spec, props, format, budgetMs = 20_000, fresh = false }: { spec: AnySpec; props: unknown; format: Format; budgetMs?: number; fresh?: boolean }) {
   const start = Date.now()
+  const key = renderedKey(spec, props, format)
+  const posterKey = renderedKey(spec, props, "png")
+  if (!fresh && (await stat(key)) && (await stat(posterKey))) {
+    const progress: Progress = { done: true, key }
+    return { url: cdnUrl(key), key, poster: cdnUrl(posterKey), posterKey, renderId: null, bucketName: null, progress }
+  }
   const s = await startOnLambda({ spec, props, format })
   const progress = await waitOnLambda(s, budgetMs - (Date.now() - start))
   return { url: s.url, key: s.key, poster: s.poster.url, posterKey: s.poster.key, renderId: s.renderId, bucketName: s.bucketName, progress }
