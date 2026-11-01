@@ -49,7 +49,9 @@ export function Creators({ clips, activeId, onSelect, onPlay }: { clips: ClipRow
                 onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onSelect(c.id))}
                 className={cn(
                   "group flex w-full cursor-pointer items-center gap-3 rounded-xl border-2 px-3 py-2 pr-12 text-left outline-none transition-[color,background-color,border-color]",
-                  on ? "border-pax2-light-blue bg-accent text-pax2-blue" : "border-transparent text-slate-500 hover:border-pax2-light-blue hover:text-pax2-blue focus-visible:border-pax2-light-blue",
+                  // A focused row must not wear the picked row's border (it read as a second, stuck selection,
+                  // Brendan 2026-11-01): the keys' focus gets a soft half-tone border of its own.
+                  on ? "border-pax2-light-blue bg-accent text-pax2-blue" : "border-transparent text-slate-500 hover:border-pax2-light-blue hover:text-pax2-blue focus-visible:border-pax2-light-blue/40",
                 )}
               >
                 <button

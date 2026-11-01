@@ -34,7 +34,11 @@ export function Grid({ clips, onOpen, onSelect, activeId, className }: { clips: 
           aria-current={clip.id === activeId || undefined}
           onClick={() => (onSelect ?? onOpen)(clip)}
           onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), (onSelect ?? onOpen)(clip))}
-          className="group @container/tile relative aspect-[9/16] cursor-pointer overflow-hidden bg-black text-left text-white outline-none"
+          className={cn(
+            "group @container/tile relative aspect-[9/16] cursor-pointer overflow-hidden bg-black text-left text-white outline-none transition-transform duration-300",
+            // The tile picked grows a touch and rises over its neighbours (Brendan, 2026-11-01), so the pick reads at a glance.
+            clip.id === activeId && "z-10 scale-[1.02]",
+          )}
           aria-label={clip.title}
         >
           {clip.composition ? (
@@ -83,7 +87,7 @@ export function Grid({ clips, onOpen, onSelect, activeId, className }: { clips: 
           )}
           {/* The blue border (Brendan, 2026-10-31; 3px, the 1px could not be seen): the clip picked, and 2px on hover.
               Drawn over the video. */}
-          <span aria-hidden className={cn("pointer-events-none absolute inset-0 z-10 transition-colors", clip.id === activeId ? "border-[3px] border-pax2-light-blue shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55)]" : "border-2 border-transparent group-hover:border-pax2-light-blue")} />
+          <span aria-hidden className={cn("pointer-events-none absolute inset-0 z-10 transition-colors", clip.id === activeId ? "border-4 border-pax2-light-blue shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55),inset_0_0_18px_color-mix(in_srgb,var(--pax2-light-blue)_35%,transparent)]" : "border-2 border-transparent group-hover:border-pax2-light-blue")} />
         </div>
       ))}
     </div>
