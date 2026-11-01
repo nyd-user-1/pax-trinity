@@ -40,7 +40,7 @@ const pick = (values, shares) => {
 
 // The arms' files, as the clips catalog serves them, on the CDN the dev server names.
 const env = fs.readFileSync(path.join(ROOT, ".env.local"), "utf8")
-const cdn = env.match(/^NEXT_PUBLIC_CLIPS_CDN=(.+)$/m)?.[1]?.trim() ?? "https://d3tyjc2amjpyom.cloudfront.net"
+const cdn = env.match(/^NEXT_PUBLIC_CLIPS_CDN=(.+)$/m)?.[1]?.trim() ?? "https://d19bx9wfmnrb34.cloudfront.net"
 const catalog = fs.readFileSync(path.join(ROOT, "src/components/clips/catalog.ts"), "utf8")
 const fileOf = (arm) => catalog.match(new RegExp(`frame\\("${arm.replace(/^px-/, "")}",\\s*"([^"]+)"`))?.[1]
 const PLACEBO_SRC = "https://assets.mixkit.co/videos/40700/40700-720.mp4"
