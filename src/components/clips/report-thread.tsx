@@ -338,6 +338,9 @@ export function MailThread({ subject, tag, reportHref, thread, canVersion = true
   }, [thread, canVersion])
   const latest = () => (versions.length ? versions[versions.length - 1].body : seed())
   const pill = "flex items-center gap-2 rounded-full border border-slate-300 px-5 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+  // Replying takes the thread's place (Brendan, 2026-11-01): the composer opens at the top, under the
+  // toolbar, where the report stood — not beneath it; Send or the trash brings the thread back.
+  if (compose) return <Composer mode={compose} subject={subject} seedBody={latest()} thread={thread} onClose={() => setCompose(null)} onSaved={(v) => setVersions((x) => [...x, v])} />
   return (
     <section>
       <div className="flex items-center gap-2 px-4 pt-3 pb-1">
@@ -378,9 +381,7 @@ export function MailThread({ subject, tag, reportHref, thread, canVersion = true
         </div>
       ))}
 
-      {compose ? (
-        <Composer mode={compose} subject={subject} seedBody={latest()} thread={thread} onClose={() => setCompose(null)} onSaved={(v) => setVersions((x) => [...x, v])} />
-      ) : (
+      {(
         <div className="flex items-center gap-2 px-4 pt-2 pb-4 sm:pl-[68px]">
           <button type="button" onClick={() => setCompose("reply")} disabled={!canVersion} title={canVersion ? "Reply — edit the report as a new version" : "A drawn test takes no versions"} className={cn(pill, !canVersion && "opacity-40")}>
             <Reply className="size-4" /> Reply
