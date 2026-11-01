@@ -544,7 +544,14 @@ export function Shell({ children, drawer, signedIn = false, admin = false, super
               </button>
               {/* /home's title is the context switcher again (restored 2026-10-20); everywhere else it stays plain. */}
               <PageSwitcher title={title} items={findable} />
-              <div className="flex-1" />
+              {/* The header's empty run is the right-click page switcher's ground, and nothing said so
+                  (Brendan, 2026-11-01): resting on it draws the drop target's dashed blue line and the
+                  one instruction, after a beat so a passing pointer never flashes it. */}
+              <div className="group/deadspace relative flex flex-1 items-center self-stretch">
+                <span aria-hidden className="pointer-events-none absolute inset-x-0 inset-y-3 flex items-center justify-center rounded-xl border-2 border-dashed border-pax2-light-blue/60 opacity-0 transition-opacity duration-200 group-hover/deadspace:opacity-100 group-hover/deadspace:delay-700">
+                  <span className="rounded-full bg-pax2-surface px-3 py-1 text-xs font-medium text-pax2-blue">Right-click to go to any page</span>
+                </span>
+              </div>
               {/* A page's own header controls (the dashboard's poller switch and pipeline run) portal in here. */}
               <div id="page-actions" className="flex items-center gap-3" />
               {/* Housekeeping's pointer (Brendan, 2026-10-30): admins comment on any element for the super admin. */}
