@@ -1211,15 +1211,7 @@ export const DEFINITIONS: Record<ToolName, Definition> = {
       limit: { type: "integer", description: "1–10, default 6." },
     },
     required: ["q"],
-    // The one tool whose path is not a /api/policy resource — see the note on
-    // the leading slash in run-tools.
-    request: (input) => {
-      const sp = new URLSearchParams({
-        q: input.q ?? "",
-        limit: String(Math.min(Number(input.limit) || 6, 10)),
-      })
-      return `/api/agents/search?${sp.toString()}`
-    },
+    // No request: run-tools reads the web in its own process (lib/agents/search).
     shape: (data) => {
       const d = data as { provider?: string; results?: unknown[] } | null
       if (!d) return null
@@ -1237,8 +1229,7 @@ export const DEFINITIONS: Record<ToolName, Definition> = {
       },
     },
     required: ["url"],
-    request: (input) =>
-      `/api/agents/search?${new URLSearchParams({ url: input.url ?? "", chars: "6000" }).toString()}`,
+    // No request, as web_search.
     shape: (data) => {
       const d = data as Record<string, unknown> | null
       if (!d) return null

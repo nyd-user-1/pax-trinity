@@ -1,19 +1,23 @@
 import { NextResponse } from "next/server"
 
 import { readPage, webSearch } from "@/lib/agents/search"
+import { currentUser } from "@/lib/auth"
 
 // The agents' one read that is not the legislative record. It sits here rather
 // than under /api/policy because /api/policy is the record — jurisdiction
 // scoped, half-hour edge cache, one resource per legislature — and a web search
 // is none of those things.
 //
-// GET so the tool runner reaches it the same way it reaches everything else,
-// and no cache header: a search for what happened this week should not be
-// answered with what happened last fortnight.
+// The agents no longer come through here: the tool runner calls lib/agents/search
+// in its own process (lib/agents/run-tools.ts). The route stays for a signed-in
+// browser, behind the same sign-in as /api/agents/chat, since every call is a
+// paid search. No cache header: a search for what happened this week should not
+// be answered with what happened last fortnight.
 
 export const dynamic = "force-dynamic"
 
 export async function GET(request: Request) {
+  if (!(await currentUser())) return NextResponse.json({ error: "Sign in to search." }, { status: 401 })
   const sp = new URL(request.url).searchParams
   const q = (sp.get("q") ?? "").trim()
   // `url=` reads one page instead of searching for several — the half that

@@ -6,10 +6,11 @@ import { keyDef } from "@/lib/forms/keys"
 import { formById } from "@/lib/forms/programs"
 import { postToDiscord } from "@/lib/agents/connections/discord"
 import { postToSlack } from "@/lib/agents/connections/slack"
+import { readPage, webSearch } from "@/lib/agents/search"
 
-// Executing a tool call. Everything except the connections goes out over HTTPS
-// to this same deployment's /api/policy, which is what puts the agents behind
-// the CloudFront cache the pages already warm.
+// Executing a tool call. Everything except the connections and the web reads
+// goes out over HTTPS to this same deployment's /api/policy, which is what puts
+// the agents behind the CloudFront cache the pages already warm.
 
 export type ToolOutcome = {
   ok: boolean
@@ -135,14 +136,52 @@ export async function runTool(
     }
   }
 
+  // A shape may decide that a 200 was not an answer — get_bill does, when the
+  // route hands back a different bill than the number asked for. That is a
+  // miss, and the transcript should say so rather than print "1 record".
+  const settle = (body: unknown): ToolOutcome => {
+    const shaped = definition?.shape ? definition.shape(body, input) : body
+    const refused =
+      shaped && typeof shaped === "object" && "error" in shaped
+        ? String((shaped as { error: unknown }).error)
+        : null
+    return {
+      ok: !refused,
+      payload: shaped,
+      summary: refused ? refused.slice(0, 120) : count(shaped),
+      ms: Date.now() - started,
+    }
+  }
+
+  // The web is read here, in this process. Over HTTP it went to whatever
+  // origin() named — another deployment while AGENTS_ORIGIN is unset — and
+  // /api/agents/search had to stand open, since this runner carries no session.
+  if (name === "web_search" || name === "read_page") {
+    try {
+      if (name === "web_search") {
+        const q = (input.q ?? "").trim()
+        if (q.length < 2) throw new Error("a search term of two characters or more is required")
+        return settle(await webSearch(q, Math.min(Number(input.limit) || 6, 10)))
+      }
+      const url = (input.url ?? "").trim()
+      if (!/^https?:\/\//i.test(url)) throw new Error("url must be http or https")
+      return settle(await readPage(url, 6000))
+    } catch (error) {
+      // The provider's sentence goes to the model, which can say what it could
+      // not do rather than guess.
+      const message = error instanceof Error ? error.message : String(error)
+      console.error(`agents ${name} failed`, message)
+      return { ok: false, payload: { error: message }, summary: message.slice(0, 120), ms: Date.now() - started }
+    }
+  }
+
   if (!definition?.request) {
     return { ok: false, payload: { error: `no such tool ${name}` }, summary: "unknown tool", ms: 0 }
   }
 
   const path = definition.request(input)
-  // A leading slash means the tool named the whole path — web_search does,
-  // because a web search is not a resource of the legislative record. Everything
-  // else is a /api/policy resource and says only its name.
+  // A leading slash would name the whole path; every tool now names a
+  // /api/policy resource and says only its name.
   const url = path.startsWith("/") ? `${origin()}${path}` : `${origin()}/api/policy/${path}`
 
   try {
@@ -170,22 +209,7 @@ export async function runTool(
       }
     }
 
-    const shaped = definition.shape ? definition.shape(body, input) : body
-
-    // A shape may decide that a 200 was not an answer — get_bill does, when the
-    // route hands back a different bill than the number asked for. That is a
-    // miss, and the transcript should say so rather than print "1 record".
-    const refused =
-      shaped && typeof shaped === "object" && "error" in shaped
-        ? String((shaped as { error: unknown }).error)
-        : null
-
-    return {
-      ok: !refused,
-      payload: shaped,
-      summary: refused ? refused.slice(0, 120) : count(shaped),
-      ms: Date.now() - started,
-    }
+    return settle(body)
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     return { ok: false, payload: { error: message }, summary: message.slice(0, 120), ms: Date.now() - started }
