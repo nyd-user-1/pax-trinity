@@ -12,6 +12,7 @@ import MA_GENERAL_ADULTS from "../../../scripts/results/configs/ma-general-adult
 import MA_WAVE_3 from "../../../scripts/results/configs/ma-wave-3.json"
 import OPEN_PRIMARIES_1 from "../../../scripts/results/configs/open-primaries-1.json"
 import { deriveResults, EXPORT_DIMS, type Derived, type Targets } from "./derive"
+import type { VideoState } from "./video"
 
 // The completion hook (docs/briefs/loop-pipeline.md, part A): a message test that has finished
 // writes its own results. completeTest reads the test record and every response, derives the
@@ -26,12 +27,14 @@ import { deriveResults, EXPORT_DIMS, type Derived, type Targets } from "./derive
 // where the surfaces read them: the register (src/lib/results/computed/), the audience export
 // (public/audience-data/pax_test.json and index.json, synced to the export buckets).
 // Weighted to Massachusetts general adults, the audience store's sourced targets
-// (scripts/results/configs/ma-general-adults.json).
+// (scripts/results/configs/ma-general-adults.json). Once the result is kept it starts the
+// result's video (./video.ts, beside it as id "video"), which never holds the result up.
 
 const TABLE = process.env.PAX_TRINITY_TEST_RESPONSES_TABLE ?? "pax-trinity-test-responses"
 const client = DynamoDBDocumentClient.from(new DynamoDBClient({ region: process.env.PAX_TRINITY_TABLES_REGION ?? process.env.PAX2_REGION ?? "us-east-1" }), {
   marshallOptions: { removeUndefinedValues: true },
 })
+export { TABLE as RESPONSES_TABLE, client as responsesClient }
 
 /** A test's own naming and dimensions, where its config carries them. `simulated` is the line a seeded
  *  demo run's results carry first among their limitations; it marks the set simulated. */
@@ -52,8 +55,12 @@ export type ResultItem = { test: string; id: "latest"; kind: "result"; env: stri
 
 export const resultPartition = (testId: string) => `result:${testId}`
 
-/** Derive a test's results from its responses and keep them; null for a test nobody set up. */
-export async function completeTest(testId: string, opts: { env?: "production" | "development" | "all" } = {}): Promise<ResultItem | null> {
+/** Derive a test's results from its responses and keep them, then start or continue their video; null for a test nobody set up.
+ *  `retryFailedVideo: false` (the fielding's close) leaves a video that failed failed, so the readout goes without it. */
+export async function completeTest(
+  testId: string,
+  opts: { env?: "production" | "development" | "all"; retryFailedVideo?: boolean } = {},
+): Promise<(ResultItem & { video: VideoState }) | null> {
   const test = await getTest(testId)
   if (!test) return null
   const items = await itemsFor(testId)
@@ -86,7 +93,15 @@ export async function completeTest(testId: string, opts: { env?: "production" | 
   }
   const item: ResultItem = { test: resultPartition(testId), id: "latest", kind: "result", env, computedAt: now.toISOString(), ...derived }
   await client.send(new PutCommand({ TableName: TABLE, Item: item }))
-  return item
+  let video: VideoState = { state: "none" }
+  try {
+    // Loaded here, not at the top: ./video reads this module's table.
+    const { resultVideo } = await import("./video")
+    video = await resultVideo(testId, { resultSet: item.resultSet, retryFailed: opts.retryFailedVideo ?? true })
+  } catch (e) {
+    console.error("resultVideo failed", (e as Error).message)
+  }
+  return { ...item, video }
 }
 
 /** A test's last derived results, or null. A query, not a get: the roles that read responses are granted Query. */

@@ -4,6 +4,8 @@ import { TEMPLATES } from "@/lib/agents/templates"
 import { contactGroup } from "@/lib/fielding/contacts"
 import { createFielding, events, fidOf, fieldingIds, newFid, newPid, record, recordOnce, type ClosedEvent, type FieldingDef, type FieldingEvent, type InviteEvent } from "@/lib/fielding/store"
 import { fill, sendMail } from "@/lib/mail/send"
+import { completeTest } from "@/lib/results/complete"
+import { videoOf, type VideoState } from "@/lib/results/video"
 import { surveyBySlug } from "@/lib/surveys/catalog"
 import { surveyItems, type SurveyItem } from "@/lib/surveys/responses"
 import { ENV, itemsFor, type RecordItem } from "@/lib/tests/responses"
@@ -21,9 +23,13 @@ import { PLACEBO } from "@/lib/tests/types"
 // the result, and mails it: the Analyst's readout and the Assistant's notice.
 // The close, the report and each reminder are written once under fixed keys,
 // so overlapping ticks (two open Inboxes) cannot send anything twice; a close
-// whose report never landed is finished by the next tick. The fielding's state
-// lives on the fielding: a closed fielding's links say so, and the test itself
-// stays as its owner set it in /message-tests.
+// whose report never landed is finished by the next tick. A test's close also
+// writes its results (lib/results/complete.ts) and starts their video, and the
+// report waits for the video across ticks, never within one: while it renders the
+// report is not recorded, and a later tick picks it up and mails the readout with
+// the poster, or without it when the render failed. The fielding's state lives on
+// the fielding: a closed fielding's links say so, and the test itself stays as its
+// owner set it in /message-tests.
 
 const STAFF = ["brendan@nysgpt.com", "garrett@parallaxinnovations.com", "sajeela@parallaxinnovations.com", "ted@parallaxinnovations.com"]
 const template = (name: string) => TEMPLATES.find((t) => t.name === name)!
@@ -231,8 +237,15 @@ async function compute(def: FieldingDef, finished: Answer[]): Promise<Results> {
 
 const signed = (x: number) => `${x >= 0 ? "+" : ""}${Math.round(x)}`
 
+/** The result video's lines in a readout: its poster linking to the MP4, and the link alone beneath. */
+function videoLines(video: VideoState): string[] {
+  if (video.state === "done") return [...(video.poster ? [`[![Result video](${video.poster})](${video.url})`] : []), `Result video: [${video.url}](${video.url})`]
+  if (video.state === "failed") return ["The result video didn't render."]
+  return []
+}
+
 /** The Analyst's readout, as markdown, from the computed result. */
-export function readout(def: FieldingDef, r: Results, armName: (id: string) => string): string {
+export function readout(def: FieldingDef, r: Results, armName: (id: string) => string, video: VideoState = { state: "none" }): string {
   if (r.type === "test") {
     const ranked = r.arms.filter((a) => a.liftPp != null).sort((a, b) => b.liftPp! - a.liftPp!)
     const top = ranked[0]
@@ -242,6 +255,7 @@ export function readout(def: FieldingDef, r: Results, armName: (id: string) => s
       top ? `The strongest treatment was **${armName(top.arm)}**, ${signed(top.liftPp!)} points on Yes (±${Math.round(top.marginPp!)}) against the placebo's ${Math.round(placebo?.yesPct ?? 0)}%.` : "No treatment arm finished.",
       r.arms.map((a) => (a.verdict === "placebo" ? `- Placebo: ${Math.round(a.yesPct)}% Yes, n ${a.n}` : `- ${armName(a.arm)}: ${Math.round(a.yesPct)}% Yes, ${a.liftPp == null ? "no lift yet" : `${signed(a.liftPp)} (±${Math.round(a.marginPp!)}), ${a.verdict}`}; comprehension ${Math.round(a.comprehensionPct)}%; n ${a.n}`)).join("\n"),
       "The levels are unweighted; with this few per arm every margin is wide, so read the order, not the size.",
+      ...videoLines(video),
       "Analyst",
     ].join("\n\n")
   }
@@ -253,13 +267,19 @@ export function readout(def: FieldingDef, r: Results, armName: (id: string) => s
   ].join("\n\n")
 }
 
-/** The report, written once; only the tick that writes it sends the readout and the notice. */
+/** The report, written once; only the tick that writes it sends the readout and the notice. A test's waits, unrecorded, while its video renders. */
 async function finish(l: Loaded, reason: ClosedEvent["reason"], base: string, armName: (id: string) => string) {
   const s = l.summary
+  let video: VideoState = { state: "none" }
+  if (s.def.type === "test") {
+    const kept = await completeTest(s.def.target, { retryFailedVideo: false }).catch((e: Error) => (console.error("completeTest failed on the fielding's close", e.message), null))
+    video = kept?.video ?? (await videoOf(s.def.target).catch((): VideoState => ({ state: "none" })))
+    if (video.state === "rendering") return false
+  }
   const results = await compute(s.def, l.answers.finished)
   if (!(await recordOnce(s.def.fid, "report", { kind: "report", at: new Date().toISOString(), results }))) return false
   const subject = s.def.type === "test" ? `Results: ${s.def.title}` : `Topline: ${s.def.title}`
-  await sendMail({ from: "bill-reader", to: STAFF, subject, markdown: readout(s.def, results, armName), base })
+  await sendMail({ from: "bill-reader", to: STAFF, subject, markdown: readout(s.def, results, armName, video), base })
   await sendMail({
     from: "assistant",
     to: STAFF,

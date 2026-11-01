@@ -2,7 +2,8 @@
 // (Resend, 2026-10-15) with the PAX mark of the Alpha Launch invitation (2026-10-19). A pale page,
 // the mark, a white card headed in navy by the message's bold first line (else its subject), slate paragraphs, a navy pill for a
 // link that stands alone on its line (pax2's layout() buttons), "**Label:** value" lines and lists
-// in the card's pale details panel, and the site's address beneath. Tables and inline styles, so every mail client draws it.
+// in the card's pale details panel, an image (a result video's poster, linking to the video) at a phone thumbnail's width, and
+// the site's address beneath. Tables and inline styles, so every mail client draws it.
 // The input is the composer's markdown, the subset it writes; relative links resolve against `base`.
 
 const FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif"
@@ -11,13 +12,19 @@ const INK = "#0f172a"
 const SLATE = "#475569"
 const PAGE = "#f5f7fb"
 const MARK = "https://pax.nysgpt.com/brand/pax-mark.png"
+const IMAGE_WIDTH = 240
 
 const escape = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")
 
 export function designedHtml(markdown: string, base: string, subject?: string) {
   const href = (h: string) => (h.startsWith("/") ? base + h : h)
+  const img = (alt: string, src: string) =>
+    `<img src="${href(src)}" alt="${alt}" width="${IMAGE_WIDTH}" style="display:block;border:0;width:${IMAGE_WIDTH}px;max-width:100%;height:auto;border-radius:12px">`
   const inline = (s: string) =>
     escape(s)
+      // Images first, a linked one whole, so the link rule below never sees their brackets.
+      .replace(/\[!\[([^\]]*)\]\(([^)\s]+)\)\]\(([^)\s]+)\)/g, (_, alt, src, h: string) => `<a href="${href(h)}" style="display:inline-block">${img(alt, src)}</a>`)
+      .replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (_, alt, src) => img(alt, src))
       .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, text, h: string) => `<a href="${href(h)}" style="color:${NAVY};font-weight:600;text-decoration:underline">${text}</a>`)
       .replace(/\*\*([^*]+)\*\*/g, `<strong style="color:${INK};font-weight:600">$1</strong>`)
       .replace(/(^|[^*])\*([^*]+)\*/g, "$1<em>$2</em>")
