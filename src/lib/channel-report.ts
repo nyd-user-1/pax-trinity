@@ -15,8 +15,8 @@ import { now, putOnce, query, type Item } from "@/lib/ledger"
 //   content      when the video file has been analyzed (lambda/analyze writes features/<id>.json): the
 //                owner uploaded it during onboarding and linked it, or the fetch worker acquired it.
 
-const BUCKET = process.env.PAX2_BUCKET ?? "pax-2-638175140432"
-const REGION = process.env.PAX2_REGION ?? "us-east-1"
+const BUCKET = process.env.PAX2_BUCKET ?? "pax-trinity-audience-613473203863"
+const REGION = process.env.PAX2_BUCKET_REGION ?? "us-east-2"
 export const SHORT_MAX_SEC = 180
 const SETTLED_DAYS = 7
 const MIN_SETTLED = 5

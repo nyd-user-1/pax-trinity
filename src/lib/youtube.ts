@@ -28,7 +28,8 @@ import { SITE } from "@/lib/mail"
 const CLIENT_ID = process.env.PAX2_GOOGLE_CLIENT_ID
 const CLIENT_SECRET = process.env.PAX2_GOOGLE_CLIENT_SECRET
 const REGION = process.env.PAX2_REGION ?? "us-east-1"
-const BUCKET = process.env.PAX2_BUCKET ?? "pax-2-638175140432"
+const BUCKET = process.env.PAX2_BUCKET ?? "pax-trinity-audience-613473203863"
+const BUCKET_REGION = process.env.PAX2_BUCKET_REGION ?? "us-east-2"
 const PRIVACY = process.env.PAX2_YOUTUBE_PRIVACY ?? "public"
 export const REDIRECT = `${SITE}/api/youtube/oauth`
 /** The pre-re-key single token; read only as the publish fallback. */
@@ -168,7 +169,7 @@ export const channelAccessToken = (channelId: string) => accessFor(channelId)
 export async function uploadShort(input: { key: string; title: string; description: string; publishAt?: string | null }): Promise<{ youtubeId: string; url: string }> {
   const token = await accessToken()
   const { S3Client, GetObjectCommand, HeadObjectCommand } = await import("@aws-sdk/client-s3")
-  const s3 = new S3Client({ region: REGION })
+  const s3 = new S3Client({ region: BUCKET_REGION })
   const head = await s3.send(new HeadObjectCommand({ Bucket: BUCKET, Key: input.key }))
   const size = head.ContentLength ?? 0
   const type = head.ContentType?.startsWith("video/") ? head.ContentType : "video/mp4"

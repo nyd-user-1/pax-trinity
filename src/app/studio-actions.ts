@@ -14,7 +14,8 @@ import { anonSpend } from "@/lib/anon"
 // characters, under half a cent at the neural rate.
 
 const REGION = process.env.PAX2_REGION ?? "us-east-1"
-const BUCKET = process.env.PAX2_BUCKET ?? "pax-2-638175140432"
+const BUCKET = process.env.PAX2_BUCKET ?? "pax-trinity-audience-613473203863"
+const BUCKET_REGION = process.env.PAX2_BUCKET_REGION ?? "us-east-2"
 
 export type Narration = { url: string; marks: WordMark[]; seconds: number; voice: VoiceId; key: string }
 
@@ -78,7 +79,7 @@ export async function narrate(text: string, voice: VoiceId): Promise<Narration> 
   const hash = createHash("sha1").update(`${voice}\n${spoken}`).digest("hex").slice(0, 20)
   const key = `studio/voice/${voice.replace(/[^\w-]/g, "_")}-${hash}`
   const { S3Client, GetObjectCommand, PutObjectCommand } = await import("@aws-sdk/client-s3")
-  const s3 = new S3Client({ region: REGION })
+  const s3 = new S3Client({ region: BUCKET_REGION })
   // Already made for this voice and text.
   try {
     const have = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: `${key}.json` }))

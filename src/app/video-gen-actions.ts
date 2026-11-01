@@ -23,8 +23,8 @@ import { anonSpend } from "@/lib/anon"
 //               Omni Flash — so a dead id surfaces here as the job row's error, and VEO_MODEL is
 //               the one constant to move.
 
-const REGION = process.env.PAX2_REGION ?? "us-east-1"
-const BUCKET = process.env.PAX2_BUCKET ?? "pax-2-638175140432"
+const REGION = process.env.PAX2_BUCKET_REGION ?? "us-east-2"
+const BUCKET = process.env.PAX2_BUCKET ?? "pax-trinity-audience-613473203863"
 const KLING = "https://api-singapore.klingai.com"
 const ELEVEN = "https://api.elevenlabs.io"
 const GOOGLE = "https://generativelanguage.googleapis.com"

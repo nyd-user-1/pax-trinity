@@ -12,7 +12,8 @@ import { fallbackChain, type VideoProvider } from "@/lib/video-model-options"
 // clip). The key is the script text's hash, so the same script reaches the same plan and clips.
 
 const REGION = process.env.PAX2_REGION ?? "us-east-1"
-const BUCKET = process.env.PAX2_BUCKET ?? "pax-2-638175140432"
+const BUCKET = process.env.PAX2_BUCKET ?? "pax-trinity-audience-613473203863"
+const BUCKET_REGION = process.env.PAX2_BUCKET_REGION ?? "us-east-2"
 const MODEL = process.env.PAX2_MODEL ?? "us.anthropic.claude-sonnet-4-6"
 
 export type BankedShot = { url: string; provider: VideoProvider; at: string }
@@ -24,7 +25,7 @@ const checkKey = (key: string) => {
 
 async function s3() {
   const m = await import("@aws-sdk/client-s3")
-  return { m, c: new m.S3Client({ region: REGION }) }
+  return { m, c: new m.S3Client({ region: BUCKET_REGION }) }
 }
 
 async function getJson<T>(Key: string): Promise<T | null> {

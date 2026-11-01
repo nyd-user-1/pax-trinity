@@ -117,8 +117,8 @@ export async function uploadUrl(contentType: string) {
   const ext = contentType.includes("mp4") ? "mp4" : contentType.includes("quicktime") ? "mov" : "webm"
   const id = `sub-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
   const key = `uploads/${ws}/${id}.${ext}`
-  const s3 = new S3Client({ region: process.env.PAX2_REGION ?? "us-east-1" })
-  const url = await getSignedUrl(s3, new PutObjectCommand({ Bucket: process.env.PAX2_BUCKET ?? "pax-2-638175140432", Key: key, ContentType: contentType }), { expiresIn: 900 })
+  const s3 = new S3Client({ region: process.env.PAX2_BUCKET_REGION ?? "us-east-2" })
+  const url = await getSignedUrl(s3, new PutObjectCommand({ Bucket: process.env.PAX2_BUCKET ?? "pax-trinity-audience-613473203863", Key: key, ContentType: contentType }), { expiresIn: 900 })
   return { id, key, url }
 }
 

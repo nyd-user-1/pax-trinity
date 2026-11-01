@@ -3,8 +3,8 @@ import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3"
 // The Studio's audio from the app's own origin: narration under studio/voice/ and the sound beds under
 // studio/music/, streamed from S3 rather than redirected to it, because the browser's renderer reads
 // the bytes and the bucket sets no CORS. Nothing under studio/ is private.
-const s3 = new S3Client({ region: process.env.PAX2_REGION ?? "us-east-1" })
-const BUCKET = process.env.PAX2_BUCKET ?? "pax-2-638175140432"
+const s3 = new S3Client({ region: process.env.PAX2_BUCKET_REGION ?? "us-east-2" })
+const BUCKET = process.env.PAX2_BUCKET ?? "pax-trinity-audience-613473203863"
 
 export async function GET(req: Request) {
   const key = new URL(req.url).searchParams.get("key") ?? ""

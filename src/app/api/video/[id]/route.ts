@@ -5,8 +5,8 @@ import { takeById } from "@/lib/catalog"
 import { currentUser } from "@/lib/auth"
 import { events, isOriginalId, original, playableKey } from "@/lib/originals"
 
-const s3 = new S3Client({ region: process.env.PAX2_REGION ?? "us-east-1" })
-const BUCKET = process.env.PAX2_BUCKET ?? "pax-2-638175140432"
+const s3 = new S3Client({ region: process.env.PAX2_BUCKET_REGION ?? "us-east-2" })
+const BUCKET = process.env.PAX2_BUCKET ?? "pax-trinity-audience-613473203863"
 
 // The videos stay private in S3; the player gets a short-lived signed link.
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
