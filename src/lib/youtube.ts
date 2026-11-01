@@ -22,12 +22,13 @@ import { SITE } from "@/lib/mail"
 //   OWNER#<email>           CHANNEL#<channelId>#<iso>       a user's connected channel
 //
 // Settings: PAX2_URL for the redirect, PAX2_YOUTUBE_PRIVACY (public, unlisted or private; public by
-// default). The server's role needs ssm:GetParameter and ssm:PutParameter on /pax2/youtube/*
-// (scripts/youtube/grant.sh).
+// default). The parameters live in the new account's SSM, us-east-2 (copied from the old account's
+// us-east-1, 2026-11-01), the region ssm-param.ts reads too. The server's role needs ssm:GetParameter
+// and ssm:PutParameter on /pax2/youtube/*.
 
 const CLIENT_ID = process.env.PAX2_GOOGLE_CLIENT_ID
 const CLIENT_SECRET = process.env.PAX2_GOOGLE_CLIENT_SECRET
-const REGION = process.env.PAX2_REGION ?? "us-east-1"
+const SSM_REGION = process.env.PAX_TRINITY_TABLES_REGION ?? "us-east-2"
 const BUCKET = process.env.PAX2_BUCKET ?? "pax-trinity-audience-613473203863"
 const BUCKET_REGION = process.env.PAX2_BUCKET_REGION ?? "us-east-2"
 const PRIVACY = process.env.PAX2_YOUTUBE_PRIVACY ?? "public"
@@ -74,7 +75,7 @@ async function tokenRequest(body: Record<string, string>) {
 
 async function ssm() {
   const { SSMClient, GetParameterCommand, PutParameterCommand } = await import("@aws-sdk/client-ssm")
-  const c = new SSMClient({ region: REGION })
+  const c = new SSMClient({ region: SSM_REGION })
   return {
     get: async (name: string, decrypt = true) => {
       try {
