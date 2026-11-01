@@ -17,6 +17,9 @@ import { BatchGetCommand, DeleteCommand, DynamoDBDocumentClient, GetCommand, Put
 //   VOTE#<conversation>     <voter>#<statement>             a consensus vote
 //   BOOSTED#<reader>        <video id>                      the reader's current Boost state (on, at)
 //   BOOSTCOUNT#<video id>   META                            the running Boost count (n), a total of the usage log's boost events
+//   FLOW#<email>            <flowId>                        a marketing-flow enrollment, written once (lib/flows/store.ts)
+//   FLOWS                   <email>#<flowId>                the same enrollment in the roster the flows tick reads
+//   FLOWSEND#<email>        DAY#<date> | <flowId>#<day>[#outcome]  a flow send: the day's claim, the step's claim, its outcome
 
 // The new account's us-east-2 (Brendan, 2026-10-30): pax-trinity-ledger holds the 1,522 items copied from
 // the old account's pax2-ledger (us-east-1), which neither production nor the local dev server could reach;
