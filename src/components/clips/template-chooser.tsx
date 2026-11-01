@@ -18,9 +18,9 @@ import { YES_ON_3_FAMILY } from "@/video/specs"
 // A recording in a Yes on 3 template (docs/briefs/record-template-flow.md). After a take is kept, and on
 // /clips for a clip that plays from a file, two of the four templates are offered over the take, the pair
 // drawn by /api/clips/template-pair (lib/clips/template-pair.ts), which writes the offer once per recording
-// and each pick. Each choice plays live with the take under it; picking one opens it in the Player, with Get
-// MP4 for admins (the render route is theirs). Nothing waits on it: the take is kept before it opens, and
-// closing it is the skip.
+// and each pick. Each choice plays live with the take under it; picking one opens it in the Player, with
+// Get MP4 for anyone signed in (the render route's gate, Brendan 2026-11-01). Nothing waits on it: the take
+// is kept before it opens, and closing it is the skip.
 
 export type Take = { id: string; src: string; seconds?: number | null }
 export type From = "record" | "rail" | "menu"
@@ -92,7 +92,7 @@ export function TemplateThumb({ templateId, props, live = true, onPick, classNam
 /** The choices, then the picked one in the Player. `shown` given (the menu's four) skips the pair;
  *  `picked` given (a rail thumbnail) opens on it and writes its pick. */
 export function TemplateChoices({ take, from, shown: given, picked: handed }: { take: Take; from: From; shown?: readonly string[]; picked?: string }) {
-  const { admin } = useShellPanel()
+  const { signedIn } = useShellPanel()
   const pair = useTemplatePair(given ? null : take.id, from)
   const shown = given ?? pair
   const [picked, setPicked] = React.useState<string | null>(handed ?? null)
@@ -122,7 +122,7 @@ export function TemplateChoices({ take, from, shown: given, picked: handed }: { 
           ) : (
             <span />
           )}
-          {admin && <GetMp4 templateId={picked} props={props} />}
+          {signedIn && <GetMp4 templateId={picked} props={props} />}
         </div>
       </div>
     )

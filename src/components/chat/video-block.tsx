@@ -11,10 +11,10 @@ import { noteDrawn, openStudio, VERSIONS_CHANGED } from "@/lib/studio"
 import { validate } from "@/video/specs"
 
 // A ```pax-video block in a finished reply (chat.tsx): the template drawn live, saved once as the reader's
-// next version of it (/api/video/versions), its number as a badge, and for admins Get MP4, which renders it
-// on the server (/api/video/render, Remotion Lambda) and opens the file, and Open in Studio, which
-// opens the right panel's Studio on that version. Props that fail the template's schema show the schema's
-// error where the video would be. A block is saved under its chat, its message and its own JSON
+// next version of it (/api/video/versions), its number as a badge, Get MP4 for anyone signed in, which
+// renders it on the server (/api/video/render, Remotion Lambda) and opens the file, and for admins Open in
+// Studio, which opens the right panel's Studio on that version. Props that fail the template's schema show
+// the schema's error where the video would be. A block is saved under its chat, its message and its own JSON
 // (lib/studio.ts blockKey), so drawing it again (a re-render, a reload of the saved chat) finds the version
 // already made.
 
@@ -54,7 +54,7 @@ export type VideoBlockProps = {
 }
 
 export function VideoBlock({ templateId, props, parent, title, saveKey, chatId }: VideoBlockProps) {
-  const { admin } = useShellPanel()
+  const { admin, signedIn } = useShellPanel()
   const v = React.useMemo(() => validate(templateId, props), [templateId, props])
   const [saved, setSaved] = React.useState<Saved | null>(null)
   React.useEffect(() => {
@@ -81,16 +81,18 @@ export function VideoBlock({ templateId, props, parent, title, saveKey, chatId }
   return (
     <div>
       <TemplatePlayer templateId={templateId} props={props} />
-      {(saved || admin) && (
+      {(saved || signedIn) && (
         <div className="mx-auto mt-2 flex max-w-[360px] items-center justify-between gap-2 data-[wide=true]:max-w-none" data-wide={v.spec.width >= v.spec.height}>
           {saved ? <span className="rounded-full bg-pax2-lavender px-2.5 py-0.5 text-xs font-semibold text-pax2-blue">v{saved.version}</span> : <span />}
-          {admin && (
+          {signedIn && (
             <div className="flex items-center gap-2">
               <GetMp4 templateId={templateId} props={props} />
-              <button type="button" onClick={() => openStudio(saved?.id ?? templateId)} className={whiteButton("md", "px-4 py-1.5")}>
-                <Clapperboard className="size-4" />
-                Open in Studio
-              </button>
+              {admin && (
+                <button type="button" onClick={() => openStudio(saved?.id ?? templateId)} className={whiteButton("md", "px-4 py-1.5")}>
+                  <Clapperboard className="size-4" />
+                  Open in Studio
+                </button>
+              )}
             </div>
           )}
         </div>

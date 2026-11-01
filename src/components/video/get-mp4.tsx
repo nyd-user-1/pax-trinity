@@ -6,8 +6,8 @@ import { Download, Loader2 } from "lucide-react"
 import { whiteButton } from "@/components/white-button"
 
 // Get MP4: a template and its props rendered to a file on the server (/api/video/render, Remotion Lambda;
-// admins only, as the route is) and opened. Chat's video card and the template chooser over a recorded take
-// (components/clips/template-chooser.tsx) both carry it.
+// any signed-in account but a demo one, as the route is) and opened. Chat's video card and the template
+// chooser over a recorded take (components/clips/template-chooser.tsx) both carry it.
 
 type Mp4 = { state: "idle" } | { state: "working" } | { state: "ready"; url: string } | { state: "failed"; error: string }
 

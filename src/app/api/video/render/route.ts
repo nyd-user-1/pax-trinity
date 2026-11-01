@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server"
 
-import { currentUser } from "@/lib/auth"
+import { currentUser, forbidDemo } from "@/lib/auth"
 // specs, not the registry: the registry carries the components, and Remotion's
 // components cannot load in a route.
 import { validate } from "@/video/specs"
 import { cdnUrl, FORMATS, lambdaConfigured, lambdaProgress, renderLocal, renderOnLambda, type Format } from "@/video/render-server"
 
-// POST { templateId, props, format: "mp4" | "webm", fresh? }: admins only, since a render
-// spends Lambda money. Props already rendered are answered from the bucket unless `fresh`.
+// POST { templateId, props, format: "mp4" | "webm", fresh? }: any signed-in account but a demo one
+// (Brendan, 2026-11-01; admins only before), since a render spends Lambda money. Props already
+// rendered are answered from the bucket unless `fresh`.
 // Validates first (a schema failure is a 422 with zod's message, before
 // any render), refuses anything over a minute, then renders. On Lambda the answer is JSON:
 // { url, poster } on the clips CDN when the render finishes within the request, else a 202
@@ -21,11 +22,17 @@ export const maxDuration = 300
 
 const MAX_DURATION_SECONDS = 60
 
-const denied = async () => ((await currentUser())?.admin ? null : NextResponse.json({ error: "Admins only." }, { status: 401 }))
+const signIn = () => NextResponse.json({ error: "Sign in to render a video." }, { status: 401 })
 
 export async function POST(req: Request) {
-  const no = await denied()
-  if (no) return no
+  const user = await currentUser()
+  if (!user) return signIn()
+  // A demo account renders nothing (lib/demo.ts): the sandbox spends no Lambda money.
+  try {
+    forbidDemo(user)
+  } catch (e) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 403 })
+  }
   let body: { templateId?: unknown; props?: unknown; format?: unknown; fresh?: unknown }
   try {
     body = await req.json()
@@ -64,8 +71,7 @@ export async function POST(req: Request) {
 
 /** GET ?renderId=&bucketName=: where a Lambda render the POST started stands. */
 export async function GET(req: Request) {
-  const no = await denied()
-  if (no) return no
+  if (!(await currentUser())) return signIn()
   if (!lambdaConfigured()) return NextResponse.json({ error: "Remotion Lambda is not configured here." }, { status: 501 })
   const q = new URL(req.url).searchParams
   const renderId = q.get("renderId") ?? ""

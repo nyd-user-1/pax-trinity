@@ -118,6 +118,8 @@ type PanelState = {
   askAbout: (seed: Omit<DiscussSeed, "nonce">) => void
   /** What this page last asked the discussion about. */
   discussSeed: DiscussSeed | null
+  /** Someone is signed in: a template renders to an MP4 for them (Get MP4). */
+  signedIn: boolean
   /** The signed-in user is an admin: the Studio and Housekeeping are theirs. */
   admin: boolean
   /** The super admin alone: the account menu's To Review. */
@@ -131,7 +133,7 @@ export type DiscussSeed = { context: () => string; chipVideo?: string; ask?: Chi
  *  Discussion panel's back arrow before the title; `flush` lets rows run to the panel's edges. */
 export type Aside = { key: string; title: string; body: React.ReactNode; back?: () => void; flush?: boolean }
 export type PanelSize = "third" | "half" | "full" | "custom"
-const PanelCtx = React.createContext<PanelState>({ setOpen: () => {}, wide: false, setWide: () => {}, size: "third", nextSize: "half", cycleSize: () => {}, panelOpen: false, sidebarOpen: false, toggleSidebar: () => {}, discuss: false, toggleDiscuss: () => {}, openAside: () => {}, asideKey: null, askAbout: () => {}, discussSeed: null, admin: false, superAdmin: false, openPane: () => {} })
+const PanelCtx = React.createContext<PanelState>({ setOpen: () => {}, wide: false, setWide: () => {}, size: "third", nextSize: "half", cycleSize: () => {}, panelOpen: false, sidebarOpen: false, toggleSidebar: () => {}, discuss: false, toggleDiscuss: () => {}, openAside: () => {}, asideKey: null, askAbout: () => {}, discussSeed: null, signedIn: false, admin: false, superAdmin: false, openPane: () => {} })
 export const useShellPanel = () => React.useContext(PanelCtx)
 
 export function Shell({ children, drawer, signedIn = false, admin = false, superAdmin = false, partner = false }: { children: React.ReactNode; drawer: React.ReactNode; signedIn?: boolean; admin?: boolean; superAdmin?: boolean; /** A partner's account: their Delivery Board joins the list. */ partner?: boolean }) {
@@ -239,11 +241,12 @@ export function Shell({ children, drawer, signedIn = false, admin = false, super
       asideKey: aside?.key ?? null,
       askAbout: (s: Omit<DiscussSeed, "nonce">) => (setAside(null), setSeed({ ...s, nonce: Date.now() }), setDiscuss(true)),
       discussSeed: seed,
+      signedIn,
       admin,
       superAdmin,
       openPane,
     }),
-    [wide, size, nextSize, panelOpen, sidebarOpen, discuss, aside?.key, seed, admin, superAdmin, openPane],
+    [wide, size, nextSize, panelOpen, sidebarOpen, discuss, aside?.key, seed, signedIn, admin, superAdmin, openPane],
   )
   // Housekeeping's pointer and page markers open the discussion panel on Housekeeping; a chat video's
   // Open in Studio opens it on the Studio.
