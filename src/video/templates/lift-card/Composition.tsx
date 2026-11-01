@@ -86,7 +86,7 @@ function MetricRow({ m, at, track }: { m: Metric; at: number; track: number }) {
         <div style={{ position: "absolute", top: -10, bottom: -10, left, width: Math.abs(liftPx), borderRadius: 12, boxSizing: "border-box", ...bar }} />
       </div>
       <div style={{ marginTop: 18, fontSize: TYPE.caption, color: COLOR.muted, fontVariantNumeric: "tabular-nums", opacity: grow }}>
-        Placebo {m.control.toFixed(1)}% → {(m.control + m.lift).toFixed(1)}%{m.significant ? "" : " · inside its margin"}
+        Placebo {m.control.toFixed(1)}% · Treatment {(m.control + m.lift).toFixed(1)}%{m.significant ? "" : " · inside its margin"}
       </div>
     </div>
   )
