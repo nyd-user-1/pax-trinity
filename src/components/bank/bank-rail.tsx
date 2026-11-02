@@ -9,7 +9,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@govbl
 import { useShellPanel } from "@/components/shell"
 import { KebabMenu, MenuFoot, MenuHeader, MenuRow, MenuSeparator } from "@/components/kebab-menu"
 import { useNavFavorites } from "@/lib/nav-favorites"
-import { SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader } from "@govblock/ui/components/ny4/sidebar"
+import { SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader } from "@govblock/ui/components/ny4/sidebar"
 
 // The bank's rail, in the shell menu's dress: a header (a title, or the
 // surface's own — /audience's search), groups of rows, each row a topic or a
@@ -19,7 +19,8 @@ import { SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, S
 // (Brendan, 2026-10-31); a group can fold shut under its label, and a long one
 // scrolls past its first rows.
 
-export function BankRail({ title, header, children }: { title?: string; header?: React.ReactNode; children: React.ReactNode }) {
+/** `footer` stands at the rail's foot under its scrolling groups: the Inbox's mailbox chip (2026-11-02). */
+export function BankRail({ title, header, footer, children }: { title?: string; header?: React.ReactNode; footer?: React.ReactNode; children: React.ReactNode }) {
   return (
     <>
       {header ? (
@@ -32,6 +33,7 @@ export function BankRail({ title, header, children }: { title?: string; header?:
         )
       )}
       <SidebarContent>{children}</SidebarContent>
+      {footer && <SidebarFooter className="p-3">{footer}</SidebarFooter>}
     </>
   )
 }

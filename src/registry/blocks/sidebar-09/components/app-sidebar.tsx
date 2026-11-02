@@ -1,9 +1,9 @@
 "use client"
 
 import * as React from "react"
-import { File, Inbox, LayoutTemplate, PenSquare, Send, Star, StickyNote, Trash2 } from "lucide-react"
+import { Clock, File, Inbox, LayoutTemplate, Mails, PenSquare, Send, Star, StickyNote, Trash2 } from "lucide-react"
 
-import { unreadIn, type Folder, type Thread } from "@/lib/agents/inbox"
+import type { Folder } from "@/lib/agents/inbox"
 import { BankRail, RailGroup, RailRow } from "@/components/bank/bank-rail"
 import { TEMPLATES, type Template } from "@/lib/agents/templates"
 import { REQUESTS } from "@/lib/agents/requests"
@@ -15,14 +15,19 @@ import { TemplateThumb } from "@/registry/blocks/sidebar-09/components/template-
 // is drawn in the rail parts America Thinks and Survey use (bank-rail.tsx),
 // in the same frame, so the three inboxes' rails look alike; the folders, their
 // icons and their counts are the Inbox's own. A thread dragged from the list
-// drops onto a folder.
+// drops onto a folder. Since 2026-11-02 (Brendan: Gmail exactly) the folders
+// are Gmail's, in its order, with Snoozed and All mail; each counts its unread
+// threads as the server does, Drafts its drafts; the mailbox chip stands at
+// the foot.
 
 const FOLDERS: { title: string; icon: typeof Inbox; folder: Folder }[] = [
   { title: "Inbox", icon: Inbox, folder: "inbox" },
+  { title: "Starred", icon: Star, folder: "starred" },
+  { title: "Snoozed", icon: Clock, folder: "snoozed" },
   { title: "Sent", icon: Send, folder: "sent" },
   { title: "Drafts", icon: File, folder: "drafts" },
-  { title: "Starred", icon: Star, folder: "starred" },
   { title: "Templates", icon: LayoutTemplate, folder: "templates" },
+  { title: "All mail", icon: Mails, folder: "all" },
   { title: "Trash", icon: Trash2, folder: "trash" },
 ]
 
@@ -49,7 +54,7 @@ function Intent({ label }: { label: string }) {
 export const THREAD_DRAG = "application/x-thread-id"
 
 export function InboxRail({
-  threads,
+  counts,
   folder,
   onFolder,
   onCompose,
@@ -58,8 +63,10 @@ export function InboxRail({
   notes,
   onOpenNote,
   onTemplate,
+  chip,
 }: {
-  threads: Thread[]
+  /** Unread threads per folder; Drafts', its drafts. */
+  counts: Partial<Record<Folder, number>>
   folder: Folder
   onFolder: (folder: Folder) => void
   onCompose: () => void
@@ -72,18 +79,20 @@ export function InboxRail({
   onOpenNote: (id: string) => void
   /** A template picked from the rail: into the message being written, else a new one. */
   onTemplate: (template: Template) => void
+  /** The mailbox chip, at the rail's foot. */
+  chip?: React.ReactNode
 }) {
   // The notes starred from a note's menu come first, with the star for their icon.
   const { favs } = useNoteFavorites()
   const mine = [...notes].sort((a, b) => Number(favs.includes(b.id)) - Number(favs.includes(a.id)))
   return (
-    <BankRail title="Inbox">
+    <BankRail title="Inbox" footer={chip}>
       <RailGroup>
         <RailRow onClick={onCompose} icon={PenSquare} label="Compose" />
       </RailGroup>
       <RailGroup label="Folders" collapsible>
         {FOLDERS.map((item) => {
-          const unread = unreadIn(threads, item.folder)
+          const unread = counts[item.folder] ?? 0
           return (
             <RailRow
               key={item.title}

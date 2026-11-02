@@ -3,23 +3,15 @@ import { reportBody } from "@/lib/agents/report-modes"
 import { emptyRun, type RunState } from "@/lib/agents/run-client"
 import type { MailThread } from "@/lib/mail/store"
 
-// The Agentic Inbox's store, which is this browser's localStorage and nothing
-// else.
+// The Agentic Inbox's addresses and threads. Since 2026-11-02 (Brendan: the inbox becomes Gmail) the mail
+// itself is the server's (lib/mail/store.ts, read through lib/mail/client.ts): every folder, every read,
+// star, archive, snooze and trash. What stays in this browser is the drafts, until the server keeps them.
 //
-// That is a deliberate choice, not an oversight: govblock is public and has no
-// accounts, so a server-side inbox would be one shared inbox — every visitor
-// reading every other visitor's tasks and paying for them. Per-browser is the
-// only honest place to keep them until there is an identity to key them to, and
-// the surface says so rather than letting anyone assume otherwise. §4 prices
-// what close-the-tab delivery would take.
-//
-// The model is mail, because that is the thing it is pretending to be and half
-// measures read as a broken version of the real one. A task is a thread: the
-// message you send is in Sent the moment you send it, and the report arrives as
-// an unread reply on the same thread. Stars, drafts, and a trash you can undo
-// are all local state on that thread.
+// The model is mail, because that is the thing it is pretending to be and half measures read as a broken
+// version of the real one. A thread is the first message and every reply to it, in each mailbox that
+// holds it.
 
-export type Folder = "inbox" | "sent" | "drafts" | "starred" | "templates" | "trash"
+export type Folder = "inbox" | "starred" | "snoozed" | "sent" | "drafts" | "templates" | "all" | "trash"
 
 export type Address = {
   /** An agent's slug, or a person's, partner's or channel's handle. */
@@ -201,6 +193,12 @@ export type Message = {
   run?: RunState
   /** Files that ride with the message: the report as a PDF, and the like. */
   attachments?: Attached[]
+  /** A kept message's own sender and recipients, as the server names them (lib/mail/store.ts). */
+  fromName?: string
+  fromEmail?: string
+  toParties?: { name: string; email: string }[]
+  /** A kept message's mail as it was sent: drawn in the reading pane as Gmail draws it. */
+  html?: string
   /**
    * A filled form's making: the form and the values it was filled from, at
    * fill time — so a `form-pdf` attachment builds the file that was
@@ -240,28 +238,25 @@ export type Thread = {
   messages: Message[]
 }
 
-// A new key rather than a migration: the old store held tasks, not threads, and
-// it lived for a few hours in one browser.
+// The drafts, this browser's until the server keeps them (2026-11-02). The key is the old store's: what
+// it held besides drafts (the mail itself, read, starred, trashed) is the server's now and is dropped
+// on the next save.
 const KEY = "govblock:inbox:threads"
 
-export function loadThreads(): Thread[] {
+export function loadDrafts(): Thread[] {
   try {
     const raw = window.localStorage.getItem(KEY)
     if (!raw) return []
     const threads = JSON.parse(raw) as Thread[]
-    return Array.isArray(threads) ? threads : []
+    return Array.isArray(threads) ? threads.filter((thread) => thread?.status === "draft") : []
   } catch {
     return []
   }
 }
 
-export function saveThreads(threads: Thread[]) {
+export function saveDrafts(drafts: Thread[]) {
   try {
-    // Sixty threads is a long history for one browser and keeps the store well
-    // inside localStorage's few megabytes — a Researcher report with its run
-    // attached is tens of kilobytes. (Thirty until 2026-09-07, when the fifty
-    // placeholders arrived.)
-    window.localStorage.setItem(KEY, JSON.stringify(threads.slice(0, 60)))
+    window.localStorage.setItem(KEY, JSON.stringify(drafts.filter((thread) => thread.status === "draft").slice(0, 60)))
   } catch {}
 }
 
@@ -297,15 +292,14 @@ export function runners(thread: Thread) {
   return allRecipients(thread).filter(runs)
 }
 
-/** Everyone who ran it. Bcc is deliberately absent — that is what bcc means. */
-/** A thread the server keeps (lib/mail/store.ts, 2026-11-02), drawn as the Inbox's own: a message
- *  this mailbox sent is "you"; an address the book knows shows by its handle, anyone else by address. */
+/** A thread the server keeps (lib/mail/store.ts), drawn as the reading pane's own: a message the open
+ *  mailbox sent is "you"; an address the book knows shows by its handle, anyone else by address. */
 export function keptThread(t: MailThread): Thread {
   const handle = (email: string) => ADDRESSES.find((a) => a.email.toLowerCase() === email.toLowerCase())?.agent ?? email
   const first = t.messages[0]
   const to = first.to.map((p) => handle(p.email))
   return {
-    id: `kept-${t.threadId}`,
+    id: t.threadId,
     kept: [t.threadId],
     agent: to[0] ?? "",
     agentName: first.to[0]?.name || first.to[0]?.email || "",
@@ -317,20 +311,20 @@ export function keptThread(t: MailThread): Thread {
     updatedAt: Date.parse(t.latest.createdAt),
     status: "delivered",
     starred: t.messages.some((m) => m.starred),
-    messages: t.messages.map((m) => ({ id: m.id, from: m.folder === "sent" ? "you" : handle(m.from.email), at: Date.parse(m.createdAt), body: m.markdown ?? m.snippet, unread: !m.read })),
+    important: t.messages.some((m) => m.important),
+    trashed: t.messages.every((m) => m.trashed),
+    messages: t.messages.map((m) => ({
+      id: m.id,
+      from: m.folder === "sent" ? "you" : handle(m.from.email),
+      at: Date.parse(m.createdAt),
+      body: m.markdown ?? m.snippet,
+      unread: !m.read,
+      fromName: m.from.name || m.from.email,
+      fromEmail: m.from.email,
+      toParties: [...m.to, ...(m.cc ?? [])],
+      ...(m.html ? { html: m.html } : {}),
+    })),
   }
-}
-
-/** The kept threads merged into this browser's: one this tab already holds (by its kept ids) is not
- *  drawn twice, and a kept thread keeps the star, trash and importance this browser gave it. */
-export function mergeKept(current: Thread[], kept: MailThread[]): Thread[] {
-  const held = new Set(current.filter((t) => !t.id.startsWith("kept-")).flatMap((t) => t.kept ?? []))
-  const flags = new Map(current.filter((t) => t.id.startsWith("kept-")).map((t) => [t.id, t]))
-  const fresh = kept
-    .filter((t) => !held.has(t.threadId))
-    .map(keptThread)
-    .map((t) => ({ ...t, starred: flags.get(t.id)?.starred ?? t.starred, trashed: flags.get(t.id)?.trashed, important: flags.get(t.id)?.important }))
-  return [...fresh, ...current.filter((t) => !t.id.startsWith("kept-"))].sort((x, y) => y.updatedAt - x.updatedAt)
 }
 
 export function shownRecipients(thread: Thread) {
@@ -425,7 +419,10 @@ export function inFolder(thread: Thread, folder: Folder) {
       // What you sent: a notice an agent wrote you is not in Sent.
       return thread.status !== "draft" && thread.messages.some((message) => message.from === "you")
     case "templates":
+    case "snoozed":
       return false
+    case "all":
+      return thread.status !== "draft"
     case "inbox":
       // A thread reaches the inbox when a reply has arrived — the same rule
       // mail follows, and the reason a running task sits in Sent until it has

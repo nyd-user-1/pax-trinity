@@ -1,17 +1,14 @@
 "use client"
 
 import * as React from "react"
-import { ArrowLeft, Check, Copy, ExternalLink, Forward as ForwardIcon, MailOpen, Maximize2, PenSquare, Reply as ReplyIcon, RotateCcw, Star, Trash2, UserRound } from "lucide-react"
+import { Archive, ArchiveRestore, ArrowLeft, Check, Copy, ExternalLink, Forward as ForwardIcon, Mail, MailOpen, Maximize2, PenSquare, Reply as ReplyIcon, RotateCcw, Star, Trash2 } from "lucide-react"
 
-import { agent as findAgent, maxRounds } from "@/lib/agents/registry"
-import { addressFor, findAddress, inFolder, isPerson, isUnread, loadThreads, mergeKept, matches, messageId, nameOf, newThread, reply, running, runners, saveThreads, settle, shownRecipients, snippet, teaser, threadCost, when, type Attached, type Folder, type Message, type Thread } from "@/lib/agents/inbox"
-import { emptyRun, runAgent, type RunTurn } from "@/lib/agents/run-client"
-import { HISTORY } from "@/lib/agents/history"
-import type { MailThread } from "@/lib/mail/store"
+import { ADDRESSES, PEOPLE_ADDRESSES, addressFor, keptThread, loadDrafts, nameOf, newThread, saveDrafts, shownRecipients, snippet, when, type Attached, type Folder, type Message, type Thread } from "@/lib/agents/inbox"
+import { applyFiling, fileThread, isAgentBox, marksOf, readFolder, showsIn, type Counts, type Filing, type Kept } from "@/lib/mail/client"
 import { PENDING_DRAFT } from "@/lib/agents/pending-draft"
-import { fieldingRequest, liveThread, type LiveFielding } from "@/lib/agents/live"
+import { fieldingRequest } from "@/lib/agents/live"
 import { cn } from "@/lib/utils"
-import { ADMIN_USER } from "@/components/admin/account-footer"
+import { useShellPanel } from "@/components/shell"
 import { SaveToDrive } from "@/components/connectors/save-to-drive"
 import { Prose, RunSteps } from "@/app/agents/transcript"
 import { BankFrame } from "@/components/bank/bank-frame"
@@ -20,20 +17,19 @@ import { myNotes } from "@/app/note-actions"
 import { NOTES_CHANGED, openDrawnNote } from "@/lib/drawn-notes"
 import { MenuFoot, MenuHeader, MenuRow, MenuSeparator } from "@/components/kebab-menu"
 import { InboxRail, THREAD_DRAG } from "@/registry/blocks/sidebar-09/components/app-sidebar"
+import { BoxMark, MailboxChip, ownersFor, type Owner } from "@/registry/blocks/sidebar-09/components/mailbox-chip"
 import { Compose, EMPTY_DRAFT, type Draft } from "@/registry/blocks/sidebar-09/components/compose"
 import { ComposeWindow } from "@/registry/blocks/sidebar-09/components/compose-window"
 import { TemplateList } from "@/registry/blocks/sidebar-09/components/template-list"
 import type { Template } from "@/lib/agents/templates"
 import { requestOf } from "@/lib/agents/requests"
-import { isReportType, isTrace, reportBody } from "@/lib/agents/report-modes"
-import { attachmentMeta, reportFor, save } from "@/lib/agents/report-pdf"
+import { isTrace } from "@/lib/agents/report-modes"
+import { reportFor, save } from "@/lib/agents/report-pdf"
 import { AttachmentGroup } from "@/registry/blocks/sidebar-09/components/attachment"
 import { TraceReport } from "@/registry/blocks/sidebar-09/components/trace-report"
-import { Marker, TITLES, type ListTab } from "@/registry/blocks/sidebar-09/components/thread-list"
-import { Progress } from "@govblock/ui/components/progress"
-import { Avatar, AvatarFallback, AvatarImage } from "@govblock/ui/components/ny4/avatar"
+import { Marker, TITLES } from "@/registry/blocks/sidebar-09/components/thread-list"
 import { Button } from "@govblock/ui/components/nova/button"
-import { DropdownMenuItem, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator } from "@govblock/ui/components/ny4/dropdown-menu"
+import { DropdownMenuCheckboxItem, DropdownMenuItem, DropdownMenuSeparator } from "@govblock/ui/components/ny4/dropdown-menu"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@govblock/ui/components/ny4/resizable"
 import { Separator } from "@govblock/ui/components/ny4/separator"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/ny4/tooltip"
@@ -43,33 +39,15 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components
 // resizable row of the thread list and the reading pane, the whole thing the
 // height of its frame with each pane scrolling on its own.
 //
-// Live chat is what /agents already is. This is its long-form sibling, and it is
-// mail all the way down because half a mail metaphor reads as a broken one
+// It is mail all the way down because half a mail metaphor reads as a broken one
 // (Brendan, 2026-09-07: "you are still treating this like chat instead of like
-// email"). So: you write a message and send it, and you are back at your list
-// with a "Message sent" bar, not parked in the thread watching it. The sent
-// message sits in Sent while the agent works; the reply lands in the Inbox as
-// an unread message on the same thread, and you open it when you like. In the
-// thread every message reads as mail — who it is from, who it went to, when —
-// yours included, and a reply is something you ask for with the Reply button,
-// which opens a composer under the last message, Gmail's way. Each reply the
-// agent sends is its own message; nothing is overwritten.
-//
-// The hook that produces the reply is Send itself: sending to an agent marks
-// the thread running (that is the flag) and dispatches one run per agent on
-// the lines; each run writes its reply onto the thread as it arrives. v1 runs
-// in this tab, because the store is this browser and there is no account to
-// key a server-side inbox to. What makes it feel delivered anyway is Discord —
-// the agent delivers the finished report into the channel under the same
-// subject line, so it arrives somewhere that outlives the tab.
-
-// Set when the inbox is cleared from its menu, so an inbox that was emptied on
-// purpose stays empty instead of refilling with the placeholders. Recorded by
-// the clearing itself, never by the load: a flag written during the mount
-// effect ran ahead of the save, and Strict Mode's second pass of that effect
-// found the flag set and the store still empty, and kept the empty (the
-// inbox read "1 KB used" and nothing else, 2026-09-07).
-const CLEARED = "govblock:inbox:cleared"
+// email"). Since 2026-11-02 it is Gmail (Brendan: "literally a Google knock off…
+// from there we can refine it"), and the mail is the server's (lib/mail/store.ts
+// through /api/inbox/mail): every folder, every read, star, archive and trash is
+// a row there, so the inbox is the same on any browser. Opening a thread marks
+// it read, as Gmail does. The super admin can open the agents' mailboxes from the
+// chip at the rail's foot; everyone else reads their own. What stays in this
+// browser is the drafts, until the server keeps them.
 
 function monogram(name: string) {
   return name
@@ -80,43 +58,37 @@ function monogram(name: string) {
     .toUpperCase()
 }
 
-/** Distinct background colours for each agent's monogram dot, Google Drive palette. */
-const AGENT_COLORS: Record<string, string> = {
-  "bill-reader":          "bg-[#4285F4] text-white",   // the Analyst — Google blue
-  "tracker":              "bg-[#34A853] text-white",   // the Pollster — Google green
+/** Who a message is from, as mail shows it: the open mailbox's own mark for its sent mail, an agent's mark, a person's face, or a monogram. */
+function Sender({ from, name, owner, className }: { from: string; name: string; owner: Owner; className?: string }) {
+  if (from === "you") return <BoxMark owner={owner} className={cn("size-10 text-sm", className)} />
+  if (isAgentBox(from)) return <BoxMark owner={{ box: from, name: nameOf(from), email: "" }} className={cn("size-10 text-sm", className)} />
+  const image = addressFor(from)?.image
+  if (image) return <img src={image} alt="" className={cn("size-10 shrink-0 rounded-full object-cover", className)} />
+  return <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium text-foreground", className)}>{monogram(name)}</span>
 }
 
-/** Who a message is from, as mail shows it: your account, or the agent by its monogram. */
-function Sender({ from, className }: { from: string; className?: string }) {
-  if (from === "you") {
-    return (
-      <Avatar className={cn("size-10", className)}>
-        <AvatarImage src={ADMIN_USER.avatar} alt={ADMIN_USER.name} />
-        <AvatarFallback className="bg-blue-200 text-blue-600 dark:bg-blue-900 dark:text-blue-200">
-          <UserRound className="size-5" />
-        </AvatarFallback>
-      </Avatar>
-    )
-  }
-  // Pax (the assistant) wears its own mark; the Pollster and the Analyst keep their coloured monograms.
-  if (from === "assistant") return <img src="/pax-avatar.svg" alt="Pax" className={cn("size-10 shrink-0 rounded-full", className)} />
-  const color = AGENT_COLORS[from] ?? "bg-muted text-foreground"
-  return <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-medium", color, className)}>{monogram(nameOf(from))}</span>
-}
-
-/** The exchange as one agent saw it: your messages and its own replies, in turn. */
-function turnsFor(thread: Thread, slug: string): RunTurn[] {
-  const turns: RunTurn[] = []
-  for (const message of thread.messages) {
-    if (message.from !== "you" && message.from !== slug) continue
-    if (!message.body.trim()) continue
-    const role = message.from === "you" ? "user" : "assistant"
-    const last = turns.at(-1)
-    // Two of yours in a row read as one turn; the model takes them alternately.
-    if (last && last.role === role) last.text = `${last.text}\n\n${message.body}`
-    else turns.push({ role, text: message.body })
-  }
-  return turns
+/** A kept message as it was sent: its own HTML in a frame that runs no script, as tall as the mail. */
+function MailFrame({ html }: { html: string }) {
+  const frame = React.useRef<HTMLIFrameElement>(null)
+  const [height, setHeight] = React.useState(160)
+  const base = '<base target="_blank">'
+  const doc = /<html[\s>]/i.test(html)
+    ? html.replace(/<head([^>]*)>/i, (head) => head + base)
+    : `<!doctype html><html><head><meta charset="utf-8">${base}<style>body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;color:#202124}</style></head><body>${html}</body></html>`
+  return (
+    <iframe
+      ref={frame}
+      title="Message"
+      sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+      srcDoc={doc}
+      onLoad={() => {
+        const root = frame.current?.contentDocument?.documentElement
+        if (root) setHeight(root.scrollHeight)
+      }}
+      style={{ height }}
+      className="w-full border-0"
+    />
+  )
 }
 
 /** How many calls a run made. A Trace Report's steps also carry its prose. */
@@ -133,23 +105,68 @@ function Tip({ label, children }: { label: string; children: React.ReactNode }) 
   )
 }
 
-/** The skeletons New test and New survey open with. */
+/** A handle as the send route takes it: an agent by its AgentMail address, a person or partner by theirs, a bare address as it is. Groups and channels are no one's mailbox. */
+function recipientsOf(handles: string[]) {
+  return handles.flatMap((handle) => {
+    const a = addressFor(handle)
+    if (!a) return handle.includes("@") ? [{ email: handle }] : []
+    if (a.kind === "agent") return [{ email: a.email }]
+    if (a.kind === "person" || a.kind === "partner") return [{ email: a.email, name: a.name }]
+    return []
+  })
+}
+
+/** An address as the composer's lines hold it: the book's handle where it knows it, else the address. */
+const handleOf = (email: string) => ADDRESSES.find((a) => a.email.toLowerCase() === email.toLowerCase())?.agent ?? email
+
+/** Who a reply goes to, Gmail's Reply: the sender of the latest message the mailbox received, else whom its own latest went to. */
+function replyLines(t: Kept): string[] {
+  const received = [...t.messages].reverse().find((m) => m.folder !== "sent")
+  return received ? [handleOf(received.from.email)] : t.latest.to.map((p) => handleOf(p.email))
+}
+
+/** One row of the list: a kept thread, or one of this browser's drafts. */
+type Row = { id: string; kept?: Kept; draft?: Thread }
+
+/** The reader, as the account chip names them: /api/auth/me's name, the staff photo where there is one. */
+function useMe(): { name: string; email: string } | null {
+  const [me, setMe] = React.useState<{ name: string; email: string } | null>(null)
+  React.useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((d: { user?: { name: string; email: string } | null }) => setMe(d.user ?? null))
+      .catch(() => setMe(null))
+  }, [])
+  return me
+}
+
 export default function Page() {
-  const [threads, setThreads] = React.useState<Thread[]>([])
-  const [selected, setSelected] = React.useState<string | null>(null)
+  const { superAdmin } = useShellPanel()
+  const account = useMe()
+  // Whose mail: "me", or an agent's slug (the super admin's choice, from the chip).
+  const [mailbox, setMailbox] = React.useState("me")
+  // The address the server reads as "me" (lib/mail/store.ts personMailbox), learned from its first answer.
+  const [myBox, setMyBox] = React.useState<string | null>(null)
   const [folder, setFolder] = React.useState<Folder>("inbox")
-  const [tab, setTab] = React.useState<ListTab>("all")
+  // The open folder as the server keeps it, keyed so a late answer for another folder is dropped.
+  const [mail, setMail] = React.useState<{ key: string; threads: Kept[] }>({ key: "", threads: [] })
+  const [counts, setCounts] = React.useState<Counts>({})
+  const [loading, setLoading] = React.useState(true)
+  const [error, setError] = React.useState<string | null>(null)
+  const [drafts, setDrafts] = React.useState<Thread[]>([])
+  const [restored, setRestored] = React.useState(false)
+  const [selected, setSelected] = React.useState<string | null>(null)
+  const [unreadOnly, setUnreadOnly] = React.useState(false)
   const [composing, setComposing] = React.useState(false)
   // The composer popped out into Gmail's floating window (compose-window.tsx); the draft is the same one.
   const [popped, setPopped] = React.useState(false)
   const [draft, setDraft] = React.useState<Draft>(EMPTY_DRAFT)
   const [draftId, setDraftId] = React.useState<string | null>(null)
-  const [restored, setRestored] = React.useState(false)
   const [replyDraft, setReplyDraft] = React.useState<Draft>(EMPTY_DRAFT)
   // The reply composer is asked for, not always there.
   const [replying, setReplying] = React.useState(false)
-  // Gmail's "Message sent" bar: the id of what just went, for a few seconds.
-  const [sent, setSent] = React.useState<string | null>(null)
+  // Gmail's "Message sent" bar, for a few seconds: when it went, and the thread the server kept it in.
+  const [sent, setSent] = React.useState<{ at: number; threadId?: string } | null>(null)
   // What the real send did: who was mailed, how many the allowlist held.
   const [mailNote, setMailNote] = React.useState<string | null>(null)
   // The list bar's search: a press on the bar's empty run opens it; it filters the list as you type.
@@ -161,56 +178,22 @@ export default function Page() {
   // The reply card's recipient row: a summary line until clicked, then the editable To/Cc/Bcc.
   const [editingTo, setEditingTo] = React.useState(false)
   const [copied, setCopied] = React.useState<string | null>(null)
-  // The list alone, or the list beside the reading pane (Brendan, 2026-09-07:
-  // Gmail's split toggle). America Thinks' anatomy since 2026-10-31 (Brendan):
-  // the rows alone on load, a thread opening beside the list, the kebab's No
-  // split giving it the screen, and Back going one layer up.
+  // The list alone, or the list beside the reading pane (Brendan, 2026-09-07: Gmail's split toggle).
   const [split, setSplit] = React.useState<Split>("none")
-  const [, setTick] = React.useState(0)
 
+  // Whose mail is open, as the chip and the reading pane name them.
+  const me: Owner = React.useMemo(() => {
+    const email = myBox ?? account?.email ?? ""
+    const staff = PEOPLE_ADDRESSES.find((p) => p.email.toLowerCase() === email.toLowerCase())
+    return { box: "me", name: staff?.name ?? account?.name ?? (email.split("@")[0] || "My inbox"), email, image: staff?.image }
+  }, [myBox, account])
+  const owner: Owner = React.useMemo(() => ownersFor(me).find((o) => o.box === mailbox) ?? me, [me, mailbox])
+  const mine = mailbox === "me"
+
+  // The drafts, this browser's; a question card handed over from /consensus opens as a New test.
   React.useEffect(() => {
-    // Two weeks of the platform (lib/agents/history.ts) stand in every inbox,
-    // refreshed to their authored text on load with only the reader's own flags
-    // kept. govblock's placeholders and featured deliveries are gone
-    // (2026-10-29); the reader's own threads stay. A cleared inbox gets the
-    // history back too; Trash is how one goes away.
-    const kept = loadThreads().filter((thread) => !/^(sample|featured|live|kept)-/.test(thread.id))
-    const authored = new Map(HISTORY.map((thread) => [thread.id, thread]))
-    const flags = new Map(kept.filter((thread) => authored.has(thread.id)).map((thread) => [thread.id, thread]))
-    const history = HISTORY.map((fresh) => {
-      const mine = flags.get(fresh.id)
-      if (!mine) return fresh
-      const read = new Set(mine.messages.filter((message) => !message.unread).map((message) => message.id))
-      return {
-        ...fresh,
-        starred: mine.starred ?? fresh.starred,
-        trashed: mine.trashed ?? fresh.trashed,
-        important: mine.important ?? fresh.important,
-        messages: fresh.messages.map((message) => (read.has(message.id) ? { ...message, unread: false } : message)),
-      }
-    })
-    const stored = [...history, ...kept.filter((thread) => !authored.has(thread.id))].sort((x, y) => y.updatedAt - x.updatedAt)
-    // A run that was in flight when the tab closed did not survive it. Say so
-    // on that reply — and only that one; earlier replies on the thread stand —
-    // rather than leave a spinner that will never stop.
-    const lost = (message: Message) => message.from !== "you" && Boolean(message.run) && !message.run!.done
-    const settled = stored.map((thread): Thread => {
-      if (thread.status !== "running" && !thread.messages.some(lost)) return thread
-      const messages = thread.messages.map((message) =>
-        lost(message)
-          ? {
-              ...message,
-              body: message.body + (message.body ? "\n\n" : "") + "This task was still running when the tab was closed, and tasks run in the tab. Send it again.",
-              run: { ...message.run!, done: true, failed: true },
-            }
-          : message
-      )
-      const next = { ...thread, messages }
-      return { ...next, status: settle(next) === "running" ? "failed" : settle(next) }
-    })
-    setThreads(settled)
+    setDrafts(loadDrafts())
     setRestored(true)
-    // A question card handed over from /consensus opens as a New test.
     const pending = window.localStorage.getItem(PENDING_DRAFT)
     if (pending) {
       window.localStorage.removeItem(PENDING_DRAFT)
@@ -222,246 +205,185 @@ export default function Page() {
       }
     }
   }, [])
-
   React.useEffect(() => {
-    if (restored) saveThreads(threads)
-  }, [threads, restored])
+    if (restored) saveDrafts(drafts)
+  }, [drafts, restored])
 
-  // The Pollster's real fieldings (lib/agents/live.ts): a tick first, so reminders and closes
-  // that fell due go out, then the counts, each fielding a thread that rewrites itself.
-  const refreshLive = React.useCallback(async () => {
-    try {
-      await fetch("/api/fielding/tick", { method: "POST" })
-      const res = (await (await fetch("/api/fielding")).json()) as { fieldings?: LiveFielding[] }
-      const live = (res.fieldings ?? []).map(liveThread)
-      if (!res.fieldings) return
-      setThreads((current) => {
-        const flags = new Map(current.filter((t) => t.id.startsWith("live-")).map((t) => [t.id, t]))
-        const read = new Set(current.flatMap((t) => t.messages).filter((m) => !m.unread).map((m) => m.id))
-        const fresh = live.map((t) => ({ ...t, starred: flags.get(t.id)?.starred, trashed: flags.get(t.id)?.trashed, messages: t.messages.map((m) => (read.has(m.id) ? { ...m, unread: false } : m)) }))
-        return [...fresh, ...current.filter((t) => !t.id.startsWith("live-"))].sort((x, y) => y.updatedAt - x.updatedAt)
-      })
-    } catch {
-      // Signed out, or the table unreachable: the inbox stands on what it has.
-    }
-  }, [])
-
-  // What I have sent, as the server keeps it (lib/mail/store.ts, 2026-11-02): Sent holds it after a
-  // reload and on any browser. A thread this tab already holds (its kept ids, set when it was mailed)
-  // is not drawn twice; a kept thread's star and trash stay this browser's, as the live ones' do.
-  const refreshKept = React.useCallback(async () => {
-    try {
-      const res = await fetch("/api/inbox/mail?mailbox=me&folder=sent")
-      if (!res.ok) return
-      const { threads: kept } = (await res.json()) as { threads?: MailThread[] }
-      if (kept) setThreads((current) => mergeKept(current, kept))
-    } catch {
-      // Signed out, or the table unreachable: Sent stands on this browser's own.
-    }
-  }, [])
-
+  // The open folder, read from the server; Templates reads the inbox for the counts alone.
+  const key = `${mailbox}:${folder}`
+  const keyRef = React.useRef(key)
+  keyRef.current = key
+  const load = React.useCallback(
+    async (quiet = false) => {
+      const asked = `${mailbox}:${folder}`
+      if (!quiet) setLoading(true)
+      try {
+        const res = await readFolder(mailbox, folder === "templates" ? "inbox" : folder)
+        if (keyRef.current !== asked) return
+        if (mailbox === "me") setMyBox(res.mailbox)
+        setMail({ key: asked, threads: folder === "templates" ? [] : res.threads })
+        setCounts(res.counts)
+        setError(null)
+      } catch (e) {
+        if (keyRef.current === asked) setError(e instanceof Error ? e.message : "The mail could not be read just now.")
+      } finally {
+        if (keyRef.current === asked) setLoading(false)
+      }
+    },
+    [mailbox, folder]
+  )
   React.useEffect(() => {
-    if (restored) void refreshKept()
-  }, [restored, refreshKept])
-
-  React.useEffect(() => {
-    if (!restored) return
-    void refreshLive()
-    const every = window.setInterval(() => void refreshLive(), 60_000)
+    void load()
+    const every = window.setInterval(() => void load(true), 60_000)
     return () => window.clearInterval(every)
-  }, [restored, refreshLive])
+  }, [load])
 
   // My notes, read on arrival and again whenever a drawn note is kept or deleted.
   const [notes, setNotes] = React.useState<{ id: string; title: string }[]>([])
   React.useEffect(() => {
-    const load = () => void myNotes().then((r) => setNotes(r.notes.map((n) => ({ id: n.id, title: n.title }))), () => {})
-    load()
-    window.addEventListener(NOTES_CHANGED, load)
-    return () => window.removeEventListener(NOTES_CHANGED, load)
-  }, [])
-  const patch = React.useCallback((id: string, change: (thread: Thread) => Thread) => {
-    setThreads((current) => current.map((thread) => (thread.id === id ? change(thread) : thread)))
+    const read = () => void myNotes().then((r) => setNotes(r.notes.map((n) => ({ id: n.id, title: n.title }))), () => {})
+    read()
+    window.addEventListener(NOTES_CHANGED, read)
+    return () => window.removeEventListener(NOTES_CHANGED, read)
   }, [])
 
-  // One agent's run on a thread, writing its reply as it goes. This is the
-  // hook behind every send: the message is on the thread already, in Sent, and
-  // the reply arrives on it whether or not anyone is looking.
-  const dispatch = React.useCallback(
-    async (threadId: string, slug: string, turns: RunTurn[], subject: string, reportType?: string) => {
-      const definition = findAgent(slug)
-      if (!definition) return
-      const id = messageId()
-      patch(threadId, (current) => reply(current, slug, emptyRun(), "running", id))
-      const finished = await runAgent({
-        agent: definition.slug,
-        maxRounds: maxRounds(definition, reportType),
-        subject,
-        reportType,
-        turns,
-        onUpdate: (run) => patch(threadId, (current) => reply(current, slug, run, "running", id)),
-      })
-      patch(threadId, (current) => {
-        const next = reply(current, slug, finished, "running", id)
-        return { ...next, status: settle(next) }
-      })
+  // The rows: the folder's kept threads, and in my Drafts this browser's drafts.
+  const kept = mail.key === key ? mail.threads : []
+  const rows: Row[] = React.useMemo(
+    () => [...(folder === "drafts" && mine ? drafts.map((d) => ({ id: d.id, draft: d })) : []), ...kept.map((t) => ({ id: t.threadId, kept: t }))],
+    [folder, mine, drafts, kept]
+  )
+  const byId = React.useMemo(() => new Map(rows.map((r) => [r.id, r])), [rows])
 
-      // A report arrives with the paper version attached. It is set here, once,
-      // so the card can say how many pages it runs to — the file itself is made
-      // again when someone asks for it, because nothing that big belongs in
-      // this browser's five megabytes. A build that fails attaches nothing: a
-      // card promising a file that will not open is worse than no card.
-      if (!isReportType(reportType) || finished.failed || !finished.text.trim()) return
-      try {
-        const at = Date.now()
-        const built = await reportFor(`${threadId}:${id}`, {
-          subject,
-          reportType,
-          body: reportBody(finished.text, reportType),
-          steps: finished.steps,
-          at,
-        })
-        patch(threadId, (current) => ({
-          ...current,
-          messages: current.messages.map((message) =>
-            message.id === id
-              ? { ...message, attachments: [{ name: built.filename, meta: attachmentMeta(built), href: "", build: "report-pdf" as const }] }
-              : message
-          ),
-        }))
-      } catch {
-        // No attachment, and the report itself is on the thread regardless.
-      }
+  // The list through the search and the unread filter.
+  const shown = React.useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return rows.filter((r) => {
+      if (unreadOnly && !(r.kept && r.kept.unreadCount > 0)) return false
+      if (!q) return true
+      const hay = r.kept
+        ? [r.kept.latest.subject, ...r.kept.messages.flatMap((m) => [m.from.name, m.from.email, m.snippet, m.markdown ?? ""])]
+        : [r.draft!.subject, ...r.draft!.messages.map((m) => m.body)]
+      return hay.join(" ").toLowerCase().includes(q)
+    })
+  }, [rows, query, unreadOnly])
+  const ids = React.useMemo(() => shown.map((r) => r.id), [shown])
+
+  const openRow = selected ? byId.get(selected) : undefined
+  const open: Thread | null = React.useMemo(() => (openRow?.draft ? openRow.draft : openRow?.kept ? keptThread(openRow.kept) : null), [openRow])
+
+  // A filing: the list moves at once (a thread leaving the folder leaves the list), the server takes it,
+  // and the folder and its counts are read again.
+  const file = React.useCallback(
+    async (threadIds: string[], patch: Filing) => {
+      if (!threadIds.length) return
+      setMail((current) => ({ ...current, threads: current.threads.map((t) => (threadIds.includes(t.threadId) ? applyFiling(t, patch) : t)).filter((t) => folder === "templates" || showsIn(t, folder)) }))
+      await Promise.all(threadIds.map((id) => fileThread(mailbox, id, patch)))
+      void load(true)
     },
-    [patch]
+    [mailbox, folder, load]
   )
 
-  // Sending closes the composer and leaves you where you were, with the bar
-  // that says it went — mail's way, not a chat's, which would park you in the
-  // thread to watch. The reply arrives in the Inbox as unread.
-  const announce = React.useCallback((id: string) => {
-    setSent(id)
-    window.setTimeout(() => setSent((current) => (current === id ? null : current)), 6000)
+  // Opening a thread marks it read, as Gmail does: on the open, not on a reply.
+  const openThread = (id: string) => {
+    setSelected(id)
+    setComposing(false)
+    setSplit("vertical")
+    const row = byId.get(id)
+    if (row?.kept && row.kept.unreadCount > 0) void file([id], { read: true })
+  }
+
+  // Marking an open thread unread puts it away, as Gmail does, so it stays unread.
+  const markUnread = (id: string) => {
+    if (selected === id) setSelected(null)
+    void file([id], { read: false })
+  }
+  // Archive and trash take the thread out of the folder; the open one closes.
+  const fileAway = (id: string, patch: Filing) => {
+    if (selected === id) setSelected(null)
+    void file([id], patch)
+  }
+
+  // Gmail's bar: the send went, and View opens it where the server kept it.
+  const announce = React.useCallback((threadId?: string) => {
+    const at = Date.now()
+    setSent({ at, threadId })
+    window.setTimeout(() => setSent((current) => (current?.at === at ? null : current)), 6000)
   }, [])
 
+  // A send through /api/inbox/send: people are mailed, an agent's copy is kept in its mailbox, and the
+  // server keeps it in my Sent. Sending closes the composer and leaves you where you were, mail's way.
   const send = React.useCallback(
     async (draft: Draft, existingId?: string) => {
       const everyone = [...draft.to, ...draft.cc, ...draft.bcc]
       if (!everyone.length) return
-      // People are recorded on the thread; agents are the ones that run.
-      const recipients = everyone.filter((slug) => !isPerson(slug))
-
-      const thread = newThread({
-        to: draft.to,
-        cc: draft.cc,
-        bcc: draft.bcc,
-        subject: draft.subject,
-        body: draft.body,
-        reportType: draft.reportType,
-        // Addressed only to people: it is sent, and it sits in Sent. Nothing
-        // runs and nothing replies.
-        status: recipients.length ? "running" : "delivered",
-      })
-      // Sending a draft replaces it in place, so the thread keeps its position
-      // rather than appearing twice.
-      setThreads((current) => [thread, ...current.filter((entry) => entry.id !== existingId)])
+      if (existingId) setDrafts((current) => current.filter((d) => d.id !== existingId))
       if (selected === existingId) setSelected(null)
       setComposing(false)
       setPopped(false)
       setDraft(EMPTY_DRAFT)
       setDraftId(null)
-      announce(thread.id)
-
-      // Staff and partners on the To and Cc lines get the message for real,
-      // through /api/inbox/send and its allowlist; agents, groups and channels
-      // stay on the thread.
-      const mailable = (handles: string[]) =>
-        handles.map((handle) => addressFor(handle)).filter((a) => a && (a.kind === "person" || a.kind === "partner")).map((a) => ({ email: a!.email, name: a!.name }))
-      const mailTo = mailable(draft.to)
-      const mailCc = mailable(draft.cc)
       setMailNote(null)
-      if (mailTo.length || mailCc.length)
+      announce()
+
+      const to = recipientsOf(draft.to)
+      const cc = recipientsOf(draft.cc)
+      if (to.length || cc.length)
         void fetch("/api/inbox/send", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ from: draft.from ?? "you", to: mailTo, cc: mailCc, subject: draft.subject, markdown: draft.body }),
+          body: JSON.stringify({ to, cc, subject: draft.subject, markdown: draft.body }),
         })
           .then((res) => res.json())
           .then((res: { sent?: string[]; held?: string[]; error?: string; threadIds?: string[] }) => {
-            // The server kept it (lib/mail/store.ts): note its threads so Sent draws this one once.
-            if (res.threadIds?.length) patch(thread.id, (t) => ({ ...t, kept: res.threadIds }))
+            if (res.threadIds?.[0]) setSent((current) => (current ? { ...current, threadId: res.threadIds![0] } : current))
             const held = res.held?.length ? `${res.held.length} held by the allowlist` : ""
-            setMailNote(res.error ? `Not mailed: ${res.error}` : res.sent?.length ? [`Mailed to ${res.sent.join(", ")}`, held].filter(Boolean).join(" · ") : held || null)
+            setMailNote(res.error ? `Not sent: ${res.error}` : res.sent?.length ? [`Sent to ${res.sent.join(", ")}`, held].filter(Boolean).join(" · ") : held || null)
+            void load(true)
           })
-          .catch(() => setMailNote("Not mailed"))
+          .catch(() => setMailNote("Not sent"))
 
-      // A New test or New survey to the Pollster naming a real group starts a fielding.
+      // A New test or New survey to the Pollster naming a real group starts it going out.
       const request = fieldingRequest(draft.to, draft.cc, draft.body)
       if (request)
         void fetch("/api/fielding", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(request) })
           .then((res) => res.json())
-          .then((res: { sent?: number; held?: number; error?: string }) => {
-            setMailNote(res.error ? `Not fielded: ${res.error}` : `Fielding: ${res.sent} invitations sent${res.held ? `, ${res.held} held` : ""}`)
-            void refreshLive()
-          })
-          .catch(() => setMailNote("Not fielded"))
-
-      // Every recipient runs the task — that is what Cc means here. They run
-      // together; each one's reply lands on the thread as it finishes.
-      const turns: RunTurn[] = [{ role: "user", text: draft.body }]
-      await Promise.all(recipients.map((slug) => dispatch(thread.id, slug, turns, thread.subject, thread.reportType)))
+          .then((res: { sent?: number; held?: number; error?: string }) => setMailNote(res.error ? `Not sent: ${res.error}` : `${res.sent} invitations sent${res.held ? `, ${res.held} held` : ""}`))
+          .catch(() => setMailNote("Not sent"))
     },
-    [announce, dispatch, selected, refreshLive, patch]
+    [announce, selected, load]
   )
 
-  // A reply on an existing thread: your message joins it, and every agent on
-  // the lines answers with the whole exchange, as it saw it, for context.
-  const followUp = React.useCallback(
-    async (thread: Thread, text: string) => {
-      const at = Date.now()
-      const mine: Message = { id: `${at.toString(36)}-you`, from: "you", at, body: text }
-      const next: Thread = { ...thread, status: "running", updatedAt: at, messages: [...thread.messages, mine] }
-      patch(thread.id, (current) => ({ ...current, status: "running", updatedAt: at, messages: [...current.messages, mine] }))
+  // A reply joins its thread: the server keeps it there in my Sent and in each recipient's Inbox.
+  const sendReply = React.useCallback(
+    async (thread: Thread, lines: { to: string[]; cc: string[] }, text: string) => {
       setReplying(false)
       announce(thread.id)
-
-      await Promise.all(runners(thread).map((slug) => dispatch(thread.id, slug, turnsFor(next, slug), thread.subject, thread.reportType)))
+      const subject = /^re:/i.test(thread.subject) ? thread.subject : `Re: ${thread.subject}`
+      try {
+        const res = await fetch("/api/inbox/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ to: recipientsOf(lines.to), cc: recipientsOf(lines.cc), subject, markdown: text, threadId: thread.id }),
+        })
+        const body = (await res.json()) as { error?: string; held?: string[] }
+        setMailNote(body.error ? `Not sent: ${body.error}` : body.held?.length ? `${body.held.length} held by the allowlist` : null)
+      } catch {
+        setMailNote("Not sent")
+      }
+      void load(true)
     },
-    [announce, dispatch, patch]
+    [announce, load]
   )
 
-  const open = threads.find((thread) => thread.id === selected) ?? null
-
-  // The open folder's threads, through the search and the unread filter.
-  const shown = React.useMemo(
-    () => threads.filter((thread) => inFolder(thread, folder)).filter((thread) => matches(thread, query)).filter((thread) => tab === "all" || isUnread(thread)),
-    [threads, folder, query, tab]
-  )
-  const ids = React.useMemo(() => shown.map((thread) => thread.id), [shown])
-  const byId = React.useMemo(() => new Map(threads.map((thread) => [thread.id, thread])), [threads])
-  const openThread = (id: string) => {
-    setSelected(id)
-    setComposing(false)
-    setSplit("vertical")
-  }
-
-  // Opening a thread marks its reply read, the way opening a message does.
-  React.useEffect(() => {
-    if (!open || composing || !isUnread(open) || open.status === "running") return
-    patch(open.id, (thread) => ({
-      ...thread,
-      messages: thread.messages.map((message) => (message.from === "you" ? message : { ...message, unread: false })),
-    }))
-  }, [open, composing, patch])
-
-  // A reply addresses the whole thread, Cc and Bcc included. Opening another
-  // thread puts the composer away.
+  // A reply addresses the thread's sender, Gmail's Reply. Opening another thread puts the composer away.
   const openId = open?.id ?? null
   React.useEffect(() => {
     setReplying(false)
     setFolded(new Set())
     setEditingTo(false)
-    if (!open) return
-    setReplyDraft({ ...EMPTY_DRAFT, to: open.to ?? [], cc: open.cc ?? [], bcc: open.bcc ?? [] })
+    if (!openRow?.kept) return
+    setReplyDraft({ ...EMPTY_DRAFT, to: replyLines(openRow.kept) })
     // Only when a different thread opens; a reply that is being typed must not
     // be wiped by the thread updating underneath it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -476,25 +398,24 @@ export default function Page() {
   }
 
   // Forward opens the full composer with the message quoted the way mail
-  // quotes one, so the reader picks recipients and sends it as a new task.
+  // quotes one, so the reader picks recipients and sends it on.
   const startForward = (thread: Thread, message: Message) => {
-    const name = message.from === "you" ? ADMIN_USER.name : nameOf(message.from)
-    const email = message.from === "you" ? ADMIN_USER.email : (findAddress(message.from)?.email ?? "")
-    const to = message.from === "you" ? shownRecipients(thread).join(", ") || thread.agentName : "me"
+    const name = message.from === "you" ? owner.name : (message.fromName ?? nameOf(message.from))
+    const email = message.from === "you" ? owner.email : (message.fromEmail ?? addressFor(message.from)?.email ?? "")
+    const to = message.toParties?.map((p) => p.name || p.email).join(", ") ?? shownRecipients(thread).join(", ")
     setDraft({
       to: [],
       cc: [],
       bcc: [],
       subject: /^fwd:/i.test(thread.subject) ? thread.subject : `Fwd: ${thread.subject}`,
       body: `---------- Forwarded message ---------\nFrom: ${name} <${email}>\nDate: ${new Date(message.at).toLocaleString()}\nSubject: ${thread.subject}\nTo: ${to}\n\n${message.body}`,
-      reportType: thread.reportType,
     })
     setDraftId(null)
     setPopped(false)
     setComposing(true)
   }
 
-  // New test and New survey: a request to the Pollster with the fields fielding needs.
+  // New test and New survey: a request to the Pollster with the fields sending it needs.
   const startRequest = (kind: "test" | "survey") => {
     const r = requestOf(kind)
     setDraft({ ...EMPTY_DRAFT, to: [...r.to], subject: r.subject, body: r.body })
@@ -518,29 +439,23 @@ export default function Page() {
     setDraft((d) => ({ ...d, from: template.from, subject: template.subject, body: template.body }))
   }
 
-  // A row dropped on a folder: trash and starred take it, inbox and sent restore
-  // it; a sent thread cannot become a draft again, so that drop is a no-op.
+  // A row dropped on a folder files it there: Trash, Starred, back to the Inbox, or out of it to All mail.
   const moveToFolder = (id: string, target: Folder) => {
-    patch(id, (t) => {
-      if (target === "trash") return { ...t, trashed: true }
-      if (target === "starred") return { ...t, starred: true, trashed: false }
-      if (target === "inbox" || target === "sent") return { ...t, trashed: false }
-      return t
-    })
+    const row = byId.get(id)
+    if (row?.draft) {
+      if (target === "trash") setDrafts((current) => current.filter((d) => d.id !== id))
+      return
+    }
+    if (target === "trash") fileAway(id, { trashed: true })
+    else if (target === "starred") void file([id], { starred: true, trashed: false })
+    else if (target === "inbox") void file([id], { archived: false, trashed: false, snoozedUntil: null })
+    else if (target === "all") fileAway(id, { archived: true, trashed: false })
   }
 
   // Writes the draft into Drafts, replacing the one it was opened from.
   const keepDraft = () => {
-    const thread = newThread({
-      to: draft.to,
-      cc: draft.cc,
-      bcc: draft.bcc,
-      subject: draft.subject,
-      body: draft.body,
-      reportType: draft.reportType,
-      status: "draft",
-    })
-    setThreads((current) => [thread, ...current.filter((entry) => entry.id !== draftId)])
+    const thread = newThread({ to: draft.to, cc: draft.cc, bcc: draft.bcc, subject: draft.subject, body: draft.body, reportType: draft.reportType, status: "draft" })
+    setDrafts((current) => [thread, ...current.filter((entry) => entry.id !== draftId)])
     setDraft(EMPTY_DRAFT)
     setDraftId(null)
     return thread
@@ -558,32 +473,15 @@ export default function Page() {
 
   const saveDraft = () => {
     setPopped(false)
-    const thread = newThread({
-      to: draft.to,
-      cc: draft.cc,
-      bcc: draft.bcc,
-      subject: draft.subject,
-      body: draft.body,
-      reportType: draft.reportType,
-      status: "draft",
-    })
-    setThreads((current) => [thread, ...current.filter((entry) => entry.id !== draftId)])
+    const thread = keepDraft()
     setComposing(false)
+    setMailbox("me")
     setFolder("drafts")
     setSelected(thread.id)
-    setDraft(EMPTY_DRAFT)
-    setDraftId(null)
   }
 
   const editDraft = (thread: Thread) => {
-    setDraft({
-      to: thread.to ?? [],
-      cc: thread.cc ?? [],
-      bcc: thread.bcc ?? [],
-      subject: thread.subject === "(no subject)" ? "" : thread.subject,
-      body: thread.messages[0]?.body ?? "",
-      reportType: thread.reportType,
-    })
+    setDraft({ to: thread.to ?? [], cc: thread.cc ?? [], bcc: thread.bcc ?? [], subject: thread.subject === "(no subject)" ? "" : thread.subject, body: thread.messages[0]?.body ?? "", reportType: thread.reportType })
     setDraftId(thread.id)
     setComposing(true)
   }
@@ -601,22 +499,27 @@ export default function Page() {
         save({ blob: filled.blob, pages: filled.pages, bytes: filled.bytes.length, filename: filled.filename })
         return
       }
-      save(
-        await reportFor(`${thread.id}:${message.id}`, {
-          subject: thread.subject,
-          reportType: thread.reportType,
-          body: message.body,
-          steps: message.run?.steps,
-          at: message.at,
-        })
-      )
+      save(await reportFor(`${thread.id}:${message.id}`, { subject: thread.subject, reportType: thread.reportType, body: message.body, steps: message.run?.steps, at: message.at }))
     } catch (error) {
       setPdfError(error instanceof Error ? error.message : "Could not set the PDF")
     }
   }, [])
 
-  // The latest finished reply is what Copy and Save to Drive act on.
+  // The latest message someone else wrote is what Copy and Save to Drive act on.
   const latestReply = open ? [...open.messages].reverse().find((message) => message.from !== "you" && message.body && !message.run?.failed) : undefined
+  const openMarks = openRow?.kept ? marksOf(openRow.kept) : null
+
+  // The folders' counts: the server's unread threads, and my drafts in Drafts.
+  const railCounts: Partial<Record<Folder, number>> = { ...counts, drafts: mine ? drafts.length + (counts.drafts ?? 0) : (counts.drafts ?? 0) }
+
+  const switchMailbox = (box: string) => {
+    if (box === mailbox) return
+    setMailbox(box)
+    setFolder("inbox")
+    setSelected(null)
+    setComposing(false)
+    setChecked(new Set())
+  }
 
   return (
     // America Thinks' frame (Brendan, 2026-10-31): bare, one bar all the way
@@ -630,12 +533,13 @@ export default function Page() {
       search={{ query, onQuery: setQuery, placeholder: "Search mail" }}
       rail={
         <InboxRail
-          threads={threads}
+          counts={railCounts}
           folder={folder}
           onFolder={(next) => {
             setFolder(next)
             setComposing(false)
             setSelected(null)
+            setChecked(new Set())
           }}
           onCompose={startCompose}
           onNew={startRequest}
@@ -643,25 +547,33 @@ export default function Page() {
           notes={notes}
           onOpenNote={openDrawnNote}
           onTemplate={applyTemplate}
+          chip={<MailboxChip owner={owner} me={me} superAdmin={superAdmin} onPick={switchMailbox} />}
         />
       }
     >
       {(() => {
         const cardOf = (id: string): Card => {
-          const thread = byId.get(id)
-          if (!thread) return { title: "" }
-          const who = folder === "sent" || folder === "drafts" ? `To: ${shownRecipients(thread).join(", ")}` : shownRecipients(thread).join(", ") || thread.agentName
+          const row = byId.get(id)
+          if (!row) return { title: "" }
+          if (row.draft) {
+            const t = row.draft
+            return { title: t.subject, hint: t.subject, from: `To: ${shownRecipients(t).join(", ")}`, snippet: snippet(t.messages[0] ?? { id: "", from: "you", at: 0, body: "" }), span: when(t.updatedAt) }
+          }
+          const t = row.kept!
+          const marks = marksOf(t)
+          const names = [...new Set(t.messages.map((m) => (m.folder === "sent" ? "me" : m.from.name || m.from.email)))]
+          const who = folder === "sent" ? `To: ${t.latest.to.map((p) => p.name || p.email).join(", ")}` : names.join(", ")
           return {
-            title: thread.subject,
-            hint: thread.subject,
+            title: t.latest.subject,
+            hint: t.latest.subject,
             from: who,
-            snippet: thread.status === "running" ? running(thread) : teaser(thread),
-            span: when(thread.updatedAt),
-            unread: isUnread(thread),
+            snippet: t.latest.snippet,
+            span: when(Date.parse(t.latest.createdAt)),
+            unread: marks.unread,
             marks: {
               column: checked.has(id),
               atCap: false,
-              boxLabel: `Select ${thread.subject}`,
+              boxLabel: `Select ${t.latest.subject}`,
               onColumn: () =>
                 setChecked((current) => {
                   const next = new Set(current)
@@ -669,11 +581,10 @@ export default function Page() {
                   else next.add(id)
                   return next
                 }),
-              // A task still running or one that failed lights the arrow on its own.
-              important: Boolean(thread.important) || thread.status === "running" || thread.status === "failed",
-              onImportant: () => patch(id, (t) => ({ ...t, important: !t.important })),
-              pinned: Boolean(thread.starred),
-              onPin: () => patch(id, (t) => ({ ...t, starred: !t.starred })),
+              important: marks.important,
+              onImportant: () => void file([id], { important: !marks.important }),
+              pinned: marks.starred,
+              onPin: () => void file([id], { starred: !marks.starred }),
             },
             onDragStart: (event) => {
               event.dataTransfer.setData(THREAD_DRAG, id)
@@ -682,59 +593,34 @@ export default function Page() {
             // The house row's kebab (Brendan, 2026-10-31): the thread's subject leads and copies, its sender at the foot.
             menu: (
               <>
-                <MenuHeader text={thread.subject || id} copy={thread.subject || id} />
+                <MenuHeader text={t.latest.subject || id} copy={t.latest.subject || id} />
                 <MenuSeparator />
                 <MenuRow icon={<Maximize2 />} label="Open" onClick={() => openThread(id)} />
-                <MenuRow
-                  icon={<MailOpen />}
-                  label={isUnread(thread) ? "Mark as read" : "Mark as unread"}
-                  onClick={() =>
-                    // Unread is the newest message from someone else, as Gmail marks it.
-                    patch(id, (t) => {
-                      if (isUnread(t)) return { ...t, messages: t.messages.map((m) => ({ ...m, unread: false })) }
-                      const last = t.messages.map((m) => m.from !== "you").lastIndexOf(true)
-                      return { ...t, messages: t.messages.map((m, i) => (i === last ? { ...m, unread: true } : m)) }
-                    })
-                  }
-                />
-                <MenuRow icon={<Star className={thread.starred ? "fill-amber-400 text-amber-400" : undefined} />} label={thread.starred ? "Unstar" : "Star"} onClick={() => patch(id, (t) => ({ ...t, starred: !t.starred }))} />
+                <MenuRow icon={marks.unread ? <MailOpen /> : <Mail />} label={marks.unread ? "Mark as read" : "Mark as unread"} onClick={() => (marks.unread ? void file([id], { read: true }) : markUnread(id))} />
+                <MenuRow icon={<Star className={marks.starred ? "fill-amber-400 text-amber-400" : undefined} />} label={marks.starred ? "Unstar" : "Star"} onClick={() => void file([id], { starred: !marks.starred })} />
                 <MenuSeparator />
-                <MenuRow icon={<Trash2 />} label={thread.trashed ? "Restore" : "Move to trash"} danger={!thread.trashed} onClick={() => moveToFolder(id, thread.trashed ? "inbox" : "trash")} />
+                {marks.archived ? <MenuRow icon={<ArchiveRestore />} label="Move to Inbox" onClick={() => fileAway(id, { archived: false })} /> : <MenuRow icon={<Archive />} label="Archive" onClick={() => fileAway(id, { archived: true })} />}
+                <MenuRow icon={<Trash2 />} label={marks.trashed ? "Restore" : "Move to trash"} danger={!marks.trashed} onClick={() => fileAway(id, { trashed: !marks.trashed })} />
                 <MenuSeparator />
                 <MenuFoot title={who} sub={TITLES[folder]} />
               </>
             ),
           }
         }
-        // The thread list's toolbar, in the list kebab: the unread filter, the selection, refresh, mark read, clear.
+        // The thread list's toolbar, in the list kebab: the unread filter, the selection, refresh, mark read.
         const listMenu = (
           <>
-            <DropdownMenuRadioGroup value={tab} onValueChange={(value) => setTab(value as ListTab)}>
-              <DropdownMenuRadioItem value="all">All {TITLES[folder].toLowerCase()}</DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="unread">Unread only</DropdownMenuRadioItem>
-            </DropdownMenuRadioGroup>
+            <DropdownMenuCheckboxItem checked={unreadOnly} onCheckedChange={(v) => setUnreadOnly(Boolean(v))}>
+              Unread only
+            </DropdownMenuCheckboxItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => setChecked(new Set(ids))}>Select all</DropdownMenuItem>
             <DropdownMenuItem onClick={() => setChecked(new Set())}>Select none</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setChecked(new Set(shown.filter(isUnread).map((t) => t.id)))}>Select unread</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setChecked(new Set(shown.filter((t) => t.starred).map((t) => t.id)))}>Select starred</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setChecked(new Set(shown.filter((r) => r.kept && r.kept.unreadCount > 0).map((r) => r.id)))}>Select unread</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setChecked(new Set(shown.filter((r) => r.kept && marksOf(r.kept).starred).map((r) => r.id)))}>Select starred</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => setTick((n) => n + 1)}>Refresh</DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => setThreads((current) => current.map((thread) => ({ ...thread, messages: thread.messages.map((message) => (message.from === "you" ? message : { ...message, unread: false })) })))}
-            >
-              Mark all as read
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              variant="destructive"
-              onClick={() => {
-                window.localStorage.setItem(CLEARED, "1")
-                setThreads([])
-                setSelected(null)
-              }}
-            >
-              Clear every thread
-            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => void load()}>Refresh</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => void file(shown.filter((r) => r.kept && r.kept.unreadCount > 0).map((r) => r.id), { read: true })}>Mark all as read</DropdownMenuItem>
           </>
         )
         const list =
@@ -753,36 +639,16 @@ export default function Page() {
               placeholder="Search mail"
               menu={listMenu}
               compact
-              loading={false}
-              error={null}
-              empty={
-                query.trim()
-                  ? `Nothing matching “${query.trim()}”.`
-                  : tab === "unread"
-                    ? "Nothing unread."
-                    : folder === "inbox"
-                      ? "Nothing has arrived yet. Compose a task and the reply lands here."
-                      : "Nothing here."
-              }
+              loading={loading && !kept.length}
+              error={error}
+              empty={query.trim() ? `Nothing matching “${query.trim()}”.` : unreadOnly ? "Nothing unread." : folder === "inbox" ? "Nothing has arrived yet." : "Nothing here."}
             />
           )
-        // Gmail's empty reading pane: nothing chosen, how much of this
-        // browser's store the threads take, and the small print at the foot.
-        const bytes = new Blob([JSON.stringify(threads)]).size
-        const budget = 5 * 1024 * 1024
-        const latest = threads.reduce((at, thread) => Math.max(at, thread.updatedAt), 0)
+        // Gmail's empty reading pane: nothing chosen, and the small print at the foot.
+        const latest = kept.reduce((at, t) => Math.max(at, Date.parse(t.latest.createdAt) || 0), 0)
         const empty = (
           <div className="flex h-full flex-col items-center px-8 py-16 text-center">
             <p className="text-lg">No conversations selected</p>
-            <div className="mt-12 w-64">
-              <Progress value={Math.min(100, (bytes / budget) * 100)} className="*:data-[slot=progress-track]:h-1.5" />
-              <p className="mt-2 flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
-                {bytes < 1024 * 100 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`} of 5 MB used in this browser
-                <span className="text-muted-foreground" aria-label="About the agents">
-                  <ExternalLink className="size-4" />
-                </span>
-              </p>
-            </div>
             <div className="mt-auto flex flex-col items-center gap-1 pt-16 text-sm text-muted-foreground">
               <p>Last activity: {latest ? when(latest) : "none yet"}</p>
               <p>
@@ -816,7 +682,6 @@ export default function Page() {
             </Button>
           </Tip>
         )
-        const justSent = sent ? threads.find((thread) => thread.id === sent) : undefined
         return (
           <div className="relative flex min-h-0 min-w-0 flex-1">
           <ResizablePanelGroup orientation="horizontal" className="min-h-0 min-w-0 flex-1">
@@ -867,28 +732,49 @@ export default function Page() {
                   ) : open ? (
                     <>
                       {/* The reading pane's toolbar, as the mail example has it:
-                    the actions on this thread at the left, a new task at the
+                    the actions on this thread at the left, a new message at the
                     right. */}
                       <div className="flex h-[52px] shrink-0 items-center gap-1 border-b px-2">
                         {back}
-                        <Tip label={open.starred ? "Remove star" : "Star"}>
-                          <Button variant="ghost" size="sm" aria-label={open.starred ? "Remove star" : "Star"} onClick={() => patch(open.id, (t) => ({ ...t, starred: !t.starred }))}>
-                            <Star className={cn("size-4", open.starred && "fill-yellow-400 text-yellow-500")} />
-                          </Button>
-                        </Tip>
-                        <Tip label={open.trashed ? "Restore" : "Move to trash"}>
-                          <Button variant="ghost" size="sm" aria-label={open.trashed ? "Restore" : "Move to trash"} onClick={() => patch(open.id, (t) => ({ ...t, trashed: !t.trashed }))}>
-                            {open.trashed ? <RotateCcw className="size-4" /> : <Trash2 className="size-4" />}
-                          </Button>
-                        </Tip>
+                        {openMarks && (
+                          <>
+                            <Tip label={openMarks.archived ? "Move to Inbox" : "Archive"}>
+                              <Button variant="ghost" size="sm" aria-label={openMarks.archived ? "Move to Inbox" : "Archive"} onClick={() => fileAway(open.id, { archived: !openMarks.archived })}>
+                                {openMarks.archived ? <ArchiveRestore className="size-4" /> : <Archive className="size-4" />}
+                              </Button>
+                            </Tip>
+                            <Tip label={openMarks.trashed ? "Restore" : "Move to trash"}>
+                              <Button variant="ghost" size="sm" aria-label={openMarks.trashed ? "Restore" : "Move to trash"} onClick={() => fileAway(open.id, { trashed: !openMarks.trashed })}>
+                                {openMarks.trashed ? <RotateCcw className="size-4" /> : <Trash2 className="size-4" />}
+                              </Button>
+                            </Tip>
+                            <Tip label="Mark as unread">
+                              <Button variant="ghost" size="sm" aria-label="Mark as unread" onClick={() => markUnread(open.id)}>
+                                <Mail className="size-4" />
+                              </Button>
+                            </Tip>
+                            <Tip label={openMarks.starred ? "Remove star" : "Star"}>
+                              <Button variant="ghost" size="sm" aria-label={openMarks.starred ? "Remove star" : "Star"} onClick={() => void file([open.id], { starred: !openMarks.starred })}>
+                                <Star className={cn("size-4", openMarks.starred && "fill-yellow-400 text-yellow-500")} />
+                              </Button>
+                            </Tip>
+                          </>
+                        )}
+                        {open.status === "draft" && (
+                          <Tip label="Discard draft">
+                            <Button variant="ghost" size="sm" aria-label="Discard draft" onClick={() => (setDrafts((current) => current.filter((d) => d.id !== open.id)), setSelected(null))}>
+                              <Trash2 className="size-4" />
+                            </Button>
+                          </Tip>
+                        )}
                         {latestReply && (
                           <>
                             <Separator orientation="vertical" className="mx-1 data-[orientation=vertical]:h-5" />
-                            <Tip label="Copy the report">
+                            <Tip label="Copy the message">
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                aria-label="Copy the report"
+                                aria-label="Copy the message"
                                 onClick={() => {
                                   void navigator.clipboard?.writeText(latestReply.body)
                                   setCopied(latestReply.id)
@@ -899,23 +785,21 @@ export default function Page() {
                               </Button>
                             </Tip>
                             {/* Save to Drive sits beside Copy because it is the same
-                          kind of act — take this reply somewhere of your own —
-                          and it saves the string the reader is looking at, so
-                          the document cannot differ from the report on the
-                          page. */}
-                            <SaveToDrive name={open.subject || "pax report"} markdown={latestReply.body} />
+                          kind of act — take this message somewhere of your own —
+                          and it saves the string the reader is looking at. */}
+                            <SaveToDrive name={open.subject || "pax message"} markdown={latestReply.body} />
                           </>
                         )}
                         <div className="ml-auto flex items-center gap-1">
-                          {open.status !== "draft" && (
+                          {open.status !== "draft" && mine && (
                             <Tip label="Reply">
                               <Button variant="ghost" size="sm" aria-label="Reply" onClick={() => setReplying(true)}>
                                 <ReplyIcon className="size-4" />
                               </Button>
                             </Tip>
                           )}
-                          <Tip label="New task">
-                            <Button variant="ghost" size="sm" aria-label="New task" onClick={startCompose}>
+                          <Tip label="New message">
+                            <Button variant="ghost" size="sm" aria-label="New message" onClick={startCompose}>
                               <PenSquare className="size-4" />
                             </Button>
                           </Tip>
@@ -923,34 +807,27 @@ export default function Page() {
                       </div>
 
                       {/* The thread, Gmail's way: the subject as its title, then
-                    every message as mail — who sent it, who it went to, when —
-                    yours included. The agent's reply is set on a quiet ground,
-                    the "this came from a model" cue. */}
+                    every message as mail — who sent it, who it went to, when. */}
                       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
                         <div className="flex items-start gap-4 px-6 pt-5 pb-2">
                           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
                             <h2 className="min-w-0 truncate text-xl font-medium">{open.subject}</h2>
-                            <Marker thread={open} onToggle={() => patch(open.id, (t) => ({ ...t, important: !t.important }))} />
-                            {open.reportType && <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{open.reportType}</span>}
+                            <Marker thread={open} onToggle={openMarks ? () => void file([open.id], { important: !openMarks.important }) : undefined} />
                           </div>
-                          <div className="ml-auto shrink-0 pt-1 text-right text-xs text-muted-foreground">
-                            {open.trashed && <div>in trash</div>}
-                            {open.deliveredTo && <div>delivered to {open.deliveredTo}</div>}
-                            {threadCost(open) > 0 && (
-                              <div>
-                                {runners(open).length} run{runners(open).length === 1 ? "" : "s"}, ${threadCost(open).toFixed(3)}
-                              </div>
-                            )}
-                          </div>
+                          {openMarks?.trashed && <div className="ml-auto shrink-0 pt-1 text-right text-xs text-muted-foreground">in trash</div>}
                         </div>
 
                         <div className="divide-y">
                           {open.messages.map((message) => {
-                            const mine = message.from === "you"
+                            const self = message.from === "you"
                             const trace = isTrace(open.reportType)
-                            const name = mine ? ADMIN_USER.name : nameOf(message.from)
-                            const email = mine ? ADMIN_USER.email : findAddress(message.from)?.email
-                            const to = mine ? shownRecipients(open).join(", ") || open.agentName : "me"
+                            const name = self ? owner.name : (message.fromName ?? nameOf(message.from))
+                            const email = self ? owner.email : (message.fromEmail ?? addressFor(message.from)?.email)
+                            const to = message.toParties
+                              ? message.toParties.map((p) => (p.email.toLowerCase() === owner.email.toLowerCase() ? "me" : p.name || p.email)).join(", ")
+                              : self
+                                ? shownRecipients(open).join(", ") || open.agentName
+                                : "me"
                             const isFolded = folded.has(message.id)
                             const fold = () =>
                               setFolded((current) => {
@@ -964,17 +841,14 @@ export default function Page() {
                                 {/* The header is the collapse, as in Gmail: click folds the message
                                     to its one-line state, the snippet standing in for the body. */}
                                 <header className="flex cursor-pointer items-start gap-3" onClick={fold}>
-                                  <Sender from={message.from} />
+                                  <Sender from={message.from} name={name} owner={owner} />
                                   <div className="min-w-0 flex-1 pt-0.5">
                                     <div className="flex min-w-0 flex-wrap items-baseline gap-x-2">
                                       <span className="shrink-0 font-semibold">{name}</span>
                                       {isFolded ? (
                                         <span className="min-w-0 truncate text-sm text-muted-foreground">{snippet(message) || "…"}</span>
                                       ) : (
-                                        <>
-                                          {email && <span className="text-xs text-muted-foreground">&lt;{email}&gt;</span>}
-                                          {message.unread && <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">Unread</span>}
-                                        </>
+                                        email && <span className="text-xs text-muted-foreground">&lt;{email}&gt;</span>
                                       )}
                                     </div>
                                     {!isFolded && <div className="text-xs text-muted-foreground">to {to}</div>}
@@ -984,11 +858,13 @@ export default function Page() {
                                   </time>
                                   {open.status !== "draft" && (
                                     <span className="flex shrink-0 items-center" onClick={(event) => event.stopPropagation()}>
-                                      <Tip label="Reply">
-                                        <Button variant="ghost" size="sm" aria-label="Reply" className="size-7 p-0" onClick={() => setReplying(true)}>
-                                          <ReplyIcon className="size-4" />
-                                        </Button>
-                                      </Tip>
+                                      {mine && (
+                                        <Tip label="Reply">
+                                          <Button variant="ghost" size="sm" aria-label="Reply" className="size-7 p-0" onClick={() => setReplying(true)}>
+                                            <ReplyIcon className="size-4" />
+                                          </Button>
+                                        </Tip>
+                                      )}
                                       <Tip label="Forward">
                                         <Button variant="ghost" size="sm" aria-label="Forward" className="size-7 p-0" onClick={() => startForward(open, message)}>
                                           <ForwardIcon className="size-4" />
@@ -1000,7 +876,9 @@ export default function Page() {
 
                                 {!isFolded && (
                                 <div className="mt-3 flex flex-col gap-3 pl-[52px]">
-                                  {mine ? (
+                                  {message.html ? (
+                                    <MailFrame html={message.html} />
+                                  ) : self ? (
                                     <div className="text-sm whitespace-pre-wrap">
                                       <Prose text={message.body} />
                                     </div>
@@ -1008,9 +886,6 @@ export default function Page() {
                                     (message.body || (trace && calls(message) > 0)) && (
                                       <div className="rounded-lg bg-muted/60 p-4">
                                         <div className={cn("text-sm whitespace-pre-wrap", message.run?.failed && "text-destructive")}>
-                                          {/* A Trace Report is the run, laid out — the steps are its
-                                              sections. Every other format is markdown and renders as
-                                              markdown, here and in the PDF alike. */}
                                           {trace && message.run && !message.run.failed ? (
                                             <TraceReport steps={message.run.steps} body={message.body} running={!message.run.done} />
                                           ) : (
@@ -1021,23 +896,11 @@ export default function Page() {
                                     )
                                   )}
 
-                                  {message.run && !message.run.done && (
-                                    // The reading pane's own sign of life, under whatever has
-                                    // arrived so far. It names the tool in flight rather than
-                                    // saying "working", so a long gather reads as progress
-                                    // instead of as a hang.
-                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                      <span aria-hidden className="size-2 shrink-0 animate-pulse rounded-full bg-primary" />
-                                      <span className="animate-pulse">{running(open)}</span>
-                                    </div>
-                                  )}
-
                                   {calls(message) > 0 && (
                                     <details className="rounded-lg border p-3">
                                       <summary className="cursor-pointer text-sm text-muted-foreground">
                                         {calls(message)} tool call
                                         {calls(message) === 1 ? "" : "s"}
-                                        {message.run!.done ? "" : " so far"}
                                       </summary>
                                       <div className="pt-3">
                                         <RunSteps steps={message.run!.steps} />
@@ -1059,29 +922,24 @@ export default function Page() {
                         </div>
 
                         {/* Gmail's foot: Reply and Forward in flow right under the last
-                            message, sticky so they never scroll off — a long thread pins them
-                            to the shell's bottom and the messages scroll up behind them. The
-                            composer card opens in the same spot. */}
+                            message, sticky so they never scroll off. The composer card
+                            opens in the same spot. An agent's mailbox is read and filed
+                            here; replies go from one's own. */}
                         <div className="sticky bottom-0 bg-background px-6 pt-2 pb-6 pl-[76px]">
                         {open.status === "draft" ? (
                           <Button size="sm" className="self-start" onClick={() => editDraft(open)}>
                             Edit draft
                           </Button>
-                        ) : replying ? (
+                        ) : replying && mine ? (
                           <div className="flex flex-col rounded-2xl border bg-background shadow-sm">
                             <div className="flex shrink-0 items-center gap-3 border-b px-4 py-3">
-                              <Sender from="you" />
+                              <Sender from="you" name={owner.name} owner={owner} />
                               {editingTo ? (
                                 <span className="text-sm text-muted-foreground">Reply</span>
                               ) : (
-                                <button
-                                  type="button"
-                                  className="flex min-w-0 items-center gap-3 text-left"
-                                  title="Edit recipients"
-                                  onClick={() => setEditingTo(true)}
-                                >
+                                <button type="button" className="flex min-w-0 items-center gap-3 text-left" title="Edit recipients" onClick={() => setEditingTo(true)}>
                                   <ReplyIcon className="size-4 shrink-0 text-muted-foreground" />
-                                  <span className="min-w-0 truncate text-sm text-muted-foreground">{shownRecipients(open).join(", ") || open.agentName}</span>
+                                  <span className="min-w-0 truncate text-sm text-muted-foreground">{replyDraft.to.map(nameOf).join(", ")}</span>
                                 </button>
                               )}
                             </div>
@@ -1096,9 +954,7 @@ export default function Page() {
                                   const text = current.body
                                   setReplyDraft({ ...current, body: "" })
                                   setEditingTo(false)
-                                  const lines = { to: current.to, cc: current.cc, bcc: current.bcc }
-                                  patch(open.id, (t) => ({ ...t, ...lines }))
-                                  void followUp({ ...open, ...lines }, text)
+                                  void sendReply(open, { to: current.to, cc: current.cc }, text)
                                 }}
                                 onDiscard={() => {
                                   setReplying(false)
@@ -1110,10 +966,12 @@ export default function Page() {
                           </div>
                         ) : (
                           <div className="flex items-center gap-2">
-                            <Button variant="outline" size="sm" className="rounded-full" onClick={() => setReplying(true)}>
-                              <ReplyIcon className="size-4" />
-                              Reply
-                            </Button>
+                            {mine && (
+                              <Button variant="outline" size="sm" className="rounded-full" onClick={() => setReplying(true)}>
+                                <ReplyIcon className="size-4" />
+                                Reply
+                              </Button>
+                            )}
                             <Button variant="outline" size="sm" className="rounded-full" onClick={() => startForward(open, open.messages.at(-1)!)}>
                               <ForwardIcon className="size-4" />
                               Forward
@@ -1130,22 +988,27 @@ export default function Page() {
               </ResizablePanel>
             )}
           </ResizablePanelGroup>
-          {justSent && (
+          {sent && (
             // Gmail's bar: dark, bottom left, gone in a few seconds. "View"
-            // opens the thread in Sent, where it is.
+            // opens the thread in Sent, where the server kept it.
             <div role="status" className="absolute bottom-4 left-4 z-20 flex items-center gap-4 rounded-md bg-foreground px-4 py-2.5 text-sm text-background shadow-lg">
               <span>Message sent{mailNote ? ` · ${mailNote}` : ""}</span>
-              <button
-                type="button"
-                className="font-medium text-background/80 hover:text-background"
-                onClick={() => {
-                  setFolder("sent")
-                  openThread(justSent.id)
-                  setSent(null)
-                }}
-              >
-                View
-              </button>
+              {sent.threadId && (
+                <button
+                  type="button"
+                  className="font-medium text-background/80 hover:text-background"
+                  onClick={() => {
+                    setMailbox("me")
+                    setFolder("sent")
+                    setSelected(sent.threadId!)
+                    setComposing(false)
+                    setSplit("vertical")
+                    setSent(null)
+                  }}
+                >
+                  View
+                </button>
+              )}
             </div>
           )}
           {popped && (
