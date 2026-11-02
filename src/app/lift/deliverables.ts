@@ -3,7 +3,7 @@
 import * as React from "react"
 
 import type { AudienceIndex, SourceRow } from "../america-thinks/audience-data"
-import { fielding, metricShort, periodKey, segOf, signed, treatmentName } from "./lift-data"
+import { fieldPeriod, metricShort, periodKey, segOf, signed, treatmentName } from "./lift-data"
 
 // Tools > Lift Analysis' cards (Brendan, 2026-10-31): every deliverable the PAX waves tested, each opening its
 // analysis on the table's lead metric among everyone. Newest wave first, the strongest lift first within it.
@@ -12,7 +12,7 @@ export type Deliverable = {
   /** Lift's address for the analysis (?source and at=). */
   href: string
   source: string
-  /** The pick as Lift's at= list: option, metric, segment ("" is everyone), fielding. */
+  /** The pick as Lift's at= list: option, metric, segment ("" is everyone), field period. */
   at: string[]
   title: string
   /** The metric and its lift, and the wave. */
@@ -41,7 +41,7 @@ async function load(): Promise<Deliverable[]> {
     const r = LEAD.map((m) => rs.find((x) => x[0] === m)).find(Boolean) ?? rs[0]
     const at = [r[4]!, r[0], "", periodKey(r)]
     out.push({
-      d: { href: `/lift?source=${SOURCE}&at=${at.map(part).join(",")}`, source: SOURCE, at, title: treatmentName(r[4]!), sub: `${metricShort(r[0])} ${signed(r[7])} · ${fielding(r[2], r[3])}` },
+      d: { href: `/lift?source=${SOURCE}&at=${at.map(part).join(",")}`, source: SOURCE, at, title: treatmentName(r[4]!), sub: `${metricShort(r[0])} ${signed(r[7])} · ${fieldPeriod(r[2], r[3])}` },
       end: r[3],
       lift: r[7],
     })

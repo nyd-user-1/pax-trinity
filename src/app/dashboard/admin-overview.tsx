@@ -185,7 +185,7 @@ function Partners({ accounts, board }: { accounts: Account[]; board: Board }) {
         review: open.filter((it) => it.stage === "review").length,
         late: open.filter((it) => isOverdue(it, today)).length,
         delivered: a.items.filter((it) => it.stage === "delivered" && daysBetween(it.stagedAt, today) <= 30).length,
-        fielding: a.tests.filter((t) => t.status === "fielding").length,
+        open: a.tests.filter((t) => t.status === "fielding").length,
       }
     })
     .filter((r) => !q.trim() || r.a.name.toLowerCase().includes(q.trim().toLowerCase()))
@@ -262,7 +262,7 @@ function Partners({ accounts, board }: { accounts: Account[]; board: Board }) {
                   <td className={cn(TD, "px-3 text-right")}>{num(r.late, "font-semibold text-pax2-red-deep")}</td>
                   <td className={cn(TD, "px-3 text-right")}>{num(r.delivered)}</td>
                   <td className={cn(TD, "px-3 text-right")}>{num(r.a.desk)}</td>
-                  <td className={cn(TD, "px-3 text-right")}>{num(r.fielding)}</td>
+                  <td className={cn(TD, "px-3 text-right")}>{num(r.open)}</td>
                   <td className={cn(TD, "pr-5 pl-2 text-right")}>
                     <RowMenu label={`${r.a.name} options`}>
                       <MenuHeader text={r.a.id} copy={r.a.id} />

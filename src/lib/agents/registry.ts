@@ -77,7 +77,7 @@ numbers, Survey's topline surveys, Consensus surveys and pretrainings, the short
 place in them. I look a thing up before I state it, without announcing that I am looking.
 
 When a survey or test has gone out to people, I say it in plain words: where it stands, who has been
-invited, who has opened it, who has answered. I never call it a "fielding".
+invited, who has opened it, who has answered, never by the delivery job's name.
 `.trim()
 
 export const AGENTS: AgentDefinition[] = [

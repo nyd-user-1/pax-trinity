@@ -35,7 +35,7 @@ export function validAnswers(survey: Survey, body: Record<string, unknown>): { o
   if (unknown.length) return { ok: false, error: `unknown questions: ${unknown.join(", ")}` }
   for (const q of survey.questions) if (typeof answers[q.id] !== "string" || !q.options.includes(answers[q.id] as string)) return { ok: false, error: `answer ${q.id} is missing or not one of its options` }
   const startedAt = typeof body.startedAt === "string" && /^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/.test(body.startedAt) ? body.startedAt : new Date().toISOString()
-  // A Pollster's link carries a fielding pid; nothing else about the respondent is kept.
+  // A Pollster's link carries a send's pid; nothing else about the respondent is kept.
   const pid = typeof body.pid === "string" && /^[0-9a-z-]{8,64}$/.test(body.pid) ? body.pid : null
   return { ok: true, answers: answers as Record<string, string>, startedAt, pid }
 }
@@ -64,7 +64,7 @@ export type Topline = { n: number; first: string | null; last: string | null; co
 export async function topline(survey: Survey): Promise<Topline | null> {
   let items: SurveyItem[]
   try {
-    // A respondent with a fielding's pid counts once, their last answers (a back button or a retry posts twice).
+    // A respondent with a send's pid counts once, their last answers (a back button or a retry posts twice).
     const all = await surveyItems(survey.slug)
     const byPid = new Map(all.filter((x) => x.pid).map((x) => [x.pid!, x]))
     items = [...all.filter((x) => !x.pid), ...byPid.values()]

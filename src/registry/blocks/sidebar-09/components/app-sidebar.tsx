@@ -36,7 +36,7 @@ const FOLDERS: { title: string; icon: typeof Inbox; folder: Folder }[] = [
 const INTENTS: { label: string; names: string[] }[] = [
   { label: "Invitations", names: ["Consensus invite", "Survey invitation", "Test invitation"] },
   { label: "Reminders", names: ["Survey reminder", "Test reminder", "Review reminder", "Approval reminder"] },
-  { label: "Updates", names: ["Fielding started", "Quota closed", "Cuts ready for review", "Clip ready to test", "Test approved"] },
+  { label: "Updates", names: ["Test opened", "Quota closed", "Cuts ready for review", "Clip ready to test", "Test approved"] },
   { label: "Results", names: ["Consensus summary", "Question card ready", "Results readout", "Survey topline", "Lift updated", "Report filed", "Weekly digest"] },
   { label: "Thank-yous", names: ["Survey thank-you"] },
   { label: "Account", names: ["Invitation", "Your login", "Password reset"] },

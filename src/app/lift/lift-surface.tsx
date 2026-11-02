@@ -35,7 +35,7 @@ import { AboutResult } from "./about-result"
 import { useShellPanel } from "@/components/shell"
 import { PANE_PARAM } from "@/lib/pane"
 import { LIFT_ANALYSIS_OPEN, openToolsOnCards } from "@/lib/lift-analyses"
-import { AD_COLUMNS, AD_INFO, TRAIT_COLUMN, TRAIT_COLUMNS, adOffice, adWhen, adWhere, dimOf, fielding, isPlacebo, metricShort, ordered, periodKey, segKey, segOf, setAds, signed, significance, testOf, TRAIT_GROUPS, treatmentName, valOf, type AdColumn, type AdInfo, type Cell, type Pick } from "./lift-data"
+import { AD_COLUMNS, AD_INFO, TRAIT_COLUMN, TRAIT_COLUMNS, adOffice, adWhen, adWhere, dimOf, fieldPeriod, isPlacebo, metricShort, ordered, periodKey, segKey, segOf, setAds, signed, significance, testOf, TRAIT_GROUPS, treatmentName, valOf, type AdColumn, type AdInfo, type Cell, type Pick } from "./lift-data"
 import { AppealBar, AppealKey, axisOf, Candle, EmotionBar, EmotionKey, heat, HeatKey, sampleEmotions } from "./lift-marks"
 
 // /lift — Swayable's results view (Brendan, 2026-10-28, from the Dream Crazy
@@ -86,7 +86,7 @@ const DEFAULT_OFF: Record<string, string[]> = { LIFT_ARCHIVE: ["lift_vote_choice
 const sameSet = (a: string[], b: string[]) => a.length === b.length && a.every((x) => b.includes(x))
 /** The treatments a folder opens on (Brendan, 2026-10-29); the Treatments menu brings back the rest. */
 const FEATURED: Record<string, string[]> = { PAX_TEST: ["DiZoglio", "Matt Wilson", "Pahlow"] }
-/** A fielding the results register knows is its wave. */
+/** A field period the results register knows is its wave. */
 const WAVE = new Map(RESULT_SETS.map((s) => [`${s.fielded.start}|${s.fielded.end}`, `Wave ${s.wave}`]))
 
 const toggled = (list: string[], x: string) => (list.includes(x) ? list.filter((y) => y !== x) : [...list, x])
@@ -243,11 +243,11 @@ export function LiftSurface() {
   // Attributes is the Archive's alone; another folder shows Bars in its place.
   const shownDisplay = display === "attributes" && !archive ? "bars" : display
 
-  // The folder read once: its metrics (Primary first), fieldings, treatments
+  // The folder read once: its metrics (Primary first), field periods, treatments
   // and breakdowns, and each result keyed for the table. A row is a treatment
-  // in one fielding (an entry): a treatment tested in two waves is two rows,
-  // and the Filter's fieldings decide which survive (Brendan, 2026-10-29: the
-  // latest fielding no longer shadows the others).
+  // in one field period (an entry): a treatment tested in two waves is two rows,
+  // and the Filter's field periods decide which survive (Brendan, 2026-10-29: the
+  // latest field period no longer shadows the others).
   const read = React.useMemo(() => {
     if (!rows) return null
     const off = new Set(periodsOff)
@@ -262,7 +262,7 @@ export function LiftSurface() {
     const levels = new Map<string, SourceRow>()
     for (const r of rows) {
       const pk = periodKey(r)
-      if (!periods.some((p) => p.key === pk)) periods.push({ key: pk, name: WAVE.get(pk) ?? fielding(r[2], r[3]), dates: fielding(r[2], r[3]) })
+      if (!periods.some((p) => p.key === pk)) periods.push({ key: pk, name: WAVE.get(pk) ?? fieldPeriod(r[2], r[3]), dates: fieldPeriod(r[2], r[3]) })
       if (off.has(pk)) continue
       if (!metrics.includes(r[0])) metrics.push(r[0])
       const d = dimOf(r)
@@ -290,15 +290,15 @@ export function LiftSurface() {
     periods.sort((a, b) => a.key.localeCompare(b.key))
     metrics.sort((a, b) => Number(PRIMARY.has(b)) - Number(PRIMARY.has(a)))
     for (const [d, vs] of dims) dims.set(d, ordered(vs))
-    // Each treatment's entries, latest fielding first.
+    // Each treatment's entries, latest field period first.
     const byOption = new Map<string, string[]>()
     for (const ek of entries) byOption.set(optionOf(ek), [...(byOption.get(optionOf(ek)) ?? []), ek])
-    for (const list of byOption.values()) list.sort((a, b) => fieldingOf(b).localeCompare(fieldingOf(a)))
+    for (const list of byOption.values()) list.sort((a, b) => periodOf(b).localeCompare(periodOf(a)))
     const cell = (ek: string, metric: string, sk: string): Cell | null => {
       const lift = lifts.get(`${ek}\u0001${metric}\u0001${sk}`)
       if (!lift) return null
       const option = optionOf(ek)
-      const pk = fieldingOf(ek)
+      const pk = periodOf(ek)
       const level = levels.get(`${option}\u0001${metric}\u0001${sk}\u0001${pk}`) ?? null
       const control = levels.get(`${PLACEBO}\u0001${metric}\u0001${sk}\u0001${pk}`) ?? null
       // An archive ad starts from its own test's placebo group (the respondent file's mean), and lands at that plus its lift.
@@ -312,7 +312,7 @@ export function LiftSurface() {
     return { metrics, periods, options, byOption, dims, cell }
   }, [rows, periodsOff])
 
-  // The benchmark's median per metric and segment: every treatment's lift on file, every fielding.
+  // The benchmark's median per metric and segment: every treatment's lift on file, every field period.
   const medians = React.useMemo(() => {
     const by = new Map<string, number[]>()
     for (const r of rows ?? []) {
@@ -342,14 +342,14 @@ export function LiftSurface() {
   const chosen = React.useMemo(() => {
     if (!read) return []
     const featured = FEATURED[source]
-    // The opening set: the featured treatments, and every treatment of the fieldings on that they are not in
+    // The opening set: the featured treatments, and every treatment of the field periods on that they are not in
     // (Brendan, through the lead, 2026-10-29), so both waves on shows both waves.
     if (!picked && featured) {
-      const theirs = new Set(featured.flatMap((o) => (read.byOption.get(o) ?? []).map(fieldingOf)))
-      if (theirs.size) return read.options.filter((o) => featured.includes(o) || (read.byOption.get(o) ?? []).some((ek) => !theirs.has(fieldingOf(ek))))
+      const theirs = new Set(featured.flatMap((o) => (read.byOption.get(o) ?? []).map(periodOf)))
+      if (theirs.size) return read.options.filter((o) => featured.includes(o) || (read.byOption.get(o) ?? []).some((ek) => !theirs.has(periodOf(ek))))
     }
     const on = picked ?? featured ?? read.options
-    // The Filter wins: a set with no rows in the surviving fieldings gives way to those fieldings' treatments.
+    // The Filter wins: a set with no rows in the surviving field periods gives way to those periods' treatments.
     return on.length && !on.some((o) => read.options.includes(o)) ? read.options : on.filter((o) => read.options.includes(o))
   }, [read, picked, source])
 
@@ -506,7 +506,7 @@ export function LiftSurface() {
     if (segsOff.length) pairs.push(["so", segsOff])
     if (periodsOff.length) pairs.push(["fo", periodsOff])
     if (!bench) pairs.push(["bench", ["0"]])
-    if (about) pairs.push(["at", [about.option, about.metric, about.seg, fieldingOf(about.entry)]])
+    if (about) pairs.push(["at", [about.option, about.metric, about.seg, periodOf(about.entry)]])
     return `${window.location.origin}${window.location.pathname}?${pairs.map(([k, vs]) => `${k}=${vs.length ? vs.map(linkPart).join(",") : ""}`).join("&")}`
   }
   const url = read ? linkUrl() : null
@@ -1276,7 +1276,7 @@ function readLink() {
   }
 }
 
-/** A row's test in the CSV: the wave's name where the results register knows the fielding, else the study. */
+/** A row's test in the CSV: the wave's name where the results register knows the field period, else the study. */
 const testName = (lift: SourceRow) => WAVE.get(periodKey(lift)) ?? testOf(lift)
 
 type Seg = { key: string; name: string }
@@ -1288,10 +1288,10 @@ type OnPick = (o: string, m: string, s: Seg, c: Cell) => void
 
 const fmt = (v: number) => `${v < 0 ? "−" : ""}${num(Math.abs(v))}`
 
-/** A row's entry: a treatment in one fielding. */
-const entryKey = (option: string, fielding: string) => `${option}\u0002${fielding}`
+/** A row's entry: a treatment in one field period. */
+const entryKey = (option: string, period: string) => `${option}\u0002${period}`
 const optionOf = (ek: string) => ek.slice(0, ek.indexOf("\u0002"))
-const fieldingOf = (ek: string) => ek.slice(ek.indexOf("\u0002") + 1)
+const periodOf = (ek: string) => ek.slice(ek.indexOf("\u0002") + 1)
 
 /** A treatment's picture: its video's frame, or the clips partners' play mark in a frame's shape (Brendan,
  *  2026-10-31: every row has one). */

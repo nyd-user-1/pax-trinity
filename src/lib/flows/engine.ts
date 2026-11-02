@@ -3,8 +3,8 @@ import { memberByEmail } from "../roles"
 import { claimDay, claimStep, daySk, readRoster, readSends, stepSk, writeEnrollment, writeOutcome, type Enrollment, type FlowStore } from "./store"
 
 // The marketing flows' engine (Brendan, 2026-11-01). A signed-in user's visit to a page enrolls them in the
-// flow that teaches it (enroll, from POST /api/flows/enroll); each tick (POST /api/fielding/tick, after the
-// fielding work) mails the steps that are due, at most one per user per day, from the Assistant. The flows
+// flow that teaches it (enroll, from POST /api/flows/enroll); each tick (POST /api/sends/tick, after the
+// sends' work) mails the steps that are due, at most one per user per day, from the Assistant. The flows
 // and their templates are worker-1's (lib/flows/defs.ts, the "Flows" kind in lib/agents/templates.ts); this
 // file holds to their contract and takes everything it touches as `deps`, so the checks run in Node against
 // a table double (engine.test.ts).

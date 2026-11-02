@@ -1,4 +1,4 @@
-// The contact groups a fielding can actually go to: real people with real
+// The contact groups a send can actually go to: real people with real
 // addresses, as opposed to the Inbox's demo panels, which have a size and no
 // members. Until Brendan widens the allowlist the only one is the test panel:
 // fourteen respondents who all receive at brendan@nysgpt.com, each invitation

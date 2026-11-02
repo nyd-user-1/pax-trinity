@@ -10,7 +10,7 @@ import { RESULT_SETS } from "@/lib/results"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@govblock/ui/components/ny4/tooltip"
 
 import { num, type SourceRow } from "../america-thinks/audience-data"
-import { AD_INFO, adOffice, adWhen, adWhere, fielding, levelOf, metricShort, periodKey, POINT_LEFT, POINT_RIGHT, segOf, signed, significance, testOf, TRAIT_GROUPS, treatmentName, type AdInfo, type Pick } from "./lift-data"
+import { AD_INFO, adOffice, adWhen, adWhere, fieldPeriod, levelOf, metricShort, periodKey, POINT_LEFT, POINT_RIGHT, segOf, signed, significance, testOf, TRAIT_GROUPS, treatmentName, type AdInfo, type Pick } from "./lift-data"
 import { APPEALS } from "./lift-marks"
 
 // ECharts loads only when a benchmark card opens.
@@ -110,7 +110,7 @@ export function AboutResult({
   const footnote = (
     <div className="mt-auto border-t px-6 py-3 text-[11.5px] leading-5 text-muted-foreground">
       <p>
-        {place(lift[1])} · {fielding(lift[2], lift[3])}
+        {place(lift[1])} · {fieldPeriod(lift[2], lift[3])}
       </p>
       {register && (
         <>

@@ -83,7 +83,7 @@ export const TEMPLATES: Template[] = [
   {
     "id": "7ff83159-240a-46af-b3d7-5ecdb1641a8e",
     "kind": "Tests",
-    "name": "Fielding started",
+    "name": "Test opened",
     "from": "tracker",
     "subject": "In the field: {{TEST_NAME}}",
     "body": "**In the field: {{TEST_NAME}}**\n\nHi {{RECIPIENT_NAME}},\n\n{{TEST_NAME}} went into the field today. I'll write again when it closes.\n\n**Sample:** {{SAMPLE_SIZE}} {{AUDIENCE}}\n\n**Arms:** {{ARMS}}\n\n**Expected close:** {{CLOSE_DATE}}\n\n[Watch the sample fill]({{MONITOR_URL}})\n\nPollster"
@@ -350,7 +350,7 @@ export const TEMPLATES: Template[] = [
     "name": "Inbox flow 2: Field a survey or a test",
     "from": "assistant",
     "subject": "Field a survey or a test",
-    "body": "**Field a survey or a test**\n\nHi {{RECIPIENT_NAME}},\n\nA fielding runs end to end on one thread:\n\n1. Under **Templates** in the Inbox's sidebar, **New test** or **New survey** opens a request to the Pollster.\n2. Fill in the test or survey, a quota and a close date, and add a group from the address book as a recipient.\n3. The Pollster mails each member a link of their own, tracks who opened, started and finished, and reminds whoever hasn't.\n4. It closes at the quota or the deadline, and the Analyst's readout lands on the same thread.\n\nSending a task needs a staff account.\n\n[Open the Inbox]({{PAGE_URL}})\n\nAssistant"
+    "body": "**Field a survey or a test**\n\nHi {{RECIPIENT_NAME}},\n\nA survey or test runs end to end on one thread:\n\n1. Under **Templates** in the Inbox's sidebar, **New test** or **New survey** opens a request to the Pollster.\n2. Fill in the test or survey, a quota and a close date, and add a group from the address book as a recipient.\n3. The Pollster mails each member a link of their own, tracks who opened, started and finished, and reminds whoever hasn't.\n4. It closes at the quota or the deadline, and the Analyst's readout lands on the same thread.\n\nSending a task needs a staff account.\n\n[Open the Inbox]({{PAGE_URL}})\n\nAssistant"
   },
   {
     "id": "local-inbox-flow-3-templates",
@@ -366,7 +366,7 @@ export const TEMPLATES: Template[] = [
     "name": "Inbox flow 4: From a conversation to a test",
     "from": "assistant",
     "subject": "From a conversation to a test",
-    "body": "**From a conversation to a test**\n\nHi {{RECIPIENT_NAME}},\n\nThe Inbox is where the loop meets. On a consensus survey's **Results** in Survey, **Make question card** sets the Open Primaries survey's questions beside the statements every group shared and the ones that split them, and hands the card to the Inbox as a New test for the Pollster.\n\nFrom there the fielding runs on one thread, and the readout comes back to it when the test closes. Your notes live here too, under **My notes** in the sidebar.\n\n[Read the Inbox guide]({{SITE_URL}}/docs/inbox)\n\nAssistant"
+    "body": "**From a conversation to a test**\n\nHi {{RECIPIENT_NAME}},\n\nThe Inbox is where the loop meets. On a consensus survey's **Results** in Survey, **Make question card** sets the Open Primaries survey's questions beside the statements every group shared and the ones that split them, and hands the card to the Inbox as a New test for the Pollster.\n\nFrom there the send runs on one thread, and the readout comes back to it when the test closes. Your notes live here too, under **My notes** in the sidebar.\n\n[Read the Inbox guide]({{SITE_URL}}/docs/inbox)\n\nAssistant"
   },
   {
     "id": "local-survey-flow-1-agree-disagree-or-pass",

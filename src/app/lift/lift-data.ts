@@ -1,7 +1,7 @@
 import { num, type SourceRow } from "../america-thinks/audience-data"
 
 // What the results grid and its About Result panel share: how a lift row is
-// keyed (treatment, metric, segment, fielding), the control group it stands
+// keyed (treatment, metric, segment, field period), the control group it stands
 // against, and the arrow both draw.
 
 /** What the archive records about one of its ads (public/lift/archive-ads.json, written by
@@ -131,13 +131,13 @@ export const valOf = (r: SourceRow) => (dimOf(r) ? r[6] : null)
 export const segKey = (dim: string | null, val: string | null) => (dim ? `${dim}=${val ?? ""}` : "")
 export const segOf = (r: SourceRow) => segKey(dimOf(r), valOf(r))
 export const periodKey = (r: SourceRow) => `${r[2]}|${r[3]}`
-/** The test a lift came from: an archive study, or a PAX wave's fielding. */
+/** The test a lift came from: an archive study, or a PAX wave's field period. */
 export const testOf = (r: SourceRow) => r[4]?.match(/\(study ([^)]+)\)/)?.[1] ?? periodKey(r)
 export const isPlacebo = (option: string | null) => !!option && /^placebo$/i.test(option.trim())
 
 /** One result: the treatment's lift, its own level where published, and its control group's level. */
 export type Cell = { lift: SourceRow; level: SourceRow | null; control: SourceRow | null }
-/** entry: the row's treatment-in-a-fielding key; option: the treatment alone. */
+/** entry: the row's treatment-in-a-field-period key; option: the treatment alone. */
 export type Pick = { option: string; entry: string; metric: string; seg: string; segName: string; cell: Cell }
 
 /** Whether a lift clears its test: the source's own call where it makes one,
@@ -155,8 +155,8 @@ export const signed = (x: number) => `${x >= 0 ? "+" : "−"}${num(Math.abs(x))}
 export const levelOf = (r: SourceRow) => (r[8] === "pct" ? `${num(r[7])}%` : `${num(r[7])} pts`)
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-/** A fielding window: a whole year as the year, otherwise its days. */
-export function fielding(start: string, end: string) {
+/** A field period: a whole year as the year, otherwise its days. */
+export function fieldPeriod(start: string, end: string) {
   const [ys, ms, ds] = start.slice(0, 10).split("-").map(Number)
   const [ye, me, de] = end.slice(0, 10).split("-").map(Number)
   if (ms === 1 && ds === 1 && me === 12 && de === 31) return ys === ye ? String(ys) : `${ys}–${ye}`

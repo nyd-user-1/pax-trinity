@@ -1,13 +1,13 @@
 import { nameOf, type Message, type Thread } from "@/lib/agents/inbox"
-import { CONTACT_GROUPS } from "@/lib/fielding/contacts"
+import { CONTACT_GROUPS } from "@/lib/sends/contacts"
 
-// The Pollster's live fieldings as Inbox threads (2026-10-29). /api/fielding
-// answers with each fielding's counts; each becomes a thread that rewrites
+// The Pollster's live sends as Inbox threads (2026-10-29). /api/sends
+// answers with each send's counts; each becomes a thread that rewrites
 // itself on every refresh: the send, the running count, the reminders, the
 // close, and the Analyst's readout once the result is computed.
 
 export type LiveArm = { arm: string; name: string; invited: number; opened: number; started: number; finished: number }
-export type LiveFielding = {
+export type LiveSend = {
   def: { fid: string; type: "test" | "survey"; target: string; title: string; groupName: string; quota: number; closeAt: string; createdAt: string }
   invited: number
   held: number
@@ -24,7 +24,7 @@ export type LiveFielding = {
 const t = (iso: string) => Date.parse(iso)
 const day = (iso: string) => new Date(iso).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })
 
-export function liveThread(f: LiveFielding): Thread {
+export function liveThread(f: LiveSend): Thread {
   const d = f.def
   const test = d.type === "test"
   const messages: Message[] = [
@@ -68,7 +68,7 @@ export function liveThread(f: LiveFielding): Thread {
 
 /** A New test or New survey to the Pollster that names a real group and its test or survey: what to field,
  *  with the request's own Quota (a number) and Close by (a date) when it gives them. */
-export function fieldingRequest(to: string[], cc: string[], body: string): { type: "test" | "survey"; target: string; group: string; quota?: number; closeAt?: string } | null {
+export function sendRequest(to: string[], cc: string[], body: string): { type: "test" | "survey"; target: string; group: string; quota?: number; closeAt?: string } | null {
   if (!to.includes("tracker")) return null
   const group = [...to, ...cc].find((h) => CONTACT_GROUPS.some((g) => g.handle === h))
   const m = /\*\*(Test|Survey):\*\*\s*([a-z0-9][a-z0-9-]*)/i.exec(body)

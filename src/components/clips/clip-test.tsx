@@ -2,7 +2,7 @@ import * as React from "react"
 import Link from "next/link"
 import { CheckIcon } from "lucide-react"
 
-import { fielding, signed } from "@/app/lift/lift-data"
+import { fieldPeriod, signed } from "@/app/lift/lift-data"
 import { approx, placeboOf, slugOf, toplineOf, verdictWord } from "@/components/report/report-math"
 import { RESULT_SETS } from "@/lib/results"
 import type { Arm, Pairing, ResultSet, Topline } from "@/lib/results/types"
@@ -142,7 +142,7 @@ export function drawnTest(clip: Clip): ClipTestRef {
 /** The register's outcomes under /lift's Tests metric names. */
 const METRIC: Record<string, string> = { ballot: "lift_support", comprehension: "lift_comprehension" }
 
-/** The cell in /lift's Tests folder: treatment, metric, everyone, fielding. */
+/** The cell in /lift's Tests folder: treatment, metric, everyone, field period. */
 const liftHref = (rs: ResultSet, arm: Arm, outcomeId: string) =>
   `/lift?source=PAX_TEST&at=${[arm.name, METRIC[outcomeId] ?? outcomeId, "all", `${rs.fielded.start}|${rs.fielded.end}`].map(encodeURIComponent).join(",")}`
 
@@ -153,7 +153,7 @@ const lower = (s: string) => (/^[A-Z][a-z]/.test(s) ? s.charAt(0).toLowerCase() 
 export function readoutMarkdown(rs: ResultSet, arm: Arm): string {
   const placebo = placeboOf(rs)
   const line = [arm.producer, arm.durationSeconds ? `${arm.durationSeconds}s` : null, arm.note].filter(Boolean).join(" · ")
-  const out: string[] = [`# ${rs.study} — ${arm.name}`, "", `Wave ${rs.wave} · ${fielding(rs.fielded.start, rs.fielded.end)}`]
+  const out: string[] = [`# ${rs.study} — ${arm.name}`, "", `Wave ${rs.wave} · ${fieldPeriod(rs.fielded.start, rs.fielded.end)}`]
   if (line) out.push("", line)
   for (const o of rs.outcomes) {
     const t = toplineOf(rs, arm.id, o.id)
@@ -206,7 +206,7 @@ function ArmTest({ rs, arm, linked = true }: ClipTestRef) {
       </p>
       <p className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
         <span className="shrink-0 rounded-md border px-1.5 py-px text-[10.5px] whitespace-nowrap">Wave {rs.wave}</span>
-        {fielding(rs.fielded.start, rs.fielded.end)}
+        {fieldPeriod(rs.fielded.start, rs.fielded.end)}
       </p>
       {line && <p className="mt-3 text-xs leading-relaxed">{line}</p>}
 

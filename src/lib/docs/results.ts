@@ -149,7 +149,7 @@ ${shot("lift-rail", "Lift's sidebar, with Treatments open")}
 
 The rest lives in the toolbar's **⋮ > Filter**:
 
-- **Waves**: which fieldings the table reads.
+- **Waves**: which waves the table reads.
 - **Each metric**: All, **Measured**, or **Clears its test** to keep only results that cleared it.
 - **Archive columns**: hide any value of a trait.
 - **Group by test** (Archive): band the ads by the test they ran in.`,
@@ -221,6 +221,6 @@ A lift is **detectable** when it meets the study's stated threshold against the 
 
 [Report 2](/reports-2) opens the same studies section by section, with a contents rail that tracks the page: Summary, The videos, Outcomes, Subgroups, Pairings, How the test worked, and What it can and cannot establish. Each section sets every wave side by side, and the page prints as a document.
 
-> Massachusetts Wave 3 was fielded to a small test panel to prove the fielding end to end. Its results are simulated, and its report says so.`,
+> Massachusetts Wave 3 was fielded to a small test panel to prove the sends end to end. Its results are simulated, and its report says so.`,
   },
 ]

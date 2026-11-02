@@ -5,7 +5,7 @@ import { ENV, MAX_BYTES, putItem, ulid, validateRecord, validateStart, type Resp
 // POST /api/tests/<id>/responses: the respondent flow's collector. Two bodies:
 //   { kind: "start", test, arm, pid, startedAt }   when the respondent presses Start
 //   the record, status complete or screenout       at the end (the shape flow.tsx builds)
-// Only a test whose status is fielding records; drafts and closed tests get 409. Each body is
+// Only an open test records (stored status "fielding"); drafts and closed tests get 409. Each body is
 // validated against the test's own record (getTest: its arms and questions, the arm's clip in the
 // published catalog), given a server-side ULID and receipt time, and written once. Nothing about
 // the respondent beyond their answers and the panel's pid is kept.
@@ -22,7 +22,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const test = await getTest(id)
   if (!test) return json({ error: "unknown test" }, 404)
   // The hard stop: a draft (previewable by admins) or closed test records nothing.
-  if (test.status !== "fielding") return json({ error: `test is ${test.status}, not fielding` }, 409)
+  if (test.status !== "fielding") return json({ error: "This test is not open." }, 409)
 
   const raw = await req.text()
   if (new TextEncoder().encode(raw).length > MAX_BYTES) return json({ error: `payload over ${MAX_BYTES} bytes` }, 413)

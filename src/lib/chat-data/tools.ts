@@ -11,7 +11,7 @@ import { videosMentioned } from "@/lib/chat-videos"
 import { consensusStatements, divisiveStatements, share, standing, type Conversation } from "@/lib/consensus/data"
 import { PRETRAININGS } from "@/lib/consensus/pretrainings"
 import { conversation, conversations } from "@/lib/consensus/store"
-import { events, fieldingIds, type FieldingDef } from "@/lib/fielding/store"
+import { events, sendIds, type SendDef } from "@/lib/sends/store"
 import { latestResult } from "@/lib/results/complete"
 import { RESULT_SETS, type ResultSet } from "@/lib/results"
 import { memberByEmail } from "@/lib/roles"
@@ -29,7 +29,7 @@ import { atlas, searchQuestions, topline as questionTopline } from "./america-th
 // since the model pays for every token it is handed: ten rows by default, twenty-five at most, long text
 // cut, and `total` beside the rows so a count never needs a second call. Signed in only; a message test's
 // questions and results, and who was invited to answer, are an admin's alone, as their pages are. What
-// the store calls a fielding the tools call invitations: the word is not the readers' (Brendan, 2026-11-02). A person's state is
+// the sends' records the tools call invitations, in the readers' words (Brendan, 2026-11-02). A person's state is
 // their own, or anyone's for an admin, and holds only what their own pages show: their role and the
 // Consensus surveys they have taken.
 
@@ -124,7 +124,7 @@ const matches = (q: string, ...fields: (string | undefined)[]) => {
   return ws.every((w) => hay.includes(w))
 }
 const ADMIN_ONLY = "That is an admin's alone, as its pages are."
-/** A test's status in the readers' words: one taking answers is open. */
+/** A test's stored status in the readers' words: one taking answers is open. */
 const statusWord = (s: string) => (s === "fielding" ? "open" : s)
 
 /** Survey's places, for the bank: the tests only for an admin. */
@@ -256,11 +256,11 @@ async function listRecords(input: Record<string, unknown>, viewer: Viewer) {
     case "tests":
       return page((await listTests()).tests.map((t) => ({ id: t.id, title: t.title, status: statusWord(t.status), arms: t.arms.length, target_per_arm: t.targetPerArm, updated: t.updatedAt?.slice(0, 10) ?? "seeded" })), (r) => `${r.id} ${r.title}`)
     case "invitations": {
-      const ids = await fieldingIds()
+      const ids = await sendIds()
       const rows = await Promise.all(
         ids.map(async (fid) => {
           const evs = await events(fid)
-          const def = evs.find((e): e is FieldingDef => e.kind === "fielding")
+          const def = evs.find((e): e is SendDef => e.kind === "fielding")
           const count = (k: string) => evs.filter((e) => e.kind === k).length
           return { id: fid, title: def?.title ?? fid, type: def?.type, target: def?.target, group: def?.groupName, closes: def?.closeAt?.slice(0, 10), invited: count("invite"), opened: count("open"), closed: evs.some((e) => e.kind === "closed") }
         }),

@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation"
 import { Survey } from "@/components/consensus/survey"
 import { currentUser } from "@/lib/auth"
 import { aboutOf } from "@/lib/consensus/about"
-import { armForPid } from "@/lib/fielding/engine"
+import { armForPid } from "@/lib/sends/engine"
 import { conversations } from "@/lib/consensus/store"
 import { takenBy } from "@/lib/consensus/taken"
 import { surveyBySlug } from "@/lib/surveys/catalog"
@@ -17,8 +17,8 @@ import { SurveyForm } from "./survey-form"
 // the two columns of cards; a signed-in reader who has taken it goes to their
 // results at /r/<slug>, since no one takes a survey twice. Its head is the PAX Series card: the title, the author
 // and what the survey is for (lib/consensus/about.ts), with Begin. A Pollster's link,
-// which carries a fielding's pid, still answers the topline's own questions
-// (lib/surveys/catalog.ts), as the fielding mailed it.
+// which carries a send's pid, still answers the topline's own questions
+// (lib/surveys/catalog.ts), as the send mailed it.
 
 type Props = { params: Promise<{ slug: string }>; searchParams: Promise<{ pid?: string | string[] }> }
 
@@ -40,11 +40,11 @@ export default async function RespondPage({ params, searchParams }: Props) {
 
   if (!open) {
     if (!topline) notFound()
-    // A Pollster's link carries a fielding's pid: the open is recorded, and the pid rides with the answers.
-    const fielding = pid ? await armForPid(pid).catch(() => null) : null
+    // A Pollster's link carries a send's pid: the open is recorded, and the pid rides with the answers.
+    const send = pid ? await armForPid(pid).catch(() => null) : null
     return (
       <div className="mx-auto w-full max-w-xl text-slate-900">
-        {fielding?.closed ? (
+        {send?.closed ? (
           <div className="flex flex-col gap-3 rounded-xl border border-slate-200 p-8">
             <h1 className="text-2xl font-semibold tracking-tight text-pax2-blue">{topline.title}</h1>
             <p className="text-sm text-slate-600">This survey is closed.</p>

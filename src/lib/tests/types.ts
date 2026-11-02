@@ -93,7 +93,7 @@ export function problems(t: TestRecord, clipIds: ReadonlySet<string> | null, unp
   }
   if (!t.comprehension.choices.some((c) => c.value === t.comprehension.correct)) out.push("Mark exactly one comprehension choice correct (with *).")
   if (!t.explanation.trim()) out.push("The explanation is empty.")
-  if (!STATUSES.includes(t.status)) out.push("The status must be draft, fielding or closed.")
+  if (!STATUSES.includes(t.status)) out.push("The status must be one of the stored statuses.")
   if (t.panel) {
     if (!t.panel.vendor.trim()) out.push("Name the panel vendor, or leave every panel field empty.")
     for (const [name, url] of [["complete", t.panel.completeUrl], ["screenout", t.panel.screenoutUrl], ["quota-full", t.panel.quotaFullUrl]] as const) {

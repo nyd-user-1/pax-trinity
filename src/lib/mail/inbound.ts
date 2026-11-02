@@ -12,7 +12,7 @@ import { AGENT_MAILBOX, mailboxRows, partyOf, pkOf, snippetOf, threadFor, type M
 // joins its thread: one already holding the same AgentMail thread, else the newest with the same subject
 // (Re: and Fwd: dropped) between the same people, else a thread of its own. A message is written once:
 // its row's id comes from its AgentMail message id. Run by the super admin (/api/inbox/ingest) and by the
-// fielding tick.
+// sends tick.
 
 const API = "https://api.agentmail.to/v0"
 

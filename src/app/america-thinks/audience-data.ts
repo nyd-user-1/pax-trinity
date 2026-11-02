@@ -95,7 +95,7 @@ export const SEGMENT_SEED: Record<string, number> = {
 // The rail's topics (Brendan, 2026-10-27): the publishers' tags — GSS's 155,
 // ANES's 26, CES's 10 (Briefs Q and T) — collapsed into topics a reader
 // recognizes. Every tag maps to exactly one topic; tags that name the
-// fielding apparatus rather than a subject map to none and stay off the UI.
+// interviewing apparatus rather than a subject map to none and stay off the UI.
 // A question's topic is its first mappable tag. ANES files section before
 // subsection, so an ISSUES subsection never stands first and stays unmapped —
 // the ISSUES row of Politics & government carries it.
@@ -150,8 +150,8 @@ export const TOPIC_GROUPS: { topic: string; tags: string[] }[] = [
   { topic: "Demographics", tags: ["PERSONAL AND DEMOGRAPHIC", "Demographics"] },
   { topic: "Home & place", tags: ["Residence", "Housing", "Dwelling (R's)", "Region", "Geographic Mobility", "Transportation", "Geography"] },
 ]
-/** Fielding bookkeeping, not subjects — never shown. */
-export const FIELDING_TAGS = new Set(["Split Ballots", "Interview", "Surveys", "Size Of Place Of Interview"])
+/** Interview bookkeeping, not subjects — never shown. */
+export const APPARATUS_TAGS = new Set(["Split Ballots", "Interview", "Surveys", "Size Of Place Of Interview"])
 const TAG_TOPIC = new Map<string, string>()
 for (const g of TOPIC_GROUPS) for (const t of g.tags) TAG_TOPIC.set(t, g.topic)
 /** The rail row for questions no topic reaches — ANES and CES until their tags land. */
@@ -228,7 +228,7 @@ export const WORDING: Record<string, string> = {
 const MNEMONIC: Record<string, string> = { confidence_congress: "CONLEGIS", party_id_7: "PARTYID" }
 export const mnemonicOf = (id: string) => MNEMONIC[id] ?? id.toUpperCase()
 
-/** The 2021 web transition's grid re-fieldings: verbatim their parents' text,
+/** The 2021 web transition's grid re-askings: verbatim their parents' text,
  *  a different administration — the card says so after the wording. */
 export const WEB_GRID = new Set(["abanyg", "abdefectg", "abhlthg", "abnomoreg", "abpoorg", "abrapeg", "absingleg"])
 

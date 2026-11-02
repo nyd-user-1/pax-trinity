@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 
-import { fielding } from "@/app/lift/lift-data"
+import { fieldPeriod } from "@/app/lift/lift-data"
 import { PAPER_BRIDGE } from "@/components/editorial/PaperBridge"
 import { surveyBySlug, SURVEYS } from "@/lib/surveys/catalog"
 import { topline } from "@/lib/surveys/responses"
@@ -13,7 +13,7 @@ import "../../paper.css"
 // shares), stating only this survey's own state: who answered through its
 // link, when, how many, and what they chose. It is a readout (2026-11-02): its
 // Copy link and Open survey went once /s/<slug> became the consensus survey, and
-// the Pollster's fielding mails the respondent link itself (/s/<slug>?pid=).
+// the Pollster's send mails the respondent link itself (/s/<slug>?pid=).
 
 export const dynamic = "force-dynamic"
 
@@ -38,7 +38,7 @@ export default async function SurveyDocPage({ params }: Props) {
     ["Fielded by", survey.fieldedBy],
     ["Population", survey.population],
     ["Mode", survey.mode],
-    ["Interview dates", !t ? "—" : t.first && t.last ? fielding(t.first, t.last) : "Not yet fielded"],
+    ["Interview dates", !t ? "—" : t.first && t.last ? fieldPeriod(t.first, t.last) : "Not yet fielded"],
     ["Sample size", !t ? "—" : `${n.toLocaleString("en-US")} ${n === 1 ? "respondent" : "respondents"}`],
     ["Margin of error", moe == null ? "—" : `±${moe.toFixed(1)} percentage points`],
   ]

@@ -25,7 +25,7 @@ export function PartnerOverview({ account, board }: { account: Account; board: B
   const panel = useItemPanel(account.items, board, () => account.name)
   const review = account.items.filter((it) => it.stage === "review").sort((a, b) => a.stagedAt.localeCompare(b.stagedAt))
   const next = account.items.filter((it) => (it.stage === "requested" || it.stage === "production") && it.due).sort(byUrgency(today))[0]
-  const fielding = account.tests.filter((t) => t.status === "fielding")
+  const open = account.tests.filter((t) => t.status === "fielding")
   const owner = personOf(board, account.owner)
 
   const card = "flex min-h-36 flex-col justify-between rounded-[14px] border border-slate-200 bg-pax2-surface p-5 shadow-e1"
@@ -68,7 +68,7 @@ export function PartnerOverview({ account, board }: { account: Account; board: B
           {head("Tests", FlaskConical)}
           <span>
             <span className="block text-3xl font-semibold text-slate-900 tabular-nums">{account.tests.length}</span>
-            <span className="mt-1 block truncate text-[13px] text-slate-500">{fielding.length ? `${fielding.length} in field` : account.tests.length ? "None in field" : "None yet"}</span>
+            <span className="mt-1 block truncate text-[13px] text-slate-500">{open.length ? `${open.length} in field` : account.tests.length ? "None in field" : "None yet"}</span>
           </span>
         </div>
         <button type="button" disabled={!next} onClick={() => next && panel.open(next.id)} className={cn(card, "text-left transition-colors enabled:hover:border-slate-300")}>

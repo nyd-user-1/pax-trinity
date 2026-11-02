@@ -7,7 +7,7 @@ import { nameOf, type Message, type Thread } from "@/lib/agents/inbox"
 // Consensus conversation on open primaries (the conversation /consensus holds:
 // 412 voters, 7,911 votes, three groups) becomes a question card; the Open
 // primaries survey builds the panels; the six Frame.io cuts are reviewed; and
-// Massachusetts Wave 3 is approved; its fielding is real, carried by the
+// Massachusetts Wave 3 is approved; its send is real, carried by the
 // Pollster's live thread (lib/agents/live.ts). Authored, so a stored copy is refreshed to this text on load.
 
 const at = (iso: string) => Date.parse(`${iso}:00-04:00`)

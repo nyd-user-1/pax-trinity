@@ -187,8 +187,8 @@ export const ITEMS: CommandItem[] = [
   r("ad", "Ad 1187", "Archive · favorability −0.8 pp · testimonial"),
 
   // Message tests
-  r("test", "Massachusetts Wave 3", "ma-wave-3 · fielding · 7 arms", testHref("ma-wave-3")),
-  r("test", "A short survey", "open-primaries-1 · fielding · 5 arms · 500 an arm", testHref("open-primaries-1")),
+  r("test", "Massachusetts Wave 3", "ma-wave-3 · Open · 7 arms", testHref("ma-wave-3")),
+  r("test", "A short survey", "open-primaries-1 · Reported · 5 arms · 500 an arm", testHref("open-primaries-1")),
   r("test", "Massachusetts Wave 4", "Draft · 4 arms"),
 
   // Surveys
@@ -227,7 +227,7 @@ export const ITEMS: CommandItem[] = [
   r("term", "Outlier Score", "A short's views over its channel's median"),
 
   // Data dictionary
-  r("table", "pax-trinity-test-responses", "DynamoDB · test, id · responses, fieldings, results, clips", "/data-dictionary"),
+  r("table", "pax-trinity-test-responses", "DynamoDB · test, id · responses, sends, results, clips", "/data-dictionary"),
   r("table", "pax-trinity-tests", "DynamoDB · id · one item per test"),
   r("table", "pax_test", "Audience export · 1,236 rows · 14 fields"),
 ]

@@ -1,11 +1,11 @@
 // The marketing flows' rows in the ledger (Brendan, 2026-11-01): append-only, every write a putOnce, the
-// fielding engine's discipline (lib/fielding/engine.ts). Nothing here is updated in place, so a repeat
+// sends engine's discipline (lib/sends/engine.ts). Nothing here is updated in place, so a repeat
 // visit can't re-enroll and two overlapping ticks can't send a step twice.
 //
 //   pk                   sk                         item
 //   FLOW#<email>         <flowId>                   an enrollment: { email, flowId, enrolledAt, path }
 //   FLOWS                <email>#<flowId>           the same enrollment in the roster the tick reads, so a tick is one
-//                                                   query rather than a scan (the fielding store's "fieldings" index)
+//                                                   query rather than a scan (the sends store's index)
 //   FLOWSEND#<email>     DAY#<tick-day>             the user's one send for that day, claimed before anything goes
 //   FLOWSEND#<email>     <flowId>#<day>             a step, claimed before its mail goes: { date, at, template }
 //   FLOWSEND#<email>     <flowId>#<day>#outcome     what became of it: { sent } | { held } | { failed: reason }

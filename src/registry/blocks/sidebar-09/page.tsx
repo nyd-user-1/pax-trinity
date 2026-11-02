@@ -6,7 +6,7 @@ import { ArrowLeft, Check, ChevronLeft, ChevronRight, Clock, Copy, ExternalLink,
 import { ADDRESSES, PEOPLE_ADDRESSES, addressFor, keptThread, loadDrafts, nameOf, newThread, saveDrafts, shownRecipients, snippet, when, type Attached, type Folder, type Message, type Thread } from "@/lib/agents/inbox"
 import { applyFiling, fileThread, isAgentBox, listTime, marksOf, readFolder, showsIn, snoozeTime, type Counts, type Filing, type Kept } from "@/lib/mail/client"
 import { PENDING_DRAFT } from "@/lib/agents/pending-draft"
-import { fieldingRequest } from "@/lib/agents/live"
+import { sendRequest } from "@/lib/agents/live"
 import { cn } from "@/lib/utils"
 import { useShellPanel } from "@/components/shell"
 import { SaveToDrive } from "@/components/connectors/save-to-drive"
@@ -355,9 +355,9 @@ export default function Page() {
           .catch(() => setMailNote("Not sent"))
 
       // A New test or New survey to the Pollster naming a real group starts it going out.
-      const request = fieldingRequest(draft.to, draft.cc, draft.body)
+      const request = sendRequest(draft.to, draft.cc, draft.body)
       if (request)
-        void fetch("/api/fielding", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(request) })
+        void fetch("/api/sends", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(request) })
           .then((res) => res.json())
           .then((res: { sent?: number; held?: number; error?: string }) => setMailNote(res.error ? `Not sent: ${res.error}` : `${res.sent} invitations sent${res.held ? `, ${res.held} held` : ""}`))
           .catch(() => setMailNote("Not sent"))

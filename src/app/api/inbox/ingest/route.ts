@@ -4,7 +4,7 @@ import { currentUser } from "@/lib/auth"
 import { ingestAgentMail } from "@/lib/mail/inbound"
 
 // GET /api/inbox/ingest: read the agents' AgentMail inboxes for new mail and keep it in their mailboxes
-// (lib/mail/inbound.ts). The super admin's alone; the fielding tick runs the same pass.
+// (lib/mail/inbound.ts). The super admin's alone; the sends tick runs the same pass.
 //   → { [slug]: { listed, written, already, watermark, error? } }
 
 export const dynamic = "force-dynamic"

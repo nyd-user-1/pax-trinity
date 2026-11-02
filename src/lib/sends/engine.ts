@@ -1,8 +1,8 @@
 import "server-only"
 
 import { TEMPLATES } from "@/lib/agents/templates"
-import { contactGroup } from "@/lib/fielding/contacts"
-import { createFielding, events, fidOf, fieldingIds, newFid, newPid, record, recordOnce, type ClosedEvent, type FieldingDef, type FieldingEvent, type InviteEvent } from "@/lib/fielding/store"
+import { contactGroup } from "@/lib/sends/contacts"
+import { createSend, events, fidOf, sendIds, newFid, newPid, record, recordOnce, type ClosedEvent, type SendDef, type SendEvent, type InviteEvent } from "@/lib/sends/store"
 import { fill, sendMail } from "@/lib/mail/send"
 import { completeTest } from "@/lib/results/complete"
 import { videoOf, type VideoState } from "@/lib/results/video"
@@ -12,14 +12,14 @@ import { ENV, itemsFor, type RecordItem } from "@/lib/tests/responses"
 import { getTest } from "@/lib/tests/store"
 import { PLACEBO } from "@/lib/tests/types"
 
-// The Pollster's fielding (Brendan, 2026-10-29; docs/briefs/loop-agent.md).
+// The Pollster's sends (Brendan, 2026-10-29; docs/briefs/loop-agent.md).
 // A survey or a test goes to a contact group: every member gets a link of
 // their own, mailed from pax-pollster. A test's arms, the placebo included,
 // are assigned when the links are made, balanced within the group (shuffled
 // blocks of every arm), so a small group still fills each arm. Each tick
 // reminds whoever hasn't finished or been screened out (after remindAfterHours,
 // and again finalBeforeHours before the close, never sooner than twelve hours
-// after the first), closes the fielding at its quota or its deadline, computes
+// after the first), closes the send at its quota or its deadline, computes
 // the result, and mails it: the Analyst's readout and the Assistant's notice.
 // The close, the report and each reminder are written once under fixed keys,
 // so overlapping ticks (two open Inboxes) cannot send anything twice; a close
@@ -27,8 +27,8 @@ import { PLACEBO } from "@/lib/tests/types"
 // writes its results (lib/results/complete.ts) and starts their video, and the
 // report waits for the video across ticks, never within one: while it renders the
 // report is not recorded, and a later tick picks it up and mails the readout with
-// the poster, or without it when the render failed. The fielding's state lives on
-// the fielding: a closed fielding's links say so, and the test itself stays as its
+// the poster, or without it when the render failed. The send's state lives on
+// the send: a closed send's links say so, and the test itself stays as its
 // owner set it in /message-tests.
 
 const STAFF = ["brendan@nysgpt.com", "garrett@parallaxinnovations.com", "sajeela@parallaxinnovations.com", "ted@parallaxinnovations.com"]
@@ -51,10 +51,10 @@ function balanced(arms: string[], n: number): string[] {
   return out.slice(0, n)
 }
 
-export const linkFor = (def: Pick<FieldingDef, "type" | "target">, pid: string, base: string) =>
+export const linkFor = (def: Pick<SendDef, "type" | "target">, pid: string, base: string) =>
   def.type === "test" ? `${base}/test/${encodeURIComponent(def.target)}?pid=${pid}` : `${base}/s/${encodeURIComponent(def.target)}?pid=${pid}`
 
-export async function startFielding(o: { type: "test" | "survey"; target: string; group: string; quota?: number; closeAt?: string; remindAfterHours?: number; finalBeforeHours?: number; base: string }) {
+export async function startSend(o: { type: "test" | "survey"; target: string; group: string; quota?: number; closeAt?: string; remindAfterHours?: number; finalBeforeHours?: number; base: string }) {
   const group = contactGroup(o.group)
   if (!group) throw new Error("That group has no members to send to.")
   let title: string
@@ -64,8 +64,8 @@ export async function startFielding(o: { type: "test" | "survey"; target: string
   if (o.type === "test") {
     const test = await getTest(o.target)
     if (!test) throw new Error(`No test ${o.target}.`)
-    // The test's own state is its owner's, set and validated in /message-tests; a fielding only reads it.
-    if (test.status !== "fielding") throw new Error(`${test.title} is ${test.status}; set it to fielding in Survey's Tests first.`)
+    // The test's own state is its owner's, set and validated in /message-tests; a send only reads it.
+    if (test.status !== "fielding") throw new Error(`${test.title} is not open; open it in Survey's Tests first.`)
     if (test.arms.length < 2 || !test.arms.includes(PLACEBO)) throw new Error(`${test.title} needs the placebo and at least one cut.`)
     title = test.title
     arms = test.arms
@@ -80,7 +80,7 @@ export async function startFielding(o: { type: "test" | "survey"; target: string
     questions = survey.questions.length
   }
   const now = new Date()
-  const def: FieldingDef = {
+  const def: SendDef = {
     kind: "fielding",
     fid: newFid(),
     type: o.type,
@@ -94,7 +94,7 @@ export async function startFielding(o: { type: "test" | "survey"; target: string
     finalBeforeHours: o.finalBeforeHours ?? 12,
     createdAt: now.toISOString(),
   }
-  await createFielding(def)
+  await createSend(def)
   const assigned = o.type === "test" ? balanced(arms, group.members.length) : []
   const tpl = template(o.type === "test" ? "Test invitation" : "Survey invitation")
   let sent = 0
@@ -115,8 +115,8 @@ export async function startFielding(o: { type: "test" | "survey"; target: string
 
 type Answer = { pid: string; arm?: string; answers: Record<string, string>; comprehensionCorrect?: boolean; completedAt: string }
 
-/** This fielding's respondents: who started, who finished (one record per pid, the last), who a gate screened out. */
-async function answersFor(def: FieldingDef): Promise<{ started: Set<string>; finished: Answer[]; screened: Set<string> }> {
+/** This send's respondents: who started, who finished (one record per pid, the last), who a gate screened out. */
+async function answersFor(def: SendDef): Promise<{ started: Set<string>; finished: Answer[]; screened: Set<string> }> {
   const last = <T extends { pid: string }>(rows: T[]) => [...new Map(rows.map((r) => [r.pid, r])).values()]
   if (def.type === "test") {
     const items = (await itemsFor(def.target)).filter((x) => x.env === ENV && fidOf(x.pid) === def.fid)
@@ -131,7 +131,7 @@ async function answersFor(def: FieldingDef): Promise<{ started: Set<string>; fin
 
 export type ArmCount = { arm: string; invited: number; opened: number; started: number; finished: number }
 export type Summary = {
-  def: FieldingDef
+  def: SendDef
   invited: number
   held: number
   opened: number
@@ -145,12 +145,12 @@ export type Summary = {
   lastAt: string
 }
 
-type Loaded = { summary: Summary; ev: FieldingEvent[]; answers: Awaited<ReturnType<typeof answersFor>> }
+type Loaded = { summary: Summary; ev: SendEvent[]; answers: Awaited<ReturnType<typeof answersFor>> }
 
-/** One read of a fielding: its events and its respondents, folded. */
+/** One read of a send: its events and its respondents, folded. */
 async function load(fid: string): Promise<Loaded | null> {
   const ev = await events(fid)
-  const def = ev.find((e) => e.kind === "fielding") as FieldingDef | undefined
+  const def = ev.find((e) => e.kind === "fielding") as SendDef | undefined
   if (!def) return null
   const answers = await answersFor(def)
   const { started, finished } = answers
@@ -197,7 +197,7 @@ export type Results =
 const pct = (k: number, n: number) => (n ? (100 * k) / n : 0)
 
 /** Lift against the placebo in points, with the margin at 1.645 standard errors (the register's 90% convention). Unweighted. */
-async function compute(def: FieldingDef, finished: Answer[]): Promise<Results> {
+async function compute(def: SendDef, finished: Answer[]): Promise<Results> {
   const dates = finished.map((f) => f.completedAt).sort()
   const first = dates[0] ?? def.createdAt
   const last = dates.at(-1) ?? def.createdAt
@@ -245,7 +245,7 @@ function videoLines(video: VideoState): string[] {
 }
 
 /** The Analyst's readout, as markdown, from the computed result. */
-export function readout(def: FieldingDef, r: Results, armName: (id: string) => string, video: VideoState = { state: "none" }): string {
+export function readout(def: SendDef, r: Results, armName: (id: string) => string, video: VideoState = { state: "none" }): string {
   if (r.type === "test") {
     const ranked = r.arms.filter((a) => a.liftPp != null).sort((a, b) => b.liftPp! - a.liftPp!)
     const top = ranked[0]
@@ -272,7 +272,7 @@ async function finish(l: Loaded, reason: ClosedEvent["reason"], base: string, ar
   const s = l.summary
   let video: VideoState = { state: "none" }
   if (s.def.type === "test") {
-    const kept = await completeTest(s.def.target, { retryFailedVideo: false }).catch((e: Error) => (console.error("completeTest failed on the fielding's close", e.message), null))
+    const kept = await completeTest(s.def.target, { retryFailedVideo: false }).catch((e: Error) => (console.error("completeTest failed on the send's close", e.message), null))
     video = kept?.video ?? (await videoOf(s.def.target).catch((): VideoState => ({ state: "none" })))
     if (video.state === "rendering") return false
   }
@@ -297,10 +297,10 @@ async function close(l: Loaded, reason: ClosedEvent["reason"], base: string, arm
   return true
 }
 
-/** One pass over every fielding: a close whose report never landed is finished; an open one is reminded, then closed at quota or deadline. */
+/** One pass over every send: a close whose report never landed is finished; an open one is reminded, then closed at quota or deadline. */
 export async function tick(base: string, armName: (id: string) => string) {
   const out: { fid: string; did: string[] }[] = []
-  for (const fid of await fieldingIds()) {
+  for (const fid of await sendIds()) {
     const l = await load(fid)
     if (!l) continue
     const s = l.summary
@@ -318,7 +318,7 @@ export async function tick(base: string, armName: (id: string) => string) {
     }
     const reminded = new Map(l.ev.filter((e) => e.kind === "reminder").map((e) => [`${(e as { pid: string }).pid}:${(e as { round: string }).round}`, (e as { at: string }).at]))
     const done = new Set([...l.answers.finished.map((f) => f.pid), ...l.answers.screened])
-    // The final reminder never follows the first by less than twelve hours (a quarter of a short fielding).
+    // The final reminder never follows the first by less than twelve hours (a quarter of a short send).
     const gap = Math.min(12 * HOUR, (Date.parse(s.def.closeAt) - Date.parse(s.def.createdAt)) / 4)
     for (const inv of l.ev.filter((e): e is InviteEvent => e.kind === "invite" && !e.held)) {
       if (done.has(inv.pid)) continue
@@ -343,14 +343,14 @@ export async function tick(base: string, armName: (id: string) => string) {
   return out
 }
 
-/** Closes a fielding now, whatever its counts. */
+/** Closes a send now, whatever its counts. */
 export async function closeNow(fid: string, base: string, armName: (id: string) => string) {
   const l = await load(fid)
   if (!l || l.summary.closed) return false
   return close(l, "by hand", base, armName)
 }
 
-/** A pid's assigned arm and whether its fielding has closed, when the pid is one of a fielding's; records the open. */
+/** A pid's assigned arm and whether its send has closed, when the pid is one of a send's; records the open. */
 export async function armForPid(pid: string | null): Promise<{ arm: string | null; closed: boolean } | null> {
   const fid = fidOf(pid)
   if (!fid || !pid) return null

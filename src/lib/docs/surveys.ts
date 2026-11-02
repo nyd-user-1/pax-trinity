@@ -125,7 +125,7 @@ ${shot("survey-tests", "Tests in Survey")}
 Open [Tests](/survey?s=tests) in Survey. A test carries:
 
 - its id, and the title respondents see
-- its status: draft, fielding or closed
+- its state: Draft, Approved, Open, Closed or Reported
 - the target completes per arm
 - the placebo video, and the arms: library clips with a video file, and every recording kept in Clips
 - the entry questions, the explanation shown after the video, the ballot question and the comprehension question
@@ -144,6 +144,6 @@ To field to your own contacts instead, ask the Pollster in the [Inbox](${doc("in
 
 ## What respondents see
 
-A bare page with nothing else around it. The arm is assigned before the first card shows; from a Pollster link, it was settled when the links were made, balanced within the group. Then one card at a time: the entry questions, the video (Continue unlocks only after it has played), the explanation, the ballot, the comprehension question and a completion code. A draft reads as closed to anyone but an admin, and only a fielding test records answers.`,
+A bare page with nothing else around it. The arm is assigned before the first card shows; from a Pollster link, it was settled when the links were made, balanced within the group. Then one card at a time: the entry questions, the video (Continue unlocks only after it has played), the explanation, the ballot, the comprehension question and a completion code. A draft reads as closed to anyone but an admin, and only an Open test records answers.`,
   },
 ]

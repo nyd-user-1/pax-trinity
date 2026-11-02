@@ -22,7 +22,7 @@ export const CATEGORIES: { id: DocCategory; title: string; blurb: string }[] = [
   { id: "surveys", title: "Surveys and consensus", blurb: "Answer surveys, read consensus and run message tests." },
   { id: "video", title: "Make videos", blurb: "Chat, video templates, Studio, recording and Clips." },
   { id: "tools", title: "Tools and Blocks", blurb: "The Tools panel, saving blocks and the second panel." },
-  { id: "inbox", title: "Inbox and email", blurb: "The agents, fielding and the email templates." },
+  { id: "inbox", title: "Inbox and email", blurb: "The agents, the sends and the email templates." },
   { id: "admin", title: "For staff", blurb: "Dev Tools and the Dashboard." },
   { id: "partners", title: "Partner onboarding", blurb: "From your account to your first test." },
   { id: "faq", title: "FAQ", blurb: "Answers to the questions people ask most." },

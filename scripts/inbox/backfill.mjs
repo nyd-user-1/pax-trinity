@@ -9,10 +9,10 @@
 //   - The agents' AgentMail sent copies (read-only): each message exactly as it went, from its agent.
 //   - The flows' sends (the ledger's FLOWSEND rows with a sent outcome): the step's template as it was
 //     filled, from Pax.
-//   - The fieldings' invitations and reminders (their events): the templates as the engine filled them,
+//   - The sends' invitations and reminders (their events): the templates as the engine filled them,
 //     from the Pollster; a reminder joins its invitation's thread. A send AgentMail already holds a copy of
 //     (the same recipient within five minutes) is not written twice.
-//   - Each fielding's thread as the Inbox drew it live (lib/agents/live.ts): the Pollster's notices and the
+//   - Each send's thread as the Inbox drew it live (lib/agents/live.ts): the Pollster's notices and the
 //     Analyst's readout, which is the readout mail itself; and Pax's "Results are in" mail.
 //   - The authored history, into Brendan's mailbox and the agents' (a message another staff member wrote
 //     lands in Brendan's inbox alone).
@@ -51,9 +51,9 @@ const { fill } = await load("lib/mail/send.ts")
 const { TEMPLATES } = await load("lib/agents/templates.ts")
 const { FLOWS } = await load("lib/flows/defs.ts")
 const { linkFields } = await load("lib/flows/engine.ts")
-const { fieldingIds, events } = await load("lib/fielding/store.ts")
-const { linkFor, readout, summary } = await load("lib/fielding/engine.ts")
-const { armName } = await load("lib/fielding/arms.ts")
+const { sendIds, events } = await load("lib/sends/store.ts")
+const { linkFor, readout, summary } = await load("lib/sends/engine.ts")
+const { armName } = await load("lib/sends/arms.ts")
 const { videoOf } = await load("lib/results/video.ts")
 const { liveThread } = await load("lib/agents/live.ts")
 const { HISTORY } = await load("lib/agents/history.ts")
@@ -124,8 +124,8 @@ for (const email of flowEmails) {
   }
 }
 
-// 3 and 4. The fieldings: invitations, reminders, the thread the Inbox drew live, and Pax's notice.
-for (const fid of await fieldingIds()) {
+// 3 and 4. The sends: invitations, reminders, the thread the Inbox drew live, and Pax's notice.
+for (const fid of await sendIds()) {
   const evs = await events(fid)
   const def = evs.find((e) => e.kind === "fielding")
   if (!def) continue
@@ -148,7 +148,7 @@ for (const fid of await fieldingIds()) {
     messages.push({ key: `reminder|${fid}|${rem.pid}|${rem.round}`, prefix: "bf", source: "backfill", kind: "reminder", at: rem.at, sender: agentFrom("tracker"), to: [inv.email], cc: [], held: [], subject: fill(tpl.subject, fields).text, markdown: fill(tpl.body, fields).text, templateId: tpl.id, threadKey: `invite|${fid}|${inv.pid}` })
   }
 
-  // The thread the Inbox drew from the engine (GET /api/fielding, then liveThread), as kept mail.
+  // The thread the Inbox drew from the engine (GET /api/sends, then liveThread), as kept mail.
   const s = await summary(fid)
   if (!s) continue
   const video = s.report && test ? await videoOf(s.def.target).catch(() => ({ state: "none" })) : { state: "none" }
@@ -159,7 +159,7 @@ for (const fid of await fieldingIds()) {
       key: `live|${m.id}`,
       prefix: "bf",
       source: "backfill",
-      kind: analyst ? "readout" : "fielding notice",
+      kind: analyst ? "readout" : "send notice",
       at: new Date(m.at).toISOString(),
       sender: agentFrom(m.from),
       // The readout went to the staff by mail, and reached Brendan; the Pollster's notices were the Inbox's own, to him.

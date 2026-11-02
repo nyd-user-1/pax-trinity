@@ -109,7 +109,7 @@ A 0 to 100 score: where a video's lift on its main outcome ranks among every lif
 
 ## Why Wave 3 says simulated
 
-Massachusetts Wave 3 was fielded to a small test panel to prove the fielding end to end, and its results were simulated. The report says so.
+Massachusetts Wave 3 was fielded to a small test panel to prove the sends end to end, and its results were simulated. The report says so.
 
 ## Are the numbers weighted?
 

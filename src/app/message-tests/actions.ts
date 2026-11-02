@@ -73,7 +73,7 @@ export async function saveTestAction(_prev: SaveState, form: FormData): Promise<
   redirect(testHref(record.id))
 }
 
-/** Move a test between draft, fielding and closed from its page. */
+/** Move a test between its stored statuses from its page. */
 export async function setStatusAction(id: string, status: Status): Promise<SaveState> {
   const denied = await guard()
   if (denied) return { errors: [denied] }

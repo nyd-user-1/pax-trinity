@@ -7,7 +7,7 @@ import { seedEvents } from "@/lib/delivery/seed"
 import { fold, type DeliveryEvent, type Item } from "@/lib/delivery/types"
 import { ENV, ulid } from "@/lib/tests/responses"
 
-// The Delivery Board's events, kept as the fieldings are (lib/fielding/store.ts): append-only, in the
+// The Delivery Board's events, kept as the sends are (lib/sends/store.ts): append-only, in the
 // message tests' responses table under partitions of their own, so production's compute role needs
 // nothing new (it may put and query that table, no more). An item's state is the fold of its events.
 //

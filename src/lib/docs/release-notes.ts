@@ -45,7 +45,7 @@ export const RELEASE_NOTES: Doc[] = [
 - **Settings and Models.** The account menu opens Settings, six tabs from Profile to Integrations, and Models, a card for every model I run across LLM, Visual and the PAX Series 1.0. Settings don't save yet.
 - **Search.** ⌘K opens a palette over every page. Pages and reports open from it; the other results are previews for now.
 - **Dashboard.** Admins get the Delivery Board under Admin in the sidebar, on sample data.
-- **Fielding for real.** The Pollster mails personal links, tracks who opened, started and finished, sends reminders, closes at the quota and mails the readout. A closed test computes its own result.
+- **Surveys and tests sent for real.** The Pollster mails personal links, tracks who opened, started and finished, sends reminders, closes at the quota and mails the readout. A closed test computes its own result.
 - **The Inbox's three agents.** The Pollster, the Analyst and the Assistant, with two weeks of history, 23 templates, an address book, groups and a pop-out composer. Mail reaches only approved addresses while it's being proved out.
 - **Recording, end to end.** A take recorded in Chat or in Clips is kept as a real clip, plays in Clips, and can be an arm of a message test.
 - **An Open primaries survey.** Its topline at /survey/open-primaries, answerable at /s/open-primaries.

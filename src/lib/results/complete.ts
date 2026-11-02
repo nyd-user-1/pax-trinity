@@ -22,7 +22,7 @@ import type { VideoState } from "./video"
 //   test (pk)          id (sk)    item
 //   result:<test>      latest     kind "result": resultSet, rows, indexEntry, env, computedAt
 //
-// It runs when a test is closed (the admin's save in /message-tests, a fielding's close) or on an
+// It runs when a test is closed (the admin's close in Survey's Tests, a send's close) or on an
 // admin's POST to /api/results/<test>. scripts/results/publish.mjs then writes the three artifacts
 // where the surfaces read them: the register (src/lib/results/computed/), the audience export
 // (public/audience-data/pax_test.json and index.json, synced to the export buckets).
@@ -56,7 +56,7 @@ export type ResultItem = { test: string; id: "latest"; kind: "result"; env: stri
 export const resultPartition = (testId: string) => `result:${testId}`
 
 /** Derive a test's results from its responses and keep them, then start or continue their video; null for a test nobody set up.
- *  `retryFailedVideo: false` (the fielding's close) leaves a video that failed failed, so the readout goes without it. */
+ *  `retryFailedVideo: false` (a send's close) leaves a video that failed failed, so the readout goes without it. */
 export async function completeTest(
   testId: string,
   opts: { env?: "production" | "development" | "all"; retryFailedVideo?: boolean } = {},

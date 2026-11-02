@@ -206,7 +206,7 @@ function General() {
         <Row label="Language">
           <Choice label="Language" options={["English (US)", "Español"]} defaultValue="English (US)" />
         </Row>
-        <Row label="Timezone" hint="Digests, schedules and fielding windows.">
+        <Row label="Timezone" hint="Digests, schedules, and when surveys open and close.">
           <Choice label="Timezone" options={TIMEZONES} defaultValue="Eastern (New York)" />
         </Row>
         <Row label="Week starts">
@@ -766,8 +766,8 @@ function Notifications() {
       </Block>
 
       <Block title="Alerts">
-        <Row label="Fielding" hint="When a wave closes or stalls.">
-          <Toggle label="Fielding" defaultOn />
+        <Row label="Surveys" hint="When a survey or test closes or stalls.">
+          <Toggle label="Surveys" defaultOn />
         </Row>
         <Row label="Clip reviews" hint="When a partner comments on a cut.">
           <Toggle label="Clip reviews" defaultOn />
@@ -810,7 +810,7 @@ const TOOLS: { title: string; tools: Tool[] }[] = [
       { id: "s3", name: "Amazon S3", does: "Clip media and survey files.", detail: "Served through CloudFront", icon: Database, tint: "#e25444", state: "Connected" },
       { id: "cognito", name: "Amazon Cognito", does: "Sign-in for staff and partners.", detail: "Shared by dev and production", icon: KeyRound, tint: "#dd344c", state: "Connected" },
       { id: "drive", name: "Google Drive", does: "Decks and transcripts.", detail: "Needs a shared folder", icon: HardDrive, tint: "#1a73e8", state: "Needs setup" },
-      { id: "calendar", name: "Google Calendar", does: "Fielding windows on the team calendar.", icon: CalendarDays, tint: "#188038", state: "Available" },
+      { id: "calendar", name: "Google Calendar", does: "When surveys open and close, on the team calendar.", icon: CalendarDays, tint: "#188038", state: "Available" },
     ],
   },
 ]
@@ -873,7 +873,7 @@ function Integrations() {
         <Row label="Report delivery" hint="Where a finished report goes.">
           <Choice label="Report delivery" options={["Email", "Slack", "Google Drive"]} defaultValue="Email" />
         </Row>
-        <Row label="Calendar sync" hint="Fielding windows on the shared calendar.">
+        <Row label="Calendar sync" hint="When surveys open and close, on the shared calendar.">
           <Toggle label="Calendar sync" />
         </Row>
         <Row label="Daily recap" hint="An end-of-day summary in Slack.">
