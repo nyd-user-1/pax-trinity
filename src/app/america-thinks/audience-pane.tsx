@@ -12,6 +12,23 @@ import { latestRow, levelRank, num, period, shortSource, value, year, type Metri
 
 export type About = { r: SourceRow; metric: string; segment: string }
 
+/** Compilers a source label names whose license asks for a linked credit: VoteHub's
+ *  polls are CC BY 4.0 (the lead's ruling, 2026-11-02: the link sits where the data shows). */
+const CREDITS: Record<string, string> = { VoteHub: "https://votehub.com/polls/" }
+const CREDIT_NAMES = new RegExp(`(${Object.keys(CREDITS).join("|")})`)
+
+function credited(label: string): React.ReactNode {
+  return label.split(CREDIT_NAMES).map((part, i) =>
+    CREDITS[part] ? (
+      <a key={i} href={CREDITS[part]} target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-foreground">
+        {part}
+      </a>
+    ) : (
+      part
+    )
+  )
+}
+
 export function AboutPanel({
   layer = false,
   about,
@@ -63,7 +80,7 @@ export function AboutPanel({
         {label(about.metric)} — {about.segment}
       </h3>
       <p className="mt-0.5 mb-3.5 text-xs text-muted-foreground">
-        {groups.find((g) => g.source === source)?.label} · {period(about.r[2], about.r[3])}
+        {credited(groups.find((g) => g.source === source)?.label ?? "")} · {period(about.r[2], about.r[3])}
       </p>
       <dl className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1.5 border-t py-2.5 text-[13px]">
         <dt className="text-muted-foreground">Estimate</dt>
