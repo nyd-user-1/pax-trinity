@@ -1,4 +1,4 @@
-// Who is who (Brendan, 2026-10-25). One super admin, three admins, two staff,
+// Who is who (Brendan, 2026-10-25). One super admin, four admins, two staff,
 // three partner organizations. The admins' accounts sit in the app's Cognito pool
 // (parallax) and its admins group (2026-10-29); the remaining YouTube channels
 // fill in as they arrive.
@@ -13,6 +13,8 @@ export const MEMBERS: Member[] = [
   { name: "Sajeela Padder", email: "sajeela@parallaxinnovations.com", role: "admin", photo: "/sajeela.jpeg" },
   { name: "Garrett Hernandez Rimer", email: "garrett@parallaxinnovations.com", role: "admin", photo: "/garrett.jpeg" },
   { name: "Ted Delicath", email: "ted@parallaxinnovations.com", role: "admin", photo: "/ted.jpeg" },
+  // The fourth admin (Brendan, 2026-11-02): in the parallax pool's admins group, first sign-in by Forgot password.
+  { name: "Brendan Zondervan", email: "brendan.zondervan@proton.me", role: "admin" },
   // Ted's second account (Brendan, 2026-10-30): the Parallax address is his admin account, this one his
   // Unite America partner account. Two people to the app, never aliases of each other.
   { name: "Ted Delicath", email: "ted@uniteamerica.org", role: "partner", partner: "unite-america", photo: "/ted.jpeg" },
