@@ -5,6 +5,7 @@ import { armName } from "@/lib/fielding/arms"
 import { tick } from "@/lib/fielding/engine"
 import { flowsTick } from "@/lib/flows/engine"
 import { liveDeps } from "@/lib/flows/live"
+import { ingestAgentMail } from "@/lib/mail/inbound"
 import { origin } from "@/lib/mail/send"
 
 // POST /api/fielding/tick: one pass over the fieldings (reminders, then the close at
@@ -33,5 +34,12 @@ export async function POST(request: Request) {
   } catch (error) {
     flows = { error: error instanceof Error ? error.message : "flows tick failed" }
   }
-  return NextResponse.json({ ran, flows })
+  // Then what people sent the agents (lib/mail/inbound.ts), into their mailboxes; its failure is reported too.
+  let inbound: Awaited<ReturnType<typeof ingestAgentMail>> | { error: string }
+  try {
+    inbound = await ingestAgentMail()
+  } catch (error) {
+    inbound = { error: error instanceof Error ? error.message : "inbound failed" }
+  }
+  return NextResponse.json({ ran, flows, inbound })
 }

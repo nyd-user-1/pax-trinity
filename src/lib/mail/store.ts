@@ -45,6 +45,8 @@ export type MailRow = {
   source: MailSource
   /** On the sender's row: the recipients the allowlist held back. */
   held?: string[]
+  /** An inbound row's AgentMail ids, so a message is written once and its AgentMail thread stays one. */
+  agentmail?: { messageId: string; threadId: string }
 }
 
 /** The three agents' mailboxes: the name the Inbox shows and the AgentMail address they send from. */
@@ -143,6 +145,32 @@ export async function recordMessage(m: {
   return { id, threadId, mailboxes: rows.map((r) => r.pk.slice(5)) }
 }
 
+/** A subject as threads match it: Re:, Fwd: and Fw: prefixes dropped, case and spacing ignored. */
+export const subjectKey = (subject: string) =>
+  subject
+    .replace(/^\s*((re|fwd?|aw|sv)\s*(\[\d+\])?\s*:\s*)+/i, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase()
+
+/** Who a message is between, as threads match it: each address as its platform mailbox where it has one
+ *  (an alias is its member, an agent's address its slug), the set sorted. */
+export const participantsKey = (addresses: string[]) =>
+  [...new Set(addresses.map((a) => platformMailbox(a) ?? a.trim().toLowerCase()).filter(Boolean))].sort().join(",")
+
+const partiesOf = (r: Pick<MailRow, "from" | "to" | "cc">) => [r.from.email, ...r.to.map((p) => p.email), ...(r.cc ?? []).map((p) => p.email)]
+
+/** The thread in a mailbox a message joins by subject and participants (a reply arriving from outside,
+ *  or an old send reconstructed), or null: the newest such thread when there are several. */
+export function threadFor(rows: MailRow[], subject: string, addresses: string[]): string | null {
+  const s = subjectKey(subject)
+  const p = participantsKey(addresses)
+  const match = rows
+    .filter((r) => subjectKey(r.subject) === s && participantsKey(partiesOf(r)) === p)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]
+  return match?.threadId ?? null
+}
+
 export const FOLDERS = ["inbox", "sent", "drafts", "starred", "snoozed", "trash", "all"] as const
 export type FolderView = (typeof FOLDERS)[number]
 export const isFolderView = (f: unknown): f is FolderView => typeof f === "string" && (FOLDERS as readonly string[]).includes(f)
@@ -191,7 +219,9 @@ export function threadsOf(rows: MailRow[], folder: FolderView, now = new Date().
   const clean = ({ pk: _pk, sk: _sk, ...rest }: MailRow) => rest
   return [...by.entries()]
     .map(([threadId, rs]) => {
-      const messages = rs.sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id)).map(clean)
+      // Oldest first; in a tie (the same millisecond), the message that began the thread leads.
+      const first = (r: MailRow) => (r.id === r.threadId ? 0 : 1)
+      const messages = rs.sort((a, b) => a.createdAt.localeCompare(b.createdAt) || first(a) - first(b) || a.id.localeCompare(b.id)).map(clean)
       return { threadId, messages, latest: messages[messages.length - 1], unreadCount: messages.filter((m) => !m.read).length }
     })
     .sort((a, b) => b.latest.createdAt.localeCompare(a.latest.createdAt))
