@@ -7,6 +7,7 @@ import { ClipboardCheck, ClipboardList, Copy, FileText, FlaskConical, Search, ty
 
 import { MenuFoot, MenuHeader, MenuRow, MenuSeparator } from "@/components/kebab-menu"
 import { ROW, RowMenu } from "@/components/row-dress"
+import { AddToBlocksRow } from "@/components/dash/card-tools"
 import { FIELD } from "@/components/settings/blocks"
 import { readDraft } from "@/lib/consensus/draft"
 import { buildBank, pretrainingOrigin, type Appearance, type BankQuestion, type Kind, type Origin } from "@/lib/surveys/question-bank"
@@ -40,11 +41,14 @@ function Place({ a }: { a: Appearance }) {
   )
 }
 
+/** A bank row's id, for Blocks to open it at: its construct id where it has one, else its wording's first words. */
+const bankAnchor = (q: BankQuestion) => `bank-${(q.id ?? q.text.slice(0, 48)).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}`
+
 function BankRow({ q }: { q: BankQuestion }) {
   const router = useRouter()
   const rest = q.on.slice(SHOWN)
   return (
-    <li className={cn(ROW, "flex items-center gap-3 pr-12 pl-4")}>
+    <li id={bankAnchor(q)} className={cn(ROW, "flex items-center gap-3 pr-12 pl-4")}>
       <span className="min-w-0 flex-1 truncate text-sm" title={q.text}>
         {q.text}
       </span>
@@ -67,6 +71,7 @@ function BankRow({ q }: { q: BankQuestion }) {
             </>
           )}
           <MenuRow icon={<Copy />} label="Copy the question" onClick={() => void navigator.clipboard.writeText(q.text)} />
+          <AddToBlocksRow title={`Question Bank: ${q.text}`} anchor={bankAnchor(q)} />
           {q.on.some((a) => a.href) && <MenuSeparator />}
           {q.on.map((a) => {
             const Icon = ICON[a.kind]

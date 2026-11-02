@@ -6,6 +6,7 @@ import { ArrowLeft, ChartColumn, ClipboardCheck, Copy, FlaskConical, Library, Me
 
 import { BankFrame, BankSplit, RailToggle } from "@/components/bank/bank-frame"
 import { BankRail, RailGroup, RailRow, RailSearch } from "@/components/bank/bank-rail"
+import { AddToBlocksRow } from "@/components/dash/card-tools"
 import { CardList, type Card, type Split } from "@/components/bank/card-list"
 import { MenuFoot, MenuHeader, MenuRow, MenuSeparator } from "@/components/kebab-menu"
 import { PaneTitleRow, RefreshButton } from "@/components/bank/pane-bars"
@@ -123,17 +124,20 @@ export function SurveyInbox({
       )}
       <MenuRow icon={<PanelRight />} label="Open split view" onClick={() => openQuestion(id)} />
       <MenuRow icon={<Copy />} label="Copy the question" onClick={() => void navigator.clipboard.writeText(text)} />
+      <AddToBlocksRow title={`${foot}: ${text}`} anchor={rowAnchor(id)} />
       <MenuSeparator />
       <MenuFoot title={foot} sub={sub} />
     </>
   )
+  // A row's id, for Blocks to open it at: the folder and the question, so a pretraining's row and a survey's stay apart.
+  const rowAnchor = (id: string) => `row-${(folder ?? "").replace(/[^a-z0-9-]+/gi, "-")}-${id}`
   const cardOf = (id: string): Card => {
     if (onDraft) {
       const dq = draftQuestionOf(id)
       const n = dq?.options.length ?? 0
       // A seed question names its America Thinks source under the pretraining at the menu's foot.
       const from = dq && "source" in dq ? String(dq.source) : undefined
-      return { title: dq?.text ?? "", hint: dq?.text, chip: n ? `${n} ${n === 1 ? "option" : "options"}` : null, menu: dq ? rowMenu(id, dq.text, null, pretraining?.title ?? "Pretraining", from) : undefined }
+      return { title: dq?.text ?? "", hint: dq?.text, chip: n ? `${n} ${n === 1 ? "option" : "options"}` : null, menu: dq ? rowMenu(id, dq.text, null, pretraining?.title ?? "Pretraining", from) : undefined, anchor: rowAnchor(id) }
     }
     const s = statementOf(id)
     if (!s) return { title: "" }
@@ -146,6 +150,7 @@ export function SurveyInbox({
       span: s.votes.seen ? `${Math.round(v.agree)}% agree` : null,
       detail: `${Math.round(v.disagree)}% disagree · ${Math.round(v.pass)}% pass · ${fmtNumber(s.votes.seen)} saw it`,
       menu: rowMenu(id, s.text, code, open?.title ?? "Survey", verdicts.get(s.tid)),
+      anchor: rowAnchor(id),
     }
   }
 

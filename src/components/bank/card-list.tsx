@@ -69,6 +69,8 @@ export type Card = {
   menu?: React.ReactNode
   /** Present, the row drags (the Inbox's thread onto a folder). */
   onDragStart?: (event: React.DragEvent<HTMLLIElement>) => void
+  /** The row's element id, where Blocks opens it (Add to Blocks in its menu). */
+  anchor?: string
 }
 
 /** Sixty rows to a read, sixty more on reaching the end — a bulk folder holds thousands. */
@@ -288,6 +290,7 @@ export function CardList({
             return (
               <li
                 key={id}
+                id={c.anchor}
                 data-active={active}
                 draggable={c.onDragStart ? true : undefined}
                 onDragStart={c.onDragStart}

@@ -2,6 +2,7 @@ import Link from "next/link"
 import { MessagesSquare } from "lucide-react"
 
 import { surveyCode } from "@/components/consensus/question-code"
+import { CardTools, UnlessDeleted } from "@/components/dash/card-tools"
 import { Block, Fact, SMALL, Tile } from "@/components/settings/blocks"
 import { asked, type Conversation } from "@/lib/consensus/data"
 import { fmtNumber } from "@/lib/format"
@@ -29,17 +30,45 @@ export function SurveysPanel({ all, taken }: { all: Conversation[]; taken: strin
   )
 }
 
-/** A survey's card: the whole card opens it, or the reader's results once they have taken it. */
+/** A survey's card: the whole card opens it, or the reader's results once they have taken it. The link lies under the
+ *  card, so its three-dot menu (Copy, Add to Blocks and the rest, Brendan 2026-11-02) can sit above it: a menu can't
+ *  live inside a link. The card lifts on hover as /models' cards do. */
 export function SurveyCard({ c, n, taken }: { c: Conversation; n: number; taken: boolean }) {
+  const href = `/${taken ? "r" : "s"}/${encodeURIComponent(c.slug)}`
+  const anchor = `survey-${c.slug}`
+  const rows: [string, string][] = [
+    ["Questions", fmtNumber(asked(c).length)],
+    ["Participants", fmtNumber(c.stats.voters)],
+    ["Votes cast", fmtNumber(c.stats.votes)],
+    ["Opinion groups", String(c.stats.groups)],
+  ]
+  const copy = [c.title, c.topic, ...rows.map(([k, v]) => `${k}: ${v}`), surveyCode(n)].filter(Boolean).join("\n")
   return (
-    <Link href={`/${taken ? "r" : "s"}/${encodeURIComponent(c.slug)}`} className="block h-full rounded-[18px] outline-none focus-visible:ring-3 focus-visible:ring-pax2-light-blue/30">
-      <Block stretch className="lift" lead={<Tile icon={MessagesSquare} tint="#475569" />} title={c.title} sub={c.topic || undefined} action={<span className={SMALL}>{taken ? "Your results" : "Take the survey"}</span>}>
-        <Fact label="Questions">{fmtNumber(asked(c).length)}</Fact>
-        <Fact label="Participants">{fmtNumber(c.stats.voters)}</Fact>
-        <Fact label="Votes cast">{fmtNumber(c.stats.votes)}</Fact>
-        <Fact label="Opinion groups">{String(c.stats.groups)}</Fact>
-        <p className="px-4 py-3 text-[13px] text-slate-500 tabular-nums sm:px-5">{surveyCode(n)}</p>
-      </Block>
-    </Link>
+    <UnlessDeleted anchor={anchor}>
+      <div className="group/survey relative h-full">
+        <Link href={href} aria-label={taken ? `${c.title}: your results` : c.title} className="absolute inset-0 rounded-[18px] outline-none focus-visible:ring-3 focus-visible:ring-pax2-light-blue/30" />
+        <Block
+          stretch
+          id={anchor}
+          className="pointer-events-none relative transition-[transform,box-shadow] duration-200 ease-[cubic-bezier(0.2,0.8,0.2,1)] group-hover/survey:-translate-y-[3px] group-hover/survey:shadow-[var(--pax2-shadow-3)]"
+          lead={<Tile icon={MessagesSquare} tint="#475569" />}
+          title={c.title}
+          sub={c.topic || undefined}
+          action={
+            <span className="flex shrink-0 items-center gap-1.5 self-start">
+              <span className={SMALL}>{taken ? "Your results" : "Take the survey"}</span>
+              <CardTools title={c.title} anchor={anchor} copy={copy} className="pointer-events-auto" />
+            </span>
+          }
+        >
+          {rows.map(([k, v]) => (
+            <Fact key={k} label={k}>
+              {v}
+            </Fact>
+          ))}
+          <p className="px-4 py-3 text-[13px] text-slate-500 tabular-nums sm:px-5">{surveyCode(n)}</p>
+        </Block>
+      </div>
+    </UnlessDeleted>
   )
 }

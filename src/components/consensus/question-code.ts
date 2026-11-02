@@ -21,3 +21,8 @@ export const questionCode = (survey: number, question: number) => `1${pad(questi
 export function questionNumbers(c: Conversation): Map<number, number> {
   return new Map(c.statements.filter((s) => s.moderated >= 0).map((s, i) => [s.tid, i + 1]))
 }
+
+/** The anchor a question card wears, for Blocks to open it at: its kind (the vote card, the walkthrough's, Results')
+ *  and its code, so a page holding two kinds of the same question keeps them apart. Plain, so a server component
+ *  (Results' StatementCard) can call it. */
+export const questionAnchor = (kind: "question" | "result" | "statement", code: string | undefined, tid: number) => `${kind}-${code ? code.replace(/\./g, "-") : `t${tid}`}`

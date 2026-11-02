@@ -2,16 +2,16 @@
 
 import * as React from "react"
 
-import { Check, Copy, EllipsisVertical, Info, Minus, X } from "lucide-react"
+import { Check, Info, Minus, X } from "lucide-react"
 
-import { KebabMenu, MenuFoot, MenuHeader, MenuRow, MenuSeparator } from "@/components/kebab-menu"
+import { QuestionMenu } from "@/components/consensus/question-menu"
 import { SeriesCard } from "@/components/models/model-card"
 import { Badge, Block, Fact, FIELD, Passage, SMALL, SMALL_PRIMARY } from "@/components/settings/blocks"
 import { Toggle } from "@/components/settings/controls"
 import { StatementCard } from "@/components/consensus/status-bars"
 import { asked, consensusOn, emergedStatements, everyGroupAgrees, roomSide, share, WALKTHROUGH_BAR, type ConsensusRule, type Conversation, type Statement } from "@/lib/consensus/data"
 import { ViewToggle } from "@/components/bank/pane-bars"
-import { questionCode } from "@/components/consensus/question-code"
+import { questionAnchor, questionCode } from "@/components/consensus/question-code"
 import { SLIDE } from "@/lib/motion"
 import { cn } from "@/lib/utils"
 import type { Taken } from "@/lib/consensus/taken"
@@ -325,7 +325,7 @@ function Emerged({
         emerged.map((s) => {
           const n = queue.indexOf(s) + 1
           const mine = answers[s.tid]
-          return <StatementCard key={s.tid} statement={s} number={n} code={questionCode(survey, n)} side={consensusOn(s) ?? undefined} yours={mine ? ANSWER_LABEL[mine] : undefined} />
+          return <StatementCard key={s.tid} statement={s} conversation={conversation} number={n} code={questionCode(survey, n)} side={consensusOn(s) ?? undefined} yours={mine ? ANSWER_LABEL[mine] : undefined} />
         })
       ) : (
         <Block title="No consensus emerged">
@@ -359,7 +359,7 @@ function Walkthrough({ conversation, survey, queue, answers }: { conversation: C
         const all = everyGroupAgrees(s)
         const mine = answers[s.tid]
         return (
-          <Block key={s.tid} title={<span className="font-medium">{`Question ${n}`}</span>} badge={<Badge tone={all ? "blue" : "slate"}>{all ? (groups.length === 2 ? "Both agree" : "Every group agrees") : "Split"}</Badge>} action={<QuestionMenu n={n} title={conversation.title} code={questionCode(survey, n)} text={s.text} />}>
+          <Block key={s.tid} id={questionAnchor("result", questionCode(survey, n), s.tid)} title={<span className="font-medium">{`Question ${n}`}</span>} badge={<Badge tone={all ? "blue" : "slate"}>{all ? (groups.length === 2 ? "Both agree" : "Every group agrees") : "Split"}</Badge>} action={<QuestionMenu n={n} title={conversation.title} code={questionCode(survey, n)} text={s.text} anchor={questionAnchor("result", questionCode(survey, n), s.tid)} />}>
             <div className="flex flex-col gap-4 px-4 py-5 sm:px-5">
               <p className={cn("text-[17px] leading-snug", all ? "text-slate-900" : "text-slate-500")}>{s.text}</p>
               <div className="flex flex-wrap gap-x-6 gap-y-2">
@@ -400,32 +400,25 @@ export function SurveyResults({ conversation, survey, answers, completedAt }: { 
   const joined = everyGroup.filter((s) => mine(s) === "agree")
   const when = completedAt ? new Date(completedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : null
   const counts = [`sided with most of the room on ${withRoom.length} of the ${queue.length} questions`, against.length ? `went against it on ${against.length}` : null, passed ? `passed on ${passed}` : null].filter(Boolean) as string[]
+  const tagline = when ? `Answered ${when}` : "Answered just now"
+  // The summary's passages, as the card shows them and as its Copy puts them (a label, then its text).
+  const summary: [string, string][] = [
+    ["", `You ${counts.length > 1 ? `${counts.slice(0, -1).join(", ")} and ${counts[counts.length - 1]}` : counts[0]}.`],
+    ...(withRoom.length ? ([["With the room", numbered(withRoom.map(n))]] as [string, string][]) : []),
+    ...(against.length ? ([["Against it", numbered(against.map(n))]] as [string, string][]) : []),
+    ["Every group agrees", everyGroup.length ? `${numbered(everyGroup.map(n))}; you agreed on ${joined.length} of ${everyGroup.length}.` : `On none of the ${queue.length}: no question reached ${WALKTHROUGH_BAR}% in every opinion group.`],
+  ]
   return (
     <div className="space-y-6">
-      <SeriesCard m={{ name: conversation.title, tagline: when ? `Answered ${when}` : "Answered just now" }}>
-        <Passage>You {counts.length > 1 ? `${counts.slice(0, -1).join(", ")} and ${counts[counts.length - 1]}` : counts[0]}.</Passage>
-        {withRoom.length > 0 && <Passage label="With the room">{numbered(withRoom.map(n))}</Passage>}
-        {against.length > 0 && <Passage label="Against it">{numbered(against.map(n))}</Passage>}
-        <Passage label="Every group agrees">
-          {everyGroup.length ? `${numbered(everyGroup.map(n))}; you agreed on ${joined.length} of ${everyGroup.length}.` : `On none of the ${queue.length}: no question reached ${WALKTHROUGH_BAR}% in every opinion group.`}
-        </Passage>
+      <SeriesCard m={{ name: conversation.title, tagline: tagline }} anchor={`results-${conversation.slug}`} copy={[conversation.title, tagline, ...summary.map(([label, text]) => (label ? `${label}: ${text}` : text))].join("\n")}>
+        {summary.map(([label, text]) => (
+          <Passage key={label || "summary"} label={label || undefined}>
+            {text}
+          </Passage>
+        ))}
       </SeriesCard>
       <Walkthrough conversation={conversation} survey={survey} queue={queue} answers={answers} />
     </div>
-  )
-}
-
-/** A question card's three-dot menu, in the model cards' kebab dress: its code to copy, the question to copy,
- *  and the survey and the question's number at the foot. */
-function QuestionMenu({ n, title, code, text }: { n: number; title: string; code: string; text: string }) {
-  return (
-    <KebabMenu label={`Question ${n} options`} trigger={<EllipsisVertical className="size-4" />} triggerClassName="inline-flex size-8 shrink-0 self-start items-center justify-center rounded-md text-slate-800 outline-none hover:bg-foreground/8 hover:text-foreground aria-expanded:bg-foreground/8">
-      <MenuHeader text={code} copy={code} />
-      <MenuSeparator />
-      <MenuRow icon={<Copy />} label="Copy the question" onClick={() => void navigator.clipboard.writeText(text)} />
-      <MenuSeparator />
-      <MenuFoot title={title} sub={`Question ${n}`} />
-    </KebabMenu>
   )
 }
 
@@ -488,7 +481,7 @@ function Unfold({ children }: { children: React.ReactNode }) {
  *  answers (the picked one filled) and the mark that it matters, then the question's code. */
 function Card({ n, title, code, statement, selected, answer, onAnswer, salient, onSalient }: { n: number; title: string; code: string; statement: Statement; selected: boolean; answer?: Answer; onAnswer: (a: Answer) => void; salient: boolean; onSalient: () => void }) {
   return (
-    <Block stretch selected={selected} title={<span className="font-medium">Question {n}</span>} action={<QuestionMenu n={n} title={title} code={code} text={statement.text} />}>
+    <Block stretch id={questionAnchor("question", code, statement.tid)} selected={selected} title={<span className="font-medium">Question {n}</span>} action={<QuestionMenu n={n} title={title} code={code} text={statement.text} anchor={questionAnchor("question", code, statement.tid)} />}>
       <div className="flex flex-1 flex-col gap-6 px-4 py-5 sm:px-5">
         <p className="text-[17px] leading-snug text-slate-900">{statement.text}</p>
         <div className="mt-auto grid grid-cols-3 gap-2">

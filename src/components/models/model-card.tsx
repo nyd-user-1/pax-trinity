@@ -39,10 +39,13 @@ export const anchorOf = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+
  *  as every other card (2026-11-02). */
 export function ModelCard({ m }: { m: CommercialCard }) {
   const anchor = anchorOf(m.name)
+  const rows = cardRows(m)
+  // Copy: the card as it reads, its name, the line under it and its five rows.
+  const copy = [m.name, m.sub ?? m.maker, ...rows.map(([label, value]) => `${label}: ${label === "Model ID" && m.kind === "llm" ? shortId(value) : value}`)].join("\n")
   return (
     <UnlessDeleted anchor={anchor}>
-      <Block stretch id={anchor} className="lift" title={m.name} sub={m.sub ?? m.maker} lead={m.kind === "original" ? <PaxTile /> : <Logo src={m.logo} />} badge={m.badge && <Badge tone={m.badge.tone}>{m.badge.label}</Badge>} action={<CardTools title={m.name} anchor={anchor} className="self-start" />}>
-        {cardRows(m).map(([label, value]) => (
+      <Block stretch id={anchor} className="lift" title={m.name} sub={m.sub ?? m.maker} lead={m.kind === "original" ? <PaxTile /> : <Logo src={m.logo} />} badge={m.badge && <Badge tone={m.badge.tone}>{m.badge.label}</Badge>} action={<CardTools title={m.name} anchor={anchor} copy={copy} className="self-start" />}>
+        {rows.map(([label, value]) => (
           <Fact key={label} label={label} mono={label === "Model ID"}>
             {label === "Model ID" && m.kind === "llm" ? <span title={value}>{shortId(value)}</span> : value}
           </Fact>
@@ -52,10 +55,12 @@ export function ModelCard({ m }: { m: CommercialCard }) {
   )
 }
 
-/** A PAX Series card in prose: what it does, who it's for, the proof and its uses. `children` runs first. */
-export function SeriesCard({ m, children, className }: { m: Pick<OriginalCard, "name" | "tagline"> & Partial<OriginalCard>; children?: React.ReactNode; className?: string }) {
+/** A PAX Series card in prose: what it does, who it's for, the proof and its uses. `children` runs first. With an
+ *  `anchor` it carries the standard three-dot menu, Copy (`copy`, else its name and line) and Add to Blocks among it. */
+export function SeriesCard({ m, children, className, anchor, copy, id }: { m: Pick<OriginalCard, "name" | "tagline"> & Partial<OriginalCard>; children?: React.ReactNode; className?: string; anchor?: string; copy?: string; id?: string }) {
+  const text = copy ?? [m.name, m.tagline, m.what, m.who && `Who it's for: ${m.who}`, m.proof && `The proof: ${m.proof}`, ...(m.uses ?? []).map((u) => `- ${u}`)].filter(Boolean).join("\n")
   return (
-    <Block title={m.name} sub={m.tagline} lead={<PaxTile />} className={className}>
+    <Block id={id ?? anchor} title={m.name} sub={m.tagline} lead={<PaxTile />} className={className} action={anchor ? <CardTools title={m.name} anchor={anchor} copy={text} className="self-start" /> : undefined}>
       {children}
       {m.what && <Passage>{m.what}</Passage>}
       {m.who && <Passage label="Who it's for">{m.who}</Passage>}

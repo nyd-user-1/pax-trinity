@@ -1,5 +1,7 @@
 import type * as React from "react"
 
+import { questionAnchor } from "@/components/consensus/question-code"
+import { QuestionMenu } from "@/components/consensus/question-menu"
 import { Reveal } from "@/components/reveal"
 import { Badge, Block, Fact } from "@/components/settings/blocks"
 import { share, type Conversation, type Statement, type Tally } from "@/lib/consensus/data"
@@ -103,11 +105,14 @@ export function StatusBars({
 // inside, the statement and the row, then the question's code. At the
 // survey's end it also names the side consensus emerged on and the reader's
 // own answer.
-export function StatementCard({ statement, number, code, side, yours }: { statement: Statement; number?: number; code?: string; side?: "agree" | "disagree"; yours?: string; conversation?: Conversation; note?: string }) {
+export function StatementCard({ statement, number, code, side, yours, conversation }: { statement: Statement; number?: number; code?: string; side?: "agree" | "disagree"; yours?: string; conversation?: Conversation; note?: string }) {
+  const anchor = questionAnchor("statement", code, statement.tid)
   return (
     <Block
+      id={anchor}
       title={<span className="font-medium">{number != null ? `Question ${number}` : "Statement"}</span>}
       badge={side && <Badge tone="blue">{side === "agree" ? "Agreed" : "Disagreed"}</Badge>}
+      action={<QuestionMenu n={number} title={conversation?.title} code={code} text={statement.text} anchor={anchor} />}
     >
       <div className="flex flex-col gap-5 px-4 py-5 sm:px-5">
         <p className="text-[17px] leading-snug text-slate-900">{statement.text}</p>

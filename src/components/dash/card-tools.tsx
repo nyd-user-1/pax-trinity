@@ -118,6 +118,21 @@ function download(rows: readonly Record<string, unknown>[], name: string, kind: 
  *  three sizes: Collapse, Half View, Full View.
  *  A block's own entries (View, Download, extras) follow below a separator. Pin to top works where the
  *  block sits in an ordered column and is greyed where it is already first or the page has no order. */
+/** The address Blocks opens a card at: the page with its query, so a card on /survey?s=surveys opens there and not
+ *  on /survey's list (the shelf compares the path alone, so a query means a navigation, which lands on the anchor). */
+const here = (path: string) => (typeof window === "undefined" ? path : path + window.location.search)
+
+/** Add to Blocks for a menu of its own (a question card's, a list row's): the right panel's Blocks section keeps the
+ *  card's title and its address, the page with its query. The key carries the query too, so the same question on
+ *  two of /survey's pages is two blocks. */
+export function AddToBlocksRow({ title, anchor }: { title: string; anchor: string }) {
+  const path = usePathname()
+  const shelf = useShelf()
+  const key = `${here(path)}#${anchor}`
+  const on = shelf.has(key)
+  return <MenuRow icon={<LayoutGridIcon />} label={on ? "Remove from Blocks" : "Add to Blocks"} checked={on} onClick={() => (on ? shelf.remove(key) : shelf.add({ key, title, path: here(path), anchor }))} />
+}
+
 export function CardTools({
   children,
   className,
@@ -132,6 +147,7 @@ export function CardTools({
   menuItems,
   title,
   anchor,
+  copy,
 }: {
   children?: React.ReactNode
   /** Extra entries for the three-dot menu (a Narrative, an Explain), after the standard ones. */
@@ -153,6 +169,9 @@ export function CardTools({
   /** The block's title and anchor: Favorite and Add to Blocks key on them, the foot shows the title. */
   title?: string
   anchor?: string
+  /** The card's contents as text: present, the menu's Copy puts them on the clipboard (Brendan, 2026-11-02: every
+   *  card's menu carries Copy and Add to Blocks). */
+  copy?: string
 }) {
   const router = useRouter()
   const path = usePathname()
@@ -176,7 +195,8 @@ export function CardTools({
       <KebabMenu label="Block options" trigger={<EllipsisVerticalIcon className="size-4" />} triggerClassName="inline-flex size-8 items-center justify-center rounded-md text-slate-800 outline-none hover:bg-foreground/8 hover:text-foreground aria-expanded:bg-foreground/8">
         {!panel && <MenuRow icon={<PinIcon />} label="Pin to top" disabled={!pinTop || pinTop.first} onClick={() => pinTop?.pin()} />}
         {!panel && <MenuRow icon={<StarIcon className={fav ? "fill-amber-400 text-amber-400" : undefined} />} label={fav ? "Unfavorite" : "Favorite"} disabled={!key} onClick={() => key && toggleFav(key)} />}
-        <MenuRow icon={<LayoutGridIcon />} label={onShelf ? "Remove from Blocks" : "Add to Blocks"} checked={onShelf} disabled={!key || !title} onClick={() => key && title && anchor && (onShelf ? shelf.remove(key) : shelf.add({ key, title, path, anchor }))} />
+        {copy != null && <MenuRow icon={<CopyIcon />} label="Copy" onClick={() => void navigator.clipboard?.writeText(copy)} />}
+        <MenuRow icon={<LayoutGridIcon />} label={onShelf ? "Remove from Blocks" : "Add to Blocks"} checked={onShelf} disabled={!key || !title} onClick={() => key && title && anchor && (onShelf ? shelf.remove(key) : shelf.add({ key, title, path: here(path), anchor }))} />
         <MenuRow icon={<MessagesSquareIcon />} label="Ask PAX" onClick={ask} />
         <MenuRow icon={<RefreshCwIcon />} label="Refresh" onClick={() => router.refresh()} />
         {!panel && (
@@ -204,7 +224,7 @@ export function CardTools({
         )}
         <MenuSeparator />
         {/* Delete: off this page, onto the Blocks shelf, where opening it puts it back. */}
-        <MenuRow icon={<Trash2Icon />} label="Delete" danger disabled={!pinTop && (!key || !title)} onClick={() => (pinTop ? pinTop.hide() : key && title && anchor && (shelf.add({ key, title, path, anchor }), hide(key)))} />
+        <MenuRow icon={<Trash2Icon />} label="Delete" danger disabled={!pinTop && (!key || !title)} onClick={() => (pinTop ? pinTop.hide() : key && title && anchor && (shelf.add({ key, title, path: here(path), anchor }), hide(key)))} />
         {title && (
           <>
             <MenuSeparator />
