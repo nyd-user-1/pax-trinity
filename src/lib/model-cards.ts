@@ -152,7 +152,7 @@ export const ORIGINAL_CARDS: OriginalCard[] = [
     tagline: "The odds, before anyone has seen it",
     what: "Reads everything a short carries the moment it goes up: title, description, tags, length, posting time, thumbnail and, where there is one, the transcript. It estimates the chance this short breaks out for its channel.",
     who: "Teams deciding which of several cuts to post, and when.",
-    proof: "Before a single view comes in, it picks the breakout 59 times out of 100: 18% more often than a coin flip, on channels it never saw.",
+    proof: "Before a single view comes in, it picks the breakout 65 times out of 100: 30% more often than a coin flip, on channels it never saw.",
     uses: ["Pick which of several cuts or versions to post", "Triage a backlog of drafts and post the strongest first", "Flag low-odds posts for a stronger title or thumbnail"],
   },
   {
