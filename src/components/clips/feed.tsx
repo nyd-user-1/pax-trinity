@@ -8,11 +8,11 @@ import { BookmarkIcon, ChevronDownIcon, ChevronUpIcon, HeartIcon, LockIcon, Mess
 import { Avatar, AvatarFallback, AvatarImage } from "@govblock/ui/components/nova/avatar"
 import { cn } from "@govblock/ui/lib/utils"
 import { Skeleton } from "@/ui/components/nova/skeleton"
-import { collectAttr } from "@/lib/note-collect"
+import { clipCollect, collectAttr } from "@/lib/note-collect"
 
 
 import { isTested, RctBadge } from "./clip-test"
-import { clipCollect, ClipMenu } from "./menu"
+import { ClipMenu } from "./menu"
 import { fmtCount, isKeptRecording, type Clip } from "./store"
 
 // The feed: one clip after another down the page, each the height of the

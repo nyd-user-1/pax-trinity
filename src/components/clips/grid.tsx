@@ -7,11 +7,10 @@ import { LockIcon, PlayIcon } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@govblock/ui/components/nova/avatar"
 import { cn } from "@govblock/ui/lib/utils"
 import { Skeleton } from "@/ui/components/nova/skeleton"
-import { collectAttr } from "@/lib/note-collect"
+import { clipCollect, collectAttr } from "@/lib/note-collect"
 
 
 import { isTested, RctBadge } from "./clip-test"
-import { clipCollect } from "./menu"
 import { fmtCount, type Clip } from "./store"
 
 const CompositionThumb = dynamic(() => import("./composition-player").then((m) => m.CompositionThumb), { ssr: false })

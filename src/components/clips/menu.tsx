@@ -4,7 +4,7 @@ import * as React from "react"
 import { BanIcon, CodeIcon, ExternalLinkIcon, FlagIcon, LayoutTemplateIcon, LinkIcon, Share2Icon, StickyNoteIcon, Trash2Icon } from "lucide-react"
 
 import { itemOf, useBasket } from "@/lib/note-basket"
-import type { Collectible } from "@/lib/note-collect"
+import { clipCollect } from "@/lib/note-collect"
 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@govblock/ui/components/nova/dropdown-menu"
 
@@ -13,10 +13,6 @@ import type { Clip } from "./store"
 // Instagram's "…" on a reel: Go to post, Share to…, Copy link, Embed. The
 // post's address is the page with the clip's id, so the link and the embed
 // both land on the clip itself.
-
-/** A clip to a note's basket (Brendan, 2026-11-02): by its id, at its address. The menu's Add to the note adds it,
- *  and a tile or a feed item carries it for Option and a right-click (components/notes/gather.tsx). */
-export const clipCollect = (clip: Clip): Collectible => ({ kind: "clip", key: `clip:${clip.id}`, title: clip.title, path: `/clips?c=${encodeURIComponent(clip.id)}`, anchor: "" })
 
 export const clipUrl = (clip: Clip) => `${typeof window === "undefined" ? "" : window.location.origin}/clips?c=${encodeURIComponent(clip.id)}`
 

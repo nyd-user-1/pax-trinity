@@ -11,3 +11,7 @@ export const COLLECT_ATTR = "data-collect"
 
 /** Spread on a card's root: `<li {...collectAttr(item)}>`. Nothing without a title, as the menu row shows none. */
 export const collectAttr = (c: Collectible | null | undefined): { "data-collect"?: string } => (c?.title ? { [COLLECT_ATTR]: JSON.stringify(c) } : {})
+
+/** A clip: by its id, at its address. Its menu's Add to the note adds it, and a tile or a feed item carries it. Here,
+ *  not beside the menu, so the grid doesn't load the menu to mark its tiles. */
+export const clipCollect = (clip: { id: string; title: string }): Collectible => ({ kind: "clip", key: `clip:${clip.id}`, title: clip.title, path: `/clips?c=${encodeURIComponent(clip.id)}`, anchor: "" })
