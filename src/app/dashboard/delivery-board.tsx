@@ -8,6 +8,7 @@ import { Avatar } from "@/components/settings/blocks"
 import type { Account, Person } from "@/lib/delivery/types"
 import { cn } from "@/ui/lib/utils"
 
+import type { Todo } from "@/lib/todos"
 import { AdminOverview } from "./admin-overview"
 import { PartnerOverview } from "./partner-overview"
 import type { Board } from "./parts"
@@ -18,7 +19,7 @@ import type { Board } from "./parts"
 
 const TABS = ["Overview", "Worklog", "Files", "Reports"] as const
 
-export function DeliveryBoard({ accounts, focus, board, team, reachable }: { accounts: Account[]; focus: Account | null; board: Board; team: Person[]; reachable: boolean }) {
+export function DeliveryBoard({ accounts, focus, board, team, reachable, todos = [] }: { accounts: Account[]; focus: Account | null; board: Board; team: Person[]; reachable: boolean; todos?: Todo[] }) {
   const [tab, setTab] = React.useState<(typeof TABS)[number]>("Overview")
   return (
     <div className="mx-auto w-full max-w-[1560px] px-6 py-6">
@@ -72,7 +73,7 @@ export function DeliveryBoard({ accounts, focus, board, team, reachable }: { acc
       {!reachable && <p className="mt-4 rounded-xl border border-amber-300/60 bg-amber-50/60 px-4 py-2.5 text-[13px] text-amber-800 dark:bg-amber-400/10 dark:text-amber-300">The board&apos;s store can&apos;t be reached, so changes won&apos;t save.</p>}
 
       {tab === "Overview" ? (
-        <div className="mt-8">{focus ? <PartnerOverview account={focus} board={board} /> : <AdminOverview accounts={accounts} board={board} />}</div>
+        <div className="mt-8">{focus ? <PartnerOverview account={focus} board={board} /> : <AdminOverview accounts={accounts} board={board} todos={todos} />}</div>
       ) : (
         <p className="mt-16 text-center text-sm text-slate-500">Nothing here yet.</p>
       )}

@@ -13,6 +13,8 @@ import { cn } from "@/ui/lib/utils"
 
 import { useItemPanel } from "./item-panel"
 import { HealthBadge, ItemRow, NewWork, personOf, Pick, Who, type Board } from "./parts"
+import type { Todo } from "@/lib/todos"
+import { Todos } from "./todos"
 
 // The admin's Overview: every partner's work in one queue, most urgent first, and every partner as a row
 // with its state, so the accounts that need a hand show at the top. The four counts pick the queue's view.
@@ -21,7 +23,7 @@ type View = "open" | "overdue" | "review" | "delivered"
 const VIEW_TITLE: Record<View, string> = { open: "Open work", overdue: "Overdue", review: "With partners", delivered: "Delivered" }
 const PER = 10
 
-export function AdminOverview({ accounts, board }: { accounts: Account[]; board: Board }) {
+export function AdminOverview({ accounts, board, todos = [] }: { accounts: Account[]; board: Board; todos?: Todo[] }) {
   const { today } = board
   const all = React.useMemo(() => accounts.flatMap((a) => a.items), [accounts])
   const nameOf = React.useCallback((id: string) => accounts.find((a) => a.id === id)?.name ?? id, [accounts])
@@ -65,6 +67,7 @@ export function AdminOverview({ accounts, board }: { accounts: Account[]; board:
         ))}
       </div>
 
+      <Todos initial={todos} />
       <Queue view={view} items={view === "open" ? open : view === "overdue" ? overdue : view === "review" ? review : delivered} accounts={accounts} board={board} onOpen={panel.open} openId={panel.openId} />
       <Partners accounts={accounts} board={board} />
     </div>

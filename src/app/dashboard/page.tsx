@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import { currentUser } from "@/lib/auth"
 import { accounts, isPartner, PEOPLE, STAFF } from "@/lib/delivery/accounts"
 import { memberByEmail } from "@/lib/roles"
+import { listTodos } from "@/lib/todos"
 
 import { DeliveryBoard } from "./delivery-board"
 import type { Board } from "./parts"
@@ -35,10 +36,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const people = user.admin ? PEOPLE : [...STAFF, ...(focus?.contacts ?? [])]
   const board: Board = { today: today(), people, staff: STAFF, admin: user.admin, me: (member?.email ?? user.email).toLowerCase() }
   const team = user.admin && !focus ? STAFF : [...(focus?.owner ? STAFF.filter((s) => s.email === focus.owner) : []), ...(focus?.contacts ?? [])]
+  // The admins' to-do list, read for an admin's own board alone.
+  const todos = user.admin && !focus ? await listTodos() : []
 
   return (
     <div className="relative min-h-0 flex-1 overflow-y-auto bg-background">
-      <DeliveryBoard key={focusId ?? "all"} accounts={user.admin ? list : []} focus={focus} board={board} team={team} reachable={reachable} />
+      <DeliveryBoard key={focusId ?? "all"} accounts={user.admin ? list : []} focus={focus} board={board} team={team} reachable={reachable} todos={todos} />
     </div>
   )
 }
