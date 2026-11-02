@@ -4,7 +4,7 @@ import { CognitoJwtVerifier } from "aws-jwt-verify"
 import { cookies } from "next/headers"
 
 import { DEMO_ADMIN, DEMO_EMAILS } from "@/lib/demo"
-import { isSuperAdmin } from "@/lib/roles"
+import { isSuperAdmin, memberByEmail } from "@/lib/roles"
 
 // The signed-in user, from the Cognito ID token in the pax2_session cookie — verified against the
 // pool's signing keys, so this one can authorize. Admins are the pool's "admins" group plus anyone
@@ -22,6 +22,12 @@ export async function currentUser(): Promise<SessionUser | null> {
   // Local development skips sign-in entirely: the dev server acts as the first admin.
   // `next build` sets NODE_ENV=production, so no deployed build can take this branch.
   if (process.env.NODE_ENV === "development") {
+    // A developer can look through a roster member's eyes (2026-11-02, for the partner lens): the pax2_dev_as cookie
+    // names a member of lib/roles.ts and the dev server acts as them, a partner with their organization's lens. Never
+    // in a deployed build, as the branch it sits in.
+    const as = (await cookies()).get("pax2_dev_as")?.value?.trim().toLowerCase()
+    const m = as ? memberByEmail(as) : undefined
+    if (m?.email) return { email: m.email.toLowerCase(), admin: m.role === "superadmin" || m.role === "admin", superAdmin: m.role === "superadmin", demo: false }
     const email = ADMINS[0] ?? "brendan@nysgpt.com"
     return { email, admin: true, superAdmin: isSuperAdmin(email), demo: false }
   }

@@ -16,6 +16,11 @@ export const MEMBERS: Member[] = [
   // Ted's second account (Brendan, 2026-10-30): the Parallax address is his admin account, this one his
   // Unite America partner account. Two people to the app, never aliases of each other.
   { name: "Ted Delicath", email: "ted@uniteamerica.org", role: "partner", partner: "unite-america", photo: "/ted.jpeg" },
+  // The partner demo accounts (Brendan, 2026-11-02): one per partner organization, each seeing its own sponsor's
+  // material alone (lib/partners/sponsors.ts). Users in the parallax pool, first sign-in by Forgot password; not on
+  // the mail allowlist, so they receive in the app only.
+  { name: "Unite America (demo)", email: "unite-demo@nysgpt.com", role: "partner", partner: "unite-america" },
+  { name: "Yes on 3 (demo)", email: "yeson3-demo@nysgpt.com", role: "partner", partner: "yeson3" },
   { name: "Errin M Vasquez", role: "staff" },
   { name: "Sergio Gutierrez", role: "staff" },
 ]
