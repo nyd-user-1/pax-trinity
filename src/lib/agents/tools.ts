@@ -2,6 +2,8 @@ import "server-only"
 
 import type { Tool } from "@aws-sdk/client-bedrock-runtime"
 
+import { DATA_TOOLS, type DataToolName } from "@/lib/chat-data/tools"
+
 // The agents' tools. Trinity holds no legislative record (Brendan, 2026-11-01:
 // "legislative record tools don't belong in trinity"), so what is left is the
 // web, read in-process by lib/agents/run-tools; the posting connections; and
@@ -21,6 +23,8 @@ export type ToolName =
   | "review"
   | "fill_form"
   | "remember"
+  // The platform's own data, read-only (lib/chat-data/tools.ts, 2026-11-02): the same six /chat holds.
+  | DataToolName
 
 // Converse types a tool's input schema as DocumentType — JSON, all the way
 // down — so `Record<string, unknown>` will not go in. Naming the two shapes a
@@ -70,6 +74,8 @@ function trim<T>(rows: T[] | undefined, n: number) {
 }
 
 export const DEFINITIONS: Record<ToolName, Definition> = {
+  ...DATA_TOOLS,
+
   web_search: {
     description:
       "Search the web. Returns titles, links and short snippets — enough to cite and link, not the page itself. Six results by default; keep the query specific.",

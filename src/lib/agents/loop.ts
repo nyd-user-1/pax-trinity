@@ -7,6 +7,8 @@ import { roundTokens } from "@/lib/agents/models"
 import type { AgentDefinition } from "@/lib/agents/registry"
 import { runTool } from "@/lib/agents/run-tools"
 import { toolSpec, type ToolName } from "@/lib/agents/tools"
+import { dataIndexPrompt } from "@/lib/chat-data"
+import { isDataTool, type Viewer } from "@/lib/chat-data/tools"
 
 // One round of the agent loop, in the repo, run per HTTP request.
 //
@@ -146,6 +148,7 @@ export async function* runStep({
   systemSuffix,
   extraTools = [],
   title,
+  viewer = null,
 }: {
   definition: AgentDefinition
   messages: Message[]
@@ -154,13 +157,16 @@ export async function* runStep({
   extraTools?: ToolName[]
   /** The subject the reader gave this task, if it came from the inbox. */
   title?: string
+  /** The signed-in reader, for the data tools. */
+  viewer?: Viewer | null
 }): AsyncGenerator<StreamEvent, StepResult, void> {
   const started = Date.now()
   const messages: Message[] = [...incoming]
 
   const stream = converseStream({
     tier: definition.tier,
-    system: systemSuffix ? `${definition.system}\n\n${systemSuffix}` : definition.system,
+    // An agent holding the data tools is told what they reach, after its own prompt (lib/chat-data).
+    system: [definition.system, definition.tools.some(isDataTool) ? dataIndexPrompt() : "", systemSuffix ?? ""].filter(Boolean).join("\n\n"),
     messages: compact(messages),
     tools: [...definition.tools, ...extraTools].map(toolSpec),
     // Latency on this host is dominated by tokens written, and a response that
@@ -259,7 +265,7 @@ export async function* runStep({
       outcome: await runTool(
         call.name as ToolName,
         (call.input ?? {}) as Record<string, unknown>,
-        { report, title }
+        { report, title, viewer }
       ),
     }))
   )

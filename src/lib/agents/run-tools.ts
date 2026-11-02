@@ -7,6 +7,7 @@ import { formById } from "@/lib/forms/programs"
 import { postToDiscord } from "@/lib/agents/connections/discord"
 import { postToSlack } from "@/lib/agents/connections/slack"
 import { readPage, webSearch } from "@/lib/agents/search"
+import { isDataTool, runDataTool, type Viewer } from "@/lib/chat-data/tools"
 
 // Executing a tool call, all of it in this process: the web reads, the
 // connections and the Filer's schema. Trinity's agents read no legislative
@@ -49,6 +50,17 @@ export type ToolContext = {
    * same words — which is the whole point of a subject line.
    */
   title?: string
+  /** The signed-in reader the run is for: the data tools answer for them, and an admin's alone to an admin. */
+  viewer?: Viewer | null
+}
+
+/** A data tool's transcript line: how many it found, or why it found nothing. */
+function dataSummary(payload: unknown): string {
+  if (!payload || typeof payload !== "object") return "nothing"
+  const p = payload as Record<string, unknown>
+  if (typeof p.error === "string") return p.error.slice(0, 120)
+  const totals = [p, ...Object.values(p)].flatMap((v) => (v && typeof v === "object" && typeof (v as { total?: unknown }).total === "number" ? [(v as { total: number }).total] : []))
+  return totals.length ? `${totals.reduce((a, b) => a + b, 0)} found` : "1 record"
 }
 
 export async function runTool(
@@ -57,6 +69,11 @@ export async function runTool(
   context?: ToolContext
 ): Promise<ToolOutcome> {
   const started = Date.now()
+  // The data tools read in this process, for the reader the run is for (lib/chat-data/tools.ts).
+  if (isDataTool(name)) {
+    const out = await runDataTool(name, rawInput, context?.viewer ?? null)
+    return { ok: out.ok, payload: out.payload, summary: dataSummary(out.payload), ms: Date.now() - started }
+  }
   const definition = DEFINITIONS[name]
   const input = normalise(name, rawInput)
 

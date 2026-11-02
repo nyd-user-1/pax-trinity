@@ -97,7 +97,8 @@ function line(event: StreamEvent | { t: "state"; messages: Message[]; done: bool
 export async function POST(request: Request) {
   // Every round is Bedrock spend, so the door is sign-in; the rate limit above
   // stays as the brake on a stuck client.
-  if (!(await currentUser())) return NextResponse.json({ error: "Sign in to use the agents." }, { status: 401 })
+  const user = await currentUser()
+  if (!user) return NextResponse.json({ error: "Sign in to use the agents." }, { status: 401 })
 
   let body: {
     agent?: string
@@ -212,7 +213,7 @@ export async function POST(request: Request) {
     async start(controller) {
       controller.enqueue(line({ t: "open", model: model.id, label: model.label }))
       try {
-        const step = runStep({ definition, messages, systemSuffix, extraTools: [...contributed], title: subject })
+        const step = runStep({ definition, messages, systemSuffix, extraTools: [...contributed], title: subject, viewer: { email: user.email, admin: user.admin } })
         let next = await step.next()
         while (!next.done) {
           controller.enqueue(line(next.value))

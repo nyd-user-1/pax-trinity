@@ -3,6 +3,10 @@ import { isReportType } from "@/lib/agents/report-modes"
 import type { ToolName } from "@/lib/agents/tools"
 import { FORMS, sectionLabel } from "@/lib/forms/programs"
 
+/** The platform's own data, read-only (lib/chat-data/tools.ts, 2026-11-02): the ids alone, since this file
+ *  is client-safe and the tools are not. ToolName checks each against the six. */
+const DATA_TOOL_IDS: ToolName[] = ["find_questions", "question_topline", "survey_results", "list_records", "person_state", "find_shorts"]
+
 // Specialists that differ in three things and nothing else: which tools they hold, which model tier answers, and what their system
 // prompt refuses to do. That is deliberate — a specialist is a narrower grant,
 // not a different program.
@@ -80,7 +84,7 @@ export const AGENTS: AgentDefinition[] = [
       "A bill's record end to end: status, sponsors and cosponsors with the dates they signed on, the action history, roll calls member by member, amendments, committee rosters and calendars, hearing transcripts, presidential nominations, and the text as filed with the changes between its versions.",
     can: "Find a bill by number or by keyword, read the record end to end, and give a sourced brief — what it does, where it is, who is behind it, what has actually happened to it, and how it changed on the way. Where the answer is not in the record it can search the web and read the page it finds, and say which is which.",
     tier: "grounded",
-    tools: ["web_search", "read_page"],
+    tools: ["web_search", "read_page", ...DATA_TOOL_IDS],
     placeholder: "Ask about a bill, a vote, a hearing or a committee…",
     starters: [
       "What does NY A07380 do, and where is it?",
@@ -160,8 +164,8 @@ each other and let the reader draw the line.`,
     // The posting tool is not listed here — it is contributed by whichever
     // connection is live, so an agent is never offered a way to post that does
     // not work, and adding Discord beside Slack changed nothing in this file
-    // but this list of ids.
-    tools: [],
+    // but this list of ids. The data tools are its reads (the inbox's Pollster).
+    tools: [...DATA_TOOL_IDS],
     connections: ["discord", "slack"],
     agentic: true,
     placeholder: "Watch <topic> bills in <jurisdiction>…",
@@ -205,7 +209,7 @@ went.`,
     // shape that trips it. The H2 comparison found the two indistinguishable
     // on grounded work, and the first Opus run of this report cost $1.11.
     tier: "grounded",
-    tools: ["web_search", "read_page"],
+    tools: ["web_search", "read_page", ...DATA_TOOL_IDS],
     connections: ["discord", "slack"],
     agentic: true,
     inbox: true,
