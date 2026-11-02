@@ -3,8 +3,10 @@
 import * as React from "react"
 import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
-import { Archive, Check, ChevronDown, ChevronRight, Copy, Crosshair, ImagePlus, Loader2, MapPin, Pencil, RotateCcw, SendHorizontal, SquareTerminal, X } from "lucide-react"
+import { Archive, ArrowBigDown, ArrowBigUp, Bookmark, Check, ChevronDown, ChevronRight, Copy, Crosshair, ImagePlus, Loader2, MapPin, Minus, Pencil, Plus, RotateCcw, SendHorizontal, SquareTerminal, X } from "lucide-react"
 
+import { DiffBar } from "@/components/dev/diff-bar"
+import { diffStats } from "@/lib/diff/stats"
 import { CLAUDE, CLAUDE_MARK, grouped } from "@/lib/housekeeping-thread"
 import { cn } from "@/ui/lib/utils"
 import { goToComment, HOUSEKEEPING_CHANGED, HOUSEKEEPING_OPEN, shrink, takeFocus, togglePointer } from "./tool"
@@ -39,8 +41,8 @@ function autosize(el: HTMLTextAreaElement | null) {
   el.style.height = `${Math.min(el.scrollHeight + 2, Math.round(window.innerHeight * 0.4))}px`
 }
 
-/** A diff's files, counted by their headers. */
-const fileCount = (diff: string) => (diff.match(/^diff --git /gm) ?? []).length || (diff.match(/^\+\+\+ /gm) ?? []).length
+/** The pinned Bookmarks thread's id among the threads' fold states. */
+const BOOKMARKS = "bookmarks"
 
 const PROMPT_UNAVAILABLE = "Prompt unavailable"
 
@@ -56,6 +58,8 @@ type Message = {
   replyTo?: string
   commit?: string
   diff?: string
+  feedback?: "up" | "down"
+  bookmarked?: boolean
   route?: string
   target?: string
   path?: string
@@ -103,6 +107,13 @@ export function HousekeepingView() {
   const [sent, setSent] = React.useState<Set<string>>(new Set())
   // Claude's replies whose diff is open.
   const [diffOpen, setDiffOpen] = React.useState<Set<string>>(new Set())
+  // Threads folded at their circle or line, and the thread whose line is under the pointer.
+  const [collapsed, setCollapsed] = React.useState<Set<string>>(new Set())
+  const [lineHover, setLineHover] = React.useState<string | null>(null)
+  // Screenshots pasted into the reply being written, and the Bookmarks thread (the super admin's).
+  const [replyShots, setReplyShots] = React.useState<{ mime: string; data: string }[]>([])
+  const [marks, setMarks] = React.useState<{ reply: Message; parent: Message }[] | null>(null)
+  const replyFileRef = React.useRef<HTMLInputElement>(null)
   const composerRef = React.useRef<HTMLTextAreaElement>(null)
   const replyRef = React.useRef<HTMLTextAreaElement>(null)
   React.useLayoutEffect(() => autosize(composerRef.current), [text])
@@ -116,6 +127,11 @@ export function HousekeepingView() {
     if (!res.ok) return setError(body.error ?? "Housekeeping did not load.")
     setError(null)
     setThread(body as Thread)
+    // The Bookmarks thread rides on everyone's stream, for the super admin.
+    if (!withEmail && (body as Thread).me?.superAdmin) {
+      const b = await fetch("/api/housekeeping?bookmarks=1", { cache: "no-store" }).catch(() => null)
+      setMarks(b?.ok ? ((await b.json()) as { bookmarks: { reply: Message; parent: Message }[] }).bookmarks : null)
+    }
   }, [withEmail])
 
   React.useEffect(() => {
@@ -187,15 +203,54 @@ export function HousekeepingView() {
     await load()
   }
 
-  /** A reply of the reader's own on a message's thread. */
+  /** A reply of the reader's own on a message's thread, with any screenshots pasted into it (shrunk as the stream's are). */
   const sendReply = async (m: Message) => {
     const draft = replying?.id === m.id ? replying.text.trim() : ""
-    if (!draft || sending) return
+    if ((!draft && !replyShots.length) || sending) return
     setSending(true)
-    const res = await fetch("/api/housekeeping", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: "reply", pk: m.pk, sk: m.sk, text: draft }) })
+    const images = await Promise.all(replyShots.map(shrink))
+    const res = await fetch("/api/housekeeping", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: "reply", pk: m.pk, sk: m.sk, text: draft, images }) })
     setSending(false)
     if (!res.ok) return setError((await res.json().catch(() => ({}))).error ?? "That reply did not send.")
     setReplying(null)
+    setReplyShots([])
+    await load()
+  }
+
+  /** Opens the reply box on a thread, unfolding it. */
+  const openReply = (id: string) => {
+    setReplying({ id, text: "" })
+    setReplyShots([])
+    setCollapsed((c) => {
+      const n = new Set(c)
+      n.delete(id)
+      return n
+    })
+  }
+
+  const addReplyFiles = async (files: FileList | File[]) => {
+    const images = [...files].filter((f) => f.type.startsWith("image/")).slice(0, 4 - replyShots.length)
+    const read = await Promise.all(
+      images.map(
+        (f) =>
+          new Promise<{ mime: string; data: string }>((resolve) => {
+            const r = new FileReader()
+            r.onload = () => resolve({ mime: f.type, data: String(r.result) })
+            r.readAsDataURL(f)
+          }),
+      ),
+    )
+    setReplyShots((prev) => [...prev, ...read].slice(0, 4))
+  }
+
+  /** The super admin's feedback or bookmark on a reply of Claude's: shown at once, then saved. */
+  const reactTo = async (r: Message, patch: { feedback?: "up" | "down" | null; bookmarked?: boolean }) => {
+    const apply = (x: Message): Message =>
+      x.id !== r.id ? x : { ...x, ...(patch.feedback !== undefined ? { feedback: patch.feedback ?? undefined } : {}), ...(patch.bookmarked !== undefined ? { bookmarked: patch.bookmarked || undefined } : {}) }
+    setThread((t) => (t ? { ...t, messages: t.messages.map(apply) } : t))
+    setMarks((list) => (list ? list.map((b) => ({ ...b, reply: apply(b.reply) })).filter((b) => b.reply.bookmarked) : list))
+    const res = await fetch("/api/housekeeping", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pk: r.pk, sk: r.sk, ...patch }) })
+    if (!res.ok) setError((await res.json().catch(() => ({}))).error ?? "That did not save.")
     await load()
   }
 
@@ -247,6 +302,144 @@ export function HousekeepingView() {
   const partner = others.find((p) => p.email === withEmail)
   const photoOf = (email: string) => people.find((p) => p.email === email)?.photo
 
+  // ── the thread's pieces ───────────────────────────────────────────────────
+  // Reddit's thread (Brendan, 2026-11-01): the branch line highlights under the pointer and a press anywhere on
+  // it folds the thread; the circled −/+ sits on it where the message ends. Thread ids are messages' ids, and
+  // BOOKMARKS for the pinned Bookmarks thread.
+  const toggleCollapse = (id: string) =>
+    setCollapsed((c) => {
+      const n = new Set(c)
+      if (n.has(id)) n.delete(id)
+      else n.add(id)
+      return n
+    })
+  const lineProps = (id: string) => ({
+    onClick: () => toggleCollapse(id),
+    onMouseEnter: () => setLineHover(id),
+    onMouseLeave: () => setLineHover((h) => (h === id ? null : h)),
+  })
+  /** The line from a message's avatar down: a 12px hit area around the 1px line. */
+  const line = (id: string, cls: string) => (
+    <span aria-hidden {...lineProps(id)} className={cn("absolute left-6 w-3 -translate-x-1/2 cursor-pointer", cls)}>
+      <span className={cn("absolute inset-y-0 left-1/2 w-px -translate-x-1/2 transition-colors", lineHover === id ? "bg-pax2-light-blue" : "bg-slate-300")} />
+    </span>
+  )
+  /** The line running on past a reply to the next one. */
+  const segment = (id: string) => (
+    <span aria-hidden {...lineProps(id)} className="absolute bottom-0 left-4 top-0 w-3 -translate-x-1/2 cursor-pointer">
+      <span className={cn("absolute inset-y-0 left-1/2 w-px -translate-x-1/2 transition-colors", lineHover === id ? "bg-pax2-light-blue" : "bg-slate-300")} />
+    </span>
+  )
+  /** The elbow turning into a reply, in the accent for the reader's own. */
+  const elbow = (id: string, mine: boolean) => (
+    <span aria-hidden {...lineProps(id)} className={cn("absolute left-4 top-0 h-4 w-5 cursor-pointer rounded-bl-[10px] border-b-[1.5px] border-l-[1.5px] transition-colors", lineHover === id || mine ? "border-pax2-light-blue" : "border-slate-300")} />
+  )
+  /** The circled −/+ on the line at the message's foot: folds and unfolds its replies. */
+  const circle = (id: string, n: number) => {
+    const shut = collapsed.has(id)
+    return (
+      <button
+        type="button"
+        {...lineProps(id)}
+        aria-expanded={!shut}
+        aria-label={shut ? (n === 1 ? "Show the reply" : `Show the ${n} replies`) : "Hide the replies"}
+        title={shut ? "Show the replies" : "Hide the replies"}
+        className={cn("absolute bottom-1 left-6 z-10 flex size-[18px] -translate-x-1/2 items-center justify-center rounded-full border bg-pax2-surface transition-colors", lineHover === id ? "border-pax2-light-blue text-pax2-light-blue" : "border-slate-400 text-slate-500")}
+      >
+        {shut ? <Plus className="size-3" strokeWidth={2.25} /> : <Minus className="size-3" strokeWidth={2.25} />}
+      </button>
+    )
+  }
+
+  /** Feedback (up or down, toggling) and the bookmark on a reply of Claude's: the super admin's, instant. */
+  const reactions = (r: Message) => {
+    const vote = (v: "up" | "down") => {
+      const on = r.feedback === v
+      const Icon = v === "up" ? ArrowBigUp : ArrowBigDown
+      return (
+        <button
+          type="button"
+          aria-pressed={on}
+          aria-label={v === "up" ? "Upvote" : "Downvote"}
+          title={v === "up" ? "Upvote" : "Downvote"}
+          onClick={() => void reactTo(r, { feedback: on ? null : v })}
+          className={cn("flex size-7 items-center justify-center rounded-full transition-colors hover:bg-slate-100", on ? (v === "up" ? "text-pax2-light-blue" : "text-pax2-red") : "text-slate-500 hover:text-pax2-blue")}
+        >
+          <Icon className={cn("size-[18px]", on && "fill-current")} />
+        </button>
+      )
+    }
+    return (
+      <div className="flex shrink-0 items-center gap-0.5">
+        {vote("up")}
+        {vote("down")}
+        <button
+          type="button"
+          aria-pressed={!!r.bookmarked}
+          aria-label={r.bookmarked ? "Remove the bookmark" : "Bookmark"}
+          title={r.bookmarked ? "Remove the bookmark" : "Bookmark"}
+          onClick={() => void reactTo(r, { bookmarked: !r.bookmarked })}
+          className={cn("flex size-7 items-center justify-center rounded-full transition-colors hover:bg-slate-100", r.bookmarked ? "text-pax2-blue" : "text-slate-500 hover:text-pax2-blue")}
+        >
+          <Bookmark className={cn("size-4", r.bookmarked && "fill-current")} />
+        </button>
+      </div>
+    )
+  }
+
+  /** The folded diff, a flat row: the chevron, the file's path (or the count of files), what it added and
+   *  deleted and govblock's five squares; the commit on hover. */
+  const diffRow = (r: Message) => {
+    const stats = diffStats(r.diff ?? "")
+    const open = diffOpen.has(r.id)
+    return (
+      <button
+        type="button"
+        aria-expanded={open}
+        title={r.commit ? `Commit ${r.commit}` : undefined}
+        onClick={() =>
+          setDiffOpen((o) => {
+            const n = new Set(o)
+            if (n.has(r.id)) n.delete(r.id)
+            else n.add(r.id)
+            return n
+          })
+        }
+        className="mt-1 flex w-full min-w-0 items-center gap-2 py-1 text-left text-xs text-slate-700 hover:text-pax2-blue"
+      >
+        {open ? <ChevronDown className="size-4 shrink-0 text-slate-400" /> : <ChevronRight className="size-4 shrink-0 text-slate-400" />}
+        <span className="min-w-0 truncate font-mono text-[13px]">{stats.length === 1 ? stats[0].path : `${stats.length} files`}</span>
+        <DiffBar added={stats.reduce((n, f) => n + f.added, 0)} deleted={stats.reduce((n, f) => n + f.deleted, 0)} className="shrink-0" />
+      </button>
+    )
+  }
+
+  /** A message's or a reply's screenshots, as thumbnails; a tap opens the full size. */
+  const shots_ = (images?: string[]) =>
+    images?.length ? (
+      <div className="mt-2 flex flex-wrap gap-2">
+        {images.map((k) => (
+          <a key={k} href={`/api/housekeeping/image?key=${encodeURIComponent(k)}`} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg border border-slate-200 bg-pax2-surface">
+            {/* eslint-disable-next-line @next/next/no-img-element -- a private screenshot through its signed link */}
+            <img src={`/api/housekeeping/image?key=${encodeURIComponent(k)}`} alt="Screenshot" className="h-24 w-auto max-w-[220px] object-cover" />
+          </a>
+        ))}
+      </div>
+    ) : null
+
+  /** A bookmarked reply's thread: the stream or the direct messages it is in, its message in view. */
+  const openThread = (p: Message) => {
+    const other = p.pk.startsWith("DM#") ? p.pk.slice(3).split("|").find((e) => e !== me?.email) ?? null : null
+    setWith(other)
+    setArchive(p.status === "resolved")
+    setCollapsed((c) => {
+      const n = new Set(c)
+      n.delete(p.id)
+      return n
+    })
+    setFocus(p.id)
+  }
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* The threads: everyone's stream, then one-to-one with each person; the pointer and the archive at the right. */}
@@ -287,6 +480,51 @@ export function HousekeepingView() {
           </p>
         )}
         <div className="flex flex-col gap-4">
+          {/* The Bookmarks thread: every reply of Claude's the super admin bookmarked, a live view (GET ?bookmarks=1), pinned at the top of everyone's stream. */}
+          {me?.superAdmin && !withEmail && !archive && marks && marks.length > 0 && (
+            <div key={BOOKMARKS}>
+              <div className="relative -mx-2 flex gap-3 rounded-xl px-2 py-1">
+                {line(BOOKMARKS, collapsed.has(BOOKMARKS) ? "top-10 bottom-[13px]" : "-bottom-2 top-10")}
+                {circle(BOOKMARKS, marks.length)}
+                <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-pax2-lavender text-pax2-blue">
+                  <Bookmark className="size-4 fill-current" />
+                </span>
+                <div className="min-w-0 flex-1 pb-6">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-sm font-semibold text-slate-900">Bookmarks</span>
+                    <span className="text-[11px] text-slate-400">{marks.length}</span>
+                  </div>
+                </div>
+              </div>
+              {!collapsed.has(BOOKMARKS) && (
+                <ul className="mt-2 flex flex-col">
+                  {marks.map(({ reply: r, parent: p }, i) => (
+                    <li key={r.id} className="relative pb-2 pl-11 pt-1 last:pb-0">
+                      {i < marks.length - 1 && segment(BOOKMARKS)}
+                      {elbow(BOOKMARKS, false)}
+                      <div className="flex gap-2.5">
+                        {/* eslint-disable-next-line @next/next/no-img-element -- the Claude mark from public/ */}
+                        <img src={CLAUDE_MARK} alt="" className="mt-0.5 size-6 shrink-0 rounded-full bg-pax2-surface object-contain p-1 shadow-e1" />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-xs font-semibold text-slate-900">{r.authorName}</span>
+                            <span className="text-[11px] text-slate-400">{when(r.createdAt)}</span>
+                          </div>
+                          <p className="mt-0.5 line-clamp-4 text-sm whitespace-pre-wrap text-slate-700">{r.text}</p>
+                          <div className="mt-1 flex items-center justify-between gap-2 text-xs">
+                            <button type="button" onClick={() => openThread(p)} className="min-w-0 truncate text-left text-slate-500 hover:text-pax2-blue hover:underline">
+                              On {p.authorName}: {p.text.slice(0, 90)}
+                            </button>
+                            {reactions(r)}
+                          </div>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
           {list.map(({ message: m, replies }) => {
             const resolved = m.status === "resolved"
             const photo = photoOf(m.author)
@@ -295,12 +533,14 @@ export function HousekeepingView() {
             const shown = asPrompt ? m.prompt : m.text
             const composing = replying?.id === m.id
             const branch = replies.length > 0 || composing
+            const shut = collapsed.has(m.id)
             const pointed = m.kind === "comment" && !!m.route && !!m.path
             return (
               <div key={m.id}>
               <div data-message={m.id} className={cn("group relative -mx-2 flex gap-3 rounded-xl px-2 py-1 transition-colors duration-700", focus === m.id && "bg-pax2-lavender")}>
-                {/* The branched comment design (components/comment-thread.tsx): the trunk leaves the avatar and runs down into the replies. */}
-                {branch && <span aria-hidden className="absolute -bottom-2 left-6 top-10 w-px bg-slate-300" />}
+                {/* Reddit's thread: the branch line leaves the avatar and runs down into the replies, the circled −/+ on it where the message ends. */}
+                {branch && line(m.id, shut ? "top-10 bottom-[13px]" : "-bottom-2 top-10")}
+                {branch && circle(m.id, replies.length)}
                 {photo ? (
                   // eslint-disable-next-line @next/next/no-img-element -- a 32px headshot from public/
                   <img src={photo} alt="" className="mt-0.5 size-8 shrink-0 rounded-full object-cover" />
@@ -384,103 +624,81 @@ export function HousekeepingView() {
                     </p>
                   ) : (
                     shown && (
-                      <p
-                        className={cn(
-                          "mt-1 text-sm whitespace-pre-wrap text-slate-700",
-                          resolved && "text-slate-400",
-                          asPrompt && "rounded-lg bg-pax2-surface px-2.5 py-2 font-mono text-[12px] leading-relaxed shadow-e1",
-                          asPrompt && shown === PROMPT_UNAVAILABLE && "font-sans text-slate-400 italic",
-                        )}
-                      >
-                        {shown}
-                      </p>
+                      // Flat on the panel's ground, Reddit's way: the text, and the prompt in its place, with no box around either.
+                      <p className={cn("mt-1 text-sm whitespace-pre-wrap text-slate-700", resolved && "text-slate-400", asPrompt && "font-mono text-[12px] leading-relaxed", asPrompt && shown === PROMPT_UNAVAILABLE && "font-sans text-slate-400 italic")}>{shown}</p>
                     )
                   )}
-                  {m.images?.length ? (
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {m.images.map((k) => (
-                        <a key={k} href={`/api/housekeeping/image?key=${encodeURIComponent(k)}`} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg border border-slate-200 bg-pax2-surface">
-                          {/* eslint-disable-next-line @next/next/no-img-element -- a private screenshot through its signed link */}
-                          <img src={`/api/housekeeping/image?key=${encodeURIComponent(k)}`} alt="Screenshot" className="h-24 w-auto max-w-[220px] object-cover" />
-                        </a>
-                      ))}
+                  {shots_(m.images)}
+                  {editing?.id !== m.id && (
+                    <div className="mt-1 flex items-center gap-3 text-xs">
+                      {!composing && (
+                        <button type="button" onClick={() => openReply(m.id)} className="font-medium text-pax2-blue hover:underline">
+                          Reply
+                        </button>
+                      )}
+                      {shut && <span className="text-slate-400">{replies.length === 1 ? "1 reply" : `${replies.length} replies`}</span>}
                     </div>
-                  ) : null}
-                  {editing?.id !== m.id && !composing && (
-                    <button type="button" onClick={() => setReplying({ id: m.id, text: "" })} className="mt-1 text-xs font-medium text-pax2-blue hover:underline">
-                      Reply
-                    </button>
                   )}
                 </div>
               </div>
-              {branch && (
+              {branch && !shut && (
                 <ul className="mt-2 flex flex-col">
                   {replies.map((r, i) => {
                     const last = i === replies.length - 1 && !composing
                     const byClaude = r.author === CLAUDE
                     const mine = r.author === me?.email
                     const rPhoto = byClaude ? null : photoOf(r.author)
+                    const opened = byClaude && !!r.diff && diffOpen.has(r.id)
                     return (
-                      <li key={r.id} className="relative pb-2 pl-11 pt-1 last:pb-0">
-                        {/* The trunk runs on past this reply to the next; the elbow turns into this one. */}
-                        {!last && <span aria-hidden className="absolute bottom-0 left-4 top-0 w-px bg-slate-300" />}
-                        <span aria-hidden className={cn("absolute left-4 top-0 h-4 w-5 rounded-bl-[10px] border-b-[1.5px] border-l-[1.5px]", mine ? "border-pax2-light-blue" : "border-slate-300")} />
-                        <div className="flex gap-2.5">
-                          {byClaude ? (
-                            // eslint-disable-next-line @next/next/no-img-element -- the Claude mark from public/
-                            <img src={CLAUDE_MARK} alt="" className="mt-0.5 size-6 shrink-0 rounded-full bg-pax2-surface object-contain p-1 shadow-e1" />
-                          ) : rPhoto ? (
-                            // eslint-disable-next-line @next/next/no-img-element -- a 24px headshot from public/
-                            <img src={rPhoto} alt="" className="mt-0.5 size-6 shrink-0 rounded-full object-cover" />
-                          ) : (
-                            <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-pax2-blue text-[10px] font-semibold text-white">{initials(r.authorName)}</span>
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-baseline gap-2">
-                              <span className={cn("text-xs font-semibold", mine ? "text-pax2-blue" : "text-slate-900")}>{r.authorName}</span>
-                              <span className="text-[11px] text-slate-400">{when(r.createdAt)}</span>
-                            </div>
-                            <p className={cn("mt-0.5 text-sm whitespace-pre-wrap text-slate-700", resolved && "text-slate-400")}>{r.text}</p>
-                            {byClaude && r.diff ? (
-                              <div className="mt-2">
-                                <button
-                                  type="button"
-                                  aria-expanded={diffOpen.has(r.id)}
-                                  onClick={() =>
-                                    setDiffOpen((o) => {
-                                      const n = new Set(o)
-                                      if (n.has(r.id)) n.delete(r.id)
-                                      else n.add(r.id)
-                                      return n
-                                    })
-                                  }
-                                  className="flex w-full items-center gap-1.5 rounded-lg border border-slate-200 bg-pax2-surface px-2.5 py-1.5 text-left text-xs font-medium text-slate-600 shadow-e1 transition-colors hover:text-pax2-blue"
-                                >
-                                  {diffOpen.has(r.id) ? <ChevronDown className="size-3.5 shrink-0" /> : <ChevronRight className="size-3.5 shrink-0" />}
-                                  <span className="truncate">
-                                    Diff · {fileCount(r.diff) === 1 ? "1 file" : `${fileCount(r.diff)} files`}
-                                    {r.commit ? <span className="font-mono"> · {r.commit.slice(0, 7)}</span> : null}
-                                  </span>
-                                </button>
-                                {diffOpen.has(r.id) && <UnifiedDiff text={r.diff} anchor={`hk-${r.id}`} className="mt-2" />}
-                              </div>
-                            ) : byClaude && r.commit ? (
-                              <p className="mt-1 font-mono text-[11px] text-slate-500">{r.commit.slice(0, 7)}</p>
-                            ) : null}
-                            {/* Claude has answered: the super admin approves it (the resolve lever) or replies, which sends it back. */}
-                            {me?.superAdmin && m.status === "answered" && last && (
-                              <div className="mt-1.5 flex items-center gap-3 text-xs">
-                                <button type="button" onClick={() => void change(m, { status: "resolved" })} className="rounded-full bg-pax2-blue px-3 py-1 font-medium text-white">
-                                  Approve
-                                </button>
-                                <button type="button" onClick={() => setReplying({ id: m.id, text: "" })} className="font-medium text-pax2-blue hover:underline">
-                                  Reply
-                                </button>
-                              </div>
+                      <React.Fragment key={r.id}>
+                        <li className="relative pb-2 pl-11 pt-1 last:pb-0">
+                          {/* The trunk runs on past this reply to the next; the elbow turns into this one. */}
+                          {!last && segment(m.id)}
+                          {elbow(m.id, mine)}
+                          <div className="flex gap-2.5">
+                            {byClaude ? (
+                              // eslint-disable-next-line @next/next/no-img-element -- the Claude mark from public/
+                              <img src={CLAUDE_MARK} alt="" className="mt-0.5 size-6 shrink-0 rounded-full bg-pax2-surface object-contain p-1 shadow-e1" />
+                            ) : rPhoto ? (
+                              // eslint-disable-next-line @next/next/no-img-element -- a 24px headshot from public/
+                              <img src={rPhoto} alt="" className="mt-0.5 size-6 shrink-0 rounded-full object-cover" />
+                            ) : (
+                              <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-pax2-blue text-[10px] font-semibold text-white">{initials(r.authorName)}</span>
                             )}
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-baseline gap-2">
+                                <span className={cn("text-xs font-semibold", mine ? "text-pax2-blue" : "text-slate-900")}>{r.authorName}</span>
+                                <span className="text-[11px] text-slate-400">{when(r.createdAt)}</span>
+                              </div>
+                              {r.text && <p className={cn("mt-0.5 text-sm whitespace-pre-wrap text-slate-700", resolved && "text-slate-400")}>{r.text}</p>}
+                              {shots_(r.images)}
+                              {byClaude && me?.superAdmin && (
+                                // Brendan's row (his DOM edit, 2026-11-01): Approve and Reply at the left, feedback and the bookmark at the right.
+                                <div className="mt-1 flex items-center justify-between gap-2 text-xs">
+                                  <div className="flex items-center gap-3">
+                                    {m.status === "answered" && i === replies.length - 1 && (
+                                      <button type="button" onClick={() => void change(m, { status: "resolved" })} className="font-medium text-pax2-blue hover:underline">
+                                        Approve
+                                      </button>
+                                    )}
+                                    <button type="button" onClick={() => openReply(m.id)} className="font-medium text-pax2-blue hover:underline">
+                                      Reply
+                                    </button>
+                                  </div>
+                                  {reactions(r)}
+                                </div>
+                              )}
+                              {byClaude && r.diff ? diffRow(r) : byClaude && r.commit ? <p className="mt-1 font-mono text-[11px] text-slate-500">{r.commit.slice(0, 7)}</p> : null}
+                            </div>
                           </div>
-                        </div>
-                      </li>
+                        </li>
+                        {/* Open, the diff breaks out of the thread's column to the panel's full width. */}
+                        {opened && (
+                          <li className="-mx-5 my-2">
+                            <UnifiedDiff text={r.diff!} anchor={`hk-${r.id}`} flush />
+                          </li>
+                        )}
+                      </React.Fragment>
                     )
                   })}
                   {composing && (
@@ -491,13 +709,37 @@ export function HousekeepingView() {
                           e.preventDefault()
                           void sendReply(m)
                         }}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => {
+                          e.preventDefault()
+                          void addReplyFiles(e.dataTransfer.files)
+                        }}
                         className="flex flex-col gap-2"
                       >
+                        {replyShots.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {replyShots.map((s, k) => (
+                              <span key={k} className="relative">
+                                {/* eslint-disable-next-line @next/next/no-img-element -- a pasted screenshot before it is sent */}
+                                <img src={s.data} alt="" className="h-14 w-auto rounded-md border border-slate-200" />
+                                <button type="button" aria-label="Remove" onClick={() => setReplyShots((prev) => prev.filter((_, j) => j !== k))} className="absolute -top-1.5 -right-1.5 flex size-5 items-center justify-center rounded-full bg-night-900 text-white">
+                                  <X className="size-3" />
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        )}
                         <textarea
                           ref={replyRef}
                           autoFocus
                           value={replying.text}
                           onChange={(e) => setReplying({ id: m.id, text: e.target.value })}
+                          onPaste={(e) => {
+                            if (e.clipboardData.files.length) {
+                              e.preventDefault()
+                              void addReplyFiles(e.clipboardData.files)
+                            }
+                          }}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
                               e.preventDefault()
@@ -508,11 +750,15 @@ export function HousekeepingView() {
                           rows={2}
                           className="max-h-[40vh] w-full resize-none overflow-y-auto rounded-xl border border-slate-200 bg-pax2-surface px-3 py-2 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-pax2-blue"
                         />
-                        <div className="flex justify-end gap-2 text-xs">
+                        <div className="flex items-center justify-end gap-2 text-xs">
+                          <button type="button" onClick={() => replyFileRef.current?.click()} className="mr-auto flex size-7 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100" aria-label="Attach a screenshot" title="Attach a screenshot">
+                            <ImagePlus className="size-4" />
+                          </button>
+                          <input ref={replyFileRef} type="file" accept="image/*" multiple hidden onChange={(e) => e.target.files && void addReplyFiles(e.target.files)} />
                           <button type="button" onClick={() => setReplying(null)} className="rounded-full px-3 py-1.5 font-medium text-slate-800 hover:bg-slate-100">
                             Cancel
                           </button>
-                          <button type="submit" disabled={!replying.text.trim() || sending} className="rounded-full bg-pax2-blue px-3 py-1.5 font-medium text-white disabled:opacity-50">
+                          <button type="submit" disabled={(!replying.text.trim() && !replyShots.length) || sending} className="rounded-full bg-pax2-blue px-3 py-1.5 font-medium text-white disabled:opacity-50">
                             Reply
                           </button>
                         </div>

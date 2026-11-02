@@ -6,41 +6,30 @@ import { ChevronDownIcon, ChevronRightIcon } from "lucide-react"
 import { cn } from "@govblock/ui/lib/utils"
 import { parseUnifiedDiff } from "@/lib/diff/unified"
 
+import { DiffBar } from "./diff-bar"
 import { DiffView } from "./diff-view"
+
+export { DiffBar }
 
 // A unified diff (a commit's, as Claude's replies in Dev Comments carry it) drawn file by file in govblock's
 // Changes framing (apps/web/components/create/bill-changes.tsx, ported 2026-11-01): each file a bordered
 // section, its header the chevron that folds it, its path in monospace and the DiffBar of what it added and
 // deleted, then GitHub's diff table (./diff-view.tsx). Text that is not a unified diff shows as it is.
+// `flush` runs it edge to edge, for a diff that breaks out of a column to the full width (Dev Comments): no
+// rounded corners or side borders, and a single file as its bare table, its header being the row that
+// opened it.
 
-/** GitHub's five squares: the share of the change that added (green) and deleted (red), with the counts. */
-export function DiffBar({ added, deleted, className }: { added: number; deleted: number; className?: string }) {
-  const total = added + deleted
-  const green = total ? Math.round((5 * added) / total) : 0
-  const red = total ? Math.min(5 - green, deleted ? Math.max(1, 5 - green) : 0) : 0
-  return (
-    <span className={cn("inline-flex items-center gap-2 text-xs tabular-nums", className)}>
-      {added > 0 && <span className="text-green-600 dark:text-green-500">+{added.toLocaleString("en-US")}</span>}
-      {deleted > 0 && <span className="text-red-600 dark:text-red-500">−{deleted.toLocaleString("en-US")}</span>}
-      <span aria-hidden className="inline-flex gap-px">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <span key={i} className={cn("size-2.5 rounded-[2px]", i < green ? "bg-green-600 dark:bg-green-500" : i < green + red ? "bg-red-600 dark:bg-red-500" : "bg-muted-foreground/25")} />
-        ))}
-      </span>
-    </span>
-  )
-}
-
-export function UnifiedDiff({ text, anchor = "diff", className }: { text: string; anchor?: string; className?: string }) {
+export function UnifiedDiff({ text, anchor = "diff", flush = false, className }: { text: string; anchor?: string; flush?: boolean; className?: string }) {
   const files = React.useMemo(() => parseUnifiedDiff(text), [text])
   const [shut, setShut] = React.useState<Set<number>>(new Set())
-  if (!files.length) return <pre className={cn("overflow-x-auto rounded-lg border p-3 font-mono text-xs whitespace-pre", className)}>{text}</pre>
+  if (!files.length) return <pre className={cn("overflow-x-auto p-3 font-mono text-xs whitespace-pre", flush ? "border-y" : "rounded-lg border", className)}>{text}</pre>
+  if (flush && files.length === 1 && files[0].status !== "binary") return <DiffView diff={files[0].diff} anchor={`${anchor}-0-`} className={cn("border-y", className)} />
   return (
-    <div className={cn("flex flex-col gap-3", className)}>
+    <div className={cn("flex flex-col", flush ? "gap-0" : "gap-3", className)}>
       {files.map((f, i) => {
         const open = !shut.has(i)
         return (
-          <section key={`${f.path}-${i}`} data-open={open} className="overflow-hidden rounded-lg border">
+          <section key={`${f.path}-${i}`} data-open={open} className={cn("overflow-hidden", flush ? "border-y" : "rounded-lg border")}>
             <div className="flex items-center gap-2 bg-muted/40 px-3 py-2">
               <button
                 type="button"
