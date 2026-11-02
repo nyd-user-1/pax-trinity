@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Clock, File, Inbox, LayoutTemplate, Mails, PenSquare, Send, Star, StickyNote, Trash2 } from "lucide-react"
+import { Clock, File, Inbox, LayoutTemplate, Mails, Pencil, Send, Star, StickyNote, Trash2 } from "lucide-react"
 
 import type { Folder } from "@/lib/agents/inbox"
 import { BankRail, RailGroup, RailRow } from "@/components/bank/bank-rail"
@@ -18,7 +18,8 @@ import { TemplateThumb } from "@/registry/blocks/sidebar-09/components/template-
 // drops onto a folder. Since 2026-11-02 (Brendan: Gmail exactly) the folders
 // are Gmail's, in its order, with Snoozed and All mail; each counts its unread
 // threads as the server does, Drafts its drafts; the mailbox chip stands at
-// the foot.
+// the foot. Gmail's Compose pill heads the rail (Brendan, 2026-11-02, 125–126), where the rail's own title
+// repeated the page's and a small Compose row sat.
 
 const FOLDERS: { title: string; icon: typeof Inbox; folder: Folder }[] = [
   { title: "Inbox", icon: Inbox, folder: "inbox" },
@@ -86,10 +87,21 @@ export function InboxRail({
   const { favs } = useNoteFavorites()
   const mine = [...notes].sort((a, b) => Number(favs.includes(b.id)) - Number(favs.includes(a.id)))
   return (
-    <BankRail title="Inbox" footer={chip}>
-      <RailGroup>
-        <RailRow onClick={onCompose} icon={PenSquare} label="Compose" />
-      </RailGroup>
+    <BankRail
+      header={
+        // Gmail's Compose: the pale blue pill, wider than tall, the pencil and the word, lifting on hover.
+        <button
+          type="button"
+          onClick={onCompose}
+          data-compose-pill
+          className="flex h-14 min-w-[142px] items-center gap-3 self-start rounded-2xl bg-(--mail-compose) pr-6 pl-[18px] text-sm font-semibold tracking-[0.01em] text-(--mail-compose-ink) transition-shadow outline-none hover:[box-shadow:0_1px_2px_0_rgb(60_64_67/0.3),0_1px_3px_1px_rgb(60_64_67/0.15)] focus-visible:ring-2 focus-visible:ring-pax2-light-blue"
+        >
+          <Pencil className="size-6 shrink-0" strokeWidth={1.75} />
+          Compose
+        </button>
+      }
+      footer={chip}
+    >
       <RailGroup label="Folders" collapsible>
         {FOLDERS.map((item) => {
           const unread = counts[item.folder] ?? 0

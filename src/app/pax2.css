@@ -464,6 +464,9 @@ body {
   --mail-icon: #444746;
   --mail-rest: #c4c7c5;
   --mail-grip: #adadad;
+  /* Gmail's Compose pill (125–126): its pale blue ground and its ink. */
+  --mail-compose: #c2e7ff;
+  --mail-compose-ink: #001d35;
 }
 :root:root.dark {
   --mail-unread: var(--t-raised);
@@ -477,4 +480,6 @@ body {
   --mail-icon: var(--t-ink-2);
   --mail-rest: var(--t-ink-4);
   --mail-grip: var(--t-ink-4);
+  --mail-compose: color-mix(in oklab, var(--t-accent-2) 32%, var(--t-surface));
+  --mail-compose-ink: var(--t-ink);
 }
