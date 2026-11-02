@@ -32,6 +32,10 @@ def test_clean_question_rules():
     assert good["n"] == [1500, 700, 800, 500, 300]
     assert R.clean_question(q(wording="GALLUP POLL SOCIAL SURVEY"), {}) is None
     assert R.clean_question(q(wording="Immigration policy"), {}) is None      # stem lost
+    assert R.clean_question(q(title=None, wording="Donald Trump's job performance?"), {}) is None
+    assert R.clean_question(q(title=None, wording="Overall, do you approve of the way Donald Trump is handling ? [GRID]"), {}) is None
+    assert R.clean_question(q(title=None, wording="Thinking about the November 2026 General Election for governor, are you"), {}) is None
+    assert R.clean_question(q(title=None, wording="In the 2024 General Election for President, did you vote for Kamala Harris or Donald Trump?"), {}) is None
     assert R.clean_question(q(title=None, wording="What is your age range?"), {}) is None
     short = q(rows=[{"label": "Approve", "values": ["40%", "45%"]}])
     assert R.clean_question(short, {}) is None                               # misaligned
@@ -39,6 +43,9 @@ def test_clean_question_rules():
     assert R.clean_question(off, {}) is None                                 # Total sums to 60
     numbered = R.clean_question(q(title=None, wording="1* Do you approve or disapprove of the way President Trump is performing his job?"), {})
     assert numbered["wording"].startswith("Do you approve")
+    for code in ("CURY2. ", "(A1). ", "Q12. "):
+        w = R.clean_question(q(title=None, wording=code + "Do you approve or disapprove of the way Donald Trump is handling his job?"), {})
+        assert w["wording"].startswith("Do you approve")
 
 
 def test_verify_and_repeats():
@@ -54,7 +61,10 @@ def test_verify_and_repeats():
                 "release": {"name": "CBS News Poll"}, "questions": qs} for i in (1, 2, 3)]
     surveys.append({**surveys[0], "sha": "f" * 64, "state": "TX"})        # another place
     reps = R.repeats(surveys)
-    assert [r["construct"] for r in reps] == ["yougov_trump_job_approval_2_categories"]
+    assert len(reps) == 1 and reps[0]["construct"].startswith("yougov_trump_job_approval_2_categories_")
+    again = R.repeats(surveys + [{**surveys[0], "sha": "e" * 64, "end": "2026-05-03",
+                                  "questions": [R.clean_question(q(title="Another"), {})]}])
+    assert reps[0]["construct"] in {r["construct"] for r in again}   # ids hold as the set grows
     rows = R.rows_of(reps[0])
     assert {r["geo_code"] for r in rows} == {"US"}
     assert {(r["subgroup_dim"], r["subgroup_value"]) for r in rows} == {

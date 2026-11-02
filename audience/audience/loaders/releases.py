@@ -33,8 +33,9 @@ The gate, per release:
 
 A release stands where its VoteHub polls do: one state's races put it in that state, approval
 and the generic ballot put it in the U.S.; a release whose polls stand in two places is left
-out. A repeated question is (pollster, place, wording, title) normalized, in three or more
-releases with different end dates. Each is one POLL construct, labelled by its title (or wording) with the
+out. A repeated question is (pollster, place, wording, title) normalized, in MIN_WAVES or more
+releases with different end dates (three for the first batch, two since). Its id is the
+pollster, place and title or wording, ending in a hash of that identity so it never moves. Each is one POLL construct, labelled by its title (or wording) with the
 verbatim wording in concordance.gss_wording. Each release is a slice, source_version
 "Release <pollster>/<end date>[ <sha8>]"; item_text names the pollster and the release; rows are
 Total as "all" and each mapped column as its subgroup; n is the column's unweighted N where the
@@ -44,6 +45,7 @@ release prints one.
 from __future__ import annotations
 
 import datetime as dt
+import hashlib
 import json
 import os
 import re
@@ -55,8 +57,10 @@ from ..db import Store
 SOURCE = "POLL"
 VERSION_PREFIX = "Release "
 CACHE = Path(os.path.expanduser("~/.cache/govblock/poll-releases"))
-MIN_WAVES = 3
+MIN_WAVES = 2   # the lead's growth ruling, step 3 (2026-11-02); the first batch took 3
 CREDIT = "Read from the pollster's release by govblock's release reader (2026-09-25)"
+NOTES = ("Read from the pollster's own releases (audience/loaders/releases.py); each row's "
+         "provenance_url is the release.")
 
 # Header group (normalized) -> (store dim, {label (normalized): store value}).
 _SEX = {"male": "Male", "men": "Male", "female": "Female", "women": "Female"}
@@ -131,19 +135,35 @@ DROP_ROWS = re.compile(r"^(totals?|unweighted n|weighted n|n|base)$", re.I)
 SCREENERS = re.compile(
     r"(\bgender\b|\byour sex\b|ethnicity|racial or ethnic|age range|\byour age\b|how old|"
     r"highest level of (education|school)|party (registration|affiliation)|press 1|"
+    r"are you a democrat|lean democrat|what area do you live|local television news|"
+    r"in what (county|city|state) do you live|what is your (education|race|gender|age|party)|"
+    r"\bdid you vote for\b|think of yourself as a (republican|democrat)|are you registered to vote|"
     r"who did you vote for in the 20\d\d presidential|^(age|mode|education|gender|party|race|"
     r"20\d\d vote)$)", re.I)
-NUMBERING = re.compile(r"^\s*(?:Q\.?\s*)?\d+[a-z]?[*.):]?\s+", re.I)
+# A question's number or variable code before its wording: "1* ", "Q12. ", "(A1). ", "CURY2. ".
+NUMBERING = re.compile(r"^\s*(?:(?:Q\.?\s*)?\d+[a-z]?[*.):]?|\(?[A-Z]{1,8}\d+[a-z]?\)?[.:])\s+")
 CELL_NOTE = re.compile(r"\s+(row|col|column) %$", re.I)
 
 
 def worded(text: str) -> bool:
-    """Wording a respondent heard: a question, or a statement of eight words or more, not a
-    heading in capitals ("GALLUP POLL SOCIAL SURVEY") or a battery item that lost its stem
-    ("Immigration policy")."""
+    """Wording a respondent heard: a question, or a statement of eight words or more that
+    addresses the respondent; not a heading in capitals ("GALLUP POLL SOCIAL SURVEY"), a
+    battery item that lost its stem ("Immigration policy") or header fragments run together."""
     if len(text) < 15 or text.upper() == text:
         return False
-    return text.rstrip().endswith("?") or len(text.split()) >= 8
+    if re.search(r"\s\?", text):          # a grid stem with its item's slot left blank
+        return False
+    addressed = re.search(r"\byou(r)?\b", text, re.I) is not None
+    if text.rstrip().endswith("?"):
+        # A question addresses the respondent or opens on a question word; a fragment like
+        # "Donald Trump's job performance?" (its stem lost to the title) does neither.
+        return addressed or re.match(
+            r"(who|whom|what|which|how|why|when|where|do|does|did|is|are|was|were|would|should|"
+            r"will|can|could|have|has)\b", text, re.I) is not None
+    if re.search(r"\b(are|you|the|of|a|an|to|for|and|or|is|be|were)$", text.rstrip(), re.I):
+        return False                          # cut off mid-sentence
+    # A statement must address the respondent; header fragments glued together don't.
+    return len(text.split()) >= 8 and addressed
 
 
 def _norm(s: str | None) -> str:
@@ -248,8 +268,9 @@ def column_map(columns: list[dict], pollster: str = "") -> tuple[list[tuple[str,
 def clean_question(q: dict, release: dict, pollster: str = "") -> dict | None:
     wording = NUMBERING.sub("", re.sub(r"\s+", " ", q.get("wording") or "")).strip()
     title = NUMBERING.sub("", re.sub(r"\s+", " ", q.get("title") or "")).strip() or None
-    if title and title.upper() == title:
-        title = None
+    if title and (title.upper() == title or re.search(r"\b[A-Z]{2,}\d+[A-Z]*\b", title)
+                  or wording.lower().startswith(title.lower())):
+        title = None   # a heading, a variable code ("DEMS105TRND."), or the wording cut short
     if not worded(wording) or SCREENERS.search(wording) or (title and SCREENERS.search(title)):
         return None
     columns = q.get("columns") or release.get("columns") or [{"group": "", "label": "Total"}]
@@ -346,7 +367,8 @@ def repeats(surveys: list[dict], min_waves: int = MIN_WAVES) -> list[dict]:
         for q in s["questions"]:
             groups[(s["pollster"], s["state"] or "", _key(q["wording"]), _key(q["title"]))].append((s, q))
     out, ids = [], set()
-    for (pollster, state, _, _), items in sorted(groups.items()):
+    for key, items in sorted(groups.items()):
+        pollster, state = key[0], key[1]
         by_end = {}
         for s, q in items:
             by_end.setdefault(s["end"], (s, q))   # one release per end date
@@ -355,9 +377,10 @@ def repeats(surveys: list[dict], min_waves: int = MIN_WAVES) -> list[dict]:
         s0, q0 = max(by_end.values(), key=lambda x: x[0]["end"])
         place = f"_{state.lower()}" if state else ""
         base = f"{slug(pollster)[:18]}{place}_{slug(q0['title'] or q0['wording'])[:44]}".strip("_")
-        construct, i = base, 2
-        while construct in ids:
-            construct, i = f"{base}_{i}", i + 1
+        # The id ends in a hash of the question's identity, so it never moves as the set grows.
+        construct = f"{base}_{hashlib.sha1('|'.join(key).encode()).hexdigest()[:5]}"
+        if construct in ids:
+            raise RuntimeError(f"two repeated questions share the id {construct}")
         ids.add(construct)
         out.append({"construct": construct, "pollster": pollster, "state": state or None,
                     "title": q0["title"],
@@ -439,8 +462,7 @@ def run(store: Store, refresh: bool = False, cache: Path | None = None) -> int:
                  "definition": f"{rep['pollster']}'s question, asked in the same wording in "
                                f"{rep['waves']} of its releases"
                                + (f" of {names[rep['state']]} voters." if rep["state"] else "."),
-                 "notes": "Read from the pollster's own releases (audience/loaders/releases.py); "
-                          "each row's provenance_url is the release."}
+                 "notes": NOTES}
         if store.column_exists("concordance", "gss_wording"):
             entry["gss_wording"] = rep["wording"]
         store.upsert_concordance(entry)
@@ -448,6 +470,9 @@ def run(store: Store, refresh: bool = False, cache: Path | None = None) -> int:
     from .polls import describe, prune_owned
 
     removed = prune_owned(store, SOURCE, VERSION_PREFIX, rows)
+    # Concordance rows this loader wrote whose question it no longer produces, and no source uses.
+    store.execute("DELETE FROM concordance WHERE notes = ? AND construct NOT IN "
+                  "(SELECT DISTINCT construct FROM norms)", [NOTES])
     store.touch_source(SOURCE)
     describe(store)
     outcomes = Counter(why.values())
