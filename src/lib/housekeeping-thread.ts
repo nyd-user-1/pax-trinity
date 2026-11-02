@@ -5,8 +5,10 @@
 // pointed comment to Claude: its status goes "claude" until Claude replies ("answered"); Claude may add a
 // follow-up or a correction while it stands answered (Brendan, 2026-11-01); a person's reply on an answered
 // thread sends it back to "claude". A reply of Claude's may carry the commit and the unified diff of what it
-// changed. Claude's replies, those two statuses, the prompt, the locator bundle, and a reply's commit and
-// diff are the super admin's alone: every read path passes its rows through forReader.
+// changed. The super admin's feedback on a reply of Claude's (up or down, his training signal to the loop)
+// and his bookmark on it ride on the reply's row; the Bookmarks thread is a view of every bookmarked reply,
+// not a copy. Claude's replies, those two statuses, the prompt, the locator bundle, and a reply's commit,
+// diff, feedback and bookmark are the super admin's alone: every read path passes its rows through forReader.
 
 /** The author id of Claude's replies, and the name and mark they show with. */
 export const CLAUDE = "claude"
@@ -16,17 +18,17 @@ export const CLAUDE_MARK = "/logos/models/anthropic.webp"
 export type Status = "open" | "resolved" | "claude" | "answered"
 
 /** The fields every reader may see, and the ones that stay the super admin's. */
-type Row = { author: string; kind: string; status: string; replyTo?: string; prompt?: string; promptAt?: string; bundle?: string; claudeAt?: string; answeredAt?: string; commit?: string; diff?: string }
+type Row = { author: string; kind: string; status: string; replyTo?: string; prompt?: string; promptAt?: string; bundle?: string; claudeAt?: string; answeredAt?: string; commit?: string; diff?: string; feedback?: string; bookmarked?: boolean }
 
 /** A thread's rows as one reader may see them: all of it for the super admin; for anyone else, no
- *  reply of Claude's, no prompt, bundle, commit or diff, and a comment with Claude (or answered) reading
- *  as open. */
+ *  reply of Claude's, no prompt, bundle, commit, diff, feedback or bookmark, and a comment with Claude (or
+ *  answered) reading as open. */
 export function forReader<T extends Row>(rows: T[], superAdmin: boolean): T[] {
   if (superAdmin) return rows
   return rows
     .filter((r) => r.author !== CLAUDE)
     .map((r) => {
-      const { prompt: _p, promptAt: _pa, bundle: _b, claudeAt: _c, answeredAt: _a, commit: _cm, diff: _d, ...rest } = r
+      const { prompt: _p, promptAt: _pa, bundle: _b, claudeAt: _c, answeredAt: _a, commit: _cm, diff: _d, feedback: _f, bookmarked: _bm, ...rest } = r
       return { ...rest, status: r.status === "claude" || r.status === "answered" ? "open" : r.status } as T
     })
 }
@@ -50,4 +52,18 @@ export function grouped<T extends { sk: string; kind: string; replyTo?: string }
   const by = new Map(top.map((m) => [m.sk, [] as T[]]))
   for (const r of rows) if (r.kind === "reply" && r.replyTo) by.get(r.replyTo)?.push(r)
   return top.map((message) => ({ message, replies: [...(by.get(message.sk) ?? [])].sort((a, b) => a.sk.localeCompare(b.sk)) }))
+}
+
+/** Replies of Claude's that pass a test, each with the message it answers, newest first: the Bookmarks
+ *  thread (bookmarked) and the loop's feedback list (any feedback). Rows from several partitions may mix;
+ *  a reply's parent is in its own partition. A reply whose parent is gone is left out. */
+export function repliesWith<T extends { pk: string; sk: string; kind: string; author: string; replyTo?: string }>(rows: T[], test: (r: T) => boolean): { reply: T; parent: T }[] {
+  const parents = new Map(rows.filter((r) => r.kind !== "reply").map((r) => [`${r.pk}\u0001${r.sk}`, r]))
+  return rows
+    .filter((r) => r.kind === "reply" && r.author === CLAUDE && test(r))
+    .flatMap((reply) => {
+      const parent = parents.get(`${reply.pk}\u0001${reply.replyTo}`)
+      return parent ? [{ reply, parent }] : []
+    })
+    .sort((a, b) => b.reply.sk.localeCompare(a.reply.sk))
 }

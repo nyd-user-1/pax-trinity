@@ -8,7 +8,7 @@ import { BedrockRuntimeClient, ConverseCommand } from "@aws-sdk/client-bedrock-r
 import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 
-import { CLAUDE, CLAUDE_NAME, claudeMayReply, statusAfterReply, type Status } from "@/lib/housekeeping-thread"
+import { CLAUDE, CLAUDE_NAME, claudeMayReply, repliesWith, statusAfterReply, type Status } from "@/lib/housekeeping-thread"
 import { MEMBERS, memberByEmail } from "@/lib/roles"
 
 // Housekeeping (Brendan, 2026-10-30): the admins' comments on the app for the super admin, as a
@@ -50,6 +50,9 @@ export type Message = {
   /** On a reply of Claude's: the commit it made and its unified diff (the super admin's alone). */
   commit?: string
   diff?: string
+  /** On a reply of Claude's: the super admin's feedback, and his bookmark (the Bookmarks thread's view). */
+  feedback?: "up" | "down"
+  bookmarked?: boolean
   page?: string
   route?: string
   target?: string
@@ -164,7 +167,7 @@ export async function openOnRoute(route: string, viewer: string): Promise<Messag
 /** Appends a reply to a message's thread: a person's, or Claude's (author CLAUDE). Claude's answers a
  *  comment that is with Claude; a person's on an answered comment sends it back. Returns the reply and
  *  the comment's status after it. */
-export async function reply(parent: { pk: string; sk: string }, input: { author: string; text: string; commit?: string; diff?: string }): Promise<{ reply: Message; status: Status }> {
+export async function reply(parent: { pk: string; sk: string }, input: { author: string; text: string; commit?: string; diff?: string; images?: { mime: string; data: string }[] }): Promise<{ reply: Message; status: Status }> {
   const p = await getMessage(parent)
   if (!p || p.kind === "reply") throw new Error("No such message to reply to.")
   const byClaude = input.author === CLAUDE
@@ -187,6 +190,8 @@ export async function reply(parent: { pk: string; sk: string }, input: { author:
     // inside DynamoDB's 400 KB item.
     commit: byClaude ? input.commit?.trim().slice(0, 64) || undefined : undefined,
     diff: byClaude ? input.diff?.slice(0, 300_000) || undefined : undefined,
+    // Screenshots, a person's or Claude's, as a message's: up to four, into S3 beside the rest.
+    images: input.images?.length ? await putImages(id, input.images) : undefined,
     status: "open",
     createdAt,
   }
@@ -198,17 +203,61 @@ export async function reply(parent: { pk: string; sk: string }, input: { author:
 
 /** The comments with Claude, for the loop: every pointed comment of the stream's and the super admin's
  *  direct messages' whose status is "claude", each with its replies so far, oldest first. */
-export async function forClaude(): Promise<{ comment: Message; replies: Message[]; imageUrls: string[] }[]> {
+/** Every row the super admin reads: the stream and each of his direct-message threads. */
+async function superRows(): Promise<Message[]> {
   const sa = PEOPLE.find((p) => p.role === "superadmin")?.email
   const keys = ["STREAM", ...(sa ? PEOPLE.filter((p) => p.email !== sa).map((p) => dmKey(sa, p.email)) : [])]
-  const rows = (await Promise.all(keys.map((pk) => listThread(pk)))).flat()
+  return (await Promise.all(keys.map((pk) => listThread(pk)))).flat()
+}
+
+/** The loop's read: every comment with Claude, each with its replies so far (with their screenshots' links),
+ *  and every reply of Claude's the super admin has given feedback on, whatever its comment's status. */
+export async function forClaude(): Promise<{
+  comments: { comment: Message; replies: (Message & { imageUrls: string[] })[]; imageUrls: string[] }[]
+  feedback: { reply: Message; parent: Message }[]
+}> {
+  const rows = await superRows()
+  const links = (m: Message) => Promise.all((m.images ?? []).map((k) => imageUrl(k)))
   const waiting = rows.filter((m) => m.kind === "comment" && m.status === "claude")
-  return Promise.all(
+  const comments = await Promise.all(
     waiting.map(async (comment) => ({
       comment,
-      replies: rows.filter((r) => r.kind === "reply" && r.pk === comment.pk && r.replyTo === comment.sk).sort((a, b) => a.sk.localeCompare(b.sk)),
-      imageUrls: await Promise.all((comment.images ?? []).map((k) => imageUrl(k))),
+      replies: await Promise.all(
+        rows
+          .filter((r) => r.kind === "reply" && r.pk === comment.pk && r.replyTo === comment.sk)
+          .sort((a, b) => a.sk.localeCompare(b.sk))
+          .map(async (r) => ({ ...r, imageUrls: await links(r) })),
+      ),
+      imageUrls: await links(comment),
     })),
+  )
+  return { comments, feedback: repliesWith(rows, (r) => !!r.feedback) }
+}
+
+/** The Bookmarks thread: every reply of Claude's the super admin bookmarked, with the message it answers. */
+export async function bookmarks(): Promise<{ reply: Message; parent: Message }[]> {
+  return repliesWith(await superRows(), (r) => !!r.bookmarked)
+}
+
+/** The super admin's feedback (up, down, or none) and bookmark on a reply of Claude's, set in place. */
+export async function react(key: { pk: string; sk: string }, change: { feedback?: "up" | "down" | null; bookmarked?: boolean }): Promise<void> {
+  const set: string[] = []
+  const remove: string[] = []
+  const values: Record<string, unknown> = { ":claude": CLAUDE, ":reply": "reply" }
+  if (change.feedback === null) remove.push("feedback")
+  else if (change.feedback) (set.push("feedback = :f"), (values[":f"] = change.feedback))
+  if (change.bookmarked === true) (set.push("bookmarked = :b"), (values[":b"] = true))
+  else if (change.bookmarked === false) remove.push("bookmarked")
+  if (!set.length && !remove.length) return
+  await db.send(
+    new UpdateCommand({
+      TableName: TABLE,
+      Key: key,
+      ConditionExpression: "attribute_exists(pk) AND #a = :claude AND #k = :reply",
+      UpdateExpression: [set.length ? `SET ${set.join(", ")}` : "", remove.length ? `REMOVE ${remove.join(", ")}` : ""].filter(Boolean).join(" "),
+      ExpressionAttributeNames: { "#a": "author", "#k": "kind" },
+      ExpressionAttributeValues: values,
+    }),
   )
 }
 
