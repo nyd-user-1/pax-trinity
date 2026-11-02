@@ -40,10 +40,11 @@ A record:
   via           the compilations that carry it: VoteHub, release, Pew, seed
   votehub_ids   VoteHub's own ids for its rows
   questions     [{id, start, end}]: each question id (a constructs entry) it asked, at its wave
-  rows          [{url, end, label}]: the keys of its exported rows. A row
+  rows          [{url, start, end, label, geo}]: the keys of its exported rows. A row
                 [construct, geo, start, end, option, dim, value, est, type, moe, item_text, n,
                 provenance_url] belongs to the poll whose rows hold {url: provenance_url,
-                end: end, label: item_text}.
+                start, end, label: item_text, geo}: one article can carry several states' polls
+                under one link and date, and a tracker several polls ending the same day.
 """
 
 from __future__ import annotations
@@ -103,7 +104,7 @@ def _slices(store: Store) -> dict[str, dict]:
             "FROM norms WHERE source = 'POLL' AND geography <> 'BLOCKGROUP'"):
         s = out[sv]
         s["questions"].add((construct, start.isoformat(), end.isoformat()))
-        s["rows"].add((url, end.isoformat(), text))
+        s["rows"].add((url, end.isoformat(), text, geo, start.isoformat()))
         s["geo"].add(geo)
         if n is not None:
             s["n"].add(int(n))
@@ -326,9 +327,9 @@ def build(store: Store) -> list[dict]:
         geos = sorted({g for sv in svs for g in slices[sv]["geo"]})
         rec["geo"] = geos[0] if len(geos) == 1 else geos
         rec["questions"] = [{"id": c, "start": s, "end": e} for c, s, e in qs]
-        rec["rows"] = [{"url": url, "end": end, "label": text}
-                       for url, end, text in sorted({k for sv in svs for k in slices[sv]["rows"]},
-                                                     key=lambda k: (k[1], k[0] or "", k[2] or ""))]
+        rec["rows"] = [{"url": url, "start": start, "end": end, "label": text, "geo": geo}
+                       for url, end, text, geo, start in sorted({k for sv in svs for k in slices[sv]["rows"]},
+                                                                key=lambda k: (k[1], k[0] or "", k[2] or "", k[3], k[4]))]
         records.append(_ordered(rec))
     records.sort(key=lambda r: (r["end"], r.get("pollster", "")), reverse=True)
     ids = [r["id"] for r in records]
