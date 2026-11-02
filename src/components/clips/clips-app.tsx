@@ -27,7 +27,7 @@ import { Upload } from "./upload"
 import { isTested } from "./clip-test"
 import { openTools, publishClipsPanel } from "@/lib/clips-panel"
 import { LAST } from "./catalog"
-import { creatorOf, CREATORS, isKeptRecording, PUBLISHED, SEED_COMMENTS, deleteClip, loadFeed, takeDown, loadFollows, loadLikes, loadMyComments, loadSaves, saveClip, storeFollows, storeLikes, storeMyComments, storeSaves, updateClip, type Clip, type Comment, type Feed as FeedData, type Upload as UploadRow } from "./store"
+import { creatorOf, CREATORS, isKeptRecording, SEED_COMMENTS, deleteClip, loadFeed, takeDown, loadFollows, loadLikes, loadMyComments, loadSaves, saveClip, storeFollows, storeLikes, storeMyComments, storeSaves, updateClip, type Clip, type Comment, type Feed as FeedData, type Upload as UploadRow } from "./store"
 
 // Clips: short vertical video, recorded on a phone or a laptop, kept private
 // until its owner says otherwise. A mock of the whole experience (Brendan,
@@ -98,7 +98,9 @@ const COLUMN_HEIGHT: Record<Frame, string> = { page: "h-[calc(100svh-var(--heade
 // The clips' panel is a column like the partners' once the shell's frame is (md); on a phone the page scrolls.
 const MAIN_HEIGHT: Record<Frame, string> = { page: "md:h-[calc(100svh-var(--header-height)-4.375rem)]", sheet: "md:h-[calc(100svh-var(--header-height)-1.7rem)]" }
 
-export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
+/** `catalog` is the published stock the server lets this reader see (app/clips/page.tsx): every clip for staff, a
+ *  partner's own sponsor's alone (lib/partners/sponsors.ts, 2026-11-02), so another's never reaches the browser. */
+export function ClipsApp({ frame = "page", catalog, scoped = false }: { frame?: Frame; catalog: Clip[]; scoped?: boolean }) {
   const { account, ready } = useAccount()
   const signedIn = !!account
   const [mine, setMine] = React.useState<Clip[]>([])
@@ -162,7 +164,7 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
   // What is on offer: the published set (the reader's own public ones, then
   // every published clip in Aurora whether recorded, cut or generated, then
   // the stock), narrowed to a creator when one is picked.
-  const published = React.useMemo(() => [...mine.filter((c) => c.visibility === "public" && c.status !== "processing"), ...live, ...PUBLISHED], [mine, live])
+  const published = React.useMemo(() => [...mine.filter((c) => c.visibility === "public" && c.status !== "processing"), ...live, ...catalog], [mine, live, catalog])
   const clips = React.useMemo(() => {
     // Bookmarks (Brendan, 2026-10-31): the clips the reader saved with the feed's bookmark, whoever's they are.
     const list = creator === "you" ? mine : creator === "all" ? published : creator === "saved" ? [...mine, ...published].filter((c, i, a) => saved.has(c.id) && a.findIndex((x) => x.id === c.id) === i) : published.filter((c) => c.creatorId === creator)
@@ -175,7 +177,8 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
 
   // The rail lists the videos themselves (Brendan, 2026-10-25), not the desks.
   const clipRows = clips.map((c) => ({ id: c.id, title: c.title, sub: `${c.duration}s · @${c.author.handle}`, partner: creatorOf(c.creatorId)?.name ?? c.author.name }))
-  const partnerRows = [{ id: "all", name: "All partners", count: published.length }, { id: "saved", name: "Bookmarks", count: saved.size }, ...CREATORS.map((c) => ({ id: c.id, name: c.name, count: published.filter((x) => x.creatorId === c.id).length }))]
+  // A partner's rail names only the desks it has clips from.
+  const partnerRows = [{ id: "all", name: "All partners", count: published.length }, { id: "saved", name: "Bookmarks", count: saved.size }, ...CREATORS.map((c) => ({ id: c.id, name: c.name, count: published.filter((x) => x.creatorId === c.id).length })).filter((r) => !scoped || r.count > 0)]
 
   // The first clip plays on arrival, or the one the address names.
   React.useEffect(() => {
