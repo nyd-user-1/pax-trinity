@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { ArrowUpRight, ChevronDown, EllipsisVertical, Link2, PanelRight, Star, type LucideIcon } from "lucide-react"
+import { ArrowUpRight, ChevronDown, EllipsisVertical, Link2, PanelRight, Search, Star, type LucideIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@govblock/ui/components/ny4/tooltip"
@@ -33,6 +33,21 @@ export function BankRail({ title, header, children }: { title?: string; header?:
       )}
       <SidebarContent>{children}</SidebarContent>
     </>
+  )
+}
+
+/** A rail's search in its header: the shell's ⌘K bar, exactly (shell.tsx's HeaderSearch), as America Thinks' and
+ *  Lift's rails carry it; the keys are its dress. */
+export function RailSearch({ query, onQuery, label }: { query: string; onQuery: (q: string) => void; label: string }) {
+  return (
+    <div className="flex h-9 items-center gap-2 rounded-full border border-slate-200 bg-pax2-surface px-3 shadow-e1 transition-colors focus-within:border-slate-300">
+      <Search className="size-4 shrink-0 text-slate-400" />
+      <input value={query} onChange={(event) => onQuery(event.target.value)} placeholder="Search…" aria-label={label} className="w-full min-w-0 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400" />
+      <span aria-hidden className="flex shrink-0 gap-1">
+        <kbd className="rounded-md border border-slate-200 bg-pax2-mist px-1.5 py-0.5 text-[11px] text-slate-500">⌘</kbd>
+        <kbd className="rounded-md border border-slate-200 bg-pax2-mist px-1.5 py-0.5 text-[11px] text-slate-500">K</kbd>
+      </span>
+    </div>
   )
 }
 

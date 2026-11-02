@@ -2,10 +2,10 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, ChartColumn, ClipboardCheck, ClipboardList, Copy, FileText, FlaskConical, MessagesSquare, PanelRight, Plus, Shield, Vote } from "lucide-react"
+import { ArrowLeft, ChartColumn, ClipboardCheck, Copy, FlaskConical, MessagesSquare, PanelRight, Plus, Shield, Vote } from "lucide-react"
 
 import { BankFrame, BankSplit, RailToggle } from "@/components/bank/bank-frame"
-import { BankRail, RailGroup, RailRow } from "@/components/bank/bank-rail"
+import { BankRail, RailGroup, RailRow, RailSearch } from "@/components/bank/bank-rail"
 import { CardList, type Card, type Split } from "@/components/bank/card-list"
 import { MenuFoot, MenuHeader, MenuRow, MenuSeparator } from "@/components/kebab-menu"
 import { PaneTitleRow, RefreshButton } from "@/components/bank/pane-bars"
@@ -20,7 +20,6 @@ import { AboutPanel, type About } from "@/app/america-thinks/audience-pane"
 import { QuestionTable } from "@/app/america-thinks/question-table"
 import { fmtNumber } from "@/lib/format"
 import { consensusHref, newTestHref, testsHref, type Surface } from "@/lib/survey-links"
-import { SURVEYS } from "@/lib/surveys/catalog"
 
 // /survey — the second consensus experience on /audience's anatomy: the
 // surveys and pretrainings as the rail's folders, the open one's questions as
@@ -150,12 +149,6 @@ export function SurveyInbox({
     }
   }
 
-  const openSurvey = (slug: string) => {
-    setFolder(slug)
-    // From one of the rail's pages, a folder brings the inbox back.
-    if (surface || slug !== open?.slug) router.push(`/survey?c=${encodeURIComponent(slug)}`, { scroll: false })
-  }
-
   const folderName = onDraft ? (pretraining?.title ?? "Draft survey") : (open?.title ?? "")
   // A pretraining opens in the inbox; from one of the rail's pages it brings the inbox back, keeping the
   // open survey's ?c= so the server's open survey doesn't change and take the folder back.
@@ -163,17 +156,26 @@ export function SurveyInbox({
     setFolder(key)
     if (surface) router.push(open ? `/survey?c=${encodeURIComponent(open.slug)}` : "/survey", { scroll: false })
   }
+  // The rail (Brendan, 2026-11-02): the ⌘K search where its title was, then Consensus, Pretrainings, Tests and,
+  // last, Toplines; the topline document's row and the survey's own row went, the Surveys page's card opening it.
+  // The search is the list's: from one of the rail's pages, typing brings the list back.
+  const railSearch = (
+    <RailSearch
+      query={query}
+      label="Search questions"
+      onQuery={(q) => {
+        setQuery(q)
+        if (surface) router.push(open ? `/survey?c=${encodeURIComponent(open.slug)}` : "/survey", { scroll: false })
+      }}
+    />
+  )
   const rail = (
-    <BankRail title="Surveys">
-      <RailGroup label="Toplines">
-        {SURVEYS.map((s) => (
-          <RailRow key={s.slug} href={`/survey/${s.slug}`} icon={FileText} label={s.title} count={s.questions.length} />
-        ))}
-      </RailGroup>
-      <RailGroup>
-        {surveys.map((s) => (
-          <RailRow key={s.slug} on={!surface && folder === s.slug} onClick={() => openSurvey(s.slug)} pane={`/survey?c=${encodeURIComponent(s.slug)}`} icon={ClipboardList} label={s.title} count={s.statements} />
-        ))}
+    <BankRail header={railSearch}>
+      <RailGroup label="Consensus">
+        <RailRow href={consensusHref("questions", open?.slug)} on={surface === "questions"} icon={Vote} label="Questions" />
+        <RailRow href={consensusHref("surveys")} on={surface === "surveys"} icon={MessagesSquare} label="Surveys" />
+        <RailRow href={consensusHref("results", open?.slug)} on={surface === "results"} icon={ChartColumn} label="Results" />
+        {admin && <RailRow href={consensusHref("admin", open?.slug)} on={surface === "admin"} icon={Shield} label="Admin" />}
       </RailGroup>
       <RailGroup label="Pretrainings">
         {PRETRAININGS.map((p) => (
@@ -181,18 +183,15 @@ export function SurveyInbox({
         ))}
         {!!draft?.questions.length && <RailRow on={!surface && folder === DRAFT} onClick={() => openPretraining(DRAFT)} icon={FlaskConical} label={draft.title} count={draft.questions.length} />}
       </RailGroup>
-      <RailGroup label="Consensus">
-        <RailRow href={consensusHref("questions", open?.slug)} on={surface === "questions"} icon={Vote} label="Questions" />
-        <RailRow href={consensusHref("surveys")} on={surface === "surveys"} icon={MessagesSquare} label="Surveys" />
-        <RailRow href={consensusHref("results", open?.slug)} on={surface === "results"} icon={ChartColumn} label="Results" />
-        {admin && <RailRow href={consensusHref("admin", open?.slug)} on={surface === "admin"} icon={Shield} label="Admin" />}
-      </RailGroup>
       {admin && (
         <RailGroup label="Tests">
           <RailRow href={testsHref()} on={surface === "tests" || surface === "test" || surface === "edit-test"} icon={ClipboardCheck} label="All tests" />
           <RailRow href={newTestHref()} on={surface === "new-test"} icon={Plus} label="New test" />
         </RailGroup>
       )}
+      <RailGroup label="Toplines">
+        <p className="px-3 py-2 text-sm text-slate-400">None yet</p>
+      </RailGroup>
     </BankRail>
   )
 
