@@ -18,7 +18,7 @@ import { Creators } from "./creators"
 import { DEFAULT_AVATAR } from "@/lib/auth/use-account"
 import { viewer } from "@/app/original-actions"
 import { LoadingFlag } from "@/components/loading-flag"
-import { Feed, type Reactions } from "./feed"
+import type { Reactions } from "./feed"
 import { Grid } from "./grid"
 import { ReportDialog } from "./report"
 import type { From as TemplateFrom, Take } from "./template-chooser"
@@ -39,6 +39,10 @@ import { creatorOf, CREATORS, isKeptRecording, SEED_COMMENTS, deleteClip, loadFe
 // the clip playing through lib/clips-panel.ts). The partners' panel gives way first: it narrows before the
 // clips do, and leaves when keeping it would cost the grid a column, its menu moving into the clips'
 // header. On a phone the thread is a sheet that rises from the foot.
+
+// The feed (its players and the reaction button's motion library) loads apart from the grid the page opens on;
+// ClipsApp warms its chunk when the browser is idle after the grid draws, so the first open is still at once.
+const Feed = dynamic(() => import("./feed").then((m) => m.Feed))
 
 type Account = { name?: string | null; email?: string | null; image?: string | null; admin?: boolean } | null
 
@@ -111,6 +115,12 @@ export function ClipsApp({ frame = "page", catalog, scoped = false }: { frame?: 
   const [creator, setCreator] = React.useState("all")
   // The grid first (Brendan, 2026-09-14); a clip opens the feed.
   const [view, setView] = React.useState<"feed" | "grid">("grid")
+  // The feed's chunk, warmed once the browser is idle after the grid draws.
+  React.useEffect(() => {
+    const warm = () => void import("./feed")
+    if (typeof window.requestIdleCallback === "function") window.requestIdleCallback(warm)
+    else window.setTimeout(warm, 1500)
+  }, [])
   const [activeId, setActiveId] = React.useState<string | null>(null)
   const [muted, setMuted] = React.useState(true)
   const [liked, setLiked] = React.useState<Set<string>>(new Set())
