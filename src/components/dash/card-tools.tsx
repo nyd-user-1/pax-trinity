@@ -7,6 +7,8 @@ import { CheckIcon, ChevronsDownUpIcon, CopyIcon, DownloadIcon, EllipsisVertical
 import { CardTitle } from "@/ui/components/nova/card"
 import { usePinTop } from "@/components/dash/block-order"
 import { KebabMenu, MenuFlyout, MenuFoot, MenuRow, MenuSeparator } from "@/components/kebab-menu"
+import { AddToNoteRow } from "@/components/notes/add-to-note"
+import type { BasketKind } from "@/lib/note-basket"
 import { useShellPanel } from "@/components/shell"
 import { useHiddenBlocks, useShelf } from "@/lib/home-blocks"
 import { useNavFavorites } from "@/lib/nav-favorites"
@@ -125,12 +127,18 @@ const here = (path: string) => (typeof window === "undefined" ? path : path + wi
 /** Add to Blocks for a menu of its own (a question card's, a list row's): the right panel's Blocks section keeps the
  *  card's title and its address, the page with its query. The key carries the query too, so the same question on
  *  two of /survey's pages is two blocks. */
-export function AddToBlocksRow({ title, anchor }: { title: string; anchor: string }) {
+export function AddToBlocksRow({ title, anchor, kind, question }: { title: string; anchor: string; kind?: BasketKind; question?: { text: string; options: string[] } }) {
   const path = usePathname()
   const shelf = useShelf()
   const key = `${here(path)}#${anchor}`
   const on = shelf.has(key)
-  return <MenuRow icon={<LayoutGridIcon />} label={on ? "Remove from Blocks" : "Add to Blocks"} checked={on} onClick={() => (on ? shelf.remove(key) : shelf.add({ key, title, path: here(path), anchor }))} />
+  return (
+    <>
+      <MenuRow icon={<LayoutGridIcon />} label={on ? "Remove from Blocks" : "Add to Blocks"} checked={on} onClick={() => (on ? shelf.remove(key) : shelf.add({ key, title, path: here(path), anchor }))} />
+      {/* Its sibling while a note collects (Brendan, 2026-11-02). */}
+      <AddToNoteRow title={title} anchor={anchor} kind={kind} question={question} />
+    </>
+  )
 }
 
 export function CardTools({
@@ -148,6 +156,7 @@ export function CardTools({
   title,
   anchor,
   copy,
+  collect,
 }: {
   children?: React.ReactNode
   /** Extra entries for the three-dot menu (a Narrative, an Explain), after the standard ones. */
@@ -172,6 +181,9 @@ export function CardTools({
   /** The card's contents as text: present, the menu's Copy puts them on the clipboard (Brendan, 2026-11-02: every
    *  card's menu carries Copy and Add to Blocks). */
   copy?: string
+  /** What the card is to a note's basket (Add to the note, beside Add to Blocks while a note collects): a block unless
+   *  said, a value or a model card where it is one. */
+  collect?: { kind: BasketKind; question?: { text: string; options: string[] } }
 }) {
   const router = useRouter()
   const path = usePathname()
@@ -197,6 +209,7 @@ export function CardTools({
         {!panel && <MenuRow icon={<StarIcon className={fav ? "fill-amber-400 text-amber-400" : undefined} />} label={fav ? "Unfavorite" : "Favorite"} disabled={!key} onClick={() => key && toggleFav(key)} />}
         {copy != null && <MenuRow icon={<CopyIcon />} label="Copy" onClick={() => void navigator.clipboard?.writeText(copy)} />}
         <MenuRow icon={<LayoutGridIcon />} label={onShelf ? "Remove from Blocks" : "Add to Blocks"} checked={onShelf} disabled={!key || !title} onClick={() => key && title && anchor && (onShelf ? shelf.remove(key) : shelf.add({ key, title, path: here(path), anchor }))} />
+        {key && title && anchor && <AddToNoteRow title={title} anchor={anchor} kind={collect?.kind ?? "block"} question={collect?.question} />}
         <MenuRow icon={<MessagesSquareIcon />} label="Ask PAX" onClick={ask} />
         <MenuRow icon={<RefreshCwIcon />} label="Refresh" onClick={() => router.refresh()} />
         {!panel && (

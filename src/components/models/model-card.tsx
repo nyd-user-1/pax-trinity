@@ -44,7 +44,7 @@ export function ModelCard({ m }: { m: CommercialCard }) {
   const copy = [m.name, m.sub ?? m.maker, ...rows.map(([label, value]) => `${label}: ${label === "Model ID" && m.kind === "llm" ? shortId(value) : value}`)].join("\n")
   return (
     <UnlessDeleted anchor={anchor}>
-      <Block stretch id={anchor} className="lift" title={m.name} sub={m.sub ?? m.maker} lead={m.kind === "original" ? <PaxTile /> : <Logo src={m.logo} />} badge={m.badge && <Badge tone={m.badge.tone}>{m.badge.label}</Badge>} action={<CardTools title={m.name} anchor={anchor} copy={copy} className="self-start" />}>
+      <Block stretch id={anchor} className="lift" title={m.name} sub={m.sub ?? m.maker} lead={m.kind === "original" ? <PaxTile /> : <Logo src={m.logo} />} badge={m.badge && <Badge tone={m.badge.tone}>{m.badge.label}</Badge>} action={<CardTools title={m.name} anchor={anchor} copy={copy} collect={{ kind: "model" }} className="self-start" />}>
         {rows.map(([label, value]) => (
           <Fact key={label} label={label} mono={label === "Model ID"}>
             {label === "Model ID" && m.kind === "llm" ? <span title={value}>{shortId(value)}</span> : value}
@@ -60,7 +60,7 @@ export function ModelCard({ m }: { m: CommercialCard }) {
 export function SeriesCard({ m, children, className, anchor, copy, id, badge }: { m: Pick<OriginalCard, "name" | "tagline"> & Partial<OriginalCard>; children?: React.ReactNode; className?: string; anchor?: string; copy?: string; id?: string; badge?: React.ReactNode }) {
   const text = copy ?? [m.name, m.tagline, m.what, m.who && `Who it's for: ${m.who}`, m.proof && `The proof: ${m.proof}`, ...(m.uses ?? []).map((u) => `- ${u}`)].filter(Boolean).join("\n")
   return (
-    <Block id={id ?? anchor} title={m.name} sub={m.tagline} lead={<PaxTile />} badge={badge} className={className} action={anchor ? <CardTools title={m.name} anchor={anchor} copy={text} className="self-start" /> : undefined}>
+    <Block id={id ?? anchor} title={m.name} sub={m.tagline} lead={<PaxTile />} badge={badge} className={className} action={anchor ? <CardTools title={m.name} anchor={anchor} copy={text} collect={{ kind: "model" }} className="self-start" /> : undefined}>
       {children}
       {m.what && <Passage>{m.what}</Passage>}
       {m.who && <Passage label="Who it's for">{m.who}</Passage>}

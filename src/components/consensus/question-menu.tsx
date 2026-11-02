@@ -19,7 +19,7 @@ export function QuestionMenu({ n, title, code, text, anchor }: { n?: number; tit
         </>
       )}
       <MenuRow icon={<Copy />} label="Copy the question" onClick={() => void navigator.clipboard.writeText(text)} />
-      <AddToBlocksRow title={title ? `${title}, ${name}` : text} anchor={anchor} />
+      <AddToBlocksRow title={title ? `${title}, ${name}` : text} anchor={anchor} kind="question" question={{ text, options: [] }} />
       {title && (
         <>
           <MenuSeparator />

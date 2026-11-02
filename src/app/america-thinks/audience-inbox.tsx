@@ -9,6 +9,7 @@ import { BankFrame, BankSplit } from "@/components/bank/bank-frame"
 import { CardList, type Card, type Split } from "@/components/bank/card-list"
 import { ImportantIcon } from "@/components/bank/marks"
 import { MenuFoot, MenuHeader, MenuRow, MenuSeparator } from "@/components/kebab-menu"
+import { AddToNoteRow } from "@/components/notes/add-to-note"
 
 import { BaselinePanel, type BaselinePick } from "./audience-pane"
 import { buildInfo, fetchQuestionRows, groupSources, mnemonicOf, normalizeWording, scaleOf, shortSource, topicOf, UNTAGGED, TOPIC_GROUPS, WEB_GRID, WORDING, type AudienceIndex, type MetricInfo, type QuestionSummary, type SourceRow } from "./audience-data"
@@ -432,6 +433,15 @@ export function AudienceInbox() {
               setBlocks((prev) => (prev.includes(id) ? prev : [...prev, id]))
               setBlocksOpen(true)
             }}
+          />
+          {/* While a note collects (Brendan, 2026-11-02): the question, with its wording and options, into the note's
+              basket, at the address that opens it. */}
+          <AddToNoteRow
+            title={normalizeWording(wordingOf(id) ?? label(id))}
+            anchor={id}
+            kind="question"
+            question={{ text: normalizeWording(wordingOf(id) ?? label(id)), options: summaries.get(id)?.options ?? [] }}
+            path={`/america-thinks?${new URLSearchParams([...(source ? [["source", source]] : topic ? [["topic", topic]] : []), ["open", id]])}`}
           />
           <MenuRow icon={<ClipboardList />} label="Add to survey" onClick={() => addToSurvey(id)} />
           <MenuSeparator />

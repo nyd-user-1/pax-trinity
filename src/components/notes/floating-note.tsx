@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { createPortal } from "react-dom"
-import { ChevronsUpDown, Copy, Download, EllipsisVertical, GripVertical, LayoutGrid, MessagesSquare, Send, Star, StickyNote, Trash2, X, type LucideIcon } from "lucide-react"
+import { ChevronsUpDown, Copy, Download, EllipsisVertical, GripVertical, LayoutGrid, MessagesSquare, Send, ShoppingBasket, Star, StickyNote, Trash2, X, type LucideIcon } from "lucide-react"
 import { generateJSON, type Editor, type JSONContent } from "@tiptap/react"
 
 import { createMyNote, removeNote, saveNote } from "@/app/note-actions"
@@ -13,6 +13,7 @@ import { NOTES_CHANGED, readDefaultShape, useDefaultShape, useNoteFavorites, typ
 import { pageContext } from "@/lib/page-text"
 import { TaskSurface, TaskToolbar, useTaskEditor } from "@/registry/blocks/sidebar-09/components/rich-body"
 
+import { NoteCollect } from "./note-collect"
 import { NoteCompose } from "./note-compose"
 import { noteExtensions } from "./note-menus"
 import { PaxReply, turnsOf } from "./pax-reply"
@@ -31,12 +32,14 @@ const titleOf = (md: string) => md.split("\n").map((l) => l.replace(/<[^>]+>/g, 
 
 const SORRY = "Something went wrong. Please try again."
 
-/** The card's shapes, in the switcher's order (Brendan, 2026-11-02): the note, PAX's chat beside it, and the note as
- *  a mail. The star beside each makes it the reader's default, the shape a card opens on. */
+/** The card's shapes, in the switcher's order (Brendan, 2026-11-02): the note, PAX's chat beside it, the note as a
+ *  mail, and a basket carried across pages. The star beside each makes it the reader's default, the shape a card opens
+ *  on. */
 const SHAPES: { shape: NoteShape; label: string; icon: LucideIcon }[] = [
   { shape: "note", label: "Note", icon: StickyNote },
   { shape: "chat", label: "Chat", icon: MessagesSquare },
   { shape: "compose", label: "Compose", icon: Send },
+  { shape: "collect", label: "Collect", icon: ShoppingBasket },
 ]
 const shapeOf = (s: NoteShape | null): NoteShape => (s && SHAPES.some((x) => x.shape === s) ? s : "note")
 
@@ -311,6 +314,8 @@ export function FloatingNote({ rect, id: firstId, body: firstBody, chat: firstCh
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[14px] border border-slate-200 bg-pax2-surface shadow-e1">
         {mode === "compose" ? (
           <NoteCompose body={body} onBody={setBody} onClose={() => setMode("note")} />
+        ) : mode === "collect" ? (
+          <NoteCollect />
         ) : mode === "note" ? (
           <>
             <TaskToolbar editor={editor} className="shrink-0 border-b border-slate-200 px-2 py-1" />

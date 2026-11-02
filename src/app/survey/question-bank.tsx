@@ -74,7 +74,7 @@ function BankRow({ q }: { q: BankQuestion }) {
             </>
           )}
           <MenuRow icon={<Copy />} label="Copy the question" onClick={() => void navigator.clipboard.writeText(q.text)} />
-          <AddToBlocksRow title={`Question Bank: ${q.text}`} anchor={bankAnchor(q)} />
+          <AddToBlocksRow title={`Question Bank: ${q.text}`} anchor={bankAnchor(q)} kind="question" question={{ text: q.text, options: q.options }} />
           {q.on.some((a) => a.href) && <MenuSeparator />}
           {q.on.map((a) => {
             const Icon = ICON[a.kind]

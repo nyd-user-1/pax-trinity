@@ -122,7 +122,7 @@ export function BaselinePanel({
         sub={facts}
         action={
           <span className="flex shrink-0 items-center gap-0.5 self-start">
-            <CardTools panel title={plain} anchor={anchor} name="baseline" copy={[plain, facts, ...figures.map(([k, v]) => `${k}: ${v}`)].join("\n")} rows={[Object.fromEntries([["Question", picked.metric], ["Segment", picked.segment], ...figures])]} />
+            <CardTools panel title={plain} anchor={anchor} name="baseline" collect={{ kind: "value" }} copy={[plain, facts, ...figures.map(([k, v]) => `${k}: ${v}`)].join("\n")} rows={[Object.fromEntries([["Question", picked.metric], ["Segment", picked.segment], ...figures])]} />
             <Button variant="ghost" size="icon-sm" aria-label="Close" title="Close" onClick={onClose}>
               <X className="size-4" />
             </Button>

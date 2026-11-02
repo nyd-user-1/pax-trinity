@@ -1,7 +1,9 @@
 "use client"
 
 import * as React from "react"
-import { BanIcon, CodeIcon, ExternalLinkIcon, FlagIcon, LayoutTemplateIcon, LinkIcon, Share2Icon, Trash2Icon } from "lucide-react"
+import { BanIcon, CodeIcon, ExternalLinkIcon, FlagIcon, LayoutTemplateIcon, LinkIcon, Share2Icon, StickyNoteIcon, Trash2Icon } from "lucide-react"
+
+import { useBasket } from "@/lib/note-basket"
 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@govblock/ui/components/nova/dropdown-menu"
 
@@ -20,6 +22,10 @@ export const clipUrl = (clip: Clip) => `${typeof window === "undefined" ? "" : w
 // (template-chooser.tsx): all four Yes on 3 templates over it.
 export function ClipMenu({ clip, onGoToPost, onDelete, onReport, onTakeDown, onApplyTemplate, children }: { clip: Clip; onGoToPost: () => void; onDelete?: () => void; onReport?: () => void; onTakeDown?: () => void; onApplyTemplate?: () => void; children: React.ReactElement }) {
   const copy = (text: string) => void navigator.clipboard?.writeText(text)
+  // While a note collects (Brendan, 2026-11-02), the clip goes into its basket by its address.
+  const basket = useBasket()
+  const noteKey = `clip:${clip.id}`
+  const inNote = basket.has(noteKey)
   const share = async () => {
     const url = clipUrl(clip)
     if (navigator.share) {
@@ -43,6 +49,14 @@ export function ClipMenu({ clip, onGoToPost, onDelete, onReport, onTakeDown, onA
         <DropdownMenuItem className="whitespace-nowrap" onClick={() => copy(clipUrl(clip))}>
           <LinkIcon /> Copy link
         </DropdownMenuItem>
+        {basket.open && (
+          <DropdownMenuItem
+            className="whitespace-nowrap"
+            onClick={() => (inNote ? basket.remove(noteKey) : basket.add({ key: noteKey, kind: "clip", title: clip.title, path: `/clips?c=${encodeURIComponent(clip.id)}`, anchor: "" }))}
+          >
+            <StickyNoteIcon /> {inNote ? "Remove from the note" : "Add to the note"}
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem className="whitespace-nowrap" onClick={() => copy(`<iframe src="${clipUrl(clip)}&embed=1" width="360" height="640" style="border:0;border-radius:12px" allow="autoplay; fullscreen"></iframe>`)}>
           <CodeIcon /> Embed
         </DropdownMenuItem>

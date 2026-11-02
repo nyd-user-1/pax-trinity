@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { ArrowUpRight, ChevronsDownUp, EllipsisVertical, LayoutGrid, Link2, Loader2, MessagesSquare, Pin, RectangleHorizontal, RectangleVertical, RefreshCw, Star } from "lucide-react"
 
 import { KebabMenu, MenuFoot, MenuRow, MenuSeparator } from "@/components/kebab-menu"
+import { AddToNoteRow } from "@/components/notes/add-to-note"
 import { useShellPanel } from "@/components/shell"
 import { useNavFavorites } from "@/lib/nav-favorites"
 
@@ -101,6 +102,7 @@ export function ChatBlock({ path, anchor }: { path: string; anchor: string }) {
                   <MenuRow icon={<Pin />} label="Pin to top" disabled onClick={() => {}} />
                   <MenuRow icon={<Star className={favs.includes(key) ? "fill-amber-400 text-amber-400" : undefined} />} label={favs.includes(key) ? "Unfavorite" : "Favorite"} onClick={() => toggleFav(key)} />
                   <MenuRow icon={<LayoutGrid />} label={onShelf ? "Remove from Blocks" : "Add to Blocks"} checked={onShelf} onClick={() => (onShelf ? remove(key) : add({ key, title, path, anchor }))} />
+                  <AddToNoteRow title={title} anchor={anchor} path={path} />
                   <MenuRow icon={<MessagesSquare />} label="Ask PAX" onClick={() => { const text = (snap.current?.innerText ?? "").replace(/\n{3,}/g, "\n\n").slice(0, 8000); askAbout({ context: () => `ACTIVE CONTEXT — the user is asking about the block "${title}" on ${path}. What the block shows on screen:\n${text}` }) }} />
                   <MenuRow icon={<RefreshCw />} label="Refresh" onClick={() => setNonce((n) => n + 1)} />
                   <MenuSeparator />
