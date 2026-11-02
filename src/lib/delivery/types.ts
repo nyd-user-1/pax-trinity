@@ -1,3 +1,5 @@
+import type { LifeState } from "@/lib/lifecycle/rules"
+
 // The Delivery Board's work, as data (Brendan, 2026-10-31): what PAX makes for a partner, one item per
 // piece of work, moved through four stages. An item is the fold of its events, so its history is the
 // list itself. Plain types and pure helpers, safe on the client and the server; the DynamoDB side is
@@ -100,7 +102,7 @@ export function healthOf(items: Item[], today: string): Health {
 export type Person = { email: string; name: string; photo?: string }
 
 /** A message test whose arms are the partner's videos. */
-export type TestRow = { id: string; title: string; status: "draft" | "fielding" | "closed"; arms: number; updatedAt?: string }
+export type TestRow = { id: string; title: string; /** Its lifecycle state (lib/lifecycle), the word every screen shows. */ state: LifeState; arms: number; updatedAt?: string }
 
 /** A partner video with a published result: its best outcome. */
 export type ResultRow = { clipId: string; title: string; study: string; outcome: string; lift: number; persuasive: boolean }

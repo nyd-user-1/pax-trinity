@@ -5,6 +5,7 @@ import { CREATORS } from "@/components/clips/desks"
 import { ledger } from "@/lib/delivery/store"
 import type { Account, Person, ResultRow, TestRow } from "@/lib/delivery/types"
 import { MEMBERS, PARTNERS } from "@/lib/roles"
+import { lifecycleOf } from "@/lib/lifecycle/store"
 import { listTests } from "@/lib/tests/store"
 import { PLACEBO } from "@/lib/tests/types"
 
@@ -44,12 +45,14 @@ function testPartner(arms: string[]): string | null {
 export async function accounts(ids?: string[]): Promise<{ accounts: Account[]; reachable: boolean }> {
   const partners = ids ? PARTNERS.filter((p) => ids.includes(p.id)) : PARTNERS
   const [{ tests }, ledgers] = await Promise.all([listTests(), Promise.all(partners.map((p) => ledger(p.id)))])
+  // Each test's lifecycle state (lib/lifecycle), the word the dashboards show.
+  const states = new Map(await Promise.all(tests.map(async (t) => [t.id, (await lifecycleOf("test", t.id)).state] as const)))
   const list = partners.map((p, i): Account => {
     const desk = deskOf(p.id)
     const clips = PUBLISHED.filter((c) => c.creatorId === desk)
     const testRows: TestRow[] = tests
       .filter((t) => testPartner(t.arms) === p.id)
-      .map((t) => ({ id: t.id, title: t.title, status: t.status, arms: t.arms.filter((a) => a !== PLACEBO).length, updatedAt: t.updatedAt }))
+      .map((t) => ({ id: t.id, title: t.title, state: states.get(t.id) ?? "Draft", arms: t.arms.filter((a) => a !== PLACEBO).length, updatedAt: t.updatedAt }))
     const results: ResultRow[] = clips
       .filter((c) => c.report)
       .map((c) => {
