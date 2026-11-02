@@ -248,8 +248,9 @@ export function CardList({
           setDeep(el.scrollTop > el.clientHeight)
         }}
       >
-        {error && <p className="p-6 text-center text-sm text-pax2-red">The data did not load: {error}</p>}
-        {!error && loading && <p className="p-6 text-center text-sm text-muted-foreground">Reading the index…</p>}
+        {/* Plain words, never the machinery (Brendan, 2026-11-02: "stop being so literal — you're designing a platform"). */}
+        {error && <p className="p-6 text-center text-sm text-pax2-red">{error}</p>}
+        {!error && loading && <p className="p-6 text-center text-sm text-muted-foreground">Loading</p>}
         {!error && !loading && ids.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">{empty}</p>}
         <ul className={railTone ? "flex flex-col" : "divide-y"}>
           {listed.map((id) => {

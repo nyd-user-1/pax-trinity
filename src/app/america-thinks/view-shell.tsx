@@ -68,11 +68,9 @@ export function Copyable({ children, flush = false }: { children: React.ReactNod
   )
 }
 
-/** The loader module that writes a source's rows, where exactly one does. */
-const LOADER: Record<string, string> = { GSS: "gss", ACS: "acs", CVAP: "cvap", CPS: "cps", MA_ENROLLMENT: "ma_enrollment", LIFT_ARCHIVE: "lift_archive", PAX_TEST: "pax_tests" }
-
-/** Where the question's rows come from: the source, its file, the loader and the raw rows. */
-/** `raw` false where the rows are the mount's own, not an export file (Survey's): no raw-rows link. */
+/** Where the question's figures come from, in the reader's words (Brendan, 2026-11-02: no loader names, no files):
+ *  the source, the publisher's page or pages, the weights, how many figures, and the data to download. */
+/** `raw` false where the rows are the mount's own (Survey's): no download. */
 export function Provenance({ source, id, label, rows, extra, raw = true }: { source: string; id: string; label: string | null; rows: SourceRow[] | null; extra?: React.ReactNode; raw?: boolean }) {
   const urls = React.useMemo(() => [...new Set((rows ?? []).map((r) => r[12]).filter((u): u is string => !!u))], [rows])
   const host = (u: string) => {
@@ -90,19 +88,13 @@ export function Provenance({ source, id, label, rows, extra, raw = true }: { sou
         {host(urls[0])}
       </a>
     )
-  else if (urls.length > 1) parts.push(`${urls.length} source files (${[...new Set(urls.map(host))].join(", ")})`)
+  else if (urls.length > 1) parts.push(`${urls.length} sources (${[...new Set(urls.map(host))].join(", ")})`)
   if (extra) parts.push(extra)
-  if (LOADER[source])
-    parts.push(
-      <span key="l">
-        loader <code className="font-mono text-[11px]">{LOADER[source]}</code>
-      </span>
-    )
-  if (rows) parts.push(`${num(rows.length, 0)} rows for this question`)
+  if (rows) parts.push(`${num(rows.length, 0)} figures for this question`)
   if (raw)
     parts.push(
-      <a key="raw" href={rawHref(source, id)} className="text-pax2-light-blue underline" target="_blank" rel="noreferrer">
-        open raw rows
+      <a key="raw" href={rawHref(source, id)} download className="text-pax2-light-blue underline">
+        Download the data
       </a>
     )
   return (

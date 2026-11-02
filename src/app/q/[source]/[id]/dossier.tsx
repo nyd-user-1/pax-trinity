@@ -371,7 +371,7 @@ function Crosstab({ rows, band, geo, latest, base }: { rows: SourceRow[]; band: 
           ))}
         </tbody>
       </table>
-      {!lines.length && <p className="mt-3 text-xs text-muted-foreground">No breakdowns on file at this geography.</p>}
+      {!lines.length && <p className="mt-3 text-xs text-muted-foreground">No breakdowns at this geography.</p>}
     </div>
   )
 }

@@ -13,14 +13,14 @@ import { Card, CardLabel } from "../_wire/wire-bits"
 // modules, and this dynamic mount keeps that chunk off every route until then.
 const QuestionChart = dynamic(() => import("./question-chart").then((m) => m.QuestionChart), {
   ssr: false,
-  loading: () => <p className="p-6 text-sm text-muted-foreground">Drawing…</p>,
+  loading: () => <p className="p-6 text-sm text-muted-foreground">Loading</p>,
 })
 // The dossier is the toggle's fourth view, the globe (Brendan, 2026-10-27),
 // mounted embedded: the pane's title row carries the question. Dynamic for
 // the same reason as the chart.
 const Dossier = dynamic(() => import("../q/[source]/[id]/dossier").then((m) => m.Dossier), {
   ssr: false,
-  loading: () => <p className="p-6 text-sm text-muted-foreground">Reading the question…</p>,
+  loading: () => <p className="p-6 text-sm text-muted-foreground">Loading</p>,
 })
 
 import { crosstabOf, dimLabel, latestRow, MAX_BANNER_ROWS, mnemonicOf, normalizeWording, num, shortSource, value, weightOf, year, type MetricInfo, type SourceRow } from "./audience-data"
@@ -186,7 +186,7 @@ export function QuestionTable({
         {shown === "topline" ? (
           <ToplineView tab={tab} title={title} wording={wording} metric={metric} source={source} sourceLabel={sourceLabel} rows={rows} picked={picked} onPick={onPick} local={local}>
             <ViewHeading sub={facts(baseName, src, tab.years.length > 1 ? `${oldest}–${tab.latestYear}, ${tab.years.length} waves` : null)}>
-              {people ? <>Every answer from {asked}.</> : <>Every figure on file for {baseName} in <B>{tab.latestYear}</B>.</>}
+              {people ? <>Every answer from {asked}.</> : <>Every figure for {baseName} in <B>{tab.latestYear}</B>.</>}
             </ViewHeading>
           </ToplineView>
         ) : shown === "chart" ? (
@@ -198,7 +198,7 @@ export function QuestionTable({
                 </>
               ) : (
                 <>
-                  One wave on file, <B>{tab.latestYear}</B>: nothing to trend yet.
+                  One wave, <B>{tab.latestYear}</B>: nothing to trend yet.
                 </>
               )}
             </ViewHeading>
@@ -244,7 +244,7 @@ export function QuestionTable({
           <ViewColumn>
             <ViewHeading sub={facts(baseName, src)}>
               {people ? <>How {asked} answered</> : <>Each figure for {baseName} in <B>{tab.latestYear}</B></>}
-              {tab.banner.length ? `, by ${listed(tab.banner.map((b) => dimLabel(b.dim).toLowerCase()))}.` : "; no breakdowns on file."}
+              {tab.banner.length ? `, by ${listed(tab.banner.map((b) => dimLabel(b.dim).toLowerCase()))}.` : "; no breakdowns."}
             </ViewHeading>
             {/* Vertical (Brendan, 2026-10-29): the answers across the top, Total
                 then each breakdown's values down the side under its name, and

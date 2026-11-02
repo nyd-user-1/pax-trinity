@@ -100,7 +100,11 @@ export function AudienceInbox() {
         if (!on) return
         setIndex(idx)
       })
-      .catch((e: Error) => on && setError(e.message))
+      .catch((e: Error) => {
+        // The reader gets plain words; the fetch's own detail goes to the console.
+        console.warn("America Thinks: the question list did not load", e.message)
+        if (on) setError("The questions didn't load.")
+      })
     return () => {
       on = false
     }
@@ -169,6 +173,7 @@ export function AudienceInbox() {
         fetchQuestionRows(s, id)
           .then((data) => setCache((prev) => ({ ...prev, [key]: data })))
           .catch((e: Error) => {
+            console.warn("America Thinks: a question did not load", e.message)
             if (s === home) setRowsError(e.message)
           })
           .finally(() => pending.current.delete(key))
@@ -465,7 +470,7 @@ export function AudienceInbox() {
             ? "Nothing pinned."
             : topic === IMPORTANT
               ? "Nothing marked important."
-              : "Nothing on file."
+              : "Nothing here yet."
       }
     />
   )
@@ -594,9 +599,9 @@ export function AudienceInbox() {
   )
 }
 
-/** The pane while a question's own file is on its way. */
+/** The pane while a question's data is on its way: plain words, the fetch's detail in the console. */
 function Reading({ error }: { error: string | null }) {
-  return error ? <p className="p-6 text-center text-sm text-pax2-red">The question did not load: {error}</p> : <p className="p-6 text-center text-sm text-muted-foreground">Reading the question…</p>
+  return error ? <p className="p-6 text-center text-sm text-pax2-red">The question didn't load.</p> : <p className="p-6 text-center text-sm text-muted-foreground">Loading</p>
 }
 
 /** The right side's Blocks panel: the questions pressed into it, each with its data's shape. */
