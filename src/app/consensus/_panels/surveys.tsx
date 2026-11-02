@@ -3,7 +3,7 @@ import { MessagesSquare } from "lucide-react"
 
 import { surveyCode } from "@/components/consensus/question-code"
 import { CardTools, UnlessDeleted } from "@/components/dash/card-tools"
-import { Block, Fact, SMALL, Tile } from "@/components/settings/blocks"
+import { Block, Fact, Tile } from "@/components/settings/blocks"
 import { asked, type Conversation } from "@/lib/consensus/data"
 import { fmtNumber } from "@/lib/format"
 
@@ -30,7 +30,8 @@ export function SurveysPanel({ all, taken }: { all: Conversation[]; taken: strin
   )
 }
 
-/** A survey's card: the whole card opens it, or the reader's results once they have taken it. The link lies under the
+/** A survey's card: the whole card opens it, or the reader's results once they have taken it, with no button saying so
+ *  (Brendan, 2026-11-02: the card is the way in). The link lies under the
  *  card, so its three-dot menu (Copy, Add to Blocks and the rest, Brendan 2026-11-02) can sit above it: a menu can't
  *  live inside a link. The card lifts on hover as /models' cards do. */
 export function SurveyCard({ c, n, taken }: { c: Conversation; n: number; taken: boolean }) {
@@ -55,10 +56,7 @@ export function SurveyCard({ c, n, taken }: { c: Conversation; n: number; taken:
           title={c.title}
           sub={c.topic || undefined}
           action={
-            <span className="flex shrink-0 items-center gap-1.5 self-start">
-              <span className={SMALL}>{taken ? "Your results" : "Take the survey"}</span>
-              <CardTools title={c.title} anchor={anchor} copy={copy} className="pointer-events-auto" />
-            </span>
+            <CardTools title={c.title} anchor={anchor} copy={copy} className="pointer-events-auto self-start" />
           }
         >
           {rows.map(([k, v]) => (
