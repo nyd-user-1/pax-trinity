@@ -1,10 +1,10 @@
 "use client"
 
 import * as React from "react"
-import { Archive, ArchiveRestore, ArrowLeft, Check, Copy, ExternalLink, Forward as ForwardIcon, Mail, MailOpen, Maximize2, PenSquare, Reply as ReplyIcon, RotateCcw, Star, Trash2 } from "lucide-react"
+import { ArrowLeft, Check, Copy, ExternalLink, Forward as ForwardIcon, PenSquare, Reply as ReplyIcon, RotateCcw, Star, Trash2 } from "lucide-react"
 
 import { ADDRESSES, PEOPLE_ADDRESSES, addressFor, keptThread, loadDrafts, nameOf, newThread, saveDrafts, shownRecipients, snippet, when, type Attached, type Folder, type Message, type Thread } from "@/lib/agents/inbox"
-import { applyFiling, fileThread, isAgentBox, marksOf, readFolder, showsIn, type Counts, type Filing, type Kept } from "@/lib/mail/client"
+import { applyFiling, fileThread, isAgentBox, listTime, marksOf, readFolder, showsIn, type Counts, type Filing, type Kept } from "@/lib/mail/client"
 import { PENDING_DRAFT } from "@/lib/agents/pending-draft"
 import { fieldingRequest } from "@/lib/agents/live"
 import { cn } from "@/lib/utils"
@@ -12,10 +12,11 @@ import { useShellPanel } from "@/components/shell"
 import { SaveToDrive } from "@/components/connectors/save-to-drive"
 import { Prose, RunSteps } from "@/app/agents/transcript"
 import { BankFrame } from "@/components/bank/bank-frame"
-import { CardList, type Card, type Split } from "@/components/bank/card-list"
+import type { Split } from "@/components/bank/card-list"
 import { myNotes } from "@/app/note-actions"
 import { NOTES_CHANGED, openDrawnNote } from "@/lib/drawn-notes"
-import { MenuFoot, MenuHeader, MenuRow, MenuSeparator } from "@/components/kebab-menu"
+import { MenuRow, MenuSeparator } from "@/components/kebab-menu"
+import { ArchiveIcon, MailList, MarkUnreadIcon, UnarchiveIcon, type MailActions, type MailRowView, type SelectBy } from "@/registry/blocks/sidebar-09/components/mail-list"
 import { InboxRail, THREAD_DRAG } from "@/registry/blocks/sidebar-09/components/app-sidebar"
 import { BoxMark, MailboxChip, ownersFor, type Owner } from "@/registry/blocks/sidebar-09/components/mailbox-chip"
 import { Compose, EMPTY_DRAFT, type Draft } from "@/registry/blocks/sidebar-09/components/compose"
@@ -27,9 +28,8 @@ import { isTrace } from "@/lib/agents/report-modes"
 import { reportFor, save } from "@/lib/agents/report-pdf"
 import { AttachmentGroup } from "@/registry/blocks/sidebar-09/components/attachment"
 import { TraceReport } from "@/registry/blocks/sidebar-09/components/trace-report"
-import { Marker, TITLES } from "@/registry/blocks/sidebar-09/components/thread-list"
+import { Marker } from "@/registry/blocks/sidebar-09/components/thread-list"
 import { Button } from "@govblock/ui/components/nova/button"
-import { DropdownMenuCheckboxItem, DropdownMenuItem, DropdownMenuSeparator } from "@govblock/ui/components/ny4/dropdown-menu"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@govblock/ui/components/ny4/resizable"
 import { Separator } from "@govblock/ui/components/ny4/separator"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/ny4/tooltip"
@@ -267,7 +267,6 @@ export default function Page() {
       return hay.join(" ").toLowerCase().includes(q)
     })
   }, [rows, query, unreadOnly])
-  const ids = React.useMemo(() => shown.map((r) => r.id), [shown])
 
   const openRow = selected ? byId.get(selected) : undefined
   const open: Thread | null = React.useMemo(() => (openRow?.draft ? openRow.draft : openRow?.kept ? keptThread(openRow.kept) : null), [openRow])
@@ -524,11 +523,11 @@ export default function Page() {
   return (
     // America Thinks' frame (Brendan, 2026-10-31): bare, one bar all the way
     // down, the folders in its rail, the thread list and the reading pane
-    // beside it.
+    // beside it. The rail opens with the page, Gmail's (the lead, 2026-11-02):
+    // the folders and the mailbox chip are always there.
     <BankFrame
       bare
       tone="rail"
-      railDefaultOpen={false}
       crumb="Inbox"
       search={{ query, onQuery: setQuery, placeholder: "Search mail" }}
       rail={
@@ -552,94 +551,98 @@ export default function Page() {
       }
     >
       {(() => {
-        const cardOf = (id: string): Card => {
-          const row = byId.get(id)
-          if (!row) return { title: "" }
+        // Gmail's rows (mail-list.tsx): who, the subject, the snippet, the time, the marks.
+        const views: MailRowView[] = shown.map((row) => {
           if (row.draft) {
             const t = row.draft
-            return { title: t.subject, hint: t.subject, from: `To: ${shownRecipients(t).join(", ")}`, snippet: snippet(t.messages[0] ?? { id: "", from: "you", at: 0, body: "" }), span: when(t.updatedAt) }
+            return { id: t.id, sender: `To: ${shownRecipients(t).join(", ") || "(no recipients)"}`, subject: t.subject, snippet: snippet(t.messages[0] ?? { id: "", from: "you", at: 0, body: "" }), span: listTime(new Date(t.updatedAt).toISOString()), unread: false, starred: false, important: false, draft: true }
           }
           const t = row.kept!
           const marks = marksOf(t)
           const names = [...new Set(t.messages.map((m) => (m.folder === "sent" ? "me" : m.from.name || m.from.email)))]
-          const who = folder === "sent" ? `To: ${t.latest.to.map((p) => p.name || p.email).join(", ")}` : names.join(", ")
           return {
-            title: t.latest.subject,
-            hint: t.latest.subject,
-            from: who,
+            id: t.threadId,
+            sender: folder === "sent" ? `To: ${t.latest.to.map((p) => p.name || p.email).join(", ")}` : names.join(", "),
+            count: t.messages.length,
+            subject: t.latest.subject,
             snippet: t.latest.snippet,
-            span: when(Date.parse(t.latest.createdAt)),
+            span: listTime(t.latest.createdAt),
             unread: marks.unread,
-            marks: {
-              column: checked.has(id),
-              atCap: false,
-              boxLabel: `Select ${t.latest.subject}`,
-              onColumn: () =>
-                setChecked((current) => {
-                  const next = new Set(current)
-                  if (next.has(id)) next.delete(id)
-                  else next.add(id)
-                  return next
-                }),
-              important: marks.important,
-              onImportant: () => void file([id], { important: !marks.important }),
-              pinned: marks.starred,
-              onPin: () => void file([id], { starred: !marks.starred }),
-            },
-            onDragStart: (event) => {
-              event.dataTransfer.setData(THREAD_DRAG, id)
-              event.dataTransfer.effectAllowed = "move"
-            },
-            // The house row's kebab (Brendan, 2026-10-31): the thread's subject leads and copies, its sender at the foot.
-            menu: (
-              <>
-                <MenuHeader text={t.latest.subject || id} copy={t.latest.subject || id} />
-                <MenuSeparator />
-                <MenuRow icon={<Maximize2 />} label="Open" onClick={() => openThread(id)} />
-                <MenuRow icon={marks.unread ? <MailOpen /> : <Mail />} label={marks.unread ? "Mark as read" : "Mark as unread"} onClick={() => (marks.unread ? void file([id], { read: true }) : markUnread(id))} />
-                <MenuRow icon={<Star className={marks.starred ? "fill-amber-400 text-amber-400" : undefined} />} label={marks.starred ? "Unstar" : "Star"} onClick={() => void file([id], { starred: !marks.starred })} />
-                <MenuSeparator />
-                {marks.archived ? <MenuRow icon={<ArchiveRestore />} label="Move to Inbox" onClick={() => fileAway(id, { archived: false })} /> : <MenuRow icon={<Archive />} label="Archive" onClick={() => fileAway(id, { archived: true })} />}
-                <MenuRow icon={<Trash2 />} label={marks.trashed ? "Restore" : "Move to trash"} danger={!marks.trashed} onClick={() => fileAway(id, { trashed: !marks.trashed })} />
-                <MenuSeparator />
-                <MenuFoot title={who} sub={TITLES[folder]} />
-              </>
-            ),
+            starred: marks.starred,
+            important: marks.important,
+            archived: marks.archived,
+            trashed: marks.trashed,
           }
+        })
+        const viewOf = new Map(views.map((v) => [v.id, v]))
+        const discard = (id: string) => {
+          setDrafts((current) => current.filter((d) => d.id !== id))
+          if (selected === id) setSelected(null)
         }
-        // The thread list's toolbar, in the list kebab: the unread filter, the selection, refresh, mark read.
+        const actions: MailActions = {
+          onOpen: openThread,
+          onCheck: (id) =>
+            setChecked((current) => {
+              const next = new Set(current)
+              if (next.has(id)) next.delete(id)
+              else next.add(id)
+              return next
+            }),
+          onStar: (id) => void file([id], { starred: !viewOf.get(id)?.starred }),
+          onImportant: (id) => void file([id], { important: !viewOf.get(id)?.important }),
+          onArchive: (id) => fileAway(id, { archived: !viewOf.get(id)?.archived }),
+          onTrash: (id) => (viewOf.get(id)?.draft ? discard(id) : fileAway(id, { trashed: !viewOf.get(id)?.trashed })),
+          onRead: (id, read) => (read ? void file([id], { read: true }) : markUnread(id)),
+          onDragStart: (id, event) => {
+            event.dataTransfer.setData(THREAD_DRAG, id)
+            event.dataTransfer.effectAllowed = "move"
+          },
+        }
+        // The select box's menu, Gmail's.
+        const select = (by: SelectBy) => {
+          const pick = (keep: (v: MailRowView) => boolean) => setChecked(new Set(views.filter(keep).map((v) => v.id)))
+          if (by === "none") setChecked(new Set())
+          else if (by === "all") pick(() => true)
+          else if (by === "read") pick((v) => !v.unread)
+          else if (by === "unread") pick((v) => v.unread)
+          else if (by === "starred") pick((v) => v.starred)
+          else pick((v) => !v.starred)
+        }
+        // What the bar does to the checked rows; the open one closes if it leaves.
+        const bulk = (act: "archive" | "trash" | "read" | "unread") => {
+          const ids = [...checked].filter((id) => viewOf.get(id) && !viewOf.get(id)!.draft)
+          if (act === "trash") checked.forEach((id) => viewOf.get(id)?.draft && discard(id))
+          if ((act === "archive" || act === "trash" || act === "unread") && selected && checked.has(selected)) setSelected(null)
+          setChecked(new Set())
+          void file(ids, act === "archive" ? { archived: true } : act === "trash" ? { trashed: true } : { read: act === "read" })
+        }
+        // The kebab: the unread filter, mark all read, and the split.
         const listMenu = (
           <>
-            <DropdownMenuCheckboxItem checked={unreadOnly} onCheckedChange={(v) => setUnreadOnly(Boolean(v))}>
-              Unread only
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => setChecked(new Set(ids))}>Select all</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setChecked(new Set())}>Select none</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setChecked(new Set(shown.filter((r) => r.kept && r.kept.unreadCount > 0).map((r) => r.id)))}>Select unread</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setChecked(new Set(shown.filter((r) => r.kept && marksOf(r.kept).starred).map((r) => r.id)))}>Select starred</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => void load()}>Refresh</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => void file(shown.filter((r) => r.kept && r.kept.unreadCount > 0).map((r) => r.id), { read: true })}>Mark all as read</DropdownMenuItem>
+            <MenuRow label="Unread only" checked={unreadOnly} onClick={() => setUnreadOnly((v) => !v)} />
+            <MenuRow label="Mark all as read" onClick={() => void file(views.filter((v) => v.unread && !v.draft).map((v) => v.id), { read: true })} />
+            <MenuSeparator />
+            <MenuRow label="No split" checked={split === "none"} onClick={() => setSplit("none")} />
+            <MenuRow label="Vertical split" checked={split === "vertical"} onClick={() => setSplit("vertical")} />
           </>
         )
         const list =
           folder === "templates" ? (
             <TemplateList onUse={fromTemplate} />
           ) : (
-            <CardList
-              ids={ids}
-              card={cardOf}
-              selected={selected}
-              onOpen={openThread}
-              split={split}
-              onSplit={setSplit}
+            <MailList
+              rows={views}
+              open={selected}
+              checked={checked}
+              layout={split === "vertical" ? "stacked" : "line"}
+              actions={actions}
+              onSelect={select}
+              onBulk={bulk}
+              onRefresh={() => void load()}
+              menu={listMenu}
               query={query}
               onQuery={setQuery}
-              placeholder="Search mail"
-              menu={listMenu}
-              compact
-              loading={loading && !kept.length}
+              loading={loading}
               error={error}
               empty={query.trim() ? `Nothing matching “${query.trim()}”.` : unreadOnly ? "Nothing unread." : folder === "inbox" ? "Nothing has arrived yet." : "Nothing here."}
             />
@@ -740,7 +743,7 @@ export default function Page() {
                           <>
                             <Tip label={openMarks.archived ? "Move to Inbox" : "Archive"}>
                               <Button variant="ghost" size="sm" aria-label={openMarks.archived ? "Move to Inbox" : "Archive"} onClick={() => fileAway(open.id, { archived: !openMarks.archived })}>
-                                {openMarks.archived ? <ArchiveRestore className="size-4" /> : <Archive className="size-4" />}
+                                {openMarks.archived ? <UnarchiveIcon className="size-4" /> : <ArchiveIcon className="size-4" />}
                               </Button>
                             </Tip>
                             <Tip label={openMarks.trashed ? "Restore" : "Move to trash"}>
@@ -750,7 +753,7 @@ export default function Page() {
                             </Tip>
                             <Tip label="Mark as unread">
                               <Button variant="ghost" size="sm" aria-label="Mark as unread" onClick={() => markUnread(open.id)}>
-                                <Mail className="size-4" />
+                                <MarkUnreadIcon className="size-4" />
                               </Button>
                             </Tip>
                             <Tip label={openMarks.starred ? "Remove star" : "Star"}>

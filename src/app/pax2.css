@@ -466,3 +466,34 @@ body {
 .rich-body .ProseMirror td > p, .rich-body .ProseMirror th > p { margin: 0; }
 .rich-body .ProseMirror .selectedCell::after { content: ""; position: absolute; inset: 0; background: rgba(3, 56, 130, 0.08); pointer-events: none; }
 .rich-body .ProseMirror .mention { border-radius: 4px; background: var(--pax2-lavender); padding: 0 3px; color: var(--pax2-blue); font-weight: 500; }
+
+/* The Inbox's rows in Gmail's colours (Brendan, 2026-11-02: "literally a Google knock off"), measured off his
+   screenshots (scratchpad/gmail-parity 93–96, 103–104): unread white, read the blue-grey wash, picked the pale
+   selected blue, the rule between rows, the hover's lift with its 1px edges, the near-black and grey type, the
+   icons at rest and on hover, the drag grip. The darks take the theme's own steps. */
+:root:root {
+  --mail-unread: #ffffff;
+  --mail-read: #f2f6fc;
+  --mail-picked: #d2e3fc;
+  --mail-rule: rgb(100 121 143 / 0.122);
+  --mail-edge: #dadce0;
+  --mail-lift: inset 1px 0 0 var(--mail-edge), inset -1px 0 0 var(--mail-edge), 0 1px 2px 0 rgb(60 64 67 / 0.3), 0 1px 3px 1px rgb(60 64 67 / 0.15);
+  --mail-ink: #202124;
+  --mail-ink-2: #5f6368;
+  --mail-icon: #444746;
+  --mail-rest: #c4c7c5;
+  --mail-grip: #adadad;
+}
+:root:root.dark {
+  --mail-unread: var(--t-raised);
+  --mail-read: var(--t-surface);
+  --mail-picked: color-mix(in oklab, var(--t-accent-2) 30%, var(--t-surface));
+  --mail-rule: var(--t-rule);
+  --mail-edge: var(--t-rule-strong);
+  --mail-lift: inset 1px 0 0 var(--mail-edge), inset -1px 0 0 var(--mail-edge), 0 1px 3px 1px rgb(0 0 0 / 0.5);
+  --mail-ink: var(--t-ink);
+  --mail-ink-2: var(--t-ink-3);
+  --mail-icon: var(--t-ink-2);
+  --mail-rest: var(--t-ink-4);
+  --mail-grip: var(--t-ink-4);
+}
