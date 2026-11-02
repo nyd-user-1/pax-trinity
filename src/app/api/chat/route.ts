@@ -10,6 +10,10 @@ import { platformGuide } from "@/lib/platform-guide"
 import { termById } from "@/lib/glossary"
 import { videosContext } from "@/lib/chat-videos"
 import { videoGuide } from "@/lib/video-guide"
+import { currentUser } from "@/lib/auth"
+import { dataIndexPrompt } from "@/lib/chat-data"
+import { streamWithTools } from "@/lib/chat-data/converse-loop"
+import { dataToolSpecs, isDataTool, runDataTool } from "@/lib/chat-data/tools"
 
 // The /chat answer, after solar's /api/chat: a system prompt carrying the record (here, every take
 // and its reach, and the scripts), then the reply streamed back as plain text.
@@ -101,25 +105,50 @@ export async function POST(req: Request) {
   const extra = typeof systemContext === "string" && systemContext.trim() ? `\n\n${systemContext.slice(0, 80_000)}` : ""
   // The shorts the user's last message points at, by title, link or id (src/lib/chat-videos.ts).
   const lastUser = [...messages].reverse().find((m) => m.role === "user")?.content ?? ""
-  const r = await client.send(
-    new ConverseStreamCommand({
-      modelId,
-      system: [{ text: BASE_SYSTEM_PROMPT + (await record()) + `\n\n${metricsGuide()}` + `\n\n${platformGuide()}` + extra + addressContext(address, place) + (await videosContext(lastUser)) + `\n\n${evidencePrompt()}` + `\n\n${VIDEO_GUIDE}` }],
-      messages: messages
-        .map((m, i) => ({ m, i }))
-        .filter(({ m }) => m.content.trim())
-        .map(({ m, i }): Message => ({ role: m.role, content: pdf && i === lastUserAt ? [{ document: { format: "pdf", name: pdfName, source: { bytes: pdf } } }, { text: m.content }] : [{ text: m.content }] })),
-      inferenceConfig: { maxTokens: 2000, temperature: 0.3 },
-    }),
-  )
+  // The data tools (lib/chat-data, 2026-11-02): a signed-in reader's chat may look up the platform's own
+  // tables, read-only, on the Claude models; anyone else's answers in one call, as before.
+  const viewer = await currentUser()
+  const reader = viewer && modelId.includes("anthropic.") ? { email: viewer.email, admin: viewer.admin } : null
+  const tools = !!reader
+  const system = BASE_SYSTEM_PROMPT + (await record()) + `\n\n${metricsGuide()}` + `\n\n${platformGuide()}` + extra + addressContext(address, place) + (await videosContext(lastUser)) + `\n\n${evidencePrompt()}` + `\n\n${VIDEO_GUIDE}` + (tools ? `\n\n${dataIndexPrompt()}` : "")
+  const turns = messages
+    .map((m, i) => ({ m, i }))
+    .filter(({ m }) => m.content.trim())
+    .map(({ m, i }): Message => ({ role: m.role, content: pdf && i === lastUserAt ? [{ document: { format: "pdf", name: pdfName, source: { bytes: pdf } } }, { text: m.content }] : [{ text: m.content }] }))
+  const inferenceConfig = { maxTokens: 2000, temperature: 0.3 }
+  const texts: AsyncIterable<string> = tools
+    ? streamWithTools({
+        send: (command) => client.send(command),
+        modelId,
+        system,
+        messages: turns,
+        tools: dataToolSpecs(),
+        run: async (name, input) => {
+          if (!isDataTool(name)) return { ok: false, payload: { error: `No tool is called ${name}.` } }
+          const started = Date.now()
+          const out = await runDataTool(name, input, reader)
+          // One line per lookup: which tool, its input, how long, and whether it found anything.
+          console.info(`chat tool ${name} ${JSON.stringify(input).slice(0, 160)} ${Date.now() - started}ms ${out.ok ? "ok" : "miss"} ${JSON.stringify(out.payload).length}c`)
+          return out
+        },
+        inferenceConfig,
+      })
+    : (async function* () {
+        const r = await client.send(new ConverseStreamCommand({ modelId, system: [{ text: system }], messages: turns, inferenceConfig }))
+        for await (const ev of r.stream ?? []) {
+          const text = ev.contentBlockDelta?.delta?.text
+          if (text) yield text
+        }
+      })()
+  // The first piece is read before the response goes out, so a call that fails at once still answers 500.
+  const it = texts[Symbol.asyncIterator]()
+  const first = await it.next()
   const encoder = new TextEncoder()
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        for await (const ev of r.stream ?? []) {
-          const text = ev.contentBlockDelta?.delta?.text
-          if (text) controller.enqueue(encoder.encode(text))
-        }
+        if (!first.done) controller.enqueue(encoder.encode(first.value))
+        for (let r = first.done ? first : await it.next(); !r.done; r = await it.next()) controller.enqueue(encoder.encode(r.value))
       } finally {
         controller.close()
       }
