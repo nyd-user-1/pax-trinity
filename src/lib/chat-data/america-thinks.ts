@@ -31,7 +31,7 @@ const BUCKET = process.env.PAX2_BUCKET ?? "pax-trinity-audience-613473203863"
 let s3: S3Client | null = null
 
 /** An export file's text: this checkout's copy when there is one, else the bucket's exports/. */
-async function readExport(parts: string[]): Promise<string | null> {
+export async function readExport(parts: string[]): Promise<string | null> {
   // Assembled, not a literal, so the build's file tracer doesn't pull the export into the bundle.
   const local = [/*turbopackIgnore: true*/ process.cwd(), "public", "audience-data", ...parts].join("/")
   if (fs.existsSync(local)) return fs.promises.readFile(local, "utf8")

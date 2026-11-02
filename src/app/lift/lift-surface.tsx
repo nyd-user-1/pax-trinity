@@ -194,8 +194,13 @@ export function LiftSurface() {
     let on = true
     Promise.all(
       missing.map((s) =>
-        Promise.all(
-          (groups.find((g) => g.source === s)?.files ?? []).map((f) => fetch(`/audience-data/${f}`).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`${f} answered ${r.status}`)))))
+        // The Tests folder comes through the reader's lens on the server (api/lift/tests, 2026-11-02): a partner's
+        // own sponsor's rows alone. The Archive is the public reference library, the same for everyone.
+        (s === "PAX_TEST"
+          ? fetch("/api/lift/tests").then((r) => (r.ok ? r.json() : Promise.reject(new Error(`The tests answered ${r.status}`)))).then((rows: SourceRow[]) => [rows])
+          : Promise.all(
+              (groups.find((g) => g.source === s)?.files ?? []).map((f) => fetch(`/audience-data/${f}`).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`${f} answered ${r.status}`)))))
+            )
         ).then(async (parts: SourceRow[][]) => {
           // The Archive's ads arrive described, before its table draws; without the file they keep their ids.
           if (s === "LIFT_ARCHIVE") {

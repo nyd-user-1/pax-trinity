@@ -2,7 +2,7 @@
 
 import * as React from "react"
 
-import type { AudienceIndex, SourceRow } from "../america-thinks/audience-data"
+import type { SourceRow } from "../america-thinks/audience-data"
 import { fieldPeriod, metricShort, periodKey, segOf, signed, treatmentName } from "./lift-data"
 
 // Tools > Lift Analysis' cards (Brendan, 2026-10-31): every deliverable the PAX waves tested, each opening its
@@ -27,9 +27,10 @@ const part = (x: string) => encodeURIComponent(x || "all")
 let cached: Promise<Deliverable[]> | null = null
 
 async function load(): Promise<Deliverable[]> {
-  const idx = (await fetch("/audience-data/index.json").then((r) => r.json())) as AudienceIndex
-  const files = idx.sources.filter((s) => s.source === SOURCE).map((s) => s.file)
-  const rows = (await Promise.all(files.map((f) => fetch(`/audience-data/${f}`).then((r) => r.json())))).flat() as SourceRow[]
+  // The test rows through the reader's lens (api/lift/tests, 2026-11-02): a partner's own sponsor's waves alone.
+  const res = await fetch("/api/lift/tests")
+  if (!res.ok) throw new Error(`The tests answered ${res.status}`)
+  const rows = (await res.json()) as SourceRow[]
   const by = new Map<string, SourceRow[]>()
   for (const r of rows) {
     if (r[8] !== "lift_pp" || !r[4] || segOf(r) !== "") continue
