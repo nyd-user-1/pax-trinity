@@ -50,7 +50,6 @@ export function NoteCompose({ body, onBody, onClose }: { body: string; onBody: (
   return (
     <div className="flex min-h-0 flex-1 flex-col px-3 pt-2 pb-3" data-note-compose>
       <Compose
-        plain
         book={BOOK}
         placeholder="Write…"
         draft={draft}

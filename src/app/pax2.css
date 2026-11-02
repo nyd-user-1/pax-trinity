@@ -434,25 +434,6 @@ body {
   }
 }
 
-/* The composer's body in mail's design (lib/mail/design.ts; Brendan, 2026-10-31): a new message is written inside the
-   card it is sent in. The bold first line heads the card in navy; "Label:" lines sit in the pale details panel, the
-   label small and grey over its value; a link alone on its line is the navy pill; lists sit in the panel; the last
-   line is the sign-off. Light, as the mail is, in every theme. */
-.mail-body .ProseMirror { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #475569; }
-.mail-body .ProseMirror > p { margin: 0 0 16px; font-size: 15px; line-height: 1.6; color: #475569; }
-.mail-body .ProseMirror strong { color: #0f172a; font-weight: 600; }
-.mail-body .ProseMirror a { color: #1e3a8a; font-weight: 600; }
-.mail-body .ProseMirror > p:first-child:has(> strong:only-child) { margin: 0 0 18px; font-size: 23px; line-height: 1.3; letter-spacing: -0.01em; }
-.mail-body .ProseMirror > p:first-child:has(> strong:only-child) > strong { color: #1e3a8a; }
-.mail-body .ProseMirror > p:not(:first-child):has(> strong:first-child) { margin: 0; padding: 7px 20px; background: #f5f7fb; color: #0f172a; }
-.mail-body .ProseMirror > p:not(:first-child):has(> strong:first-child) > strong:first-child { display: block; font-size: 12px; font-weight: 400; color: #64748b; }
-.mail-body .ProseMirror > p:not(:has(> strong:first-child)) + p:has(> strong:first-child) { margin-top: 4px; padding-top: 18px; border-top-left-radius: 10px; border-top-right-radius: 10px; }
-.mail-body .ProseMirror > p:not(:first-child):has(> strong:first-child):not(:has(+ p > strong:first-child)) { margin-bottom: 22px; padding-bottom: 18px; border-bottom-left-radius: 10px; border-bottom-right-radius: 10px; }
-.mail-body .ProseMirror > p:has(> a:only-child) { margin: 8px 0 24px; }
-.mail-body .ProseMirror > p:has(> a:only-child) > a { display: inline-block; padding: 13px 30px; border-radius: 999px; background: #1e3a8a; color: #fff; text-decoration: none; }
-.mail-body .ProseMirror > p:last-child:not(:first-child) { margin: 8px 0 0; color: #0f172a; font-weight: 500; }
-.mail-body .ProseMirror > ul, .mail-body .ProseMirror > ol { margin: 0 0 20px; padding: 18px 20px 18px 40px; border-radius: 10px; background: #f5f7fb; color: #0f172a; font-size: 14px; }
-
 /* The rich editor's blocks beyond mail's (rich-body.tsx; Brendan, 2026-10-31): a note card's headings, tables,
    dividers and mentions. The tables are the Leuk editor's (components/notes/notes-editor.tsx). */
 .rich-body .ProseMirror h1 { margin: 0.8em 0 0.3em; font-size: 20px; font-weight: 600; line-height: 1.3; color: #0f172a; }

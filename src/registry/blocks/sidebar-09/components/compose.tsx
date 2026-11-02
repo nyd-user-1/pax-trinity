@@ -183,7 +183,6 @@ export function Compose({
   reply = false,
   placeholder,
   book,
-  plain = false,
 }: {
   draft: Draft
   onChange: (draft: Draft) => void
@@ -198,8 +197,6 @@ export function Compose({
   placeholder?: string
   /** The address book's groups offered on the lines (a note's Compose: Agents, Staff, Partners); all of them when absent. */
   book?: string[]
-  /** The body as a plain writing surface instead of the mail's card: a note's Compose, in a card a few hundred pixels wide. */
-  plain?: boolean
 }) {
   const [showCc, setShowCc] = React.useState(false)
   const [showBcc, setShowBcc] = React.useState(false)
@@ -300,26 +297,11 @@ export function Compose({
           renders the same subset back. */}
       {inline ? (
         <TaskSurface editor={editor} className="[&_.ProseMirror]:min-h-24 min-h-24" />
-      ) : plain ? (
+      ) : (
+        // A plain writing area (Brendan, 2026-11-02: "it's an email"): the typing and nothing around it, no mark, no
+        // card, no site address. It takes the pane's height and scrolls inside, so Send stays at the foot.
         <div className="min-h-0 flex-1 cursor-text overflow-y-auto" onClick={() => editor?.commands.focus()}>
           <TaskSurface editor={editor} className="min-h-full [&_.ProseMirror]:min-h-full" />
-        </div>
-      ) : (
-        // A new message is written inside the card it is sent in (lib/mail/design.ts, Brendan, 2026-10-31): the pale
-        // page, the PAX mark, the white card, the subject heading it until the body opens on its own bold line, and the
-        // site's address under it. It takes the pane's height and scrolls inside, so Send stays at the foot.
-        <div className="min-h-0 flex-1 overflow-y-auto rounded-xl bg-[#f5f7fb] px-4 py-8">
-          <div className="mx-auto w-full max-w-[560px]">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/pax-mark.png" alt="PAX" width={64} className="mb-5 ml-2 h-auto w-16" />
-            <div className="mail-body cursor-text rounded-2xl border border-[#e2e8f0] bg-white px-10 py-9" onClick={() => editor?.commands.focus()}>
-              {!/^\*\*[^*]+\*\*\s*(\n|$)/.test(draft.body.trim()) && draft.subject.trim() && (
-                <h1 className="mb-[18px] text-[23px] leading-[1.3] font-semibold tracking-[-0.01em] text-[#1e3a8a]">{draft.subject}</h1>
-              )}
-              <TaskSurface editor={editor} className="[&_.ProseMirror]:min-h-40" />
-            </div>
-            <p className="mt-5 ml-2 text-xs text-[#94a3b8]">pax.nysgpt.com</p>
-          </div>
         </div>
       )}
 
