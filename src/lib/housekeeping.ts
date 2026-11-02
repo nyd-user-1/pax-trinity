@@ -8,6 +8,7 @@ import { BedrockRuntimeClient, ConverseCommand } from "@aws-sdk/client-bedrock-r
 import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 
+import { CLAUDE, CLAUDE_NAME, statusAfterReply, type Status } from "@/lib/housekeeping-thread"
 import { MEMBERS, memberByEmail } from "@/lib/roles"
 
 // Housekeeping (Brendan, 2026-10-30): the admins' comments on the app for the super admin, as a
@@ -18,6 +19,10 @@ import { MEMBERS, memberByEmail } from "@/lib/roles"
 //   pk                    sk               item
 //   STREAM                <iso>#<id>       a message to everyone
 //   DM#<email>|<email>    <iso>#<id>       a direct message (the two emails sorted)
+//   (either)              <iso>#<id>       a reply (kind "reply"), replyTo its parent's sk, appended
+//
+// A pointed comment can go to Claude (Brendan, 2026-11-01; lib/housekeeping-thread.ts): status "claude",
+// then "answered" when Claude's reply lands, and back to "claude" when a person replies to the answer.
 //
 // The new account's us-east-2: table pax-trinity-housekeeping, screenshots under housekeeping/ in
 // the clips bucket; Amplify's compute role holds the pax-trinity-housekeeping policy for both.
@@ -38,8 +43,10 @@ export type Message = {
   /** The other person in a direct message; absent on the stream. */
   to?: string
   text: string
-  /** "comment": pointed at an element; "message": typed in the panel. */
-  kind: "comment" | "message"
+  /** "comment": pointed at an element; "message": typed in the panel; "reply": on another row's thread. */
+  kind: "comment" | "message" | "reply"
+  /** A reply's parent: its sort key, in the same partition. */
+  replyTo?: string
   page?: string
   route?: string
   target?: string
@@ -49,7 +56,10 @@ export type Message = {
   point?: { xf: number; yf: number }
   /** S3 keys of the screenshots. */
   images?: string[]
-  status: "open" | "resolved"
+  status: Status
+  /** When it went to Claude, and when Claude last answered. */
+  claudeAt?: string
+  answeredAt?: string
   resolvedBy?: string
   resolvedAt?: string
   editedAt?: string
@@ -144,24 +154,84 @@ export async function openOnRoute(route: string, viewer: string): Promise<Messag
   const me = canonical(viewer)
   const keys = ["STREAM", ...PEOPLE.filter((p) => p.email !== me).map((p) => dmKey(me, p.email))]
   const threads = await Promise.all(keys.map((pk) => listThread(pk)))
-  return threads.flat().filter((m) => m.kind === "comment" && m.status === "open" && m.route === route && m.path)
+  // A comment with Claude, or answered, is still unresolved, so its element stays marked.
+  return threads.flat().filter((m) => m.kind === "comment" && m.status !== "resolved" && m.route === route && m.path)
 }
 
-/** The super admin's levers: resolve or reopen, edit the text, and edit the prompt. */
-export async function update(key: { pk: string; sk: string }, change: { status?: "open" | "resolved"; text?: string; prompt?: string }, by: string): Promise<void> {
-  const now = new Date().toISOString()
-  if (change.status) {
-    await db.send(
-      new UpdateCommand({
-        TableName: TABLE,
-        Key: key,
-        ConditionExpression: "attribute_exists(pk)",
-        UpdateExpression: change.status === "resolved" ? "SET #s = :s, resolvedBy = :by, resolvedAt = :at" : "SET #s = :s REMOVE resolvedBy, resolvedAt",
-        ExpressionAttributeNames: { "#s": "status" },
-        ExpressionAttributeValues: change.status === "resolved" ? { ":s": "resolved", ":by": canonical(by), ":at": now } : { ":s": "open" },
-      }),
-    )
+/** Appends a reply to a message's thread: a person's, or Claude's (author CLAUDE). Claude's answers a
+ *  comment that is with Claude; a person's on an answered comment sends it back. Returns the reply and
+ *  the comment's status after it. */
+export async function reply(parent: { pk: string; sk: string }, input: { author: string; text: string }): Promise<{ reply: Message; status: Status }> {
+  const p = await getMessage(parent)
+  if (!p || p.kind === "reply") throw new Error("No such message to reply to.")
+  const byClaude = input.author === CLAUDE
+  if (byClaude && p.status !== "claude") throw new Error("That comment is not with Claude.")
+  const id = randomUUID()
+  const createdAt = new Date().toISOString()
+  const author = byClaude ? CLAUDE : canonical(input.author)
+  const item: Message = {
+    pk: p.pk,
+    sk: `${createdAt}#${id}`,
+    id,
+    author,
+    authorName: byClaude ? CLAUDE_NAME : nameOf(author),
+    to: p.to,
+    text: input.text.trim().slice(0, byClaude ? 12000 : 4000),
+    kind: "reply",
+    replyTo: p.sk,
+    status: "open",
+    createdAt,
   }
+  await db.send(new PutCommand({ TableName: TABLE, Item: item, ConditionExpression: "attribute_not_exists(pk)" }))
+  const next = statusAfterReply(p.status, byClaude)
+  if (next) await setStatus(parent, next, author)
+  return { reply: item, status: next ?? p.status }
+}
+
+/** The comments with Claude, for the loop: every pointed comment of the stream's and the super admin's
+ *  direct messages' whose status is "claude", each with its replies so far, oldest first. */
+export async function forClaude(): Promise<{ comment: Message; replies: Message[]; imageUrls: string[] }[]> {
+  const sa = PEOPLE.find((p) => p.role === "superadmin")?.email
+  const keys = ["STREAM", ...(sa ? PEOPLE.filter((p) => p.email !== sa).map((p) => dmKey(sa, p.email)) : [])]
+  const rows = (await Promise.all(keys.map((pk) => listThread(pk)))).flat()
+  const waiting = rows.filter((m) => m.kind === "comment" && m.status === "claude")
+  return Promise.all(
+    waiting.map(async (comment) => ({
+      comment,
+      replies: rows.filter((r) => r.kind === "reply" && r.pk === comment.pk && r.replyTo === comment.sk).sort((a, b) => a.sk.localeCompare(b.sk)),
+      imageUrls: await Promise.all((comment.images ?? []).map((k) => imageUrl(k))),
+    })),
+  )
+}
+
+/** A message's status, set in place as resolve and reopen always have: resolved records who and when;
+ *  "claude" and "answered" record when; every status but resolved clears the resolution. */
+async function setStatus(key: { pk: string; sk: string }, status: Status, by: string): Promise<void> {
+  const now = new Date().toISOString()
+  const set =
+    status === "resolved"
+      ? { expr: "SET #s = :s, resolvedBy = :by, resolvedAt = :at", values: { ":s": status, ":by": canonical(by), ":at": now } }
+      : status === "claude"
+        ? { expr: "SET #s = :s, claudeAt = :at REMOVE resolvedBy, resolvedAt", values: { ":s": status, ":at": now } }
+        : status === "answered"
+          ? { expr: "SET #s = :s, answeredAt = :at REMOVE resolvedBy, resolvedAt", values: { ":s": status, ":at": now } }
+          : { expr: "SET #s = :s REMOVE resolvedBy, resolvedAt", values: { ":s": status } }
+  await db.send(
+    new UpdateCommand({
+      TableName: TABLE,
+      Key: key,
+      ConditionExpression: "attribute_exists(pk)",
+      UpdateExpression: set.expr,
+      ExpressionAttributeNames: { "#s": "status" },
+      ExpressionAttributeValues: set.values,
+    }),
+  )
+}
+
+/** The super admin's levers: resolve or reopen, send to Claude, edit the text, and edit the prompt. */
+export async function update(key: { pk: string; sk: string }, change: { status?: "open" | "resolved" | "claude"; text?: string; prompt?: string }, by: string): Promise<void> {
+  const now = new Date().toISOString()
+  if (change.status) await setStatus(key, change.status, by)
   if (change.text != null) {
     await db.send(
       new UpdateCommand({
