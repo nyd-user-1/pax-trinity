@@ -60,6 +60,7 @@ export function SurveyInbox({
   surface,
   page,
   demo,
+  partner = false,
 }: {
   surveys: SurveyMeta[]
   open: Conversation | null
@@ -68,6 +69,8 @@ export function SurveyInbox({
   page: React.ReactNode
   /** The votes are the committed seed's invented ones: the rows add the demo's breakdowns and earlier waves. */
   demo: boolean
+  /** A partner's account: the seed pretrainings are no partner's, so its rail lists the browser's own draft alone. */
+  partner?: boolean
 }) {
   const router = useRouter()
   const [draft, setDraft] = React.useState<SurveyDraft | null>(null)
@@ -183,10 +186,11 @@ export function SurveyInbox({
         {admin && <RailRow href={consensusHref("admin", open?.slug)} on={surface === "admin"} icon={Shield} label="Admin" />}
       </RailGroup>
       <RailGroup label="Pretrainings">
-        {PRETRAININGS.map((p) => (
+        {(partner ? [] : PRETRAININGS).map((p) => (
           <RailRow key={p.slug} on={!surface && folder === PRE + p.slug} onClick={() => openPretraining(PRE + p.slug)} icon={FlaskConical} label={p.title} count={p.questions.length} />
         ))}
         {!!draft?.questions.length && <RailRow on={!surface && folder === DRAFT} onClick={() => openPretraining(DRAFT)} icon={FlaskConical} label={draft.title} count={draft.questions.length} />}
+        {partner && !draft?.questions.length && <p className="px-3 py-2 text-sm text-slate-400">None yet</p>}
       </RailGroup>
       {admin && (
         <RailGroup label="Tests">

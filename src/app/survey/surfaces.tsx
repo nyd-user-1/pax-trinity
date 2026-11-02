@@ -17,6 +17,7 @@ import { lifecycleOf } from "@/lib/lifecycle/store"
 import { sendCounts } from "@/lib/sends/engine"
 import { TestsTable } from "@/app/message-tests/tests-table"
 import { currentUser } from "@/lib/auth"
+import { lensOf, seesConversation, seesTopline } from "@/lib/partners/sponsors"
 import { armRecordings } from "@/lib/clips/recorded"
 import { PRETRAININGS } from "@/lib/consensus/pretrainings"
 import { conversation, conversations } from "@/lib/consensus/store"
@@ -47,8 +48,11 @@ export async function surfacePage({ s, c, id }: { s: Surface; c?: string; id?: s
     const user = await currentUser()
     const admin = !!user?.admin
     if (s === "admin" && !admin) return null
-    const all = await conversations()
-    const open = (await conversation(c ?? "")) ?? all[0]
+    // A partner's lens: its own sponsor's surveys alone, the one asked for only if it is theirs.
+    const lens = lensOf(user)
+    const all = (await conversations()).filter((x) => seesConversation(lens, x.slug))
+    const asked = await conversation(c ?? "")
+    const open = (asked && seesConversation(lens, asked.slug) ? asked : null) ?? all[0]
     if (!open) return null
     // The survey's number, the first part of every card's code (components/consensus/question-code.ts).
     const survey = Math.max(0, all.findIndex((x) => x.slug === open.slug)) + 1
@@ -66,15 +70,19 @@ export async function surfacePage({ s, c, id }: { s: Surface; c?: string; id?: s
   // The Question Bank: the topline surveys, the Consensus surveys, the pretrainings and, for an admin, the
   // message tests (theirs alone, as their pages are). The browser adds its own draft.
   if (s === BANK) {
-    const admin = !!(await currentUser())?.admin
-    const [all, tests] = await Promise.all([conversations(), admin ? listTests().then((r) => r.tests) : []])
+    const user = await currentUser()
+    const admin = !!user?.admin
+    // A partner's bank lists its own instruments' questions alone: its toplines and surveys, no seed pretraining.
+    const lens = lensOf(user)
+    const [every, tests] = await Promise.all([conversations(), admin ? listTests().then((r) => r.tests) : []])
+    const all = every.filter((x) => seesConversation(lens, x.slug))
     // Each place with its lifecycle state, as its chip says it.
     const at = async (o: Origin, kind: InstrumentKind, id: string): Promise<Origin> => ({ ...o, state: (await lifecycleOf(kind, id)).state })
     const origins = await Promise.all([
-      ...SURVEYS.map((x) => at(surveyOrigin(x), "survey", x.slug)),
+      ...SURVEYS.filter((x) => seesTopline(lens, x.slug)).map((x) => at(surveyOrigin(x), "survey", x.slug)),
       ...all.map((x) => at(consensusOrigin(x), "consensus", x.slug)),
       ...tests.map((x) => at(testOrigin(x), "test", x.id)),
-      ...PRETRAININGS.map((x) => at(pretrainingOrigin(x), "pretraining", x.slug)),
+      ...(lens === null ? PRETRAININGS : []).map((x) => at(pretrainingOrigin(x), "pretraining", x.slug)),
     ])
     return <QuestionBank origins={origins} />
   }

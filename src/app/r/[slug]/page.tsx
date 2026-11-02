@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation"
 
 import { SurveyResults } from "@/components/consensus/survey"
 import { currentUser } from "@/lib/auth"
+import { lensOf, seesConversation } from "@/lib/partners/sponsors"
 import { conversations } from "@/lib/consensus/store"
 import { takenBy } from "@/lib/consensus/taken"
 
@@ -27,6 +28,8 @@ export default async function ResultsPage({ params }: Props) {
   if (at < 0) notFound()
   const user = await currentUser()
   if (!user) redirect(`/signin?next=${encodeURIComponent(`/r/${slug}`)}`)
+  // A partner's lens: its own sponsor's surveys alone.
+  if (!seesConversation(lensOf(user), slug)) notFound()
   const taken = await takenBy(slug, user.email)
   if (!taken) redirect(`/s/${encodeURIComponent(slug)}`)
   return (

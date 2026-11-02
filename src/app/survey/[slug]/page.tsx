@@ -3,6 +3,8 @@ import { notFound } from "next/navigation"
 
 import { fieldPeriod } from "@/app/lift/lift-data"
 import { PAPER_BRIDGE } from "@/components/editorial/PaperBridge"
+import { currentUser } from "@/lib/auth"
+import { lensOf, seesTopline } from "@/lib/partners/sponsors"
 import { surveyBySlug, SURVEYS } from "@/lib/surveys/catalog"
 import { topline } from "@/lib/surveys/responses"
 
@@ -30,6 +32,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function SurveyDocPage({ params }: Props) {
   const survey = surveyBySlug((await params).slug)
   if (!survey) notFound()
+  // A partner's lens: its own sponsor's toplines alone.
+  if (!seesTopline(lensOf(await currentUser()), survey.slug)) notFound()
   const t = await topline(survey)
   const n = t?.n ?? 0
   // The margin of error a simple random sample of n would carry, at 95% confidence.

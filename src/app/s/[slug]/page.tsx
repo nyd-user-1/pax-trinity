@@ -4,6 +4,7 @@ import { lifecycleOf } from "@/lib/lifecycle/store"
 
 import { Survey } from "@/components/consensus/survey"
 import { currentUser } from "@/lib/auth"
+import { lensOf, seesConversation, seesTopline } from "@/lib/partners/sponsors"
 import { aboutOf } from "@/lib/consensus/about"
 import { armForPid } from "@/lib/sends/engine"
 import { conversations } from "@/lib/consensus/store"
@@ -38,9 +39,14 @@ export default async function RespondPage({ params, searchParams }: Props) {
   const all = pid && topline ? [] : await conversations()
   const at = all.findIndex((c) => c.slug === slug)
   const open = all[at]
+  // A partner's lens: its own sponsor's surveys alone. A Pollster's link (it carries a pid) is a respondent's, and
+  // answers whoever holds it.
+  const lens = pid ? null : lensOf(await currentUser())
+  if (open && !seesConversation(lens, open.slug)) notFound()
 
   if (!open) {
     if (!topline) notFound()
+    if (!seesTopline(lens, topline.slug)) notFound()
     // A Pollster's link carries a send's pid: the open is recorded, and the pid rides with the answers.
     const send = pid ? await armForPid(pid).catch(() => null) : null
     return (

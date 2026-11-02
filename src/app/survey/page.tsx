@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 
 import { currentUser } from "@/lib/auth"
+import { lensOf, seesConversation } from "@/lib/partners/sponsors"
 import { databaseKind } from "@/lib/policy/db"
 import { conversations } from "@/lib/consensus/store"
 import { isSurface } from "@/lib/survey-links"
@@ -19,7 +20,10 @@ export const metadata: Metadata = { title: "Survey", description: "The consensus
 // in place of its list.
 export default async function SurveyPage({ searchParams }: { searchParams: Promise<{ c?: string; s?: string; id?: string }> }) {
   const { c: slug, s, id } = await searchParams
-  const [all, user] = await Promise.all([conversations(), currentUser()])
+  const [every, user] = await Promise.all([conversations(), currentUser()])
+  // A partner's lens: its own sponsor's surveys alone (lib/partners/sponsors.ts).
+  const lens = lensOf(user)
+  const all = every.filter((c) => seesConversation(lens, c.slug))
   const open = all.find((c) => c.slug === slug) ?? all[0] ?? null
   const surface = isSurface(s) ? s : null
   const page = surface ? await surfacePage({ s: surface, c: slug, id }) : null
@@ -31,6 +35,7 @@ export default async function SurveyPage({ searchParams }: { searchParams: Promi
       surface={page ? surface : null}
       page={page}
       demo={databaseKind() === "none"}
+      partner={lens !== null}
     />
   )
 }

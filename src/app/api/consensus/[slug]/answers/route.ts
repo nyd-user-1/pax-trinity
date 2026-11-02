@@ -1,4 +1,5 @@
 import { currentUser } from "@/lib/auth"
+import { lensOf, seesConversation } from "@/lib/partners/sponsors"
 import { conversation } from "@/lib/consensus/store"
 import { keepTaken, validTaken } from "@/lib/consensus/taken"
 import { MAX_BYTES } from "@/lib/tests/responses"
@@ -15,7 +16,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
   const user = await currentUser()
   if (!user) return json({ error: "sign in to keep your answers" }, 401)
   const c = await conversation((await params).slug)
-  if (!c) return json({ error: "unknown survey" }, 404)
+  // A partner answers its own sponsor's surveys alone; another's is as unknown as no survey.
+  if (!c || !seesConversation(lensOf(user), c.slug)) return json({ error: "unknown survey" }, 404)
   const raw = await req.text()
   if (new TextEncoder().encode(raw).length > MAX_BYTES) return json({ error: `payload over ${MAX_BYTES} bytes` }, 413)
   let body: unknown
