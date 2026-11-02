@@ -342,15 +342,15 @@ export const TEMPLATES: Template[] = [
     "name": "Inbox flow 1: Three agents",
     "from": "assistant",
     "subject": "Mail between you and three agents",
-    "body": "**Mail between you and three agents**\n\nHi {{RECIPIENT_NAME}},\n\nThe Agentic Inbox is mail between you and three agents, each with an address of its own. Send a task and the work comes back as replies on the same thread.\n\n- **The Pollster** fields consensus conversations, surveys and tests to a contact group.\n- **The Analyst** writes the question cards, toplines and readouts.\n- **The Assistant** sends the notices, reminders, digests and onboarding mail, this one included.\n\n[Open the Agentic Inbox]({{PAGE_URL}})\n\nAssistant"
+    "body": "**Mail between you and three agents**\n\nHi {{RECIPIENT_NAME}},\n\nThe Agentic Inbox is mail between you and three agents, each with an address of its own. Send a task and the work comes back as replies on the same thread.\n\n- **The Pollster** sends consensus conversations, surveys and tests to a contact group.\n- **The Analyst** writes the question cards, toplines and readouts.\n- **The Assistant** sends the notices, reminders, digests and onboarding mail, this one included.\n\n[Open the Agentic Inbox]({{PAGE_URL}})\n\nAssistant"
   },
   {
     "id": "local-inbox-flow-2-field-a-survey-or-a-test",
     "kind": "Flows",
     "name": "Inbox flow 2: Field a survey or a test",
     "from": "assistant",
-    "subject": "Field a survey or a test",
-    "body": "**Field a survey or a test**\n\nHi {{RECIPIENT_NAME}},\n\nA survey or test runs end to end on one thread:\n\n1. Under **Templates** in the Agentic Inbox's sidebar, **New test** or **New survey** opens a request to the Pollster.\n2. Fill in the test or survey, a quota and a close date, and add a group from the address book as a recipient.\n3. The Pollster mails each member a link of their own, tracks who opened, started and finished, and reminds whoever hasn't.\n4. It closes at the quota or the deadline, and the Analyst's readout lands on the same thread.\n\nSending a task needs a staff account.\n\n[Open the Agentic Inbox]({{PAGE_URL}})\n\nAssistant"
+    "subject": "Run a survey or a test",
+    "body": "**Run a survey or a test**\n\nHi {{RECIPIENT_NAME}},\n\nA survey or test runs end to end on one thread:\n\n1. Under **Templates** in the Agentic Inbox's sidebar, **New test** or **New survey** opens a request to the Pollster.\n2. Fill in the test or survey, a quota and a close date, and add a group from the address book as a recipient.\n3. The Pollster mails each member a link of their own, tracks who opened, started and finished, and reminds whoever hasn't.\n4. It closes at the quota or the deadline, and the Analyst's readout lands on the same thread.\n\nSending a task needs a staff account.\n\n[Open the Agentic Inbox]({{PAGE_URL}})\n\nAssistant"
   },
   {
     "id": "local-inbox-flow-3-templates",
