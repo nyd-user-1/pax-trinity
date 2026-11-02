@@ -247,9 +247,29 @@ export default function Page() {
   )
   React.useEffect(() => {
     void load()
-    const every = window.setInterval(() => void load(true), 60_000)
-    return () => window.clearInterval(every)
   }, [load])
+  // The sends' tick (app/api/sends/tick): the reminders and closes that fell due, the flows' next steps, and what
+  // people sent the agents' AgentMail inboxes. An admin's Inbox runs it when it opens and every minute while it is
+  // open, as it has since the sends began; nothing else calls it yet. The open folder is read again after it.
+  const loadRef = React.useRef(load)
+  loadRef.current = load
+  React.useEffect(() => {
+    let gone = false
+    const run = async () => {
+      try {
+        await fetch("/api/sends/tick", { method: "POST" })
+      } catch {
+        // Signed out, or not an admin: the mail is read all the same.
+      }
+      if (!gone) void loadRef.current(true)
+    }
+    void run()
+    const every = window.setInterval(() => void run(), 60_000)
+    return () => {
+      gone = true
+      window.clearInterval(every)
+    }
+  }, [])
 
   // My notes, read on arrival and again whenever a drawn note is kept or deleted.
   const [notes, setNotes] = React.useState<{ id: string; title: string }[]>([])
