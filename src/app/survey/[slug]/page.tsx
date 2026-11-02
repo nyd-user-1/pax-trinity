@@ -6,13 +6,14 @@ import { PAPER_BRIDGE } from "@/components/editorial/PaperBridge"
 import { surveyBySlug, SURVEYS } from "@/lib/surveys/catalog"
 import { topline } from "@/lib/surveys/responses"
 
-import { SurveyLink } from "./survey-link"
 import "../../paper.css"
 
 // /survey/<slug>: the survey as a topline document, in the shape Ipsos and Pew
 // publish (the methodology block, then each question with its options and
 // shares), stating only this survey's own state: who answered through its
-// link, when, how many, and what they chose. Its respondent link is /s/<slug>.
+// link, when, how many, and what they chose. It is a readout (2026-11-02): its
+// Copy link and Open survey went once /s/<slug> became the consensus survey, and
+// the Pollster's fielding mails the respondent link itself (/s/<slug>?pid=).
 
 export const dynamic = "force-dynamic"
 
@@ -49,7 +50,6 @@ export default async function SurveyDocPage({ params }: Props) {
             <p className="text-[12px] font-semibold tracking-[0.18em] text-[var(--paper-strong)] uppercase">Topline and methodology</p>
             <h1 className="mt-2 text-[44px] leading-[1.05] font-semibold tracking-tight">{survey.title}</h1>
           </div>
-          <SurveyLink path={`/s/${survey.slug}`} />
         </header>
 
         <dl className="mt-6 grid gap-x-10 gap-y-3 text-[14px] sm:grid-cols-2">
