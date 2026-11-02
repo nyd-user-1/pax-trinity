@@ -471,11 +471,16 @@ function DevToolsRows({ onSettings, onComments }: { onSettings: () => void; onCo
   return (
     // data-sonar-exempt + data-devinspector: the rows stay ordinary ground while a mode runs — the
     // standard cursor, clickable — so either mode can always be turned off here (Brendan, 2026-11-01).
-    <div data-sonar-exempt data-devinspector className="flex min-h-0 flex-1 flex-col overflow-y-auto px-3 pt-1">
-      <Row icon={<MessageSquareText />} label="Dev Comments" sub="Comments on the app, and direct messages" onClick={onComments} />
-      <ToggleRow icon={<SquareDashedMousePointer />} label="Point and Click" sub="Point at an element and comment on it; the box's menu picks the dress" on={onNow} onToggle={toggle} />
-      <XRay />
-      <Row icon={<SlidersHorizontal />} label="Settings" sub="The pointer tools' switches" onClick={onSettings} />
+    <div data-sonar-exempt data-devinspector className="flex min-h-0 flex-1 flex-col px-3 pt-1">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+        <Row icon={<MessageSquareText />} label="Dev Comments" sub="Comments on the app, and direct messages" onClick={onComments} />
+        <ToggleRow icon={<SquareDashedMousePointer />} label="Point and Click" sub="Point, click, and leave edit notes." on={onNow} onToggle={toggle} />
+        <XRay />
+      </div>
+      {/* Settings holds the panel's foot whatever X-ray unfolds above it (Brendan, 2026-11-01). */}
+      <div className="shrink-0 border-t border-slate-200">
+        <Row icon={<SlidersHorizontal />} label="Settings" sub="The pointer tools' switches" onClick={onSettings} />
+      </div>
     </div>
   )
 }

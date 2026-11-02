@@ -1865,7 +1865,7 @@ function Panel({
         {...(embedded ? {} : d.handlers)}
         data-grip
         className="flex shrink-0 items-center gap-2 border-b border-border px-5 py-4"
-        style={{ cursor: embedded ? "default" : "grab", touchAction: "none", userSelect: "none" }}
+        style={{ cursor: embedded ? "default" : "grab", touchAction: "none", userSelect: "none", display: embedded ? "none" : undefined }}
       >
         <span className="min-w-0 flex-1 truncate" style={{ fontSize: 15, fontWeight: 500, letterSpacing: "-0.005em" }}>
           Inspector
@@ -1984,7 +1984,7 @@ function Panel({
               </button>
             )
           })}
-          {!scan && !scanning && <p style={note}>Click a layer, or SCAN, to count and highlight.</p>}
+          {!scan && !scanning && !embedded && <p style={note}>Click a layer, or SCAN, to count and highlight.</p>}
           {filter.size > 0 && (
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 6 }}>
               <button type="button" onClick={() => setFilter(new Set())} style={{ ...bare, fontSize: 11 }}>
@@ -1995,7 +1995,7 @@ function Panel({
           )}
         </div>
 
-        <div>
+        <div style={{ display: embedded && !hover ? "none" : undefined }}>
           <Head>
             <span>Selection</span>
           </Head>
