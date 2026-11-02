@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { createPortal } from "react-dom"
-import { ChevronsUpDown, Copy, Download, EllipsisVertical, GripVertical, LayoutGrid, MessagesSquare, Send, ShoppingBasket, Star, StickyNote, Trash2, X, type LucideIcon } from "lucide-react"
+import { ChevronsUpDown, Copy, Download, EllipsisVertical, GripVertical, LayoutGrid, MessagesSquare, Megaphone, Send, ShoppingBasket, Star, StickyNote, Trash2, X, type LucideIcon } from "lucide-react"
 import { generateJSON, type Editor, type JSONContent } from "@tiptap/react"
 
 import { createMyNote, removeNote, saveNote } from "@/app/note-actions"
@@ -15,6 +15,7 @@ import { TaskSurface, TaskToolbar, useTaskEditor } from "@/registry/blocks/sideb
 
 import { NoteCollect } from "./note-collect"
 import { NoteCompose } from "./note-compose"
+import { NoteTeam } from "./note-team"
 import { noteExtensions } from "./note-menus"
 import { PaxReply, turnsOf } from "./pax-reply"
 
@@ -33,15 +34,16 @@ const titleOf = (md: string) => md.split("\n").map((l) => l.replace(/<[^>]+>/g, 
 const SORRY = "Something went wrong. Please try again."
 
 /** The card's shapes, in the switcher's order (Brendan, 2026-11-02): the note, PAX's chat beside it, the note as a
- *  mail, and a basket carried across pages. The star beside each makes it the reader's default, the shape a card opens
- *  on. */
-const SHAPES: { shape: NoteShape; label: string; icon: LucideIcon }[] = [
+ *  mail, a basket carried across pages, and the note posted to the team (admins, as Dev Comments, Slack and Discord
+ *  are). The star beside each makes it the reader's default, the shape a card opens on. */
+const SHAPES: { shape: NoteShape; label: string; icon: LucideIcon; admin?: boolean }[] = [
   { shape: "note", label: "Note", icon: StickyNote },
   { shape: "chat", label: "Chat", icon: MessagesSquare },
   { shape: "compose", label: "Compose", icon: Send },
   { shape: "collect", label: "Collect", icon: ShoppingBasket },
+  { shape: "team", label: "Team", icon: Megaphone, admin: true },
 ]
-const shapeOf = (s: NoteShape | null): NoteShape => (s && SHAPES.some((x) => x.shape === s) ? s : "note")
+const shapeOf = (s: NoteShape | null, admin: boolean): NoteShape => (s && SHAPES.some((x) => x.shape === s && (admin || !x.admin)) ? s : "note")
 
 /** tiptap-markdown's storage on an editor: its types leave the parser out. */
 const mdOf = (editor: Editor) => (editor.storage as unknown as { markdown: { getMarkdown(): string; parser: { parse(md: string): string } } }).markdown
@@ -58,7 +60,8 @@ export function FloatingNote({ rect, id: firstId, body: firstBody, chat: firstCh
   const [chatExt] = React.useState(() => [...noteExtensions(), PaxReply])
   // The note's text, which Compose edits too: the editor follows it when Compose changes it.
   const editor = useTaskEditor({ value: body, onChange: setBody, placeholder: "Write a note…", extensions: noteExt, headings: true })
-  const { askAbout } = useShellPanel()
+  const { askAbout, admin } = useShellPanel()
+  const shapes = SHAPES.filter((x) => admin || !x.admin)
   const { favs, toggle: toggleFav } = useNoteFavorites()
   const shelf = useShelf()
 
@@ -67,9 +70,9 @@ export function FloatingNote({ rect, id: firstId, body: firstBody, chat: firstCh
   // last answered, with the pages open on screen (lib/page-text.ts) and the note as its context, and the answer
   // streams into the text with a fresh line under it.
   // It opens on the reader's default shape (Brendan, 2026-11-02), Note until they pick one.
-  const [mode, setMode] = React.useState<NoteShape>(() => (firstBody.trim() || !firstChat.trim() ? shapeOf(readDefaultShape()) : "chat"))
+  const [mode, setMode] = React.useState<NoteShape>(() => (firstBody.trim() || !firstChat.trim() ? shapeOf(readDefaultShape(), admin) : "chat"))
   const { shape: preferred, choose } = useDefaultShape()
-  const mine = shapeOf(preferred)
+  const mine = shapeOf(preferred, admin)
   const talk = useTaskEditor({ value: firstChat, onChange: setChat, placeholder: "Ask PAX. Shift Enter sends.", extensions: chatExt, headings: true })
   const [busy, setBusy] = React.useState(false)
   React.useEffect(() => {
@@ -241,13 +244,13 @@ export function FloatingNote({ rect, id: firstId, body: firstBody, chat: firstCh
             width="w-56"
             trigger={
               <>
-                {SHAPES.find((x) => x.shape === mode)?.label ?? "Note"}
+                {shapes.find((x) => x.shape === mode)?.label ?? "Note"}
                 <ChevronsUpDown className="size-3.5 text-slate-400 opacity-0 transition-opacity group-hover/anchor:opacity-100 group-aria-expanded/anchor:opacity-100" />
               </>
             }
             triggerClassName="group/anchor inline-flex items-center gap-1.5 rounded px-1.5 py-0.5 text-[15px] font-semibold text-slate-900 outline-none transition-colors select-none hover:bg-muted aria-expanded:bg-muted focus-visible:outline-1 focus-visible:outline-ring"
           >
-            {SHAPES.map(({ shape, label, icon: Icon }) => (
+            {shapes.map(({ shape, label, icon: Icon }) => (
               <div key={shape} className="flex items-center gap-0.5">
                 <div className="min-w-0 flex-1">
                   <MenuRow icon={<Icon />} label={label} checked={mode === shape} onClick={() => setMode(shape)} />
@@ -316,6 +319,8 @@ export function FloatingNote({ rect, id: firstId, body: firstBody, chat: firstCh
           <NoteCompose body={body} onBody={setBody} onClose={() => setMode("note")} />
         ) : mode === "collect" ? (
           <NoteCollect />
+        ) : mode === "team" ? (
+          <NoteTeam editor={editor} body={body} />
         ) : mode === "note" ? (
           <>
             <TaskToolbar editor={editor} className="shrink-0 border-b border-slate-200 px-2 py-1" />
