@@ -2,17 +2,14 @@
 
 import * as React from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { EllipsisVerticalIcon, Maximize2, Pencil } from "lucide-react"
 
-import { TableBlock } from "@/components/blocks"
+import { KebabMenu, MenuFoot, MenuHeader, MenuRow, MenuSeparator } from "@/components/kebab-menu"
+import { Block, Fact } from "@/components/settings/blocks"
 import type { Status } from "@/lib/tests/types"
 import { editTestHref, newTestHref, testHref } from "@/lib/survey-links"
-import { useRouter } from "next/navigation"
-import { Maximize2, Pencil } from "lucide-react"
-import { MenuFoot, MenuHeader, MenuRow, MenuSeparator } from "@/components/kebab-menu"
-import { RowMenu, TD, TR } from "@/components/row-dress"
-import { cn } from "@/ui/lib/utils"
 import { buttonVariants } from "@/ui/components/nova/button"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/ui/components/nova/table"
 
 import { StatusChip } from "./status-chip"
 
@@ -36,66 +33,65 @@ function useCompletes(ids: string[]) {
   return done
 }
 
-export function TestsTable({ tests, reachable }: { tests: Row[]; reachable: boolean }) {
+/** A test's card (Brendan, 2026-11-02): the model cards' and question cards' Block. Its title, status
+ *  and kebab head it, its facts are the rows, and its id is the foot, where a question card keeps its code. */
+function TestCard({ t, done }: { t: Row; done: number | null | undefined }) {
   const router = useRouter()
+  const name = t.title || t.id
+  return (
+    <Block
+      stretch
+      id={t.id}
+      className="lift"
+      title={
+        <Link href={testHref(t.id)} className="min-w-0 truncate transition-colors hover:text-pax2-blue">
+          {name}
+        </Link>
+      }
+      badge={<StatusChip status={t.status} />}
+      action={
+        // The model cards' kebab dress (components/dash/card-tools.tsx), holding the test's own menu.
+        <KebabMenu label={`${name} options`} trigger={<EllipsisVerticalIcon className="size-4" />} triggerClassName="inline-flex size-8 shrink-0 self-start items-center justify-center rounded-md text-slate-800 outline-none hover:bg-foreground/8 hover:text-foreground aria-expanded:bg-foreground/8">
+          <MenuHeader text={t.id} copy={t.id} />
+          <MenuSeparator />
+          <MenuRow icon={<Maximize2 />} label="Open" onClick={() => router.push(testHref(t.id))} />
+          <MenuRow icon={<Pencil />} label="Edit" onClick={() => router.push(editTestHref(t.id))} />
+          <MenuSeparator />
+          <MenuFoot title={name} sub={t.status[0].toUpperCase() + t.status.slice(1)} />
+        </KebabMenu>
+      }
+    >
+      <Fact label="Arms">{t.arms}</Fact>
+      <Fact label="Completes">
+        <span className="tabular-nums">
+          {done == null ? "—" : done.toLocaleString("en-US")} / {(t.targetPerArm * t.arms).toLocaleString("en-US")}
+        </span>
+      </Fact>
+      <Fact label="Updated">{t.updatedAt ? t.updatedAt.slice(0, 10) : "Seeded"}</Fact>
+      <p className="mt-auto px-4 py-3 text-[13px] text-slate-500 tabular-nums sm:px-5">{t.id}</p>
+    </Block>
+  )
+}
+
+export function TestsTable({ tests, reachable }: { tests: Row[]; reachable: boolean }) {
   const ids = React.useMemo(() => tests.map((t) => t.id), [tests])
   const done = useCompletes(ids)
   return (
     <div className="flex flex-col gap-4">
       {!reachable && <p className="text-sm text-pax2-red">The tests table could not be read, so only the seeded test is listed.</p>}
-      <TableBlock
-        title="Tests"
-        name="message-tests"
-        rows={tests.map((t) => ({ id: t.id, title: t.title, status: t.status, arms: t.arms, completes: done[t.id] ?? "", target: t.targetPerArm * t.arms }))}
-        actions={
-          <Link href={newTestHref()} className={buttonVariants({ size: "sm" })}>
-            New test
-          </Link>
-        }
-      >
-        <Table className="table-fixed">
-          <TableHeader>
-            <TableRow className="bg-muted/60">
-              <TableHead className="w-[40%]">Test</TableHead>
-              <TableHead className="w-[14%]">Status</TableHead>
-              <TableHead className="w-[12%]">Arms</TableHead>
-              <TableHead className="w-[18%]">Completes</TableHead>
-              <TableHead className="w-[16%]">Updated</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {/* The house row (components/row-dress.tsx, Brendan, 2026-10-31): one line, the id after the title. */}
-            {tests.map((t) => (
-              <TableRow key={t.id} onClick={() => router.push(testHref(t.id))} className={cn(TR, "cursor-pointer")}>
-                <TableCell className={cn(TD, "truncate")}>
-                  <Link href={testHref(t.id)} onClick={(e) => e.stopPropagation()} className="font-semibold">
-                    {t.title || t.id}
-                  </Link>
-                  <span className="font-mono text-xs text-slate-400">&nbsp;- {t.id}</span>
-                </TableCell>
-                <TableCell className={TD}>
-                  <StatusChip status={t.status} />
-                </TableCell>
-                <TableCell className={cn(TD, "tabular-nums text-sm text-slate-600")}>{t.arms}</TableCell>
-                <TableCell className={cn(TD, "tabular-nums text-sm text-slate-600")}>
-                  {done[t.id] == null ? "—" : done[t.id]!.toLocaleString("en-US")} / {(t.targetPerArm * t.arms).toLocaleString("en-US")}
-                </TableCell>
-                <TableCell className={cn(TD, "text-sm text-slate-500")}>{t.updatedAt ? t.updatedAt.slice(0, 10) : "Seeded"}</TableCell>
-                <td className="absolute top-1/2 right-5 -translate-y-1/2 border-0 p-0">
-                  <RowMenu label={`${t.title || t.id} options`} className="rounded-lg bg-pax2-lift">
-                    <MenuHeader text={t.id} copy={t.id} />
-                    <MenuSeparator />
-                    <MenuRow icon={<Maximize2 />} label="Open" onClick={() => router.push(testHref(t.id))} />
-                    <MenuRow icon={<Pencil />} label="Edit" onClick={() => router.push(editTestHref(t.id))} />
-                    <MenuSeparator />
-                    <MenuFoot title={t.title || t.id} sub={t.status[0].toUpperCase() + t.status.slice(1)} />
-                  </RowMenu>
-                </td>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableBlock>
+      <div className="flex justify-end">
+        <Link href={newTestHref()} className={buttonVariants({ size: "sm" })}>
+          New test
+        </Link>
+      </div>
+      {/* Two to a row once the page is wide enough, as /models sets its cards; the pane, not the window, decides. */}
+      <div className="@container">
+        <div className="grid gap-5 @min-[40rem]:grid-cols-2">
+          {tests.map((t) => (
+            <TestCard key={t.id} t={t} done={done[t.id]} />
+          ))}
+        </div>
+      </div>
     </div>
   )
 }
