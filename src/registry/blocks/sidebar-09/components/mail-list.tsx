@@ -45,6 +45,8 @@ export type MailRowView = {
   archived?: boolean
   /** In Trash: Restore stands in Delete's place. */
   trashed?: boolean
+  /** Snoozed: its snooze menu can unsnooze it. */
+  snoozed?: boolean
   /** One of this browser's drafts: it can only be opened or discarded. */
   draft?: boolean
 }

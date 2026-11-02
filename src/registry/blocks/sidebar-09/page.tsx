@@ -1,10 +1,10 @@
 "use client"
 
 import * as React from "react"
-import { ArrowLeft, Check, Copy, ExternalLink, Forward as ForwardIcon, PenSquare, Reply as ReplyIcon, RotateCcw, Star, Trash2 } from "lucide-react"
+import { ArrowLeft, Check, Clock, Copy, ExternalLink, Forward as ForwardIcon, PenSquare, Reply as ReplyIcon, RotateCcw, Star, Trash2 } from "lucide-react"
 
 import { ADDRESSES, PEOPLE_ADDRESSES, addressFor, keptThread, loadDrafts, nameOf, newThread, saveDrafts, shownRecipients, snippet, when, type Attached, type Folder, type Message, type Thread } from "@/lib/agents/inbox"
-import { applyFiling, fileThread, isAgentBox, listTime, marksOf, readFolder, showsIn, type Counts, type Filing, type Kept } from "@/lib/mail/client"
+import { applyFiling, fileThread, isAgentBox, listTime, marksOf, readFolder, showsIn, snoozeTime, type Counts, type Filing, type Kept } from "@/lib/mail/client"
 import { PENDING_DRAFT } from "@/lib/agents/pending-draft"
 import { fieldingRequest } from "@/lib/agents/live"
 import { cn } from "@/lib/utils"
@@ -18,6 +18,7 @@ import { NOTES_CHANGED, openDrawnNote } from "@/lib/drawn-notes"
 import { MenuRow, MenuSeparator } from "@/components/kebab-menu"
 import { ArchiveIcon, MailList, MarkUnreadIcon, UnarchiveIcon, type MailActions, type MailRowView, type SelectBy } from "@/registry/blocks/sidebar-09/components/mail-list"
 import { InboxRail, THREAD_DRAG } from "@/registry/blocks/sidebar-09/components/app-sidebar"
+import { SnoozeMenu } from "@/registry/blocks/sidebar-09/components/snooze-menu"
 import { BoxMark, MailboxChip, ownersFor, type Owner } from "@/registry/blocks/sidebar-09/components/mailbox-chip"
 import { Compose, EMPTY_DRAFT, type Draft } from "@/registry/blocks/sidebar-09/components/compose"
 import { ComposeWindow } from "@/registry/blocks/sidebar-09/components/compose-window"
@@ -566,12 +567,14 @@ export default function Page() {
             count: t.messages.length,
             subject: t.latest.subject,
             snippet: t.latest.snippet,
-            span: listTime(t.latest.createdAt),
+            // In Snoozed, the time it comes back, as Gmail's Snoozed shows it.
+            span: folder === "snoozed" && marks.snoozedUntil ? snoozeTime(new Date(marks.snoozedUntil)) : listTime(t.latest.createdAt),
             unread: marks.unread,
             starred: marks.starred,
             important: marks.important,
             archived: marks.archived,
             trashed: marks.trashed,
+            snoozed: !!marks.snoozedUntil,
           }
         })
         const viewOf = new Map(views.map((v) => [v.id, v]))
@@ -593,6 +596,10 @@ export default function Page() {
           onArchive: (id) => fileAway(id, { archived: !viewOf.get(id)?.archived }),
           onTrash: (id) => (viewOf.get(id)?.draft ? discard(id) : fileAway(id, { trashed: !viewOf.get(id)?.trashed })),
           onRead: (id, read) => (read ? void file([id], { read: true }) : markUnread(id)),
+          // Snoozed, it leaves the Inbox for Snoozed until its time; the open one closes.
+          snooze: (id, trigger) => (
+            <SnoozeMenu trigger={trigger} snoozed={!!viewOf.get(id)?.snoozed} onSnooze={(at) => fileAway(id, { snoozedUntil: at.toISOString() })} onUnsnooze={() => void file([id], { snoozedUntil: null })} />
+          ),
           onDragStart: (id, event) => {
             event.dataTransfer.setData(THREAD_DRAG, id)
             event.dataTransfer.effectAllowed = "move"
@@ -609,12 +616,12 @@ export default function Page() {
           else pick((v) => !v.starred)
         }
         // What the bar does to the checked rows; the open one closes if it leaves.
-        const bulk = (act: "archive" | "trash" | "read" | "unread") => {
+        const bulk = (act: "archive" | "trash" | "read" | "unread" | Date) => {
           const ids = [...checked].filter((id) => viewOf.get(id) && !viewOf.get(id)!.draft)
           if (act === "trash") checked.forEach((id) => viewOf.get(id)?.draft && discard(id))
-          if ((act === "archive" || act === "trash" || act === "unread") && selected && checked.has(selected)) setSelected(null)
+          if (act !== "read" && selected && checked.has(selected)) setSelected(null)
           setChecked(new Set())
-          void file(ids, act === "archive" ? { archived: true } : act === "trash" ? { trashed: true } : { read: act === "read" })
+          void file(ids, act instanceof Date ? { snoozedUntil: act.toISOString() } : act === "archive" ? { archived: true } : act === "trash" ? { trashed: true } : { read: act === "read" })
         }
         // The kebab: the unread filter, mark all read, and the split.
         const listMenu = (
@@ -638,6 +645,7 @@ export default function Page() {
               actions={actions}
               onSelect={select}
               onBulk={bulk}
+              bulkSnooze={(trigger) => <SnoozeMenu align="left" trigger={trigger} onSnooze={(at) => bulk(at)} />}
               onRefresh={() => void load()}
               menu={listMenu}
               query={query}
@@ -756,6 +764,17 @@ export default function Page() {
                                 <MarkUnreadIcon className="size-4" />
                               </Button>
                             </Tip>
+                            <SnoozeMenu
+                              align="left"
+                              trigger={
+                                <span aria-hidden title="Snooze" className="inline-flex h-8 items-center rounded-md px-2.5 hover:bg-accent">
+                                  <Clock className="size-4" />
+                                </span>
+                              }
+                              snoozed={!!openMarks.snoozedUntil}
+                              onSnooze={(at) => fileAway(open.id, { snoozedUntil: at.toISOString() })}
+                              onUnsnooze={() => void file([open.id], { snoozedUntil: null })}
+                            />
                             <Tip label={openMarks.starred ? "Remove star" : "Star"}>
                               <Button variant="ghost" size="sm" aria-label={openMarks.starred ? "Remove star" : "Star"} onClick={() => void file([open.id], { starred: !openMarks.starred })}>
                                 <Star className={cn("size-4", openMarks.starred && "fill-yellow-400 text-yellow-500")} />

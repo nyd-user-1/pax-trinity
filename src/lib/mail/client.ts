@@ -99,11 +99,12 @@ export function listTime(iso: string, now = new Date()): string {
   return d.toLocaleDateString("en-US", { month: "numeric", day: "numeric", year: "2-digit" })
 }
 
-/** A snooze's time as Gmail's menu and the Snoozed folder say it: "6:00 PM" today, else "Tue, 8:00 AM". */
+/** A snooze's time as Gmail's menu and the Snoozed folder say it: "6:00 PM" today, "Tue, 8:00 AM" this coming week, else "Nov 20, 8:00 AM". */
 export function snoozeTime(at: Date, now = new Date()): string {
   const time = at.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
   if (sameDay(at, now)) return time
-  const week = at.getTime() - now.getTime() < 6 * 86_400_000
+  // Within the coming week the weekday names it (next Monday included), past that the date.
+  const week = at.getTime() - now.getTime() < 8 * 86_400_000
   return week ? `${at.toLocaleDateString("en-US", { weekday: "short" })}, ${time}` : `${at.toLocaleDateString("en-US", { month: "short", day: "numeric" })}, ${time}`
 }
 
