@@ -85,11 +85,11 @@ export const AGENTS: AgentDefinition[] = [
     can: "Find a bill by number or by keyword, read the record end to end, and give a sourced brief — what it does, where it is, who is behind it, what has actually happened to it, and how it changed on the way. Where the answer is not in the record it can search the web and read the page it finds, and say which is which.",
     tier: "grounded",
     tools: ["web_search", "read_page", ...DATA_TOOL_IDS],
-    placeholder: "Ask about a bill, a vote, a hearing or a committee…",
+    placeholder: "Ask about a poll, a survey, a test or a short…",
     starters: [
-      "What does NY A07380 do, and where is it?",
-      "What changed between H.R. 1's Senate amendment and the enrolled text?",
-      "Who voted against H.R. 4795, and what was the question?",
+      "How has trust in the federal government changed since 1958?",
+      "Where does the Open primaries survey stand?",
+      "Which Consensus surveys have I taken?",
     ],
     system: `${GROUND}
 
@@ -110,12 +110,9 @@ from, and say plainly when nothing you found answers the question.`,
     can: "Answer 'who represents…', 'which committee has…', 'where is this bill' in any of the 52, and say honestly when a jurisdiction's rows are thinner than another's.",
     tier: "grounded",
     tools: [],
-    placeholder: "Ask who, which committee, or where — name the jurisdiction…",
-    starters: [
-      "Which committees does Texas have?",
-      "Who sits for New York's 43rd Assembly district?",
-      "Which jurisdictions does the record actually cover?",
-    ],
+    placeholder: "Paste a bill or a rule, and ask where it goes or who decides…",
+    // No tool to read with, so nothing to start from: it works on what is pasted (2026-11-02).
+    starters: [],
     system: `${GROUND}
 
 ${NO_TOOLS}
@@ -135,12 +132,9 @@ separately and never merge them.`,
     can: "Trace a bill to the lobbyists who filed on it and its sponsors to their FEC totals, and state precisely which part of the money is not in this record.",
     tier: "reasoning",
     tools: [],
-    placeholder: "Follow the money on a bill or a member…",
-    starters: [
-      "Who lobbied on HR 1?",
-      "Who sponsors the most bills in Congress this session?",
-      "What are the FEC totals for the sponsor of HR 1?",
-    ],
+    placeholder: "Paste a filing or a budget line, and ask what it shows…",
+    // No tool to read with, so nothing to start from: it works on what is pasted (2026-11-02).
+    starters: [],
     system: `${GROUND}
 
 ${NO_TOOLS}
@@ -168,11 +162,11 @@ each other and let the reader draw the line.`,
     tools: [...DATA_TOOL_IDS],
     connections: ["discord", "slack"],
     agentic: true,
-    placeholder: "Watch <topic> bills in <jurisdiction>…",
+    placeholder: "Name a survey, a test or a fielding to report on…",
     starters: [
-      "Watch housing bills in New York and post the digest",
-      "Watch artificial intelligence bills in California",
-      "Watch immigration bills in Congress and post it",
+      "Post where every fielding stands",
+      "Post the Open primaries survey's counts",
+      "Post the Massachusetts Wave 3 test's completes by arm",
     ],
     system: `${GROUND}
 
@@ -217,11 +211,11 @@ went.`,
     // budget and would cut one off mid-gathering.
     maxRounds: 24,
     placeholder:
-      "Ask for a report — a topic, a jurisdiction, and what you want to know…",
+      "Ask for a report: a topic, and what you want to know about it…",
     starters: [
-      "Report on New York housing legislation this session",
-      "Report on what Congress has done on artificial intelligence in the 119th",
-      "Report on who is behind the biggest bills in California this session",
+      "Report on what the polls say about open and top-two primaries",
+      "Report on Americans' trust in each other and in government, wave by wave",
+      "Report on what the Massachusetts Wave 3 test found",
     ],
     system: `${GROUND}
 
@@ -372,12 +366,9 @@ const REPORTER: AgentDefinition = {
   // A briefing is a dozen reads and then the writing, which is a report's
   // shape rather than a chat's.
   maxRounds: 18,
-  placeholder: "What happened on the <jurisdiction> desk this week?",
-  starters: [
-    "Brief me on New York this week",
-    "What moved in the Texas legislature, and what did the press make of it?",
-    "Which Congress bills got a roll call this week, and who broke with their party?",
-  ],
+  placeholder: "Paste the week's items, and ask for the briefing…",
+  // No tool to read with, so nothing to start from: it works on what is pasted (2026-11-02).
+  starters: [],
   system: `${GROUND}
 
 ${NO_TOOLS}
