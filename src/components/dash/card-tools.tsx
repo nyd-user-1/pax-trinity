@@ -8,6 +8,7 @@ import { CardTitle } from "@/ui/components/nova/card"
 import { usePinTop } from "@/components/dash/block-order"
 import { KebabMenu, MenuFlyout, MenuFoot, MenuRow, MenuSeparator } from "@/components/kebab-menu"
 import { AddToNoteRow } from "@/components/notes/add-to-note"
+import { useCollectMark } from "@/components/notes/gather"
 import type { BasketKind } from "@/lib/note-basket"
 import { useShellPanel } from "@/components/shell"
 import { useHiddenBlocks, useShelf } from "@/lib/home-blocks"
@@ -197,6 +198,8 @@ export function CardTools({
   const onShelf = !!key && shelf.has(key)
   // Ask PAX: the side panel's chat opens with the block's content, read off the screen at the click.
   const ask = useAskBlock(root, title)
+  // The card's root carries what its Add to the note adds, for Option and a right-click while a note collects.
+  useCollectMark(root, key && title && anchor ? { kind: collect?.kind ?? "block", title, anchor, question: collect?.question } : null)
   const extras = (views && views.length > 1) || !!menuItems || (rows && rows.length > 0)
   return (
     <div ref={root} className={cn("flex items-center gap-1", className)}>

@@ -20,8 +20,11 @@ import { cn } from "@/ui/lib/utils"
 /** The page's own column, or the second panel. */
 export type Side = "main" | "pane"
 
+/** A text field or a select, whose menu is the browser's under every gesture (its spelling, its paste). */
+export const FIELD = "input, textarea, select, [contenteditable]:not([contenteditable='false'])"
+
 /** What keeps its own menu, the browser's, even with Shift: a link, a control, a text field, an open menu or dialog. */
-export const NATIVE_MENU = "a, button, input, textarea, select, [contenteditable]:not([contenteditable='false']), [role=button], [role=combobox], [role=menu], [role=dialog]"
+export const NATIVE_MENU = `a, button, ${FIELD}, [role=button], [role=combobox], [role=menu], [role=dialog]`
 
 export type GoToAt = { x: number; y: number; side: Side; here: string }
 

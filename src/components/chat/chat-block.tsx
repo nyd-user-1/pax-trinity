@@ -8,6 +8,7 @@ import { KebabMenu, MenuFoot, MenuRow, MenuSeparator } from "@/components/kebab-
 import { AddToNoteRow } from "@/components/notes/add-to-note"
 import { useShellPanel } from "@/components/shell"
 import { useNavFavorites } from "@/lib/nav-favorites"
+import { COLLECT_ATTR, collectAttr } from "@/lib/note-collect"
 
 import { useShelf } from "@/lib/home-blocks"
 import { cn } from "@/ui/lib/utils"
@@ -43,8 +44,10 @@ export function ChatBlock({ path, anchor }: { path: string; anchor: string }) {
       alive = false
     }
   }, [path, anchor, nonce])
-  // Where the pictured three-dot button sits, so the live menu can stand on it.
+  // Where the pictured three-dot button sits, so the live menu can stand on it. The picture's own cards lose their
+  // Add to the note marks: Option and a right-click gathers the block itself, at its own page.
   React.useLayoutEffect(() => {
+    snap.current?.querySelectorAll(`[${COLLECT_ATTR}]`).forEach((el) => el.removeAttribute(COLLECT_ATTR))
     const dead = snap.current?.querySelector<HTMLElement>('button[aria-label="Block options"]')
     const box = frame.current?.getBoundingClientRect()
     if (!dead || !box) return setKebab(null)
@@ -69,7 +72,7 @@ export function ChatBlock({ path, anchor }: { path: string; anchor: string }) {
   const title = anchor.replace(/-/g, " ").replace(/^./, (c) => c.toUpperCase())
   const onShelf = has(key)
   return (
-    <figure className="my-4 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 animate-in fade-in slide-in-from-bottom-1 duration-300">
+    <figure className="my-4 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 animate-in fade-in slide-in-from-bottom-1 duration-300" {...collectAttr({ kind: "block", title, anchor, path })}>
       <div className="flex items-center gap-2 border-b border-slate-200 px-3 py-2 text-[12px] text-slate-500">
         <LayoutGrid className="size-3.5 text-pax2-blue" />
         <span className="font-mono">{key}</span>

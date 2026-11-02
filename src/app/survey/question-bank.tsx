@@ -10,6 +10,7 @@ import { ROW, RowMenu } from "@/components/row-dress"
 import { AddToBlocksRow } from "@/components/dash/card-tools"
 import { FIELD } from "@/components/settings/blocks"
 import { readDraft } from "@/lib/consensus/draft"
+import { collectAttr } from "@/lib/note-collect"
 import { LIFE_TONE } from "@/lib/lifecycle/rules"
 import { buildBank, pretrainingOrigin, type Appearance, type BankQuestion, type Kind, type Origin } from "@/lib/surveys/question-bank"
 import { cn } from "@/ui/lib/utils"
@@ -51,7 +52,7 @@ function BankRow({ q }: { q: BankQuestion }) {
   const router = useRouter()
   const rest = q.on.slice(SHOWN)
   return (
-    <li id={bankAnchor(q)} className={cn(ROW, "flex items-center gap-3 pr-12 pl-4")}>
+    <li id={bankAnchor(q)} className={cn(ROW, "flex items-center gap-3 pr-12 pl-4")} {...collectAttr({ kind: "question", title: `Question Bank: ${q.text}`, anchor: bankAnchor(q), question: { text: q.text, options: q.options } })}>
       <span className="min-w-0 flex-1 truncate text-sm" title={q.text}>
         {q.text}
       </span>

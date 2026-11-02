@@ -8,6 +8,7 @@ import { BankFrame, BankSplit, RailToggle } from "@/components/bank/bank-frame"
 import { BankRail, RailGroup, RailRow, RailSearch } from "@/components/bank/bank-rail"
 import { AddToBlocksRow } from "@/components/dash/card-tools"
 import { CardList, type Card, type Split } from "@/components/bank/card-list"
+import type { Collectible } from "@/lib/note-collect"
 import { MenuFoot, MenuHeader, MenuRow, MenuSeparator } from "@/components/kebab-menu"
 import { PaneTitleRow, RefreshButton } from "@/components/bank/pane-bars"
 import { questionCode, questionNumbers } from "@/components/consensus/question-code"
@@ -134,13 +135,15 @@ export function SurveyInbox({
   )
   // A row's id, for Blocks to open it at: the folder and the question, so a pretraining's row and a survey's stay apart.
   const rowAnchor = (id: string) => `row-${(folder ?? "").replace(/[^a-z0-9-]+/gi, "-")}-${id}`
+  // What the row's Add to Blocks and Add to the note add, and Option and a right-click while a note collects.
+  const rowCollect = (id: string, text: string, foot: string): Collectible => ({ kind: "block", title: `${foot}: ${text}`, anchor: rowAnchor(id) })
   const cardOf = (id: string): Card => {
     if (onDraft) {
       const dq = draftQuestionOf(id)
       const n = dq?.options.length ?? 0
       // A seed question names its America Thinks source under the pretraining at the menu's foot.
       const from = dq && "source" in dq ? String(dq.source) : undefined
-      return { title: dq?.text ?? "", hint: dq?.text, chip: n ? `${n} ${n === 1 ? "option" : "options"}` : null, menu: dq ? rowMenu(id, dq.text, null, pretraining?.title ?? "Pretraining", from) : undefined, anchor: rowAnchor(id) }
+      return { title: dq?.text ?? "", hint: dq?.text, chip: n ? `${n} ${n === 1 ? "option" : "options"}` : null, menu: dq ? rowMenu(id, dq.text, null, pretraining?.title ?? "Pretraining", from) : undefined, anchor: rowAnchor(id), collect: dq ? rowCollect(id, dq.text, pretraining?.title ?? "Pretraining") : undefined }
     }
     const s = statementOf(id)
     if (!s) return { title: "" }
@@ -154,6 +157,7 @@ export function SurveyInbox({
       detail: `${Math.round(v.disagree)}% disagree · ${Math.round(v.pass)}% pass · ${fmtNumber(s.votes.seen)} saw it`,
       menu: rowMenu(id, s.text, code, open?.title ?? "Survey", verdicts.get(s.tid)),
       anchor: rowAnchor(id),
+      collect: rowCollect(id, s.text, open?.title ?? "Survey"),
     }
   }
 

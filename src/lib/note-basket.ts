@@ -2,6 +2,8 @@
 
 import * as React from "react"
 
+import type { Collectible } from "@/lib/note-collect"
+
 // A note's Collect shape (Brendan, 2026-11-02): a basket that follows the reader from page to page. While a note is
 // open in Collect, every card's menu offers Add to the note beside Add to Blocks; what is collected (questions,
 // values, clips, model cards, blocks) lists in the note, kept in this browser until it is emptied. From there it all
@@ -69,7 +71,7 @@ export function useBasket() {
       window.removeEventListener("storage", on)
     }
   }, [])
-  const add = React.useCallback((item: Omit<BasketItem, "added">) => write([...read().filter((x) => x.key !== item.key), { ...item, added: new Date().toISOString() }]), [])
+  const add = React.useCallback((item: Omit<BasketItem, "added">) => addToBasket(item), [])
   const remove = React.useCallback((key: string) => write(read().filter((x) => x.key !== key)), [])
   const clear = React.useCallback(() => write([]), [])
   const has = React.useCallback((key: string) => items.some((x) => x.key === key), [items])
@@ -78,3 +80,17 @@ export function useBasket() {
 
 /** The address a card is collected under: the page with its query, and its anchor. */
 export const basketKey = (path: string, anchor: string) => `${path}#${anchor}`
+
+/** Into the basket, once: an item added again keeps one copy. */
+export function addToBasket(item: Omit<BasketItem, "added">) {
+  write([...read().filter((x) => x.key !== item.key), { ...item, added: new Date().toISOString() }])
+}
+
+/** Whether a note is open in Collect right now. */
+export const isCollecting = () => collecting > 0
+
+/** A card's payload (lib/note-collect.ts) as the basket keeps it, gathered on the page `here` (its path with its query). */
+export function itemOf(c: Collectible, here: string): Omit<BasketItem, "added"> {
+  const path = c.path ?? here
+  return { key: c.key ?? basketKey(path, c.anchor), kind: c.kind, title: c.title, path, anchor: c.anchor, ...(c.question ? { question: c.question } : {}) }
+}

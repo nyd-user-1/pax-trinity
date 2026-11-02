@@ -23,6 +23,7 @@ import { TOOLS_OPEN } from "@/lib/clips-panel"
 import { recordVisit } from "@/lib/nav-recents"
 import { GoToMenu, NATIVE_MENU, useShiftNav, type Side } from "@/components/go-to-menu"
 import { DrawNotes } from "@/components/notes/draw-notes"
+import { useGather } from "@/components/notes/gather"
 import { testsHref } from "@/lib/survey-links"
 import { PaneFrame, PaneSync } from "@/components/pane"
 import { PANE_MAIN, PANE_MESSAGE, PANE_PARAM, isEmbedded, isPanePath } from "@/lib/pane"
@@ -207,6 +208,9 @@ export function Shell({ children, drawer, signedIn = false, admin = false, super
     if (pane && target && drawerRef.current?.contains(target)) return { side: "pane", here: pane.href }
     return { side: "main", here: mainHere() }
   })
+  // Option and a right-click, while a note is open in Collect, gathers the card under the pointer into it
+  // (components/notes/gather.tsx): the third of the right-click's gestures, after the panel's and the Nav's.
+  useGather()
   // The panel's frame says where its page has gone; the address follows (PaneSync). Its Nav may ask for a
   // page in the main container (PANE_MAIN).
   React.useEffect(() => {

@@ -16,6 +16,7 @@ import {
 } from "@govblock/ui/components/ny4/dropdown-menu"
 import { ScrollArea } from "@govblock/ui/components/ny4/scroll-area"
 import { KebabMenu } from "@/components/kebab-menu"
+import { collectAttr, type Collectible } from "@/lib/note-collect"
 
 import { BankRail, BankTone, RailToggle } from "./bank-frame"
 import { Marks, type MarkState } from "./marks"
@@ -71,6 +72,8 @@ export type Card = {
   onDragStart?: (event: React.DragEvent<HTMLLIElement>) => void
   /** The row's element id, where Blocks opens it (Add to Blocks in its menu). */
   anchor?: string
+  /** What the row's Add to the note adds, for Option and a right-click while a note collects (lib/note-basket.ts). */
+  collect?: Collectible
 }
 
 /** Sixty rows to a read, sixty more on reaching the end — a bulk folder holds thousands. */
@@ -292,6 +295,7 @@ export function CardList({
                 key={id}
                 id={c.anchor}
                 data-active={active}
+                {...collectAttr(c.collect)}
                 draggable={c.onDragStart ? true : undefined}
                 onDragStart={c.onDragStart}
                 className={cn(

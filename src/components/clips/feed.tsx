@@ -8,10 +8,11 @@ import { BookmarkIcon, ChevronDownIcon, ChevronUpIcon, HeartIcon, LockIcon, Mess
 import { Avatar, AvatarFallback, AvatarImage } from "@govblock/ui/components/nova/avatar"
 import { cn } from "@govblock/ui/lib/utils"
 import { Skeleton } from "@/ui/components/nova/skeleton"
+import { collectAttr } from "@/lib/note-collect"
 
 
 import { isTested, RctBadge } from "./clip-test"
-import { ClipMenu } from "./menu"
+import { clipCollect, ClipMenu } from "./menu"
 import { fmtCount, isKeptRecording, type Clip } from "./store"
 
 // The feed: one clip after another down the page, each the height of the
@@ -239,7 +240,7 @@ function FeedItem({ clip, active, near, muted, onMuted, reactions }: { clip: Cli
   )
 
   return (
-    <div className="relative h-full max-w-full">
+    <div className="relative h-full max-w-full" {...collectAttr(clipCollect(clip))}>
       <div className="relative h-full max-w-full overflow-hidden bg-black select-none lg:rounded-xl" style={{ aspectRatio: "9 / 16" }}>
         {clip.youtube ? (
           // A YouTube Short, or a cut of a longer video from its start to its

@@ -10,6 +10,7 @@ import { CardList, type Card, type Split } from "@/components/bank/card-list"
 import { ImportantIcon } from "@/components/bank/marks"
 import { MenuFoot, MenuHeader, MenuRow, MenuSeparator } from "@/components/kebab-menu"
 import { AddToNoteRow } from "@/components/notes/add-to-note"
+import type { Collectible } from "@/lib/note-collect"
 
 import { BaselinePanel, type BaselinePick } from "./audience-pane"
 import { buildInfo, fetchQuestionRows, groupSources, mnemonicOf, normalizeWording, scaleOf, shortSource, topicOf, UNTAGGED, TOPIC_GROUPS, WEB_GRID, WORDING, type AudienceIndex, type MetricInfo, type QuestionSummary, type SourceRow } from "./audience-data"
@@ -378,6 +379,16 @@ export function AudienceInbox() {
   const cardOf = (id: string): Card => {
     const c = summaries.get(id)
     const scale = scaleOf(c?.options ?? [])
+    // What Add to the note adds (Brendan, 2026-11-02): the question, with its wording and options, at the address that
+    // opens it. The menu's row and the row's Option and right-click (components/notes/gather.tsx) add the same.
+    const wording = normalizeWording(wordingOf(id) ?? label(id))
+    const gather: Collectible = {
+      kind: "question",
+      title: wording,
+      anchor: id,
+      question: { text: wording, options: c?.options ?? [] },
+      path: `/america-thinks?${new URLSearchParams([...(source ? [["source", source]] : topic ? [["topic", topic]] : []), ["open", id]])}`,
+    }
     const isColumn = columns.includes(id)
     const atCap = !isColumn && columns.length >= MAX_COLS
     return {
@@ -405,6 +416,7 @@ export function AudienceInbox() {
         pinned: pinned.includes(id),
         onPin: () => toggle(setPinned, id),
       },
+      collect: gather,
       // The house menu, as the sidebar's items wear it (kebab-menu.tsx): the
       // question's mnemonic leads and copies, its topic and source at the foot.
       // Favorite is the star's state, the one Pin was.
@@ -434,15 +446,8 @@ export function AudienceInbox() {
               setBlocksOpen(true)
             }}
           />
-          {/* While a note collects (Brendan, 2026-11-02): the question, with its wording and options, into the note's
-              basket, at the address that opens it. */}
-          <AddToNoteRow
-            title={normalizeWording(wordingOf(id) ?? label(id))}
-            anchor={id}
-            kind="question"
-            question={{ text: normalizeWording(wordingOf(id) ?? label(id)), options: summaries.get(id)?.options ?? [] }}
-            path={`/america-thinks?${new URLSearchParams([...(source ? [["source", source]] : topic ? [["topic", topic]] : []), ["open", id]])}`}
-          />
+          {/* While a note collects: the question into the note's basket. */}
+          <AddToNoteRow title={gather.title} anchor={gather.anchor} kind={gather.kind} question={gather.question} path={gather.path} />
           <MenuRow icon={<ClipboardList />} label="Add to survey" onClick={() => addToSurvey(id)} />
           <MenuSeparator />
           <MenuFoot title={topicChipOf(id) ?? openName} sub={srcOf(id) ?? undefined} />

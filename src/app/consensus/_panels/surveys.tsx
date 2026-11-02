@@ -7,6 +7,7 @@ import { LifeChip } from "@/components/life-chip"
 import { Block, Fact, Tile } from "@/components/settings/blocks"
 import { asked, type Conversation } from "@/lib/consensus/data"
 import { fmtNumber } from "@/lib/format"
+import { collectAttr } from "@/lib/note-collect"
 import type { LifeState } from "@/lib/lifecycle/rules"
 
 // The Surveys tab — the conversations, as a directory.
@@ -48,7 +49,9 @@ export function SurveyCard({ c, n, taken, state }: { c: Conversation; n: number;
   const copy = [c.title, c.topic, ...rows.map(([k, v]) => `${k}: ${v}`), surveyCode(n)].filter(Boolean).join("\n")
   return (
     <UnlessDeleted anchor={anchor}>
-      <div className="group/survey relative h-full">
+      {/* The card's Add to the note, for Option and a right-click while a note collects: on the wrapper, since the
+          link over the card takes the pointer. */}
+      <div className="group/survey relative h-full" {...collectAttr({ kind: "block", title: c.title, anchor })}>
         <Link href={href} aria-label={taken ? `${c.title}: your results` : c.title} className="absolute inset-0 rounded-[18px] outline-none focus-visible:ring-3 focus-visible:ring-pax2-light-blue/30" />
         <Block
           stretch
