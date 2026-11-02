@@ -1,7 +1,7 @@
 import "server-only"
 
 import { screen } from "@/lib/mail/allowlist"
-import { designedHtml } from "@/lib/mail/design"
+import { designedHtml, plainHtml } from "@/lib/mail/design"
 import { AGENT_MAILBOX, personMailbox, platformMailbox, recordMessage } from "@/lib/mail/store"
 
 // Real mail, one place for it (2026-10-29). An agent sends from its own
@@ -95,7 +95,8 @@ export async function sendMail({ from, to, cc = [], subject, markdown, base, thr
   if (!primary.length && !internalTo.length && !internalCc.length) return { sent: [], held }
   const internal = [...internalTo, ...internalCc]
   const text = markdown.replace(/\*\*|<\/?u>/g, "")
-  const body = designedHtml(markdown, base, subject.replace(/^(re|fwd?):\s*/i, ""))
+  // An agent's mail wears the design frame (its templated mail); a person's goes as plain email (2026-11-02).
+  const body = AGENT_MAILBOX[from] ? designedHtml(markdown, base, subject.replace(/^(re|fwd?):\s*/i, "")) : plainHtml(markdown, base)
   const inbox = AGENT_INBOX[from]
   // A recipient AgentMail has suppressed (it bounced once) still gets the agent's mail, through
   // Resend from the agent's nysgpt.com name with replies routed back to its AgentMail inbox.

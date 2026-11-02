@@ -91,3 +91,29 @@ ${heading ? `<h1 style="margin:0 0 18px;font-family:${FONT};font-size:23px;line-
 </body>
 </html>`
 }
+
+/**
+ * A person's mail, as plain email (Brendan, 2026-11-02): their markdown as simple HTML, a paragraph per
+ * block with its line breaks, links, bold and italics, and a list where every line is an item. No frame:
+ * no mark, no card, no footer, no styling. The designed frame above is the agents' templated mail alone.
+ */
+export function plainHtml(markdown: string, base: string) {
+  const href = (h: string) => (h.startsWith("/") ? base + h : h)
+  const inline = (s: string) =>
+    escape(s)
+      .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, text, h: string) => `<a href="${href(h)}">${text}</a>`)
+      .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+      .replace(/(^|[^*])\*([^*]+)\*/g, "$1<em>$2</em>")
+      .replace(/&lt;u&gt;(.*?)&lt;\/u&gt;/g, "<u>$1</u>")
+  return markdown
+    .trim()
+    .split(/\n{2,}/)
+    .filter((b) => b.trim())
+    .map((block) => {
+      const lines = block.split("\n")
+      const listed = lines.every((l) => /^\s*[-*] /.test(l)) ? "ul" : lines.every((l) => /^\s*\d+\. /.test(l)) ? "ol" : null
+      if (listed) return `<${listed}>${lines.map((l) => `<li>${inline(l.replace(/^\s*(?:[-*]|\d+\.) /, ""))}</li>`).join("")}</${listed}>`
+      return `<p>${lines.map(inline).join("<br>")}</p>`
+    })
+    .join("\n")
+}
