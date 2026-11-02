@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ArrowLeft, Check, Clock, Copy, ExternalLink, Forward as ForwardIcon, PenSquare, Reply as ReplyIcon, RotateCcw, Star, Trash2 } from "lucide-react"
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, Clock, Copy, ExternalLink, Forward as ForwardIcon, PenSquare, Reply as ReplyIcon, RotateCcw, Star, Trash2 } from "lucide-react"
 
 import { ADDRESSES, PEOPLE_ADDRESSES, addressFor, keptThread, loadDrafts, nameOf, newThread, saveDrafts, shownRecipients, snippet, when, type Attached, type Folder, type Message, type Thread } from "@/lib/agents/inbox"
 import { applyFiling, fileThread, isAgentBox, listTime, marksOf, readFolder, showsIn, snoozeTime, type Counts, type Filing, type Kept } from "@/lib/mail/client"
@@ -12,11 +12,10 @@ import { useShellPanel } from "@/components/shell"
 import { SaveToDrive } from "@/components/connectors/save-to-drive"
 import { Prose, RunSteps } from "@/app/agents/transcript"
 import { BankFrame } from "@/components/bank/bank-frame"
-import type { Split } from "@/components/bank/card-list"
 import { myNotes } from "@/app/note-actions"
 import { NOTES_CHANGED, openDrawnNote } from "@/lib/drawn-notes"
-import { MenuRow, MenuSeparator } from "@/components/kebab-menu"
-import { ArchiveIcon, MailList, MarkUnreadIcon, UnarchiveIcon, type MailActions, type MailRowView, type SelectBy } from "@/registry/blocks/sidebar-09/components/mail-list"
+import { MenuRow } from "@/components/kebab-menu"
+import { ArchiveIcon, MailList, MarkUnreadIcon, SplitToggle, UnarchiveIcon, type MailActions, type MailRowView, type SelectBy, type Split } from "@/registry/blocks/sidebar-09/components/mail-list"
 import { InboxRail, THREAD_DRAG } from "@/registry/blocks/sidebar-09/components/app-sidebar"
 import { SnoozeMenu } from "@/registry/blocks/sidebar-09/components/snooze-menu"
 import { BoxMark, MailboxChip, ownersFor, type Owner } from "@/registry/blocks/sidebar-09/components/mailbox-chip"
@@ -126,6 +125,9 @@ function replyLines(t: Kept): string[] {
   return received ? [handleOf(received.from.email)] : t.latest.to.map((p) => handleOf(p.email))
 }
 
+/** Where the reader's split mode is kept. */
+const SPLIT_KEY = "pax:inbox:split"
+
 /** One row of the list: a kept thread, or one of this browser's drafts. */
 type Row = { id: string; kept?: Kept; draft?: Thread }
 
@@ -179,8 +181,18 @@ export default function Page() {
   // The reply card's recipient row: a summary line until clicked, then the editable To/Cc/Bcc.
   const [editingTo, setEditingTo] = React.useState(false)
   const [copied, setCopied] = React.useState<string | null>(null)
-  // The list alone, or the list beside the reading pane (Brendan, 2026-09-07: Gmail's split toggle).
-  const [split, setSplit] = React.useState<Split>("none")
+  // Gmail's reading pane (Brendan, 2026-11-02): no split, vertical or horizontal, the reader's choice,
+  // kept in this browser. One page in every mode: opening a message or switching never navigates.
+  const [split, setSplitState] = React.useState<Split>(() => {
+    const kept = typeof window === "undefined" ? null : window.localStorage.getItem(SPLIT_KEY)
+    return kept === "vertical" || kept === "horizontal" ? kept : "none"
+  })
+  const setSplit = (next: Split) => {
+    setSplitState(next)
+    try {
+      window.localStorage.setItem(SPLIT_KEY, next)
+    } catch {}
+  }
 
   // Whose mail is open, as the chip and the reading pane name them.
   const me: Owner = React.useMemo(() => {
@@ -288,7 +300,6 @@ export default function Page() {
   const openThread = (id: string) => {
     setSelected(id)
     setComposing(false)
-    setSplit("vertical")
     const row = byId.get(id)
     if (row?.kept && row.kept.unreadCount > 0) void file([id], { read: true })
   }
@@ -623,14 +634,11 @@ export default function Page() {
           setChecked(new Set())
           void file(ids, act instanceof Date ? { snoozedUntil: act.toISOString() } : act === "archive" ? { archived: true } : act === "trash" ? { trashed: true } : { read: act === "read" })
         }
-        // The kebab: the unread filter, mark all read, and the split.
+        // The kebab: the unread filter and mark all read.
         const listMenu = (
           <>
             <MenuRow label="Unread only" checked={unreadOnly} onClick={() => setUnreadOnly((v) => !v)} />
             <MenuRow label="Mark all as read" onClick={() => void file(views.filter((v) => v.unread && !v.draft).map((v) => v.id), { read: true })} />
-            <MenuSeparator />
-            <MenuRow label="No split" checked={split === "none"} onClick={() => setSplit("none")} />
-            <MenuRow label="Vertical split" checked={split === "vertical"} onClick={() => setSplit("vertical")} />
           </>
         )
         const list =
@@ -653,6 +661,8 @@ export default function Page() {
               loading={loading}
               error={error}
               empty={query.trim() ? `Nothing matching “${query.trim()}”.` : unreadOnly ? "Nothing unread." : folder === "inbox" ? "Nothing has arrived yet." : "Nothing here."}
+              split={split}
+              onSplit={setSplit}
             />
           )
         // Gmail's empty reading pane: nothing chosen, and the small print at the foot.
@@ -672,39 +682,63 @@ export default function Page() {
             </div>
           </div>
         )
-        const showList = split === "vertical" || (!open && !composing)
-        const showPane = split === "vertical" || open || composing
-        // Back, one layer up: the full screen to the split, the split to the rows alone.
-        const back = (open || composing) && (
+        // No split: the list, or the open message (or a new one) in its place. Split: both, the list beside
+        // the pane or above it, the pane saying so when nothing is open.
+        const showList = split !== "none" || (!open && !composing)
+        const showPane = split !== "none" || !!open || composing
+        // Back to the list: with no split it puts the message away; a new message closes in every mode.
+        const back = (composing || (split === "none" && open)) && (
           <Tip label="Back">
             <Button
               variant="ghost"
               size="sm"
               aria-label="Back"
               onClick={() => {
-                if (split === "vertical") {
-                  setSelected(null)
-                  setComposing(false)
-                  setSplit("none")
-                } else setSplit("vertical")
+                if (composing) setComposing(false)
+                else setSelected(null)
               }}
             >
               <ArrowLeft className="size-4" />
             </Button>
           </Tip>
         )
+        // With no split the list's bar is out of sight: the reading pane carries the chevrons and the toggle.
+        const at = open ? views.findIndex((v) => v.id === open.id) : -1
+        const newer = at > 0 ? views[at - 1] : null
+        const older = at !== -1 && at < views.length - 1 ? views[at + 1] : null
+        const paneEnd = split === "none" && (
+          <>
+            <Tip label="Newer">
+              <Button variant="ghost" size="sm" aria-label="Newer" disabled={!newer} onClick={() => newer && openThread(newer.id)}>
+                <ChevronLeft className="size-4" />
+              </Button>
+            </Tip>
+            <Tip label="Older">
+              <Button variant="ghost" size="sm" aria-label="Older" disabled={!older} onClick={() => older && openThread(older.id)}>
+                <ChevronRight className="size-4" />
+              </Button>
+            </Tip>
+            <SplitToggle split={split} onSplit={setSplit} />
+          </>
+        )
         return (
-          <div className="relative flex min-h-0 min-w-0 flex-1">
-          <ResizablePanelGroup orientation="horizontal" className="min-h-0 min-w-0 flex-1">
-            {/* react-resizable-panels v4 reads bare numbers as pixels. */}
+          <div className="relative flex min-h-0 min-w-0 flex-1" data-split={split}>
+          <ResizablePanelGroup key={split} orientation={split === "horizontal" ? "vertical" : "horizontal"} className="min-h-0 min-w-0 flex-1">
+            {/* react-resizable-panels v4 reads bare numbers as pixels: the list 420 wide beside the pane, 320 tall above it. */}
             {showList && (
-              <ResizablePanel defaultSize={split === "vertical" ? 420 : 100000} minSize={320} maxSize={split === "vertical" ? 640 : undefined} className="min-w-0">
+              <ResizablePanel
+                defaultSize={split === "vertical" ? 420 : split === "horizontal" ? 320 : 100000}
+                minSize={split === "horizontal" ? 140 : 320}
+                maxSize={split === "vertical" ? 640 : undefined}
+                className="min-h-0 min-w-0"
+                data-mail-pane="list"
+              >
                 {list}
               </ResizablePanel>
             )}
             {showList && showPane && <ResizableHandle withHandle />}
             {showPane && (
-              <ResizablePanel className="min-w-0">
+              <ResizablePanel className="min-h-0 min-w-0" data-mail-pane="reading">
                 <div className="flex h-full min-h-0 flex-col">
                   {composing ? (
                     <>
@@ -825,6 +859,7 @@ export default function Page() {
                               <PenSquare className="size-4" />
                             </Button>
                           </Tip>
+                          {paneEnd}
                         </div>
                       </div>
 
@@ -1024,7 +1059,6 @@ export default function Page() {
                     setFolder("sent")
                     setSelected(sent.threadId!)
                     setComposing(false)
-                    setSplit("vertical")
                     setSent(null)
                   }}
                 >

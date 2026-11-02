@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ChevronDown, ChevronLeftIcon, ChevronRightIcon, Clock, EllipsisVertical, GripVertical, MailOpen, RotateCcw, RotateCw, Star, Trash2 } from "lucide-react"
+import { ChevronDown, ChevronLeftIcon, ChevronRightIcon, Clock, Columns2, EllipsisVertical, GripVertical, MailOpen, RotateCcw, RotateCw, Rows2, Square, Star, Trash2 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { RailToggle } from "@/components/bank/bank-frame"
@@ -65,6 +65,37 @@ export type MailActions = {
 }
 
 export type Layout = "line" | "stacked"
+
+/** Gmail's reading pane: none (the list, or the open message in its place), beside the list, or under it. */
+export type Split = "none" | "vertical" | "horizontal"
+
+const SPLITS: { split: Split; label: string; icon: typeof Square }[] = [
+  { split: "none", label: "No split", icon: Square },
+  { split: "vertical", label: "Vertical split", icon: Columns2 },
+  { split: "horizontal", label: "Horizontal split", icon: Rows2 },
+]
+
+/** Gmail's split toggle: the mode's own icon and its caret, opening the three. */
+export function SplitToggle({ split, onSplit }: { split: Split; onSplit: (split: Split) => void }) {
+  const Icon = SPLITS.find((s) => s.split === split)!.icon
+  return (
+    <KebabMenu
+      label="Split pane mode"
+      width="w-48"
+      trigger={
+        <>
+          <Icon className="size-[18px]" />
+          <ChevronDown className="size-3" />
+        </>
+      }
+      triggerClassName="flex h-8 shrink-0 items-center gap-0.5 rounded-full px-2 text-(--mail-icon) transition-colors hover:bg-(--mail-ink)/8 aria-expanded:bg-(--mail-ink)/8"
+    >
+      {SPLITS.map((s) => (
+        <MenuRow key={s.split} icon={<s.icon />} label={s.label} checked={split === s.split} onClick={() => onSplit(s.split)} />
+      ))}
+    </KebabMenu>
+  )
+}
 
 /** Gmail's row colours and type, by state. Exported for the tests. */
 export function rowClass({ unread, picked, layout }: { unread: boolean; picked: boolean; layout: Layout }) {
@@ -334,6 +365,8 @@ export function MailList({
   error,
   empty,
   bulkSnooze,
+  split,
+  onSplit,
 }: {
   rows: MailRowView[]
   /** The thread open beside the list, picked in its blue. */
@@ -354,6 +387,9 @@ export function MailList({
   empty: string
   /** The bar's snooze for the checked rows, when snoozing is on. */
   bulkSnooze?: (trigger: React.ReactNode) => React.ReactNode
+  /** The reading pane's mode, toggled at the bar's right end. */
+  split: Split
+  onSplit: (split: Split) => void
 }) {
   const [searching, setSearching] = React.useState(false)
   const any = checked.size > 0
@@ -438,6 +474,7 @@ export function MailList({
           <Act label="Older" onClick={() => next && actions.onOpen(next.id)}>
             <ChevronRightIcon className={cn("size-[18px]", !next && "opacity-40")} />
           </Act>
+          <SplitToggle split={split} onSplit={onSplit} />
         </div>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
