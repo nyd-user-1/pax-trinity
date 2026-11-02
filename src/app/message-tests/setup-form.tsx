@@ -7,7 +7,7 @@ import { CardBlock } from "@/components/blocks"
 import { PUBLISHED } from "@/components/clips/store"
 import { formatEntry, formatSingle } from "@/lib/tests/text"
 import { testHref, testsHref } from "@/lib/survey-links"
-import { PID, PLACEBO, STATUSES, type TestRecord } from "@/lib/tests/types"
+import { PID, PLACEBO, type TestRecord } from "@/lib/tests/types"
 import { Button, buttonVariants } from "@/ui/components/nova/button"
 import { Textarea } from "@/ui/components/nova/textarea"
 import { cn } from "@/ui/lib/utils"
@@ -88,15 +88,6 @@ export function SetupForm({ mode, initial, recorded = NONE }: { mode: "create" |
           </Field>
           <Field label="Title respondents see">
             <input name="title" value={v.title} onChange={set("title")} className={input} required />
-          </Field>
-          <Field label="Status">
-            <select name="status" value={v.status} onChange={set("status")} className={input}>
-              {STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {s[0].toUpperCase() + s.slice(1)}
-                </option>
-              ))}
-            </select>
           </Field>
           <Field label="Target completes per arm">
             <input name="targetPerArm" type="number" min={1} step={1} value={v.targetPerArm} onChange={set("targetPerArm")} className={input} required />

@@ -11,8 +11,10 @@ import { adminOrSignin } from "@/app/message-tests/admin"
 import { FieldKit } from "@/app/message-tests/field-kit"
 import { Monitor } from "@/app/message-tests/monitor"
 import { SetupForm } from "@/app/message-tests/setup-form"
-import { StatusChip } from "@/app/message-tests/status-chip"
 import { StatusControls } from "@/app/message-tests/status-controls"
+import { LifeChip } from "@/components/life-chip"
+import { lifecycleOf } from "@/lib/lifecycle/store"
+import { sendCounts } from "@/lib/sends/engine"
 import { TestsTable } from "@/app/message-tests/tests-table"
 import { currentUser } from "@/lib/auth"
 import { armRecordings } from "@/lib/clips/recorded"
@@ -73,7 +75,15 @@ export async function surfacePage({ s, c, id }: { s: Surface; c?: string; id?: s
 
   if (s === "tests") {
     const { tests, reachable } = await listTests()
-    return <TestsTable reachable={reachable} tests={tests.map((t) => ({ id: t.id, title: t.title, status: t.status, arms: t.arms.length, targetPerArm: t.targetPerArm, updatedAt: t.updatedAt ?? null }))} />
+    // Each test's state, and under an Open one the counts of what its sends have done.
+    const rows = await Promise.all(
+      tests.map(async (t) => {
+        const { state } = await lifecycleOf("test", t.id)
+        const sent = state === "Open" ? await sendCounts("test", t.id).catch(() => null) : null
+        return { id: t.id, title: t.title, state, arms: t.arms.length, targetPerArm: t.targetPerArm, updatedAt: t.updatedAt ?? null, sent }
+      }),
+    )
+    return <TestsTable reachable={reachable} tests={rows} />
   }
 
   const recorded = (await armRecordings(user).catch(() => [])).map((r) => ({ id: r.id, title: r.title, duration: r.duration ?? null }))
@@ -88,14 +98,16 @@ export async function surfacePage({ s, c, id }: { s: Surface; c?: string; id?: s
   const h = await headers()
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000"
   const proto = h.get("x-forwarded-proto") ?? (/^(localhost|127\.)/.test(host) ? "http" : "https")
+  // Its lifecycle (lib/lifecycle): the chip says where it stands, the controls its next step.
+  const life = await lifecycleOf("test", test.id)
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center gap-3">
         <h2 className="text-lg font-semibold tracking-tight text-slate-900">{test.title}</h2>
-        <StatusChip status={test.status} />
+        <LifeChip state={life.state} />
         <span className="font-mono text-xs text-slate-400">{test.id}</span>
         <div className="ml-auto flex items-center gap-2">
-          <StatusControls id={test.id} status={test.status} />
+          <StatusControls id={test.id} state={life.state} superAdmin={user.superAdmin} />
           <Link href={editTestHref(test.id)} className={buttonVariants({ variant: "outline", size: "sm" })}>
             Edit
           </Link>

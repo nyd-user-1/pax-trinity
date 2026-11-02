@@ -7,13 +7,12 @@ import { EllipsisVerticalIcon, Maximize2, Pencil } from "lucide-react"
 
 import { KebabMenu, MenuFoot, MenuHeader, MenuRow, MenuSeparator } from "@/components/kebab-menu"
 import { Block, Fact } from "@/components/settings/blocks"
-import type { Status } from "@/lib/tests/types"
+import { LifeChip } from "@/components/life-chip"
+import type { LifeState } from "@/lib/lifecycle/rules"
 import { editTestHref, newTestHref, testHref } from "@/lib/survey-links"
 import { buttonVariants } from "@/ui/components/nova/button"
 
-import { StatusChip } from "./status-chip"
-
-type Row = { id: string; title: string; status: Status; arms: number; targetPerArm: number; updatedAt: string | null }
+type Row = { id: string; title: string; state: LifeState; arms: number; targetPerArm: number; updatedAt: string | null; sent?: { invited: number; answered: number; reminders: number } | null }
 
 /** Finished completes per test, from the collector's monitor; null until it answers or if it can't. */
 function useCompletes(ids: string[]) {
@@ -33,8 +32,9 @@ function useCompletes(ids: string[]) {
   return done
 }
 
-/** A test's card (Brendan, 2026-11-02): the model cards' and question cards' Block. Its title, status
- *  and kebab head it, its facts are the rows, and its id is the foot, where a question card keeps its code. */
+/** A test's card (Brendan, 2026-11-02): the model cards' and question cards' Block. Its title, its state in the
+ *  lifecycle (lib/lifecycle) and kebab head it, its facts are the rows (under an Open test, what its sends have
+ *  done, as counts), and its id is the foot, where a question card keeps its code. */
 function TestCard({ t, done }: { t: Row; done: number | null | undefined }) {
   const router = useRouter()
   const name = t.title || t.id
@@ -48,7 +48,7 @@ function TestCard({ t, done }: { t: Row; done: number | null | undefined }) {
           {name}
         </Link>
       }
-      badge={<StatusChip status={t.status} />}
+      badge={<LifeChip state={t.state} />}
       action={
         // The model cards' kebab dress (components/dash/card-tools.tsx), holding the test's own menu.
         <KebabMenu label={`${name} options`} trigger={<EllipsisVerticalIcon className="size-4" />} triggerClassName="inline-flex size-8 shrink-0 self-start items-center justify-center rounded-md text-slate-800 outline-none hover:bg-foreground/8 hover:text-foreground aria-expanded:bg-foreground/8">
@@ -57,7 +57,7 @@ function TestCard({ t, done }: { t: Row; done: number | null | undefined }) {
           <MenuRow icon={<Maximize2 />} label="Open" onClick={() => router.push(testHref(t.id))} />
           <MenuRow icon={<Pencil />} label="Edit" onClick={() => router.push(editTestHref(t.id))} />
           <MenuSeparator />
-          <MenuFoot title={name} sub={t.status[0].toUpperCase() + t.status.slice(1)} />
+          <MenuFoot title={name} sub={t.state} />
         </KebabMenu>
       }
     >
@@ -67,6 +67,13 @@ function TestCard({ t, done }: { t: Row; done: number | null | undefined }) {
           {done == null ? "—" : done.toLocaleString("en-US")} / {(t.targetPerArm * t.arms).toLocaleString("en-US")}
         </span>
       </Fact>
+      {t.state === "Open" && t.sent && (
+        <Fact label="Invited">
+          <span className="tabular-nums">
+            {t.sent.invited.toLocaleString("en-US")} · {t.sent.answered.toLocaleString("en-US")} answered · {t.sent.reminders.toLocaleString("en-US")} {t.sent.reminders === 1 ? "reminder" : "reminders"} sent
+          </span>
+        </Fact>
+      )}
       <Fact label="Updated">{t.updatedAt ? t.updatedAt.slice(0, 10) : "Seeded"}</Fact>
       <p className="mt-auto px-4 py-3 text-[13px] text-slate-500 tabular-nums sm:px-5">{t.id}</p>
     </Block>

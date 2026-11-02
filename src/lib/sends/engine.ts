@@ -1,6 +1,7 @@
 import "server-only"
 
 import { TEMPLATES } from "@/lib/agents/templates"
+import { lifecycleOf, move } from "@/lib/lifecycle/store"
 import { contactGroup } from "@/lib/sends/contacts"
 import { createSend, events, fidOf, sendIds, newFid, newPid, record, recordOnce, type ClosedEvent, type SendDef, type SendEvent, type InviteEvent } from "@/lib/sends/store"
 import { fill, sendMail } from "@/lib/mail/send"
@@ -64,8 +65,9 @@ export async function startSend(o: { type: "test" | "survey"; target: string; gr
   if (o.type === "test") {
     const test = await getTest(o.target)
     if (!test) throw new Error(`No test ${o.target}.`)
-    // The test's own state is its owner's, set and validated in /message-tests; a send only reads it.
-    if (test.status !== "fielding") throw new Error(`${test.title} is not open; open it in Survey's Tests first.`)
+    // The test's state is its lifecycle's (lib/lifecycle), moved in Survey's Tests; a send only reads it.
+    const life = await lifecycleOf("test", o.target)
+    if (life.state !== "Open") throw new Error(`${test.title} is ${life.state}; a test takes sends only while Open, once Approved.`)
     if (test.arms.length < 2 || !test.arms.includes(PLACEBO)) throw new Error(`${test.title} needs the placebo and at least one cut.`)
     title = test.title
     arms = test.arms
@@ -75,6 +77,8 @@ export async function startSend(o: { type: "test" | "survey"; target: string; gr
   } else {
     const survey = surveyBySlug(o.target)
     if (!survey) throw new Error(`No survey ${o.target}.`)
+    const life = await lifecycleOf("survey", o.target)
+    if (life.state !== "Open") throw new Error(`${survey.title} is ${life.state}; a survey takes sends only while Open, once Approved.`)
     title = survey.title
     quota = o.quota ?? group.members.length
     questions = survey.questions.length
@@ -183,6 +187,14 @@ async function load(fid: string): Promise<Loaded | null> {
   return { summary, ev, answers }
 }
 
+/** What the sends to one instrument have done, as counts (the facts line under an Open instrument shows them,
+ *  never a state): invited, answered (finished), and reminders sent. Null when nothing has been sent to it. */
+export async function sendCounts(type: "test" | "survey", target: string): Promise<{ invited: number; answered: number; reminders: number } | null> {
+  const mine = (await Promise.all((await sendIds()).map((fid) => summary(fid)))).filter((x): x is Summary => !!x && x.def.type === type && x.def.target === target)
+  if (!mine.length) return null
+  return mine.reduce((t, x) => ({ invited: t.invited + x.invited, answered: t.answered + x.finished, reminders: t.reminders + x.reminders.first + x.reminders.final }), { invited: 0, answered: 0, reminders: 0 })
+}
+
 export async function summary(fid: string): Promise<Summary | null> {
   return (await load(fid))?.summary ?? null
 }
@@ -271,10 +283,13 @@ export function readout(def: SendDef, r: Results, armName: (id: string) => strin
 async function finish(l: Loaded, reason: ClosedEvent["reason"], base: string, armName: (id: string) => string) {
   const s = l.summary
   let video: VideoState = { state: "none" }
+  // A survey's readout is its report; a test's is its result, unless the result is simulated (none counts).
+  let filed = s.def.type === "survey"
   if (s.def.type === "test") {
     const kept = await completeTest(s.def.target, { retryFailedVideo: false }).catch((e: Error) => (console.error("completeTest failed on the send's close", e.message), null))
     video = kept?.video ?? (await videoOf(s.def.target).catch((): VideoState => ({ state: "none" })))
     if (video.state === "rendering") return false
+    filed = !!kept && !kept.resultSet?.simulated
   }
   const results = await compute(s.def, l.answers.finished)
   if (!(await recordOnce(s.def.fid, "report", { kind: "report", at: new Date().toISOString(), results }))) return false
@@ -287,12 +302,16 @@ async function finish(l: Loaded, reason: ClosedEvent["reason"], base: string, ar
     markdown: [`${s.def.title} closed ${reason === "quota" ? "at its quota" : reason === "deadline" ? "at its deadline" : "by hand"} with ${results.n} completes, and the Analyst's readout is in your inbox.`, s.def.type === "test" ? "Lift and the report pick it up from here." : "America Thinks files the answers under Responses.", "Assistant"].join("\n\n"),
     base,
   })
+  if (filed) await move(s.def.type, s.def.target, "Reported", "system", "its readout went out").catch((e: Error) => console.error("lifecycle: not reported", e.message))
   return true
 }
 
-/** Closes once (the close is a fixed key), then finishes the report. */
+/** Closes once (the close is a fixed key), then finishes the report. The instrument closes with it
+ *  (lib/lifecycle): its quota or its date was hit, or it was closed by hand. */
 async function close(l: Loaded, reason: ClosedEvent["reason"], base: string, armName: (id: string) => string) {
   if (!(await recordOnce(l.summary.def.fid, "closed", { kind: "closed", at: new Date().toISOString(), reason }))) return false
+  const d = l.summary.def
+  await move(d.type, d.target, "Closed", "system", reason === "quota" ? "its quota was met" : reason === "deadline" ? "its close date passed" : "closed by hand").catch((e: Error) => console.error("lifecycle: not closed", e.message))
   await finish(l, reason, base, armName)
   return true
 }
