@@ -43,6 +43,8 @@ export type MailRow = {
   trashed: boolean
   archived: boolean
   snoozedUntil?: string
+  /** When an expired snooze brought the thread back: it sorts by this, as Gmail floats it to the top. */
+  returnedAt?: string
   templateId?: string
   source: MailSource
   /** On the sender's row: the recipients the allowlist held back. */
@@ -212,6 +214,29 @@ export function inFolder(r: MailRow, folder: FolderView, now = new Date().toISOS
 
 export type MailThread = { threadId: string; messages: Omit<MailRow, "pk" | "sk">[]; latest: Omit<MailRow, "pk" | "sk">; unreadCount: number }
 
+/**
+ * Snoozes that have run out come back once, as Gmail's do (2026-11-02): each snoozed row of the thread loses
+ * its snooze and takes returnedAt = now, and the thread's newest of them is marked unread, so the thread
+ * is unread and floats to the top of the inbox. A second read finds no snooze to return and changes
+ * nothing. Returns the rows as they now stand.
+ */
+export async function returnSnoozed(rows: MailRow[], now = new Date().toISOString()): Promise<MailRow[]> {
+  const due = rows.filter((r) => r.snoozedUntil && r.snoozedUntil <= now)
+  if (!due.length) return rows
+  const newest = new Map<string, MailRow>()
+  for (const r of due) {
+    const n = newest.get(r.threadId)
+    if (!n || r.createdAt > n.createdAt || (r.createdAt === n.createdAt && r.id > n.id)) newest.set(r.threadId, r)
+  }
+  const changed = new Map<string, MailRow>()
+  for (const r of due) {
+    const { snoozedUntil: _gone, ...rest } = r
+    changed.set(`${r.pk}|${r.sk}`, { ...rest, returnedAt: now, ...(newest.get(r.threadId) === r ? { read: false } : {}) })
+  }
+  await Promise.all([...changed.values()].map((r) => put(r)))
+  return rows.map((r) => changed.get(`${r.pk}|${r.sk}`) ?? r)
+}
+
 /** A mailbox's rows, messages only (the watermark is no message). */
 export async function mailboxRows(mailbox: string): Promise<MailRow[]> {
   return (await query<MailRow>(pkOf(mailbox))).filter((r) => typeof r.threadId === "string" && typeof r.id === "string")
@@ -238,8 +263,11 @@ export function threadsOf(rows: MailRow[], folder: FolderView, now = new Date().
       const messages = rs.sort((a, b) => a.createdAt.localeCompare(b.createdAt) || first(a) - first(b) || a.id.localeCompare(b.id)).map(clean)
       return { threadId, messages, latest: messages[messages.length - 1], unreadCount: messages.filter((m) => !m.read).length }
     })
-    .sort((a, b) => b.latest.createdAt.localeCompare(a.latest.createdAt))
+    .sort((a, b) => sortedAt(b).localeCompare(sortedAt(a)))
 }
+
+/** Where a thread sorts: its newest message, or the moment a snooze brought it back if that is later. */
+const sortedAt = (t: MailThread) => t.messages.reduce((at, m) => (m.returnedAt && m.returnedAt > at ? m.returnedAt : at), t.latest.createdAt)
 
 /** What filing may change on a thread's rows; null clears a snooze. */
 export type ThreadPatch = { read?: boolean; starred?: boolean; important?: boolean; trashed?: boolean; archived?: boolean; snoozedUntil?: string | null }

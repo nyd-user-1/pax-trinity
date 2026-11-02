@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server"
 
 import { currentUser } from "@/lib/auth"
-import { isFolderView, mailboxRows, patchThread, personMailbox, threadPatchOf, threadsOf, unreadCounts } from "@/lib/mail/store"
+import { isFolderView, mailboxRows, patchThread, personMailbox, returnSnoozed, threadPatchOf, threadsOf, unreadCounts } from "@/lib/mail/store"
 
 // The Inbox's kept mail (lib/mail/store.ts, Brendan 2026-11-02): a mailbox's folder as threads.
 //
 //   GET /api/inbox/mail?mailbox=<me|email|slug>&folder=<inbox|sent|drafts|starred|snoozed|trash|all>
 //   → { mailbox, threads: [{ threadId, messages: [rows], latest, unreadCount }], counts }, newest latest
-//   first; counts is each folder's unread threads, so one call refreshes the folder list too
+//   first; counts is each folder's unread threads, so one call refreshes the folder list too. A snooze that
+//   has run out comes back on the read, once: unread, and on top of the inbox (returnedAt).
 //
 //   PATCH /api/inbox/mail { mailbox, threadId, read?, starred?, important?, trashed?, archived?, snoozedUntil? }
 //   → { mailbox, threadId, updated }: the thread's rows in that mailbox take the change (opening a
@@ -38,8 +39,8 @@ export async function GET(request: Request) {
   const folder = params.get("folder") ?? "inbox"
   if (!isFolderView(folder)) return NextResponse.json({ error: "folder is inbox, sent, drafts, starred, snoozed, trash or all" }, { status: 400 })
   try {
-    const rows = await mailboxRows(mailbox)
     const now = new Date().toISOString()
+    const rows = await returnSnoozed(await mailboxRows(mailbox), now)
     return NextResponse.json({ mailbox, threads: threadsOf(rows, folder, now), counts: unreadCounts(rows, now) })
   } catch (error) {
     console.error("inbox mail: unreadable", error)
