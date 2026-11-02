@@ -8,7 +8,7 @@ import { BedrockRuntimeClient, ConverseCommand } from "@aws-sdk/client-bedrock-r
 import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 
-import { CLAUDE, CLAUDE_NAME, statusAfterReply, type Status } from "@/lib/housekeeping-thread"
+import { CLAUDE, CLAUDE_NAME, claudeMayReply, statusAfterReply, type Status } from "@/lib/housekeeping-thread"
 import { MEMBERS, memberByEmail } from "@/lib/roles"
 
 // Housekeeping (Brendan, 2026-10-30): the admins' comments on the app for the super admin, as a
@@ -47,6 +47,9 @@ export type Message = {
   kind: "comment" | "message" | "reply"
   /** A reply's parent: its sort key, in the same partition. */
   replyTo?: string
+  /** On a reply of Claude's: the commit it made and its unified diff (the super admin's alone). */
+  commit?: string
+  diff?: string
   page?: string
   route?: string
   target?: string
@@ -161,11 +164,12 @@ export async function openOnRoute(route: string, viewer: string): Promise<Messag
 /** Appends a reply to a message's thread: a person's, or Claude's (author CLAUDE). Claude's answers a
  *  comment that is with Claude; a person's on an answered comment sends it back. Returns the reply and
  *  the comment's status after it. */
-export async function reply(parent: { pk: string; sk: string }, input: { author: string; text: string }): Promise<{ reply: Message; status: Status }> {
+export async function reply(parent: { pk: string; sk: string }, input: { author: string; text: string; commit?: string; diff?: string }): Promise<{ reply: Message; status: Status }> {
   const p = await getMessage(parent)
   if (!p || p.kind === "reply") throw new Error("No such message to reply to.")
   const byClaude = input.author === CLAUDE
-  if (byClaude && p.status !== "claude") throw new Error("That comment is not with Claude.")
+  // Claude answers a comment that is with Claude, and may follow up while it stands answered.
+  if (byClaude && !claudeMayReply(p.status)) throw new Error("That comment is not with Claude.")
   const id = randomUUID()
   const createdAt = new Date().toISOString()
   const author = byClaude ? CLAUDE : canonical(input.author)
@@ -179,6 +183,10 @@ export async function reply(parent: { pk: string; sk: string }, input: { author:
     text: input.text.trim().slice(0, byClaude ? 12000 : 4000),
     kind: "reply",
     replyTo: p.sk,
+    // A commit's hash and its diff ride on Claude's replies alone. The diff is held under 300,000 characters,
+    // inside DynamoDB's 400 KB item.
+    commit: byClaude ? input.commit?.trim().slice(0, 64) || undefined : undefined,
+    diff: byClaude ? input.diff?.slice(0, 300_000) || undefined : undefined,
     status: "open",
     createdAt,
   }

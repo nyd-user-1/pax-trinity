@@ -12,11 +12,12 @@ import { CLAUDE, forReader } from "@/lib/housekeeping-thread"
 //                                             and replies so far (the super admin, or the dev server)
 //   POST  { text, to?, kind, page, … }       a message or a pointed comment, screenshots as data URLs
 //   POST  { kind: "reply", pk, sk, text }     a person's reply on a message's thread
-//   POST  { kind: "claude-reply", pk, sk, text }  Claude's reply on a comment with Claude: answers it
-//                                             (the super admin, or the dev server)
+//   POST  { kind: "claude-reply", pk, sk, text, commit?, diff? }  Claude's reply on a comment with Claude
+//                                             or already answered (a follow-up): answers it, its commit and
+//                                             unified diff beside it (the super admin, or the dev server)
 //   PATCH { pk, sk, status?, text?, prompt? } resolve / reopen / send to Claude ("claude", a pointed
 //                                             comment) / edit the text or the prompt (super admin)
-// The prompt beside each comment, the locator bundle, Claude's replies and the "claude" and "answered"
+// The prompt beside each comment, the locator bundle, Claude's replies (with their commit and diff) and the "claude" and "answered"
 // statuses reach the super admin only: every thread read goes through forReader
 // (lib/housekeeping-thread.ts), and the page markers carry no status.
 
@@ -85,6 +86,8 @@ export async function POST(req: Request) {
   const body = (await req.json().catch(() => null)) as {
     pk?: string
     sk?: string
+    commit?: string
+    diff?: string
     text?: string
     to?: string | null
     kind?: "comment" | "message" | "reply" | "claude-reply"
@@ -103,7 +106,7 @@ export async function POST(req: Request) {
     if (!(body.text ?? "").trim()) return NextResponse.json({ error: "Nothing to send." }, { status: 400 })
     if (byClaude ? !claudeSide(user) : !reads(body.pk, user.email)) return NextResponse.json({ error: byClaude ? "The super admin only." : "Not a thread you are in." }, { status: 403 })
     try {
-      const r = await reply({ pk: body.pk, sk: body.sk }, { author: byClaude ? CLAUDE : user.email, text: body.text! })
+      const r = await reply({ pk: body.pk, sk: body.sk }, byClaude ? { author: CLAUDE, text: body.text!, commit: body.commit, diff: body.diff } : { author: user.email, text: body.text! })
       const [shown] = forReader([{ ...r.reply, status: r.status }], user.superAdmin)
       return NextResponse.json({ reply: r.reply, status: shown.status })
     } catch (e) {

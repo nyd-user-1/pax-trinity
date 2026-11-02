@@ -2,9 +2,11 @@
 // and the panel (components/housekeeping/view.tsx) share. A message becomes a thread of replies, each a
 // row of its own under the same partition, pointing at its parent's sort key. Replies are a person's
 // (the panel's composer) or Claude's (written through the loop's API). The super admin can send a
-// pointed comment to Claude: its status goes "claude" until Claude replies ("answered"); a person's reply
-// on an answered thread sends it back to "claude". Claude's replies, those two statuses, the prompt and
-// the locator bundle are the super admin's alone: every read path passes its rows through forReader.
+// pointed comment to Claude: its status goes "claude" until Claude replies ("answered"); Claude may add a
+// follow-up or a correction while it stands answered (Brendan, 2026-11-01); a person's reply on an answered
+// thread sends it back to "claude". A reply of Claude's may carry the commit and the unified diff of what it
+// changed. Claude's replies, those two statuses, the prompt, the locator bundle, and a reply's commit and
+// diff are the super admin's alone: every read path passes its rows through forReader.
 
 /** The author id of Claude's replies, and the name and mark they show with. */
 export const CLAUDE = "claude"
@@ -14,24 +16,30 @@ export const CLAUDE_MARK = "/logos/models/anthropic.webp"
 export type Status = "open" | "resolved" | "claude" | "answered"
 
 /** The fields every reader may see, and the ones that stay the super admin's. */
-type Row = { author: string; kind: string; status: string; replyTo?: string; prompt?: string; promptAt?: string; bundle?: string; claudeAt?: string; answeredAt?: string }
+type Row = { author: string; kind: string; status: string; replyTo?: string; prompt?: string; promptAt?: string; bundle?: string; claudeAt?: string; answeredAt?: string; commit?: string; diff?: string }
 
 /** A thread's rows as one reader may see them: all of it for the super admin; for anyone else, no
- *  reply of Claude's, no prompt or bundle, and a comment with Claude (or answered) reading as open. */
+ *  reply of Claude's, no prompt, bundle, commit or diff, and a comment with Claude (or answered) reading
+ *  as open. */
 export function forReader<T extends Row>(rows: T[], superAdmin: boolean): T[] {
   if (superAdmin) return rows
   return rows
     .filter((r) => r.author !== CLAUDE)
     .map((r) => {
-      const { prompt: _p, promptAt: _pa, bundle: _b, claudeAt: _c, answeredAt: _a, ...rest } = r
+      const { prompt: _p, promptAt: _pa, bundle: _b, claudeAt: _c, answeredAt: _a, commit: _cm, diff: _d, ...rest } = r
       return { ...rest, status: r.status === "claude" || r.status === "answered" ? "open" : r.status } as T
     })
 }
 
-/** A comment's status once a reply lands: Claude's answers it (from "claude" only); a person's reply on
- *  an answered comment sends it back to Claude; anything else leaves the status as it is (null). */
+/** Whether Claude may reply: on a comment with Claude, or again on one it answered (a follow-up or a
+ *  correction before the super admin responds). Not on an open or resolved one. */
+export const claudeMayReply = (status: Status) => status === "claude" || status === "answered"
+
+/** A comment's status once a reply lands: Claude's answers it, from "claude" or again from "answered" (a
+ *  follow-up, its answeredAt fresh); a person's reply on an answered comment sends it back to Claude;
+ *  anything else leaves the status as it is (null). */
 export function statusAfterReply(status: Status, byClaude: boolean): Status | null {
-  if (byClaude) return status === "claude" ? "answered" : null
+  if (byClaude) return claudeMayReply(status) ? "answered" : null
   return status === "answered" ? "claude" : null
 }
 
