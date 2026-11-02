@@ -4,16 +4,21 @@ import * as React from "react"
 import { X } from "lucide-react"
 
 import { Button } from "@govblock/ui/components/nova/button"
-import { Card, CardLabel } from "../_wire/wire-bits"
+import { CardTools } from "@/components/dash/card-tools"
+import { Block, Fact, Passage } from "@/components/settings/blocks"
 import { ATTITUDE } from "../q/[source]/[id]/headline"
 import { dimLabel, fieldDates, num, period, shortSource, value, type MetricInfo, type SourceGroup, type SourceRow } from "./audience-data"
-import { B, ViewColumn, ViewHeading } from "./view-shell"
+import { B, ViewColumn } from "./view-shell"
 
-// The About panel — everything a clicked value carries. Beside the compare grid it stands as the fourth
-// column at 420; over an open question it is a layer in the pane (pass 2,
-// 2026-10-27), its X returning the view it covered.
+// The Baseline panel — a clicked value set against its reference figure, and everything it carries
+// (Brendan, 2026-11-02: it was the About panel, the wrong name for what it shows). Beside the compare grid it
+// stands as the fourth column at 420; over an open question it is a layer in the pane (pass 2, 2026-10-27),
+// its X returning the view it covered. It wears the model and question cards' dress (components/settings/
+// blocks.tsx Block): the sentence and its facts in the head strip, the kebab at its top right with the
+// standard menu (Add to Blocks, Ask PAX, Refresh, Download, Delete), then the figures and the provenance as
+// the card's rows.
 
-export type About = { r: SourceRow; metric: string; segment: string }
+export type BaselinePick = { r: SourceRow; metric: string; segment: string }
 
 /** Compilers a source label names whose terms ask for a credit: VoteHub's polls are CC BY 4.0
  *  (the lead's ruling, 2026-11-02: the link sits where the data shows), and Pew's figures
@@ -58,9 +63,9 @@ export function baselineOf(r: SourceRow, rows: SourceRow[], baseGeo: string): So
   )
 }
 
-export function AboutPanel({
+export function BaselinePanel({
   layer = false,
-  about,
+  picked,
   onClose,
   source,
   groups,
@@ -71,7 +76,7 @@ export function AboutPanel({
 }: {
   /** In the pane, full width with the reading capped, rather than the 420 column. */
   layer?: boolean
-  about: About
+  picked: BaselinePick
   onClose: () => void
   source: string | null
   groups: SourceGroup[]
@@ -81,70 +86,69 @@ export function AboutPanel({
   /** The open question's rows, where the Baseline is read; files[source] where not given. */
   rows?: SourceRow[]
 }) {
-  const c = info.get(about.metric)
-  const base = baselineOf(about.r, rows ?? (source ? (files[source] ?? []) : []), c?.baseGeo ?? about.r[1])
-  const band = about.r[4]
-  const seg = about.r[5] ? about.r[6] : null
+  const c = info.get(picked.metric)
+  const base = baselineOf(picked.r, rows ?? (source ? (files[source] ?? []) : []), c?.baseGeo ?? picked.r[1])
+  const band = picked.r[4]
+  const seg = picked.r[5] ? picked.r[6] : null
   // A poll's field period by its dates; a survey wave by its year.
-  const when = about.r[10] && source === "POLL" ? fieldDates(about.r[2], about.r[3]) : period(about.r[2], about.r[3])
+  const when = picked.r[10] && source === "POLL" ? fieldDates(picked.r[2], picked.r[3]) : period(picked.r[2], picked.r[3])
   const people = source != null && (ATTITUDE.has(source) || source === "POLL")
   const sourceLabel = groups.find((g) => g.source === source)?.label
-  const facts = [seg ? `${dimLabel(about.r[5] as string)}: ${seg}` : "All", place(about.r[1]), source ? shortSource(source) : null].filter(Boolean).join(", ")
-  const figures: [string, string][] = [["Estimate", value(about.r[7], about.r[8], null)]]
-  if (about.r[9] != null) figures.push(["Margin of error", `± ${num(about.r[9])}`])
-  if (about.r[11] != null) figures.push(["Respondents", num(about.r[11], 0)])
+  const facts = [seg ? `${dimLabel(picked.r[5] as string)}: ${seg}` : "All", place(picked.r[1]), source ? shortSource(source) : null].filter(Boolean).join(", ")
+  const figures: [string, string][] = [["Estimate", value(picked.r[7], picked.r[8], null)]]
+  if (picked.r[9] != null) figures.push(["Margin of error", `± ${num(picked.r[9])}`])
+  if (picked.r[11] != null) figures.push(["Respondents", num(picked.r[11], 0)])
   if (base) figures.push(["Baseline", `${value(base[7], base[8], null)} · ${place(base[1])}`])
-  // The views' own furniture (Brendan, 2026-11-02): the centered column, a sentence for the
-  // h2 with its figures in bold and the facts under it, then cards.
+  const estimate = value(picked.r[7], picked.r[8], null)
+  // The sentence, as the head strip shows it (its figures in bold) and as plain text for the menu's foot and Blocks.
+  const sentence =
+    people && band ? (
+      <>
+        <B>{estimate}</B> {seg ? <>of {seg} respondents </> : null}answered “{band}” in <B>{when}</B>.
+      </>
+    ) : (
+      <>
+        {band ? <>“{band}”: </> : null}
+        <B>{estimate}</B> in <B>{when}</B>.
+      </>
+    )
+  const plain = people && band ? `${estimate} ${seg ? `of ${seg} respondents ` : ""}answered “${band}” in ${when}.` : `${band ? `“${band}”: ` : ""}${estimate} in ${when}.`
+  const anchor = `baseline-${picked.metric}`.toLowerCase().replace(/[^a-z0-9]+/g, "-")
   const body = (
     <ViewColumn>
-      <div className="flex items-start gap-3">
-        <div className="min-w-0 flex-1">
-          <ViewHeading sub={facts}>
-            {people && band ? (
+      <Block
+        title={<span className="text-[17px] leading-snug font-normal">{sentence}</span>}
+        sub={facts}
+        action={
+          <span className="flex shrink-0 items-center gap-0.5 self-start">
+            <CardTools panel title={plain} anchor={anchor} name="baseline" rows={[Object.fromEntries([["Question", picked.metric], ["Segment", picked.segment], ...figures])]} />
+            <Button variant="ghost" size="icon-sm" aria-label="Close" title="Close" onClick={onClose}>
+              <X className="size-4" />
+            </Button>
+          </span>
+        }
+      >
+        {figures.map(([k, v]) => (
+          <Fact key={k} label={k}>
+            <span className="font-semibold text-slate-900 tabular-nums">{v}</span>
+          </Fact>
+        ))}
+        <Passage label="Provenance">
+          <span className="text-[13px] text-slate-600">
+            {picked.r[10] && <>{picked.r[10]} · </>}
+            {sourceLabel && <>{credited(sourceLabel)} · </>}
+            {when}
+            {picked.r[12] && (
               <>
-                <B>{value(about.r[7], about.r[8], null)}</B> {seg ? <>of {seg} respondents </> : null}answered “{band}” in <B>{when}</B>.
-              </>
-            ) : (
-              <>
-                {band ? <>“{band}”: </> : null}
-                <B>{value(about.r[7], about.r[8], null)}</B> in <B>{when}</B>.
+                {" · "}
+                <a href={picked.r[12]} target="_blank" rel="noreferrer" className="break-all text-pax2-light-blue underline">
+                  {host(picked.r[12])}
+                </a>
               </>
             )}
-          </ViewHeading>
-        </div>
-        <Button variant="ghost" size="icon-sm" aria-label="Close" title="Close" className="shrink-0" onClick={onClose}>
-          <X className="size-4" />
-        </Button>
-      </div>
-      <Card>
-        <table className="w-full border-collapse text-[13px]">
-          <tbody>
-            {figures.map(([k, v]) => (
-              <tr key={k}>
-                <td className="border-b px-2.5 py-2 text-muted-foreground">{k}</td>
-                <td className="border-b px-2.5 py-2 text-right font-semibold tabular-nums">{v}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </Card>
-      <Card>
-        <CardLabel>Provenance</CardLabel>
-        <p className="text-[13px] leading-relaxed text-muted-foreground">
-          {about.r[10] && <>{about.r[10]} · </>}
-          {sourceLabel && <>{credited(sourceLabel)} · </>}
-          {when}
-          {about.r[12] && (
-            <>
-              {" · "}
-              <a href={about.r[12]} target="_blank" rel="noreferrer" className="break-all text-pax2-light-blue underline">
-                {host(about.r[12])}
-              </a>
-            </>
-          )}
-        </p>
-      </Card>
+          </span>
+        </Passage>
+      </Block>
     </ViewColumn>
   )
   return layer ? <div className="min-h-0 w-full flex-1 overflow-y-auto">{body}</div> : <div className="w-[420px] shrink-0 overflow-y-auto border-l">{body}</div>

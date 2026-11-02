@@ -16,7 +16,7 @@ import { readDraft, type SurveyDraft } from "@/lib/consensus/draft"
 import { PRETRAININGS } from "@/lib/consensus/pretrainings"
 import { CONSENSUS, MASSACHUSETTS, statementRows } from "@/lib/consensus/rows"
 import { buildInfo } from "@/app/america-thinks/audience-data"
-import { AboutPanel, type About } from "@/app/america-thinks/audience-pane"
+import { BaselinePanel, type BaselinePick } from "@/app/america-thinks/audience-pane"
 import { QuestionTable } from "@/app/america-thinks/question-table"
 import { fmtNumber } from "@/lib/format"
 import { BANK, bankHref, consensusHref, newTestHref, testsHref, type Surface } from "@/lib/survey-links"
@@ -33,7 +33,7 @@ import { BANK, bankHref, consensusHref, newTestHref, testsHref, type Surface } f
 // here, rendered by the server (surfaces.tsx), in place of the list. An open
 // statement reads in America Thinks' own question pane (Brendan, 2026-10-31):
 // its votes as that pane's rows (lib/consensus/rows.ts), with the Data,
-// Crosstab, Trend, Topline and Global views and the About panel a clicked
+// Crosstab, Trend, Topline and Global views and the Baseline panel a clicked
 // value opens.
 // It wears America Thinks' anatomy (Brendan, 2026-10-31): one bar all the way
 // down, the rows alone on load, a question opening the split, the split's
@@ -77,9 +77,9 @@ export function SurveyInbox({
   const [query, setQuery] = React.useState("")
   // The open question's title row carries the search, as America Thinks' does.
   const [paneSearch, setPaneSearch] = React.useState(false)
-  // A clicked value's About panel, over the open question's view.
-  const [about, setAbout] = React.useState<About | null>(null)
-  React.useEffect(() => setAbout(null), [selected])
+  // A clicked value's Baseline panel, over the open question's view.
+  const [picked, setPicked] = React.useState<BaselinePick | null>(null)
+  React.useEffect(() => setPicked(null), [selected])
 
   // The draft lives in this browser's localStorage, so it is read after mount.
   React.useEffect(() => setDraft(readDraft()), [])
@@ -269,17 +269,17 @@ export function SurveyInbox({
         source={CONSENSUS}
         sourceLabel={sourceLabel}
         wording={statement.text}
-        about={about}
-        onPick={setAbout}
+        picked={picked}
+        onPick={setPicked}
         onBack={goBack}
         search={search}
         local
-        aboutLayer={
-          about && (
-            <AboutPanel
+        baselineLayer={
+          picked && (
+            <BaselinePanel
               layer
-              about={about}
-              onClose={() => setAbout(null)}
+              picked={picked}
+              onClose={() => setPicked(null)}
               source={CONSENSUS}
               groups={[{ source: CONSENSUS, label: sourceLabel ?? "Consensus", rows: rows.length, files: [] }]}
               files={{}}

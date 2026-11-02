@@ -27,7 +27,7 @@ import { crosstabOf, dimLabel, latestRow, MAX_BANNER_ROWS, mnemonicOf, normalize
 import { ATTITUDE } from "../q/[source]/[id]/headline"
 import { B, Copyable, listed, Provenance, ViewColumn, ViewHeading } from "./view-shell"
 import { RowsView } from "./rows-view"
-import { type About } from "./audience-pane"
+import { type BaselinePick } from "./audience-pane"
 
 // The clicked question, read the way a pollster reads one: a vertical
 // crosstab — the answer options across the top, the subgroups down the side
@@ -36,7 +36,7 @@ import { type About } from "./audience-pane"
 // chart (Brendan, 2026-10-27). The toggle's first position
 // mounts the shared Rows view (Brendan, 2026-10-26): wave, segment, band,
 // estimate, margin, base, geo and weight, newest first with the total before
-// its subgroups. A clicked crosstab cell hands its row to the About panel.
+// its subgroups. A clicked crosstab cell hands its row to the Baseline panel.
 // Topline, Crosstab, Trend and the globe stand in the Global view's centered
 // column of cards under the same h2, a sentence of context (Brendan,
 // 2026-10-29). The Topline is the pollster's: the verbatim wording, every
@@ -45,7 +45,7 @@ import { type About } from "./audience-pane"
 // One 52px bar, flush with the list's one (Brendan's DevTools pass,
 // 2026-10-28): the question, with the view toggle at its right; the box,
 // importance arrow and star stay on the list's rows (Brendan, 2026-10-28).
-// With the reading pane off, Back leads the bar; a picked value's About panel
+// With the reading pane off, Back leads the bar; a picked value's Baseline panel
 // takes the content area as a layer, the dossier's way.
 
 const VIEWS = [
@@ -68,11 +68,11 @@ export function QuestionTable({
   source,
   sourceLabel = null,
   wording,
-  about,
+  picked,
   onPick,
   onBack,
   search,
-  aboutLayer,
+  baselineLayer,
   local = false,
 }: {
   /** The question's rows alone. */
@@ -88,14 +88,14 @@ export function QuestionTable({
   sourceLabel?: string | null
   /** The verbatim wording where the bank carries one; the bar reads it over the label. */
   wording: string | null
-  about: About | null
-  onPick: (a: About) => void
+  picked: BaselinePick | null
+  onPick: (a: BaselinePick) => void
   /** The title row's Back: one layer up, from the full screen to the split, from the split to the rows. */
   onBack?: () => void
   /** The list's search, carried in the title row after the kebab. */
   search?: PaneSearch
-  /** The picked value's About panel, as the layer over the view. */
-  aboutLayer?: React.ReactNode
+  /** The picked value's Baseline panel, as the layer over the view. */
+  baselineLayer?: React.ReactNode
   /** The rows are the mount's own, not an export file's (Survey's Consensus statements): the Global
    *  view reads them as handed in, and the provenance links no raw file. */
   local?: boolean
@@ -156,12 +156,12 @@ export function QuestionTable({
 
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
-      {aboutLayer ? (
+      {baselineLayer ? (
         <>
           <PaneTitleRow title={heading} leading={leading} search={search}>
             {viewToggle}
           </PaneTitleRow>
-          {aboutLayer}
+          {baselineLayer}
         </>
       ) : shown === "global" && source ? (
         <>
@@ -173,7 +173,7 @@ export function QuestionTable({
           </div>
         </>
       ) : shown === "tidy" ? (
-        <RowsView rows={rows} id={metric} source={source} header={heading} leading={leading} trailing={viewToggle} search={search} about={about} onPick={onPick} />
+        <RowsView rows={rows} id={metric} source={source} header={heading} leading={leading} trailing={viewToggle} search={search} picked={picked} onPick={onPick} />
       ) : (
         <>
       <PaneTitleRow title={heading} leading={leading} search={search}>
@@ -184,7 +184,7 @@ export function QuestionTable({
           sideways and swallowed the vertical scroll with it. */}
       <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
         {shown === "topline" ? (
-          <ToplineView tab={tab} title={title} wording={wording} metric={metric} source={source} sourceLabel={sourceLabel} rows={rows} about={about} onPick={onPick} local={local}>
+          <ToplineView tab={tab} title={title} wording={wording} metric={metric} source={source} sourceLabel={sourceLabel} rows={rows} picked={picked} onPick={onPick} local={local}>
             <ViewHeading sub={facts(baseName, src, tab.years.length > 1 ? `${oldest}–${tab.latestYear}, ${tab.years.length} waves` : null)}>
               {people ? <>Every answer from {asked}.</> : <>Every figure on file for {baseName} in <B>{tab.latestYear}</B>.</>}
             </ViewHeading>
@@ -229,7 +229,7 @@ export function QuestionTable({
                           <tr key={y}>
                             <td className="border-b px-2.5 py-2 text-muted-foreground tabular-nums">{y}</td>
                             {tab.options.map((opt) => (
-                              <XCell key={opt ?? "·"} r={tab.trendCell(opt, y)} metric={metric} segment={`${y}`} about={about} onPick={onPick} />
+                              <XCell key={opt ?? "·"} r={tab.trendCell(opt, y)} metric={metric} segment={`${y}`} picked={picked} onPick={onPick} />
                             ))}
                           </tr>
                         ))}
@@ -268,7 +268,7 @@ export function QuestionTable({
                       <tr>
                         <td className="border-b px-2.5 py-2 font-medium whitespace-nowrap">Total</td>
                         {tab.options.map((opt, k) => (
-                          <XCell key={opt ?? "·"} r={tab.cell(opt, null, null)} metric={metric} segment="Total" first={k === 0} about={about} onPick={onPick} />
+                          <XCell key={opt ?? "·"} r={tab.cell(opt, null, null)} metric={metric} segment="Total" first={k === 0} picked={picked} onPick={onPick} />
                         ))}
                         <BaseCell r={tab.cell(tab.options[0], null, null)} latestYear={tab.latestYear} first className="border-b" />
                       </tr>
@@ -284,7 +284,7 @@ export function QuestionTable({
                             <tr key={v}>
                               <td className="border-b py-2 pr-2.5 pl-5 whitespace-nowrap">{v}</td>
                               {tab.options.map((opt, k) => (
-                                <XCell key={opt ?? "·"} r={tab.cell(opt, b.dim, v)} metric={metric} segment={v} first={k === 0} about={about} onPick={onPick} />
+                                <XCell key={opt ?? "·"} r={tab.cell(opt, b.dim, v)} metric={metric} segment={v} first={k === 0} picked={picked} onPick={onPick} />
                               ))}
                               <BaseCell r={tab.cell(tab.options[0], b.dim, v)} latestYear={tab.latestYear} first className="border-b" />
                             </tr>
@@ -307,9 +307,9 @@ export function QuestionTable({
 }
 
 /** A crosstab cell: the share with its margin small beside it (plain: the share alone, its margin on hover); a count prints whole. */
-function XCell({ r, metric, segment, first, plain, about, onPick }: { r: SourceRow | null; metric: string; segment: string; first?: boolean; plain?: boolean; about: About | null; onPick: (a: About) => void }) {
+function XCell({ r, metric, segment, first, plain, picked, onPick }: { r: SourceRow | null; metric: string; segment: string; first?: boolean; plain?: boolean; picked: BaselinePick | null; onPick: (a: BaselinePick) => void }) {
   if (!r) return <td className={cn("border-b px-2.5 py-2 text-xs text-muted-foreground/40", first && "border-l")}>—</td>
-  const sel = about?.r === r
+  const sel = picked?.r === r
   return (
     <td className={cn("border-b px-2.5 py-2", first && "border-l")}>
       <button
@@ -355,7 +355,7 @@ function ToplineView({
   source,
   sourceLabel,
   rows,
-  about,
+  picked,
   onPick,
   local = false,
   children,
@@ -367,8 +367,8 @@ function ToplineView({
   source: string | null
   sourceLabel: string | null
   rows: SourceRow[]
-  about: About | null
-  onPick: (a: About) => void
+  picked: BaselinePick | null
+  onPick: (a: BaselinePick) => void
   local?: boolean
   /** The view's h2. */
   children: React.ReactNode
@@ -399,7 +399,7 @@ function ToplineView({
                   <tr key={opt ?? "·"}>
                     <td className="border-b px-2.5 py-2">{opt ?? title}</td>
                     {waves.map((y, k) => (
-                      <XCell key={y} r={tab.trendCell(opt, y)} metric={metric} segment={y} first={k === 0} plain about={about} onPick={onPick} />
+                      <XCell key={y} r={tab.trendCell(opt, y)} metric={metric} segment={y} first={k === 0} plain picked={picked} onPick={onPick} />
                     ))}
                   </tr>
                 ))}

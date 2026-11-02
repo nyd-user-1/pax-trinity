@@ -9,7 +9,7 @@ import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMe
 import { ViewToggle } from "@/components/bank/pane-bars"
 
 import { crosstabOf, dimLabel, latestRow, levelRank, MAX_BANNER_ROWS, num, value, type MetricInfo, type SourceRow } from "./audience-data"
-import { type About } from "./audience-pane"
+import { type BaselinePick } from "./audience-pane"
 import { BaseCell } from "./question-table"
 
 // The compare grid: the questions added from a row's kebab, read two ways.
@@ -25,7 +25,7 @@ import { BaseCell } from "./question-table"
 // crosstabOf: the Crosstab's figures, laid horizontally where the Crosstab
 // view now runs vertical (2026-10-29).
 // Segments, Breakdowns and Filter govern both. Clicking a cell hands the row
-// to the About panel, which arrives as the fourth column.
+// to the Baseline panel, which arrives as the fourth column.
 
 const MAX_BAND_ROWS = 16
 const ACROSS = [
@@ -40,7 +40,7 @@ export function SegmentGrid({
   label,
   place,
   geoLevel,
-  about,
+  picked,
   onPick,
 }: {
   rows: SourceRow[]
@@ -49,8 +49,8 @@ export function SegmentGrid({
   label: (id: string) => string
   place: (code: string) => string
   geoLevel: Map<string, string>
-  about: About | null
-  onPick: (a: About) => void
+  picked: BaselinePick | null
+  onPick: (a: BaselinePick) => void
 }) {
   const [geoSel, setGeoSel] = React.useState<string[] | null>(null)
   const [dimsOff, setDimsOff] = React.useState<string[]>([])
@@ -140,7 +140,7 @@ export function SegmentGrid({
           </div>
 
           {grid && across === "groups" ? (
-            <BannerTable grid={grid} rows={rows} label={label} place={place} about={about} onPick={onPick} />
+            <BannerTable grid={grid} rows={rows} label={label} place={place} picked={picked} onPick={onPick} />
           ) : grid ? (
             <table className="w-full border-collapse">
               <thead>
@@ -162,7 +162,7 @@ export function SegmentGrid({
                       </td>
                     </tr>
                     {grid.bands.map((b) => (
-                      <tr key={b.opt} className={rowDress(about != null && b.cells.includes(about.r))}>
+                      <tr key={b.opt} className={rowDress(picked != null && b.cells.includes(picked.r))}>
                         <td className="w-[150px] border-b px-2.5 py-2 text-[13px]">{b.opt}</td>
                         {grid.cols.map((c, i) => (
                           <BandCell key={c.id} r={b.cells[i]} c={c} max={grid.bandMax[i]} segment={b.opt} onPick={onPick} />
@@ -181,7 +181,7 @@ export function SegmentGrid({
                 {grid.geos.map((g) => {
                   const cells = grid.cols.map((c) => latestRow(c.rs.filter((r) => !r[5] && r[1] === g)))
                   return (
-                    <tr key={g} className={rowDress(about != null && cells.includes(about.r))}>
+                    <tr key={g} className={rowDress(picked != null && cells.includes(picked.r))}>
                       <td className="w-[150px] border-b px-2.5 py-2 text-[13px]">{place(g)}</td>
                       {grid.cols.map((c, i) => (
                         <Cell key={c.id} r={cells[i]} c={c} segment={place(g)} onPick={onPick} />
@@ -199,7 +199,7 @@ export function SegmentGrid({
                     {b.values.map((v) => {
                       const cells = grid.cols.map((c) => latestRow(c.rs.filter((r) => r[5] === b.dim && r[6] === v && r[1] === c.baseGeo)))
                       return (
-                        <tr key={v} className={rowDress(about != null && cells.includes(about.r))}>
+                        <tr key={v} className={rowDress(picked != null && cells.includes(picked.r))}>
                           <td className="w-[150px] border-b px-2.5 py-2 text-[13px]">{v}</td>
                           {grid.cols.map((c, i) => (
                             <Cell key={c.id} r={cells[i]} c={c} segment={v} onPick={onPick} />
@@ -223,7 +223,7 @@ export function SegmentGrid({
 const frame = "flex w-full items-center gap-1.5 rounded-[3px] text-left tabular-nums focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pax2-light-blue"
 
 /** A data row's dress: the house row's hover and picked state (components/row-dress.tsx; Brendan, 2026-10-28, made
- *  the list rows' own 2026-10-31). The picked cell's whole row holds the picked state while the About panel holds it. */
+ *  the list rows' own 2026-10-31). The picked cell's whole row holds the picked state while the Baseline panel holds it. */
 export const rowDress = (sel: boolean) => cn(TR, sel && ON)
 
 type Crosstab = ReturnType<typeof crosstabOf>
@@ -239,15 +239,15 @@ function BannerTable({
   rows,
   label,
   place,
-  about,
+  picked,
   onPick,
 }: {
   grid: { cols: MetricInfo[]; geos: string[]; breakdowns: { dim: string; values: string[] }[] }
   rows: SourceRow[]
   label: (id: string) => string
   place: (code: string) => string
-  about: About | null
-  onPick: (a: About) => void
+  picked: BaselinePick | null
+  onPick: (a: BaselinePick) => void
 }) {
   // Every cell is read once here, not on each render (a pick re-renders).
   const table = React.useMemo(() => {
@@ -312,7 +312,7 @@ function BannerTable({
                 </td>
               </tr>
               {bands.map(({ opt, cells }) => {
-                const sel = about != null && cells.includes(about.r)
+                const sel = picked != null && cells.includes(picked.r)
                 return (
                   <tr key={opt ?? "·"} className={rowDress(sel)}>
                     {/* Opaque, so the scrolled groups pass under it; muted with its row when picked. */}
@@ -345,7 +345,7 @@ function BannerTable({
 }
 
 /** A Banner cell: the Crosstab's own cell, the share with its margin small beside it; a count prints whole. */
-function BannerCell({ r, metric, segment, first, onPick }: { r: SourceRow | null; metric: string; segment: string; first: boolean; onPick: (a: About) => void }) {
+function BannerCell({ r, metric, segment, first, onPick }: { r: SourceRow | null; metric: string; segment: string; first: boolean; onPick: (a: BaselinePick) => void }) {
   if (!r) return <td className={cn("border-b px-2.5 py-2 text-xs text-muted-foreground/40", first && "border-l")}>—</td>
   return (
     <td className={cn("border-b px-2.5 py-2", first && "border-l")}>
@@ -359,7 +359,7 @@ function BannerCell({ r, metric, segment, first, onPick }: { r: SourceRow | null
 }
 
 /** A Bands cell: the band's value with a level bar against the column's largest. */
-function BandCell({ r, c, max, segment, onPick }: { r: SourceRow | null; c: MetricInfo; max: number; segment: string; onPick: (a: About) => void }) {
+function BandCell({ r, c, max, segment, onPick }: { r: SourceRow | null; c: MetricInfo; max: number; segment: string; onPick: (a: BaselinePick) => void }) {
   if (!r) return <td className="border-b px-2.5 py-2 text-xs text-muted-foreground/40">—</td>
   if (r[8] === "lift_pp")
     return (
@@ -381,7 +381,7 @@ function BandCell({ r, c, max, segment, onPick }: { r: SourceRow | null; c: Metr
 }
 
 /** A value cell: a count prints, a baseline anchors, everything else is a pennant against it. */
-function Cell({ r, c, segment, onPick }: { r: SourceRow | null; c: MetricInfo; segment: string; onPick: (a: About) => void }) {
+function Cell({ r, c, segment, onPick }: { r: SourceRow | null; c: MetricInfo; segment: string; onPick: (a: BaselinePick) => void }) {
   if (!r) return <td className="border-b px-2.5 py-2 text-xs text-muted-foreground/40">—</td>
   let body: React.ReactNode
   if (r[8] === "count") body = <span className="text-[13px] font-semibold">{num(r[7], 0)}</span>

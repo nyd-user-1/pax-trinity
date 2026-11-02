@@ -11,7 +11,7 @@ import { PaneTitleRow, type PaneSearch } from "@/components/bank/pane-bars"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@govblock/ui/components/ny4/dropdown-menu"
 
 import { fieldDates, num, weightOf, year, type SourceRow } from "./audience-data"
-import { type About } from "./audience-pane"
+import { type BaselinePick } from "./audience-pane"
 
 // The Rows view — the raw rows exactly as the source reported them, the
 // instrument's default read: newest wave first, the total before its
@@ -28,7 +28,7 @@ export function RowsView({
   leading,
   trailing,
   search,
-  about,
+  picked,
   onPick,
 }: {
   /** The open question's rows alone. */
@@ -44,9 +44,9 @@ export function RowsView({
   trailing?: React.ReactNode
   /** The title row's search, after the filters kebab. */
   search?: PaneSearch
-  /** A clicked row hands itself to the About panel, where the mount has one. */
-  about?: About | null
-  onPick?: (a: About) => void
+  /** A clicked row hands itself to the Baseline panel, where the mount has one. */
+  picked?: BaselinePick | null
+  onPick?: (a: BaselinePick) => void
 }) {
   const [wave, setWave] = React.useState("all")
   const [segment, setSegment] = React.useState("all")
@@ -228,7 +228,7 @@ export function RowsView({
                   key={i}
                   onClick={pick}
                   // The house row (components/row-dress.tsx, Brendan, 2026-10-31).
-                  className={cn(TR, !r[5] && "bg-muted/40", onPick && "cursor-pointer", onPick && about?.r === r && ON)}
+                  className={cn(TR, !r[5] && "bg-muted/40", onPick && "cursor-pointer", onPick && picked?.r === r && ON)}
                 >
                   {/* The estimate cell knows its type: a count prints whole, a lift signed in points, a share one-decimal. */}
                   {cols.map((col) => (

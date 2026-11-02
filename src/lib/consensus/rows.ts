@@ -3,7 +3,7 @@ import { share, type Conversation, type Statement, type Tally } from "@/lib/cons
 
 // A Consensus statement's results as America Thinks' rows (Brendan,
 // 2026-10-31), so Survey's open question reads in America Thinks' own pane:
-// its Data rows, Crosstab, Trend, Topline and Global view, and the About panel
+// its Data rows, Crosstab, Trend, Topline and Global view, and the Baseline panel
 // a clicked value opens. The bands are Agree, Disagree and Pass; the segments
 // are everyone and each opinion group, from the statement's own votes.
 //

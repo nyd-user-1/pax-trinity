@@ -10,7 +10,7 @@ import { CardList, type Card, type Split } from "@/components/bank/card-list"
 import { ImportantIcon } from "@/components/bank/marks"
 import { MenuFoot, MenuHeader, MenuRow, MenuSeparator } from "@/components/kebab-menu"
 
-import { AboutPanel, type About } from "./audience-pane"
+import { BaselinePanel, type BaselinePick } from "./audience-pane"
 import { buildInfo, fetchQuestionRows, groupSources, mnemonicOf, normalizeWording, scaleOf, shortSource, topicOf, UNTAGGED, TOPIC_GROUPS, WEB_GRID, WORDING, type AudienceIndex, type MetricInfo, type QuestionSummary, type SourceRow } from "./audience-data"
 import { FAVORITES, IMPORTANT, SourceRail } from "./source-rail"
 import { snippetOf } from "../q/[source]/[id]/headline"
@@ -25,7 +25,7 @@ import { isEmbedded } from "@/lib/pane"
 // address from the earlier browse surface 2026-10-27): topics and source
 // folders in the rail, questions as the threads, and the list opens full
 // width the way the inbox does with no split on. Opening a question is the
-// presto — its table takes the pane — and a cell hands its row to the About
+// presto — its table takes the pane — and a cell hands its row to the Baseline
 // panel. ?source=<KEY> or ?topic=<name> opens on that folder or topic.
 
 /** The compare grid's columns, at most. */
@@ -72,7 +72,7 @@ export function AudienceInbox() {
   // The Blocks panel's contents: questions pressed into it from the list.
   const [blocks, setBlocks] = React.useState<string[]>([])
   const [blocksOpen, setBlocksOpen] = React.useState(false)
-  const [about, setAbout] = React.useState<About | null>(null)
+  const [picked, setPicked] = React.useState<BaselinePick | null>(null)
   const [mode, setMode] = React.useState<"list" | "table">("list")
   // The open question, its table in the pane; null leaves the list alone.
   const [tableMetric, setTableMetric] = React.useState<string | null>(null)
@@ -149,7 +149,7 @@ export function AudienceInbox() {
   // What the open selection, topic or folder is called on screen.
   const openName = topic === FAVORITES ? "Favorites" : topic === IMPORTANT ? "Important" : (topic ?? (source ? shortSource(source) : ""))
   // Every source that asks a question: opening it reads all of them, so the
-  // About panel can set the same question beside its other sources.
+  // Baseline panel can set the same question beside its other sources.
   const homes = React.useMemo(() => {
     const m = new Map<string, string[]>()
     for (const q of index?.questions ?? []) m.set(q.question, [...(m.get(q.question) ?? []), q.source])
@@ -180,7 +180,7 @@ export function AudienceInbox() {
   React.useEffect(() => {
     setRowsError(null)
     setColumns([])
-    setAbout(null)
+    setPicked(null)
     setTableMetric(null)
   }, [source, topic])
 
@@ -211,18 +211,18 @@ export function AudienceInbox() {
     const s = id ? srcOf(id) : null
     return !!id && !!s && !!cache[`${s}/${id}`]
   }
-  // Every question read so far, grouped by source, for the About panel's
+  // Every question read so far, grouped by source, for the Baseline panel's
   // comparison — built only while the panel is open, so the read-ahead's
   // landings don't re-join the whole cache each time.
   const files = React.useMemo(() => {
     const by: Record<string, SourceRow[]> = {}
-    if (!about) return by
+    if (!picked) return by
     for (const [key, data] of Object.entries(cache)) {
       const s = key.slice(0, key.indexOf("/"))
       by[s] = by[s] ? by[s].concat(data) : data
     }
     return by
-  }, [cache, about])
+  }, [cache, picked])
   const metricIds = React.useMemo(() => {
     const all = [...summaries.keys()]
     if (source !== "GSS" && !topic) return all
@@ -249,7 +249,7 @@ export function AudienceInbox() {
     setMode("table")
     setSplit(s)
     // A picked value belongs to the question it was picked on.
-    setAbout(null)
+    setPicked(null)
   }
   // A right-click on a question opens it in the second panel (Brendan, 2026-10-31), on its address: the rail's
   // folder or topic and ?open=, which the page reads once the index is in. Inside the panel, the browser's menu.
@@ -502,8 +502,8 @@ export function AudienceInbox() {
     </div>
   )
 
-  const aboutPanel = (from: string | null, layer = false) =>
-    about && <AboutPanel layer={layer} about={about} onClose={() => setAbout(null)} source={from} groups={groups} files={files} info={info} place={place} />
+  const baselinePanel = (from: string | null, layer = false) =>
+    picked && <BaselinePanel layer={layer} picked={picked} onClose={() => setPicked(null)} source={from} groups={groups} files={files} info={info} place={place} />
 
   const drafting = drafted != null && (
     <div role="status" className="absolute bottom-4 left-4 z-20 flex items-center gap-4 rounded-md bg-foreground px-4 py-2.5 text-sm text-background shadow-lg">
@@ -547,8 +547,8 @@ export function AudienceInbox() {
                   },
                 }}
                 wording={wordingOf(tableMetric)}
-                about={about}
-                onPick={setAbout}
+                picked={picked}
+                onPick={setPicked}
                 // One layer up (Brendan, 2026-10-31): the full screen goes back
                 // to the split, the split back to the rows.
                 onBack={
@@ -560,7 +560,7 @@ export function AudienceInbox() {
                       }
                     : () => setSplit("vertical")
                 }
-                aboutLayer={aboutPanel(srcOf(tableMetric), true)}
+                baselineLayer={baselinePanel(srcOf(tableMetric), true)}
               />
             ) : (
               <Reading error={rowsError} />
@@ -576,7 +576,7 @@ export function AudienceInbox() {
             (columns.length && !columns.some(loaded) ? (
               <Reading error={rowsError} />
             ) : columns.length ? (
-              <SegmentGrid key={source ?? topic ?? ""} rows={rows} info={info} columns={columns} label={label} place={place} geoLevel={geoLevel} about={about} onPick={setAbout} />
+              <SegmentGrid key={source ?? topic ?? ""} rows={rows} info={info} columns={columns} label={label} place={place} geoLevel={geoLevel} picked={picked} onPick={setPicked} />
             ) : (
               empty
             ))
@@ -584,7 +584,7 @@ export function AudienceInbox() {
           fold={{ size: 420, min: 320, max: 640 }}
           aside={
             <>
-              {aboutPanel(source)}
+              {baselinePanel(source)}
               {blocksPanel}
             </>
           }

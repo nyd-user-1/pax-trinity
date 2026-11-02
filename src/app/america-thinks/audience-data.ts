@@ -46,7 +46,7 @@ export const groupSources = (sources: SourceFile[]): SourceGroup[] => {
   return [...by.values()]
 }
 
-/** The rail's short names; the full institutional label stays on the About panel. */
+/** The rail's short names; the full institutional label stays on the Baseline panel. */
 export const SHORT_SOURCE: Record<string, string> = {
   ACS: "U.S. Census",
   ANES: "ANES",
