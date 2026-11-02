@@ -270,15 +270,18 @@ function HoverActions({ row, actions }: { row: MailRowView; actions: MailActions
   )
 }
 
-/** The right edge: the time, and on hover (or with the snooze menu open) the four in its place. */
+/** The right edge: the time, and on hover (or with the snooze menu open) the four in its place. Both stand
+ *  in the row's flow, each shown or gone, never laid over the text: the icons take their own ground at
+ *  the row's end, as Gmail's do, and the snippet's ellipsis lands before them at any width (Brendan,
+ *  2026-11-02, 119 against 120). */
 function RowEnd({ row, actions }: { row: MailRowView; actions: MailActions }) {
   return (
-    <span className="relative flex shrink-0 items-center justify-end">
-      <span className={cn("text-xs tabular-nums group-hover/mail:invisible group-has-[[aria-expanded=true]]/mail:invisible", row.unread ? "font-bold text-(--mail-ink)" : "text-(--mail-ink-2)")}>{row.span}</span>
-      <span data-hover-actions className="absolute top-1/2 right-0 hidden -translate-y-1/2 items-center gap-2 group-hover/mail:flex group-has-[[aria-expanded=true]]/mail:flex">
+    <>
+      <span data-row-time className={cn("shrink-0 text-xs tabular-nums group-hover/mail:hidden group-has-[[aria-expanded=true]]/mail:hidden", row.unread ? "font-bold text-(--mail-ink)" : "text-(--mail-ink-2)")}>{row.span}</span>
+      <span data-hover-actions className="hidden shrink-0 items-center gap-2 group-hover/mail:flex group-has-[[aria-expanded=true]]/mail:flex">
         <HoverActions row={row} actions={actions} />
       </span>
-    </span>
+    </>
   )
 }
 
@@ -317,8 +320,9 @@ function MailRow({ row, checked, open, layout, actions }: { row: MailRowView; ch
             {!row.draft && <ImportantMark on={row.important} onToggle={() => actions.onImportant(row.id)} />}
           </span>
           <span className="flex w-[168px] shrink-0">{sender}</span>
-          <span className="flex min-w-0 flex-1 items-baseline">
-            <span className={cn("max-w-[68ch] min-w-0 shrink-0 truncate", weight)} title={row.subject}>
+          {/* The snippet gives way first (its basis is nothing), then the subject truncates; the box clips at its own edge. */}
+          <span data-row-text className="flex min-w-0 flex-1 items-baseline overflow-hidden">
+            <span className={cn("max-w-[68ch] min-w-0 truncate", weight)} title={row.subject}>
               {row.subject}
             </span>
             {row.snippet && <span className="min-w-0 flex-1 truncate text-(--mail-ink-2)">&nbsp;-&nbsp;{row.snippet}</span>}
@@ -330,7 +334,7 @@ function MailRow({ row, checked, open, layout, actions }: { row: MailRowView; ch
           <span className="flex h-6 min-w-0 items-center gap-3">
             {box}
             {!row.draft && <ImportantMark on={row.important} onToggle={() => actions.onImportant(row.id)} />}
-            <span className="flex min-w-0 flex-1">{sender}</span>
+            <span data-row-text className="flex min-w-0 flex-1 overflow-hidden">{sender}</span>
             <RowEnd row={row} actions={actions} />
           </span>
           <span className={cn("truncate pl-[30px]", weight)} title={row.subject}>
