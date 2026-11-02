@@ -34,14 +34,14 @@ def test_build_rows():
         poll(id="p5", poll_type="governor", subject="2026 Michigan", population="lv",
              answers=[{"choice": "Benson", "pct": 41.0}, {"choice": "James", "pct": 40.0}]),
     ])
-    assert set(q) == {"approval_trump", "generic_ballot_2026", "governor_2026_mi"}
-    assert skipped == ["p3: no release URL"]
+    assert set(q) == {"approval_trump", "governor_2026_mi"}
+    assert skipped == ["p3: no release URL", "p4: field dates 2026-10-05 to 2026-10-04 can't both be right"]
     versions = {r["source_version"] for r in rows}
-    assert versions == {"VoteHub p1", "VoteHub p4", "VoteHub p5"}
-    gb = [r for r in rows if r["construct"] == "generic_ballot_2026"]
+    assert versions == {"VoteHub p1", "VoteHub p5"}
+    q2, gb, _ = votehub.build([poll(id="p6", poll_type="generic-ballot", subject="2026", sponsors=["Reuters"],
+                                    answers=[{"choice": "Dem", "pct": 45.0}, {"choice": "Rep", "pct": 43.0}])])
     assert [r["response_option"] for r in gb] == ["Democrat", "Republican"]
     assert gb[0]["item_text"] == "Emerson College for Reuters, registered voters"
-    assert gb[0]["period_start"] < gb[0]["period_end"]
     gov = [r for r in rows if r["construct"] == "governor_2026_mi"]
     assert {r["geo_code"] for r in gov} == {"26"} and gov[0]["geography"] == "STATE"
     assert all(r["source"] == "POLL" and "CC BY 4.0" in r["provenance_note"] for r in rows)

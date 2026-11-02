@@ -208,6 +208,10 @@ def link(polls: list[dict], cache: Path = CACHE) -> tuple[list[dict], Counter]:
     for p in polls:
         if p.get("internal") or not p.get("url") or not p.get("end_date"):
             continue
+        start, end = p.get("start_date") or p["end_date"], p["end_date"]
+        if start > end or (dt.date.fromisoformat(end) - dt.date.fromisoformat(start)).days > votehub.MAX_FIELD_DAYS:
+            stats["polls whose dates can't both be right"] += 1   # votehub.py leaves them out too
+            continue
         stats["polls"] += 1
         entry = manifest.get(p["url"])
         if not entry or not entry.get("file"):
@@ -454,6 +458,23 @@ def cap(rep: dict, limit: int = MAX_QUESTION_BYTES) -> int:
     return held
 
 
+HEADER_WORDS = re.compile(r"\b(Total|Ideology|Party ID|Reg|MAGA|Lean)\b")
+
+
+def stated_sample(text: str | None) -> str:
+    """The sample a release states ("1,421 registered voters"), or "" where the parse took
+    something else for it: a headline in capitals ("2026 MAJORITY OF VOTERS"), a crosstab
+    header ("2024 Vote Reg Ideology Party ID ... Total Harris Trump Voters"), or a year
+    ("2026 Adults")."""
+    t = re.sub(r"\s+", " ", text or "").strip()
+    m = re.match(r"^([\d,]+)\s+\S", t)
+    if not m or t.upper() == t or HEADER_WORDS.search(t):
+        return ""
+    if "," not in m[1] and 1990 <= int(m[1]) <= 2035:
+        return ""
+    return t
+
+
 def rows_of(rep: dict) -> list[dict]:
     from . import votehub
 
@@ -466,10 +487,8 @@ def rows_of(rep: dict) -> list[dict]:
         # printed (a 95% margin, which the store's 90% moe column does not take). The parsed
         # name is often a page heading ("NOTE ABOUT RESULTS") and stays out.
         rel = s["release"]
-        sample = (rel.get("sample") or "").strip()
-        if sample.upper() == sample:
-            sample = ""   # a headline the parse took for the sample ("2026 MAJORITY OF VOTERS")
-        text = ", ".join(x for x in (s["pollster"], sample, (rel.get("margin_of_error") or "").strip()) if x)
+        text = ", ".join(x for x in (s["pollster"], stated_sample(rel.get("sample")),
+                                     (rel.get("margin_of_error") or "").strip()) if x)
         version = f"{VERSION_PREFIX}{slug(s['pollster'])}/{s['end']} {s['sha'][:8]}"
         seen = set()
         for label, values in q["rows"]:

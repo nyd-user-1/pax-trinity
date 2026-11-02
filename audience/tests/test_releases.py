@@ -87,3 +87,10 @@ def test_cap_holds_oldest_waves():
     rep = {**rep, "items": list(rep["items"])}
     held = R.cap(rep, limit=1)                 # nothing fits: the newest wave alone stays
     assert held == 3 and [s["end"] for s, _ in rep["items"]] == ["2026-04-03"] and one > 0
+
+
+def test_stated_sample():
+    assert R.stated_sample("1,421 registered voters") == "1,421 registered voters"
+    assert R.stated_sample("1500 US Adult citizens") == "1500 US Adult citizens"
+    for junk in ("2026 Adults", "2026 MAJORITY OF VOTERS", "2024 Vote Reg Ideology Party ID Total Harris Trump Voters", ""):
+        assert R.stated_sample(junk) == ""

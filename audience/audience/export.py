@@ -47,6 +47,12 @@ the same order, {source, question, first, last, waves, options}: the first and l
 and their count (the distinct years of period_end over all its rows), and its options, each
 response option once in row order. The whole-source files stay beside them.
 
+polls is the polls registry (audience/polls_registry.py), written with the POLL source: one
+record per poll behind its rows (pollster, sponsors, field dates, populations and samples,
+the margin, mode and fieldwork its release states, its links, the questions it asked at their
+waves, and the keys of its rows), in polls.json, split at MAX_BYTES into polls-2.json, ...;
+index.json's polls lists the files. The key is absent without POLL rows.
+
 --source <SOURCE> rewrites that source's files alone and merges its entries into the index.json
 already in public/audience-data/, leaving every other source's files as they are: other writers
 (scripts/results/publish.mjs, for PAX_TEST) keep rows there that the store does not hold.
@@ -247,6 +253,13 @@ def geography_entries(store: Store) -> list[dict]:
         key=lambda g: (level_order[g["level"]], g["code"]))
 
 
+def write_polls(store: Store, out: Path) -> list[str]:
+    """The polls registry (audience/polls_registry.py): polls.json, split as a source is."""
+    from . import polls_registry
+
+    return polls_registry.write(polls_registry.build(store), out, _chunks)
+
+
 def export_source(store: Store, source: str, out: Path = OUT) -> dict:
     """Rewrite one source's files and merge its entries into the index.json already in out,
     leaving every other source's files and entries as they are, the way
@@ -286,6 +299,8 @@ def export_source(store: Store, source: str, out: Path = OUT) -> dict:
         index["geographies"] + [g for g in geography_entries(store)
                                 if g["code"] in used and g["code"] not in have],
         key=lambda g: (level_order[g["level"]], g["code"]))
+    if source == "POLL":
+        index["polls"] = write_polls(store, out)
     index_path.write_text(
         json.dumps(index, ensure_ascii=False, separators=(",", ":")) if compact
         else json.dumps(index, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
@@ -315,6 +330,9 @@ def export(store: Store, out: Path = OUT) -> dict:
     constructs = construct_entries(store)
     geos = geography_entries(store)
     index = {"sources": index_sources, "constructs": constructs, "geographies": geos}
+    if "POLL" in sources:
+        index["polls"] = write_polls(store, out)
+        written |= set(index["polls"])
     families = construct_families(store, {c["construct"] for c in constructs})
     if families:
         index["families"] = families

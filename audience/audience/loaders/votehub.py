@@ -15,8 +15,9 @@ the pollster, its sponsors and the population, which the export carries on every
 provenance_url is the poll's own release, and provenance_note credits VoteHub and keeps its id.
 
 Rows are loaded as VoteHub gives them, with three exceptions: a poll with no release URL is
-skipped (the store requires provenance), a field period given end-first is put in order, and
-the generic ballot's "Dem" and "Rep" read "Democrat" and "Republican". A House district or a
+skipped (the store requires provenance); a poll whose field dates can't both be right (its start
+after its end, or a period past MAX_FIELD_DAYS: year typos) is skipped rather than guessed at;
+and the generic ballot's "Dem" and "Rep" read "Democrat" and "Republican". A House district or a
 city stands at its state. A row the pull no longer produces (a poll gone from VoteHub, a renamed answer) is deleted on the next run.
 """
 
@@ -35,6 +36,7 @@ VERSION_PREFIX = "VoteHub "
 API = "https://api.votehub.com/polls"
 RAW = config.RAW / "votehub"
 CREDIT = "Topline compiled by VoteHub (https://votehub.com/polls/, CC BY 4.0)"
+MAX_FIELD_DAYS = 60   # a longer period in VoteHub's dates is a typo (one runs 368 days)
 
 STATES = {
     "Alabama": "AL", "Alaska": "AK", "Arizona": "AZ", "Arkansas": "AR", "California": "CA",
@@ -185,10 +187,12 @@ def build(polls: list[dict]) -> tuple[dict[str, dict], list[dict], list[str]]:
         if q is None:
             skipped.append(f"{pid}: no question for {p['poll_type']} / {p['subject']}")
             continue
-        questions.setdefault(q["construct"], q)
         end = dt.date.fromisoformat(p["end_date"])
         start = dt.date.fromisoformat(p.get("start_date") or p["end_date"])
-        start, end = min(start, end), max(start, end)
+        if start > end or (end - start).days > MAX_FIELD_DAYS:
+            skipped.append(f"{pid}: field dates {p.get('start_date')} to {p['end_date']} can't both be right")
+            continue
+        questions.setdefault(q["construct"], q)
         who = p["pollster"] + (f" for {', '.join(p['sponsors'])}" if p.get("sponsors") else "")
         pop = POPULATIONS.get(p.get("population") or "", "population not stated")
         seat = p.get("seat_name")
