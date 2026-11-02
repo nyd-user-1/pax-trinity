@@ -9,6 +9,7 @@ import { ON, RowMenu, TD, TR } from "@/components/row-dress"
 
 import { Avatar, Badge, FIELD, SMALL, SMALL_PRIMARY } from "@/components/settings/blocks"
 import { HEALTH_LABEL, isOverdue, KIND_LABEL, KINDS, STAGE_LABEL, STAGES, daysBetween, type Health, type Item, type ItemEvent, type Kind, type Person, type Stage } from "@/lib/delivery/types"
+import { shortName } from "@/lib/roles"
 import { Popover, PopoverContent, PopoverTrigger } from "@/ui/components/nova/popover"
 import { cn } from "@/ui/lib/utils"
 
@@ -23,7 +24,8 @@ export type Board = { today: string; people: Person[]; staff: Person[]; admin: b
 export const KIND_ICON: Record<Kind, React.ComponentType<{ className?: string }>> = { video: Film, test: FlaskConical, survey: ListChecks, report: FileText, analysis: ChartLine }
 
 export const personOf = (b: Board, email: string | null) => (email ? (b.people.find((p) => p.email === email.toLowerCase()) ?? { email, name: email.split("@")[0]! }) : null)
-export const firstName = (p: Person | null) => p?.name.split(" ")[0] ?? ""
+/** The name a line uses: the first, with a last initial where two members share it (lib/roles.ts shortName). */
+export const firstName = (p: Person | null) => (p ? shortName(p.name) : "")
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 /** Oct 31; with the year when it isn't this one. */

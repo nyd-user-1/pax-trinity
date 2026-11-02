@@ -1,6 +1,6 @@
 // A note to the team (Brendan, 2026-11-02, the ShiftNote brief): the note's text and the page it was written on,
-// posted to one of three places: a Dev Comment on the page (the admins' stream, lib/housekeeping.ts), Slack's #pax2,
-// or Discord's #pax through the agents' webhook. Client-safe: the places and the words that go out.
+// posted to any of three places, one, two or all: a Dev Comment on the page (the admins' stream, lib/housekeeping.ts),
+// Slack's #pax2, Discord's #pax through the agents' webhook. Client-safe: the places and the words that go out.
 
 export type TeamPlace = "comments" | "slack" | "discord"
 

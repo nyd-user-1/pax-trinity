@@ -8,6 +8,7 @@ import { Archive, ArrowBigDown, ArrowBigUp, Bookmark, Check, ChevronDown, Chevro
 import { DiffBar } from "@/components/dev/diff-bar"
 import { diffStats } from "@/lib/diff/stats"
 import { ADMIN, CLAUDE, CLAUDE_MARK, grouped } from "@/lib/housekeeping-thread"
+import { shortName } from "@/lib/roles"
 import { cn } from "@/ui/lib/utils"
 import { goToComment, HOUSEKEEPING_CHANGED, HOUSEKEEPING_OPEN, shrink, takeFocus } from "./tool"
 
@@ -480,7 +481,7 @@ export function HousekeepingView() {
         </ThreadChip>
         {others.map((p) => (
           <ThreadChip key={p.email} on={!adminChan && withEmail === p.email} onClick={() => pick({ email: p.email })}>
-            {p.name.split(" ")[0]}
+            {shortName(p.name)}
           </ThreadChip>
         ))}
         <span className="ml-auto flex gap-1.5">

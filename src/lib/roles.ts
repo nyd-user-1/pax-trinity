@@ -42,5 +42,15 @@ export const memberByEmail = (email: string) => {
   return MEMBERS.find((m) => m.email?.toLowerCase() === e || m.aliases?.some((a) => a.toLowerCase() === e))
 }
 
+/** A person's name where the UI lists people by first name (Dev Comments' chips, the Delivery Board's lines): the
+ *  first name, with the last name's initial when another member shares it ("Brendan S.", "Brendan Z."; Brendan,
+ *  2026-11-02). One person's two accounts (Ted's) are one name and don't collide. */
+export function shortName(name: string): string {
+  const [first = "", ...rest] = name.trim().split(/\s+/)
+  const last = rest.at(-1)
+  const shared = MEMBERS.some((m) => m.name.trim() !== name.trim() && m.name.trim().split(/\s+/)[0] === first)
+  return shared && last ? `${first} ${last[0]}.` : first
+}
+
 /** The super admin, the developer: the one role that edits and resolves (Brendan, 2026-10-30). */
 export const isSuperAdmin = (email: string) => memberByEmail(email)?.role === "superadmin"
