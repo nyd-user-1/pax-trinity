@@ -548,11 +548,13 @@ export function Shell({ children, drawer, signedIn = false, admin = false, super
               {/* The header's empty run is the right-click page switcher's ground, and nothing said so
                   (Brendan, 2026-11-01): resting on it draws the drop target's dashed blue line and the
                   one instruction, after a beat so a passing pointer never flashes it. */}
-              <div className="group/deadspace flex flex-1 items-center self-stretch">
-                {/* The hint spans the whole header, the drop target's dress: the dashed blue line, the light
-                    blue wash inside (hover is still the dead space alone, so the controls never trigger it). */}
-                <span aria-hidden className="pointer-events-none absolute inset-y-2 left-1/2 z-20 flex w-[min(1250px,calc(100%-128px))] -translate-x-1/2 items-center justify-center rounded-xl border border-dashed border-pax2-light-blue bg-pax2-light-blue/10 opacity-0 transition-opacity duration-150 group-hover/deadspace:opacity-100 group-hover/deadspace:delay-150">
-                  <span className="rounded-full bg-pax2-surface px-3.5 py-1.5 text-sm font-medium text-pax2-blue shadow-e1">Right-click to go to any page</span>
+              <div className="group/deadspace @container/hint relative flex min-w-0 flex-1 items-center self-stretch">
+                {/* The hint fills the dead space alone, the drop target's dress: the dashed blue line, the light
+                    blue wash inside. It sizes to the free run between the title and the icons on the right, the
+                    header's gap clear of each (Brendan, 2026-11-02: it ran over the title), and its pill shows
+                    only where the run holds it whole. */}
+                <span aria-hidden className="pointer-events-none absolute inset-x-0 -inset-y-2 z-20 flex items-center justify-center overflow-hidden rounded-xl border border-dashed border-pax2-light-blue bg-pax2-light-blue/10 opacity-0 transition-opacity duration-150 group-hover/deadspace:opacity-100 group-hover/deadspace:delay-150">
+                  <span className="hidden max-w-[calc(100%-1rem)] truncate rounded-full bg-pax2-surface px-3.5 py-1.5 text-sm font-medium whitespace-nowrap text-pax2-blue shadow-e1 @min-[16rem]/hint:block">Right-click to go to any page</span>
                 </span>
               </div>
               {/* A page's own header controls (the dashboard's poller switch and pipeline run) portal in here. */}
