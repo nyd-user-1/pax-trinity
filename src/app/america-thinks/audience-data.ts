@@ -89,7 +89,7 @@ export const SEGMENT_SEED: Record<string, number> = {
   LIFT_ARCHIVE: 3,
   MA_ENROLLMENT: 1,
   PAX_TEST: 2,
-  POLL: 164,
+  POLL: 208,
 }
 
 // The rail's topics (Brendan, 2026-10-27): the publishers' tags — GSS's 155,

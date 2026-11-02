@@ -8,7 +8,7 @@ import sys
 from . import geographies, migrate
 from .db import connect
 from .loaders import acs, anes, ces, cps, cvap, gss, ma_enrollment, wvs
-from .loaders import apnorc, polls, votehub
+from .loaders import apnorc, pew, polls, votehub
 from .loaders import lift_archive, ma_results, pax_tests
 from .loaders import anes_topics, ces_topics, gss_topics, gss_wording
 
@@ -30,6 +30,7 @@ MODULES = {
     "polls": polls,
     "apnorc": apnorc,
     "votehub": votehub,
+    "pew": pew,
     "lift_archive": lift_archive,
     "pax_tests": pax_tests,
     "ma_results": ma_results,

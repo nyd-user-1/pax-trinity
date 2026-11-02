@@ -12,9 +12,10 @@ import { latestRow, levelRank, num, period, shortSource, value, year, type Metri
 
 export type About = { r: SourceRow; metric: string; segment: string }
 
-/** Compilers a source label names whose license asks for a linked credit: VoteHub's
- *  polls are CC BY 4.0 (the lead's ruling, 2026-11-02: the link sits where the data shows). */
-const CREDITS: Record<string, string> = { VoteHub: "https://votehub.com/polls/" }
+/** Compilers a source label names whose terms ask for a credit: VoteHub's polls are CC BY 4.0
+ *  (the lead's ruling, 2026-11-02: the link sits where the data shows), and Pew's figures
+ *  are used with credit to Pew Research Center. */
+const CREDITS: Record<string, string> = { VoteHub: "https://votehub.com/polls/", "Pew Research Center": "https://www.pewresearch.org/" }
 const CREDIT_NAMES = new RegExp(`(${Object.keys(CREDITS).join("|")})`)
 
 function credited(label: string): React.ReactNode {

@@ -17,7 +17,7 @@ provenance_url is the poll's own release, and provenance_note credits VoteHub an
 Rows are loaded as VoteHub gives them, with three exceptions: a poll with no release URL is
 skipped (the store requires provenance), a field period given end-first is put in order, and
 the generic ballot's "Dem" and "Rep" read "Democrat" and "Republican". A House district or a
-city stands at its state. A poll that leaves VoteHub is deleted on the next run.
+city stands at its state. A row the pull no longer produces (a poll gone from VoteHub, a renamed answer) is deleted on the next run.
 """
 
 from __future__ import annotations
@@ -238,19 +238,13 @@ def run(store: Store, refresh: bool = False) -> int:
                      "the pollster, its sponsors and the population; provenance_url is the poll's release.",
         })
     total = store.upsert_norms(rows)
-    keep = {r["source_version"] for r in rows}
-    stale = [v for (v,) in store.query(
-        "SELECT DISTINCT source_version FROM norms WHERE source = ? AND source_version LIKE ?",
-        [SOURCE, f"{VERSION_PREFIX}%"]) if v not in keep]
-    with store.transaction():
-        for v in stale:
-            store.execute("DELETE FROM norms WHERE source = ? AND source_version = ?", [SOURCE, v])
-    store.touch_source(SOURCE)
-    from .polls import describe
+    from .polls import describe, prune_owned
 
+    removed = prune_owned(store, SOURCE, VERSION_PREFIX, rows)
+    store.touch_source(SOURCE)
     describe(store)
     for line in skipped:
         print(f"  skipped {line}")
-    print(f"{raw_name}: {total} rows in {len(keep)} polls and {len(questions)} questions; "
-          f"{len(skipped)} skipped, {len(stale)} polls gone from VoteHub removed")
+    print(f"{raw_name}: {total} rows in {len({r['source_version'] for r in rows})} polls and "
+          f"{len(questions)} questions; {len(skipped)} skipped, {removed} stale rows removed")
     return total

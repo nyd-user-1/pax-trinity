@@ -7,7 +7,8 @@ provenance_url, or with any other required field empty, is rejected and named; t
 
 Each (source, source_version) in the seed is one slice, pruned on rerun. A slice that leaves
 the seed is deleted too, except slices other loaders own: the AP-NORC microdata, the MA town
-returns (loaders/ma_results.py) and every VoteHub poll (loaders/votehub.py).
+returns (loaders/ma_results.py), every VoteHub poll (loaders/votehub.py) and Pew's series
+(loaders/pew.py).
 """
 
 from __future__ import annotations
@@ -37,24 +38,48 @@ def owned_elsewhere(source: str, version: str) -> bool:
     """A POLL slice another loader writes, which this one never prunes."""
     from . import apnorc, ma_results, votehub
 
+    from . import pew
+
     return ((source, version) == (apnorc.SOURCE, apnorc.SOURCE_VERSION)
             or (source == ma_results.SOURCE
                 and version in {ma_results.source_version(e) for e in ma_results.ELECTIONS})
-            or (source == votehub.SOURCE and votehub.owns(version)))
+            or (source == votehub.SOURCE and votehub.owns(version))
+            or (source == pew.SOURCE and pew.owns(version)))
 
 
 # The POLL source's description, one text for every loader that writes POLL rows.
 POLL_SOURCE = dict(
     name="Published public-opinion polls: toplines from pollsters' releases, every public poll "
-         "VoteHub compiles, and the AP-NORC May 2016 public-use file",
+         "VoteHub compiles, Pew Research Center's published trends, and the AP-NORC May 2016 "
+         "public-use file",
     url="https://votehub.com/polls/api/",
     license="Toplines are quoted from each publisher's release, and rights stay with the publisher. "
             "VoteHub's compilation is CC BY 4.0 (credit: VoteHub, https://votehub.com/polls/). "
+            "Pew Research Center's figures are used under its terms of use, with credit. "
             "The AP-NORC public-use file is posted for public use; its codebook states no license.",
     access_notes="The open-primaries toplines from audience/seed/open_primary_polls.csv; VoteHub's "
-                 "public API (no key), cached in raw/votehub/; the AP-NORC zip, downloaded once into "
+                 "public API (no key), cached in raw/votehub/; Pew's pages and topline PDFs, cached in "
+                 "raw/pew/; the AP-NORC zip, downloaded once into "
                  "raw/apnorc/. Every row carries its publisher's URL in provenance_url.",
 )
+
+
+def prune_owned(store: Store, source: str, prefix: str, rows: list[dict]) -> int:
+    """Delete the rows of a loader's slices (source_version starting with prefix) that its
+    latest batch did not write, so a changed or vanished poll leaves nothing stale. Returns
+    the rows deleted."""
+    from ..db import natural_key
+
+    keep = {natural_key(r) for r in rows}
+    stale = [k for (k,) in store.query(
+        "SELECT natural_key FROM norms WHERE source = ? AND source_version LIKE ?",
+        [source, f"{prefix}%"]) if k not in keep]
+    with store.transaction():
+        for i in range(0, len(stale), 500):
+            part = stale[i:i + 500]
+            store.execute(f"DELETE FROM norms WHERE natural_key IN ({', '.join('?' for _ in part)})",
+                          part)
+    return len(stale)
 
 
 def describe(store: Store) -> None:
