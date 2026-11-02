@@ -21,11 +21,11 @@ import { useThemePanel } from "@/components/theme/theme-palette"
 import { STUDIO_OPEN } from "@/lib/studio"
 import { TOOLS_OPEN } from "@/lib/clips-panel"
 import { recordVisit } from "@/lib/nav-recents"
-import { GoToMenu, type Side } from "@/components/go-to-menu"
+import { GoToMenu, NATIVE_MENU, useShiftNav, type Side } from "@/components/go-to-menu"
 import { DrawNotes } from "@/components/notes/draw-notes"
 import { testsHref } from "@/lib/survey-links"
 import { PaneFrame, PaneSync } from "@/components/pane"
-import { PANE_MESSAGE, PANE_PARAM, isEmbedded, isPanePath } from "@/lib/pane"
+import { PANE_MAIN, PANE_MESSAGE, PANE_PARAM, isEmbedded, isPanePath } from "@/lib/pane"
 import { useThemeFollow } from "@/lib/theme-client"
 import type { ChipOffer } from "@/lib/question-resolver"
 import { CircleButton } from "@/ui/components/nova/circle-button"
@@ -170,7 +170,9 @@ export function Shell({ children, drawer, signedIn = false, admin = false, super
   const openPane = React.useCallback((href: string) => (setAside(null), setSidebarOpen(false), setPane({ src: href, href, n: Date.now() })), [])
   // Nav (Brendan, 2026-10-31): a right-click on a header's empty run, the page's or the second panel's, opens a
   // page switcher at the pointer, its Recent the pages this browser lately arrived on in either. A right-click
-  // on a control keeps its own; Shift keeps the browser's menu.
+  // on a control keeps its own. Shift and a right-click opens it anywhere (useShiftNav, 2026-11-02), so the
+  // headers leave Shift to that; the browser's menu stays on a plain right-click over plain content, and on
+  // any right-click on a link, a control or a text field.
   const [goTo, setGoTo] = React.useState<{ x: number; y: number; side: Side; here: string } | null>(null)
   /** The main page's address, without the second panel's ?pane. */
   const mainHere = () => {
@@ -190,30 +192,42 @@ export function Shell({ children, drawer, signedIn = false, admin = false, super
     if (pane?.href) recordVisit(pane.href)
   }, [pane?.href])
   const headerMenu = (side: Side) => (e: React.MouseEvent) => {
+    // Shift is the global gesture's (below), which opens the same menu here.
     if (e.shiftKey) return
-    if ((e.target as Element).closest("a, button, input, textarea, select, [contenteditable='true'], [role=button], [role=combobox], [role=menu], [role=dialog]")) return
+    if ((e.target as Element).closest(NATIVE_MENU)) return
     e.preventDefault()
     setGoTo({ x: e.clientX, y: e.clientY, side, here: side === "pane" ? (pane?.href ?? "") : mainHere() })
   }
-  // The panel's frame says where its page has gone; the address follows (PaneSync).
+  // Shift and a right-click anywhere opens the Nav at the pointer (Brendan, 2026-11-02): over the second
+  // panel's header, for the panel; inside the panel's frame, the frame's own shell opens it for the panel it
+  // is; anywhere else, for the page.
+  useShiftNav(setGoTo, (target) => {
+    if (isEmbedded()) return { side: "pane", here: window.location.pathname + window.location.search }
+    if (pane && target && drawerRef.current?.contains(target)) return { side: "pane", here: pane.href }
+    return { side: "main", here: mainHere() }
+  })
+  // The panel's frame says where its page has gone; the address follows (PaneSync). Its Nav may ask for a
+  // page in the main container (PANE_MAIN).
   React.useEffect(() => {
     const on = (e: MessageEvent) => {
       if (e.origin !== window.location.origin || e.source !== paneRef.current?.contentWindow) return
       const d = e.data as { type?: string; href?: string } | null
       if (d?.type === PANE_MESSAGE && typeof d.href === "string") setPane((p) => (p && p.href !== d.href ? { ...p, href: d.href! } : p))
+      if (d?.type === PANE_MAIN && typeof d.href === "string" && isPanePath(d.href)) router.push(d.href)
     }
     window.addEventListener("message", on)
     return () => window.removeEventListener("message", on)
-  }, [])
+  }, [router])
   // A theme picked in another tab, or around the panel's frame, repaints this one.
   useThemeFollow()
   // What a click opens in the main container a right-click opens in the second panel (Brendan, 2026-10-31):
-  // any of this app's links, anywhere around the panel. Shift with the right-click keeps the browser's own
-  // menu. Inside the panel's frame the browser's menu stays. Rows that open without a link pass their own
-  // address to openPane (America Thinks' questions).
+  // any of this app's links, anywhere around the panel. With Shift a link keeps the browser's own menu (the
+  // Nav's gesture leaves links alone). Inside the panel's frame the browser's menu stays. Rows that open
+  // without a link pass their own address to openPane (America Thinks' questions).
   React.useEffect(() => {
     if (isEmbedded()) return
     const on = (e: MouseEvent) => {
+      // Shift belongs to the Nav's gesture, which leaves a link to the browser's menu.
       if (e.shiftKey || e.defaultPrevented) return
       const a = (e.target as Element | null)?.closest?.("a[href]") as HTMLAnchorElement | null
       if (!a || a.target === "_blank" || a.hasAttribute("download") || a.getAttribute("href")?.startsWith("#")) return
@@ -568,7 +582,21 @@ export function Shell({ children, drawer, signedIn = false, admin = false, super
               <CircleButton type="button" onClick={() => (setAside(null), setDiscuss((v) => !v))} aria-pressed={discuss} aria-label="Open Tools">
                 <MessagesSquare className="size-4 fill-pax2-lavender text-pax2-blue" />
               </CircleButton>
-              {goTo && <GoToMenu at={goTo} side={goTo.side} here={goTo.here} pages={findable} titleOf={titleFor} onOpen={(href, to) => (to === "pane" ? openPane(href) : router.push(href))} onClose={() => setGoTo(null)} />}
+              {/* Portaled to the body, so it shows inside the panel's frame too, where this header is hidden. There
+                  the frame is the panel: its picks move the frame, and the other side asks the shell around it. */}
+              {goTo && (
+                <GoToMenu
+                  at={goTo}
+                  side={goTo.side}
+                  here={goTo.here}
+                  pages={findable}
+                  titleOf={titleFor}
+                  onOpen={(href, to) =>
+                    isEmbedded() ? (to === "pane" ? router.push(href) : window.parent.postMessage({ type: PANE_MAIN, href }, window.location.origin)) : to === "pane" ? openPane(href) : router.push(href)
+                  }
+                  onClose={() => setGoTo(null)}
+                />
+              )}
             </div>
             <main className={cn("flex-1", full ? "flex min-h-0 flex-col md:overflow-hidden" : "md:overflow-y-auto")} onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 0)}>
               {/* Each page arrives with RevealFx's wipe; the front door has its curtain instead. */}

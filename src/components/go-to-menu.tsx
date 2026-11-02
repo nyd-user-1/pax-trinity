@@ -12,12 +12,41 @@ import { PARTNERS } from "@/lib/roles"
 import { cn } from "@/ui/lib/utils"
 
 // Nav (Brendan, 2026-10-31): a right-click on a header's empty run, the page's or the second panel's, opens a
-// page switcher at the pointer. Type to find; Recent, Favorites and the pages otherwise. One rule on both:
-// Enter (or a click) opens the page in the panel whose header was clicked; ⌥ Enter, or a row's arrow, in the
-// other one, as a right-click on a link sends it to the second panel.
+// page switcher at the pointer. Since 2026-11-02 Shift and a right-click opens it anywhere (useShiftNav). Type
+// to find; Recent, Favorites and the pages otherwise. One rule on both: Enter (or a click) opens the page in
+// the panel the menu was opened over; ⌥ Enter, or a row's arrow, in the other one, as a right-click on a link
+// sends it to the second panel.
 
 /** The page's own column, or the second panel. */
 export type Side = "main" | "pane"
+
+/** What keeps its own menu, the browser's, even with Shift: a link, a control, a text field, an open menu or dialog. */
+export const NATIVE_MENU = "a, button, input, textarea, select, [contenteditable]:not([contenteditable='false']), [role=button], [role=combobox], [role=menu], [role=dialog]"
+
+export type GoToAt = { x: number; y: number; side: Side; here: string }
+
+/**
+ * Shift and a right-click anywhere in the app opens the Nav at the pointer (Brendan, 2026-11-02): `where`
+ * says which side the point is on and the address there. A link, a control, a text field, or an open menu
+ * or dialog keeps the browser's menu, as does a right-click a page has already taken (defaultPrevented).
+ * The plain right-click keeps every meaning it had. Firefox never hands a page Shift and a right-click (it
+ * shows its own menu by design), so there the gesture is Chrome's and Safari's; nothing to be done about it.
+ */
+export function useShiftNav(open: (at: GoToAt) => void, where: (target: Element | null) => { side: Side; here: string }) {
+  const latest = React.useRef({ open, where })
+  latest.current = { open, where }
+  React.useEffect(() => {
+    const on = (e: MouseEvent) => {
+      if (!e.shiftKey || e.defaultPrevented) return
+      const target = e.target instanceof Element ? e.target : null
+      if (target?.closest(NATIVE_MENU)) return
+      e.preventDefault()
+      latest.current.open({ x: e.clientX, y: e.clientY, ...latest.current.where(target) })
+    }
+    window.addEventListener("contextmenu", on)
+    return () => window.removeEventListener("contextmenu", on)
+  }, [])
+}
 
 type Page = { href: string; label: string; icon: LucideIcon }
 type Entry = { href: string; label: string; sub?: string; icon: LucideIcon }
@@ -88,7 +117,8 @@ export function GoToMenu({ at, side, here, pages, titleOf, onOpen, onClose }: { 
   }, [at])
 
   React.useEffect(() => {
-    const down = (e: MouseEvent) => !box.current?.contains(e.target as Node) && !(e.target as Element).closest?.("[role=menu]") && onClose()
+    // A second Shift and right-click moves the card to its point (useShiftNav), so its press doesn't close it.
+    const down = (e: MouseEvent) => !(e.button === 2 && e.shiftKey) && !box.current?.contains(e.target as Node) && !(e.target as Element).closest?.("[role=menu]") && onClose()
     const away = () => onClose()
     // Escape closes it wherever focus is; with the kebab's menu open, Escape closes that first.
     const key = (e: KeyboardEvent) => e.key === "Escape" && !document.querySelector("body > [role=menu]") && onClose()

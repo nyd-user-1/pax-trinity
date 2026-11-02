@@ -6,6 +6,8 @@
 
 export const PANE_PARAM = "pane"
 export const PANE_MESSAGE = "pax:pane"
+/** The panel's frame asking the shell around it to open a page in the main container (the Nav's other side). */
+export const PANE_MAIN = "pax:main"
 
 /** Runs in <head> before paint: a framed load marks <html> data-embed, so the shell's chrome never shows. */
 export const EMBED_SCRIPT = `(function(){var r=document.documentElement;try{if(window.self!==window.top)r.setAttribute("data-embed","")}catch(e){r.setAttribute("data-embed","")}})()`
