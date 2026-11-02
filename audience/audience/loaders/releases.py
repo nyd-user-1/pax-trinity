@@ -363,7 +363,7 @@ def verify(questions: list[dict], polls: list[dict]) -> str:
 # crosstabs only, after 20 of 20 sampled releases read clean against their PDFs, in tranches
 # of TRANCHE, newest first, each after its own 10-release spot check. The number is how many
 # tranches are in; the other pollsters' unchecked releases stay out.
-UNCHECKED = {"YouGov": 1}
+UNCHECKED = {"YouGov": 2}
 TRANCHE = 100
 
 
