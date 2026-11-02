@@ -22,7 +22,8 @@ import { PRETRAININGS } from "@/lib/consensus/pretrainings"
 import { conversation, conversations } from "@/lib/consensus/store"
 import { takenBy } from "@/lib/consensus/taken"
 import { BANK, CONSENSUS_TABS, editTestHref, newTestHref, testHref, testsHref, type ConsensusTab, type Surface } from "@/lib/survey-links"
-import { consensusOrigin, pretrainingOrigin, surveyOrigin, testOrigin } from "@/lib/surveys/question-bank"
+import { consensusOrigin, pretrainingOrigin, surveyOrigin, testOrigin, type Origin } from "@/lib/surveys/question-bank"
+import type { InstrumentKind } from "@/lib/lifecycle/rules"
 import { SURVEYS } from "@/lib/surveys/catalog"
 import { getTest, listTests } from "@/lib/tests/store"
 import { blankTest } from "@/lib/tests/types"
@@ -52,10 +53,11 @@ export async function surfacePage({ s, c, id }: { s: Surface; c?: string; id?: s
     // The survey's number, the first part of every card's code (components/consensus/question-code.ts).
     const survey = Math.max(0, all.findIndex((x) => x.slug === open.slug)) + 1
     // No one takes a survey twice (Brendan, 2026-11-02): the reader's kept answers, where they have any.
-    if (s === "questions") return <QuestionsPanel conversation={open} survey={survey} taken={user ? await takenBy(open.slug, user.email) : null} keep={!!user} />
+    if (s === "questions") return <QuestionsPanel conversation={open} survey={survey} taken={user ? await takenBy(open.slug, user.email) : null} keep={!!user} state={(await lifecycleOf("consensus", open.slug)).state} />
     if (s === "surveys") {
       const taken = user ? (await Promise.all(all.map(async (x) => ((await takenBy(x.slug, user.email)) ? x.slug : null)))).filter((x): x is string => !!x) : []
-      return <SurveysPanel all={all} taken={taken} />
+      const states = Object.fromEntries(await Promise.all(all.map(async (x) => [x.slug, (await lifecycleOf("consensus", x.slug)).state] as const)))
+      return <SurveysPanel all={all} taken={taken} states={states} />
     }
     if (s === "results") return <ResultsPanel conversation={open} survey={survey} />
     return <AdminPanel conversation={open} survey={survey} />
@@ -66,7 +68,15 @@ export async function surfacePage({ s, c, id }: { s: Surface; c?: string; id?: s
   if (s === BANK) {
     const admin = !!(await currentUser())?.admin
     const [all, tests] = await Promise.all([conversations(), admin ? listTests().then((r) => r.tests) : []])
-    return <QuestionBank origins={[...SURVEYS.map(surveyOrigin), ...all.map(consensusOrigin), ...tests.map(testOrigin), ...PRETRAININGS.map(pretrainingOrigin)]} />
+    // Each place with its lifecycle state, as its chip says it.
+    const at = async (o: Origin, kind: InstrumentKind, id: string): Promise<Origin> => ({ ...o, state: (await lifecycleOf(kind, id)).state })
+    const origins = await Promise.all([
+      ...SURVEYS.map((x) => at(surveyOrigin(x), "survey", x.slug)),
+      ...all.map((x) => at(consensusOrigin(x), "consensus", x.slug)),
+      ...tests.map((x) => at(testOrigin(x), "test", x.id)),
+      ...PRETRAININGS.map((x) => at(pretrainingOrigin(x), "pretraining", x.slug)),
+    ])
+    return <QuestionBank origins={origins} />
   }
 
   // The message tests are admins' alone; anyone else goes to sign in, and comes back here.

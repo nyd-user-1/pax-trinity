@@ -6,6 +6,8 @@ import { Check, Info, Minus, X } from "lucide-react"
 
 import { QuestionMenu } from "@/components/consensus/question-menu"
 import { SeriesCard } from "@/components/models/model-card"
+import { LifeChip } from "@/components/life-chip"
+import type { LifeState } from "@/lib/lifecycle/rules"
 import { Badge, Block, Fact, FIELD, Passage, PRIMARY, SMALL, SMALL_PRIMARY } from "@/components/settings/blocks"
 import { Toggle } from "@/components/settings/controls"
 import { StatementCard } from "@/components/consensus/status-bars"
@@ -68,7 +70,7 @@ const CHOICES: { value: Answer; label: string; icon: React.ReactNode }[] = [
 /** `survey` is the conversation's place in the directory, 1 up: the first part of every card's code. `taken` is
  *  the reader's kept answers, when they have taken it; `keep`, that the reader is signed in and their answers are
  *  kept once the last question has one. */
-export function Survey({ conversation, survey, taken = null, keep = false, about }: { conversation: Conversation; survey: number; taken?: Taken | null; keep?: boolean; about?: SurveyAbout }) {
+export function Survey({ conversation, survey, taken = null, keep = false, about, state }: { conversation: Conversation; survey: number; taken?: Taken | null; keep?: boolean; about?: SurveyAbout; /** Its lifecycle state (lib/lifecycle), on its head. */ state?: LifeState }) {
   // 1 accepted, 0 unreviewed, -1 pulled.
   const queue = React.useMemo(() => asked(conversation), [conversation])
   const [answers, setAnswers] = React.useState<Record<number, Answer>>({})
@@ -172,7 +174,7 @@ export function Survey({ conversation, survey, taken = null, keep = false, about
       {/* The survey's head on its own page (Brendan, 2026-11-02): the PAX Series card, holding its title, its author and
           what it is for, Begin at its foot. */}
       {about && (
-        <SeriesCard m={{ name: conversation.title, tagline: about.author }} anchor={`about-${conversation.slug}`} copy={[conversation.title, about.author, about.about].join("\n")}>
+        <SeriesCard m={{ name: conversation.title, tagline: about.author }} anchor={`about-${conversation.slug}`} copy={[conversation.title, about.author, about.about].join("\n")} badge={state && <LifeChip state={state} />}>
           <Passage>
             <p>{about.about}</p>
             <button type="button" onClick={begin} className={cn(PRIMARY, "mt-4")}>

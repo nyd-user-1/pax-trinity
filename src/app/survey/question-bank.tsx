@@ -10,6 +10,7 @@ import { ROW, RowMenu } from "@/components/row-dress"
 import { AddToBlocksRow } from "@/components/dash/card-tools"
 import { FIELD } from "@/components/settings/blocks"
 import { readDraft } from "@/lib/consensus/draft"
+import { LIFE_TONE } from "@/lib/lifecycle/rules"
 import { buildBank, pretrainingOrigin, type Appearance, type BankQuestion, type Kind, type Origin } from "@/lib/surveys/question-bank"
 import { cn } from "@/ui/lib/utils"
 
@@ -25,11 +26,13 @@ const SHOWN = 2
 
 function Place({ a }: { a: Appearance }) {
   const Icon = ICON[a.kind]
-  const dress = "inline-flex max-w-[11rem] items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600"
+  const dress = "inline-flex max-w-[14rem] items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600"
   const body = (
     <>
       <Icon className="size-3 shrink-0" />
       <span className="truncate">{a.title}</span>
+      {/* The place's state in the lifecycle's own word (lib/lifecycle). */}
+      {a.state && <span className={cn("shrink-0 rounded-full px-1.5 text-[10px] leading-4 font-medium", LIFE_TONE[a.state])}>{a.state}</span>}
     </>
   )
   return a.href ? (
@@ -93,7 +96,7 @@ export function QuestionBank({ origins }: { origins: Origin[] }) {
   const [draft, setDraft] = React.useState<Origin | null>(null)
   React.useEffect(() => {
     const d = readDraft()
-    if (d?.questions.length) setDraft(pretrainingOrigin(d))
+    if (d?.questions.length) setDraft({ ...pretrainingOrigin(d), state: "Draft" })
   }, [])
   const bank = React.useMemo(() => buildBank(draft ? [...origins, draft] : origins), [origins, draft])
   const [q, setQ] = React.useState("")

@@ -6,6 +6,7 @@
 // its own draft to it.
 
 import type { Conversation } from "@/lib/consensus/data"
+import type { LifeState } from "@/lib/lifecycle/rules"
 import type { SurveyDraft } from "@/lib/consensus/draft"
 import { testHref } from "@/lib/survey-links"
 import type { Survey } from "@/lib/surveys/catalog"
@@ -14,9 +15,9 @@ import type { TestRecord } from "@/lib/tests/types"
 export type Kind = "survey" | "consensus" | "test" | "pretraining"
 
 /** A place questions were asked: its questions as it words them, `id` the construct where it names one. */
-export type Origin = { kind: Kind; title: string; href: string | null; questions: { text: string; options: string[]; id?: string }[] }
+export type Origin = { kind: Kind; title: string; href: string | null; questions: { text: string; options: string[]; id?: string }[]; /** Its lifecycle state (lib/lifecycle), when the server knows it. */ state?: LifeState }
 
-export type Appearance = { kind: Kind; title: string; href: string | null }
+export type Appearance = { kind: Kind; title: string; href: string | null; state?: LifeState }
 export type BankQuestion = { key: string; text: string; options: string[]; id: string | null; on: Appearance[] }
 
 /** The wording as a key: lower case, one space, no quotes, no closing punctuation. */
@@ -34,7 +35,7 @@ export function buildBank(origins: Origin[]): BankQuestion[] {
   const byText = new Map<string, BankQuestion>()
   const out: BankQuestion[] = []
   for (const o of origins) {
-    const where: Appearance = { kind: o.kind, title: o.title, href: o.href }
+    const where: Appearance = { kind: o.kind, title: o.title, href: o.href, ...(o.state ? { state: o.state } : {}) }
     for (const q of o.questions) {
       const text = wordingKey(q.text)
       if (!text) continue

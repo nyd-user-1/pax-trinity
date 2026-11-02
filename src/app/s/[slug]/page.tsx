@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { notFound, redirect } from "next/navigation"
+import { lifecycleOf } from "@/lib/lifecycle/store"
 
 import { Survey } from "@/components/consensus/survey"
 import { currentUser } from "@/lib/auth"
@@ -60,7 +61,7 @@ export default async function RespondPage({ params, searchParams }: Props) {
   if (user && (await takenBy(slug, user.email))) redirect(`/r/${encodeURIComponent(slug)}`)
   return (
     <div className="mx-auto w-full max-w-[920px] text-slate-900" data-not-typeset="true">
-      <Survey conversation={open} survey={at + 1} keep={!!user} about={aboutOf(open.slug, open.description)} />
+      <Survey conversation={open} survey={at + 1} keep={!!user} about={aboutOf(open.slug, open.description)} state={(await lifecycleOf("consensus", open.slug)).state} />
     </div>
   )
 }

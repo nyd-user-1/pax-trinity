@@ -57,10 +57,10 @@ export function ModelCard({ m }: { m: CommercialCard }) {
 
 /** A PAX Series card in prose: what it does, who it's for, the proof and its uses. `children` runs first. With an
  *  `anchor` it carries the standard three-dot menu, Copy (`copy`, else its name and line) and Add to Blocks among it. */
-export function SeriesCard({ m, children, className, anchor, copy, id }: { m: Pick<OriginalCard, "name" | "tagline"> & Partial<OriginalCard>; children?: React.ReactNode; className?: string; anchor?: string; copy?: string; id?: string }) {
+export function SeriesCard({ m, children, className, anchor, copy, id, badge }: { m: Pick<OriginalCard, "name" | "tagline"> & Partial<OriginalCard>; children?: React.ReactNode; className?: string; anchor?: string; copy?: string; id?: string; badge?: React.ReactNode }) {
   const text = copy ?? [m.name, m.tagline, m.what, m.who && `Who it's for: ${m.who}`, m.proof && `The proof: ${m.proof}`, ...(m.uses ?? []).map((u) => `- ${u}`)].filter(Boolean).join("\n")
   return (
-    <Block id={id ?? anchor} title={m.name} sub={m.tagline} lead={<PaxTile />} className={className} action={anchor ? <CardTools title={m.name} anchor={anchor} copy={text} className="self-start" /> : undefined}>
+    <Block id={id ?? anchor} title={m.name} sub={m.tagline} lead={<PaxTile />} badge={badge} className={className} action={anchor ? <CardTools title={m.name} anchor={anchor} copy={text} className="self-start" /> : undefined}>
       {children}
       {m.what && <Passage>{m.what}</Passage>}
       {m.who && <Passage label="Who it's for">{m.who}</Passage>}
