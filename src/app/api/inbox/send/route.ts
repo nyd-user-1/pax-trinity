@@ -15,7 +15,7 @@ import { memberByEmail } from "@/lib/roles"
 // names the kept threads, so the Inbox draws a send once.
 
 type Person = { email: string; name?: string }
-type Body = { to?: Person[]; cc?: Person[]; subject?: string; markdown?: string }
+type Body = { to?: Person[]; cc?: Person[]; subject?: string; markdown?: string; threadId?: string }
 
 const first = (p: Person) => (p.name ?? "").split(/\s+/)[0] || "there"
 
@@ -30,6 +30,8 @@ export async function POST(request: Request) {
   const subject = (body.subject ?? "").trim() || "(no subject)"
   const markdown = body.markdown ?? ""
   const base = origin(request)
+  // A reply names the thread it answers; it joins that thread in every mailbox that keeps it.
+  const threadId = typeof body.threadId === "string" && body.threadId.trim() ? body.threadId.trim() : undefined
 
   const unfilled = fill(`${subject}\n${markdown}`, { RECIPIENT_NAME: "x" }).missing
   if (unfilled.length) return NextResponse.json({ error: `Fill in ${unfilled.map((n) => `{{${n}}}`).join(", ")} before sending.` }, { status: 400 })
@@ -40,7 +42,7 @@ export async function POST(request: Request) {
     const threadIds: string[] = []
     for (const person of [...to, ...cc]) {
       const fields = { RECIPIENT_NAME: first(person) }
-      const r = await sendMail({ from, to: [person.email], subject: fill(subject, fields).text, markdown: fill(markdown, fields).text, base })
+      const r = await sendMail({ from, to: [person.email], subject: fill(subject, fields).text, markdown: fill(markdown, fields).text, base, threadId })
       if (r.error) return NextResponse.json({ ...r, sent, held: [...held, ...r.held], threadIds }, { status: 502 })
       sent.push(...r.sent)
       held.push(...r.held)
@@ -49,6 +51,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ sent, held, threadIds })
   }
 
-  const r = await sendMail({ from, to: to.map((p) => p.email), cc: cc.map((p) => p.email), subject, markdown, base })
+  const r = await sendMail({ from, to: to.map((p) => p.email), cc: cc.map((p) => p.email), subject, markdown, base, threadId })
   return NextResponse.json({ ...r, threadIds: r.threadId ? [r.threadId] : [] }, { status: r.error ? 502 : 200 })
 }

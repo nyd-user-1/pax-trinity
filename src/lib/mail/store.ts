@@ -1,6 +1,6 @@
 import "server-only"
 
-import { putOnce, query } from "@/lib/ledger"
+import { put, putOnce, query } from "@/lib/ledger"
 import { memberByEmail } from "@/lib/roles"
 import { ulid } from "@/lib/tests/responses"
 
@@ -195,4 +195,40 @@ export function threadsOf(rows: MailRow[], folder: FolderView, now = new Date().
       return { threadId, messages, latest: messages[messages.length - 1], unreadCount: messages.filter((m) => !m.read).length }
     })
     .sort((a, b) => b.latest.createdAt.localeCompare(a.latest.createdAt))
+}
+
+/** What filing may change on a thread's rows; null clears a snooze. */
+export type ThreadPatch = { read?: boolean; starred?: boolean; trashed?: boolean; archived?: boolean; snoozedUntil?: string | null }
+
+/** A patch from a request body, or the reason it is not one. */
+export function threadPatchOf(body: Record<string, unknown>): { ok: true; patch: ThreadPatch } | { ok: false; error: string } {
+  const patch: ThreadPatch = {}
+  for (const k of ["read", "starred", "trashed", "archived"] as const) {
+    if (body[k] === undefined) continue
+    if (typeof body[k] !== "boolean") return { ok: false, error: `${k} must be true or false` }
+    patch[k] = body[k] as boolean
+  }
+  if (body.snoozedUntil !== undefined) {
+    const v = body.snoozedUntil
+    if (v !== null && (typeof v !== "string" || Number.isNaN(Date.parse(v)))) return { ok: false, error: "snoozedUntil must be a date and time, or null" }
+    patch.snoozedUntil = v === null ? null : new Date(v as string).toISOString()
+  }
+  if (!Object.keys(patch).length) return { ok: false, error: "nothing to change: read, starred, trashed, archived or snoozedUntil" }
+  return { ok: true, patch }
+}
+
+/** Files a thread in one mailbox: every row of it there takes the patch; other mailboxes' copies are theirs.
+ *  Returns how many rows changed (0 when the mailbox holds no such thread). */
+export async function patchThread(mailbox: string, threadId: string, patch: ThreadPatch): Promise<number> {
+  const rows = (await mailboxRows(mailbox)).filter((r) => r.threadId === threadId)
+  await Promise.all(
+    rows.map((r) => {
+      const { snoozedUntil, ...rest } = patch
+      const next: MailRow = { ...r, ...rest }
+      if (snoozedUntil === null) delete next.snoozedUntil
+      else if (snoozedUntil) next.snoozedUntil = snoozedUntil
+      return put(next)
+    }),
+  )
+  return rows.length
 }
