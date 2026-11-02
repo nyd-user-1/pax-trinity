@@ -6,15 +6,18 @@ import { WaveChip } from "@/components/report/report-bits"
 import { count, dateRange, wavesLine } from "@/components/report/report-math"
 import { armsLine } from "@/components/report/sections"
 
-import { studies } from "../reports/data"
+import { readerLens, studies } from "../reports/data"
 import "../paper.css"
 import "../reports/report.css"
 
 export const metadata: Metadata = { title: "Report 2" }
 
 // /reports-2 — the /reports cards, each opening its study section-first.
-export default function ReportsPage() {
-  const all = studies()
+export const dynamic = "force-dynamic"
+
+export default async function ReportsPage() {
+  // A partner reads its own sponsor's studies alone.
+  const all = studies(await readerLens())
   return (
     <div className="nysgpt-app report-pax relative min-h-0 flex-1 overflow-y-auto" style={{ backgroundColor: "var(--paper)", ...PAPER_BRIDGE }}>
       <div className="report-doc mx-auto grid w-full max-w-[1120px] gap-6 px-6 py-10 text-[var(--paper-text)] sm:px-10 md:grid-cols-2" data-reports={all.length}>

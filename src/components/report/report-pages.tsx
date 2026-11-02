@@ -3,6 +3,7 @@ import Link from "next/link"
 
 import type { ResultSet } from "@/lib/results/types"
 import { studies } from "@/app/reports/data"
+import type { Org } from "@/lib/partners/sponsors"
 import { ContentsRail } from "@/components/report-2/contents-rail"
 
 import { Block, Box, Footnote } from "./report-bits"
@@ -31,9 +32,9 @@ const METHODOLOGY_CARD: ReportCard = {
 
 /** Every report in order: each study of several waves, its summary and each wave; a study of one wave,
  *  that wave under the study's name; then the methodology. */
-export function reportCards(): ReportCard[] {
+export function reportCards(lens: Org | null = null): ReportCard[] {
   return [
-    ...studies().flatMap((study) =>
+    ...studies(lens).flatMap((study) =>
       studyParts(study.waves).map((p) => ({ href: href(study, p), kicker: study.waves.length === 1 ? study.name : p.kicker, headline: p.headline, meta: p.meta })),
     ),
     METHODOLOGY_CARD,
@@ -41,8 +42,8 @@ export function reportCards(): ReportCard[] {
 }
 
 /** /reports' head: the title and what the reports hold. */
-export function ReportsCover() {
-  const all = studies()
+export function ReportsCover({ lens = null }: { lens?: Org | null }) {
+  const all = studies(lens)
   const waves = all.flatMap((s) => s.waves)
   if (!waves.length) return null
   const first = all[0].waves[all[0].waves.length - 1]
