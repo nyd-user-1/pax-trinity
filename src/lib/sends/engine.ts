@@ -116,14 +116,14 @@ export async function startSend(o: { type: "test" | "survey"; target: string; gr
     else held++
     await record(def.fid, { kind: "invite", pid, email: member.email, name: member.name, arm: assigned[i], at: new Date().toISOString(), held: !r.sent.length || undefined, error: r.error })
   }
-  // The sponsor's organization hears it went out, in its own mailbox in the app (never mailed, lib/mail/send.ts).
+  // The sponsor's organization hears it is open, in its own mailbox in the app (never mailed, lib/mail/send.ts).
   const org = sponsorBox(def)
   if (org)
     await sendMail({
       from: "tracker",
       to: [org],
-      subject: `Out in the field: ${title}`,
-      markdown: [`${title} went out today to ${group.name}: ${sent} ${sent === 1 ? "invitation" : "invitations"}${held ? `, ${held} held` : ""}. It closes ${day(def.closeAt)} or at its quota, whichever comes first.`, "I'll write when it closes; the Analyst's readout follows.", "Pollster"].join("\n\n"),
+      subject: `Open: ${title}`,
+      markdown: [`${title} is open: ${sent} ${sent === 1 ? "invitation" : "invitations"} went to ${group.name}${held ? `, ${held} held` : ""}. It closes ${day(def.closeAt)} or at its quota, whichever comes first.`, "I'll write when it closes; the Analyst's readout follows.", "Pollster"].join("\n\n"),
       base: o.base,
     }).catch((e: Error) => console.error("send: the sponsor's notice wasn't kept", e.message))
   return { fid: def.fid, sent, held }
