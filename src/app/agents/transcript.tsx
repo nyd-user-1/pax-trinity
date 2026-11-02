@@ -2,7 +2,7 @@
 
 import * as React from "react"
 
-import { CLIPS_CDN } from "@/components/clips/catalog"
+import { CLIPS_CDN } from "@/components/clips/cdn"
 import { cn } from "@/lib/utils"
 import { type Step } from "@/lib/agents/run-client"
 

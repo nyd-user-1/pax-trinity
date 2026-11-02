@@ -1,3 +1,4 @@
+import { CLIPS_CDN } from "./cdn"
 import { creatorOf } from "./desks"
 
 // The published clip catalog — every type and row the clips surfaces render,
@@ -60,11 +61,11 @@ const by = (id: string) => {
 // The Frame.io review cuts (2026-10-25): transcoded once to 720-width
 // faststart MP4 and served from S3 behind CloudFront (private bucket, OAC).
 // The originals stay in public/clips-media/, untracked, as the archive.
-// NEXT_PUBLIC_CLIPS_CDN names the distribution per deploy (inlined at build); the default is the new account's, over pax-trinity-clips-613473203863.
+// NEXT_PUBLIC_CLIPS_CDN names the distribution per deploy (./cdn).
 /** A recording kept in the recorded catalog (src/lib/clips/recorded.ts): its row is written once, so it is neither deleted nor republished here. */
 export const isKeptRecording = (id: string) => id.startsWith("rec-")
 
-export const CLIPS_CDN = process.env.NEXT_PUBLIC_CLIPS_CDN ?? "https://d19bx9wfmnrb34.cloudfront.net"
+export { CLIPS_CDN }
 
 // The partner channels' shorts (pulled 2026-10-25 through the Webshare fleet),
 // one manifest row per cut, files at <CDN>/<dir>/<id>.mp4.
