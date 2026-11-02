@@ -4,6 +4,7 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { Archive, Check, Copy, Crosshair, ImagePlus, Loader2, MapPin, Pencil, RotateCcw, SendHorizontal, SquareTerminal, X } from "lucide-react"
 
+import { CLAUDE, CLAUDE_MARK, grouped } from "@/lib/housekeeping-thread"
 import { cn } from "@/ui/lib/utils"
 import { goToComment, HOUSEKEEPING_CHANGED, HOUSEKEEPING_OPEN, shrink, takeFocus, togglePointer } from "./tool"
 
@@ -14,6 +15,11 @@ import { goToComment, HOUSEKEEPING_CHANGED, HOUSEKEEPING_OPEN, shrink, takeFocus
 // The super admin alone resolves, reopens and edits, and sees beside each message the prompt that
 // would address it (the terminal icon), or "Prompt unavailable" where no change could be read.
 // Screenshots attach by paste, drop or the image button.
+// Every message is a thread (Brendan, 2026-11-01; lib/housekeeping-thread.ts): its replies hang off it on
+// the branched comment design's lines (components/comment-thread.tsx), a trunk from its avatar and an
+// elbow into each reply, and Reply opens a reply of your own at the foot. The super admin can send a
+// pointed comment to Claude (the Claude mark beside its pin and prompt); Claude's reply joins the thread
+// with the same mark, and the thread then offers Approve (resolve) or a reply, which sends it back.
 
 const PROMPT_UNAVAILABLE = "Prompt unavailable"
 
@@ -25,12 +31,13 @@ type Message = {
   author: string
   authorName: string
   text: string
-  kind: "comment" | "message"
+  kind: "comment" | "message" | "reply"
+  replyTo?: string
   route?: string
   target?: string
   path?: string
   images?: string[]
-  status: "open" | "resolved"
+  status: "open" | "resolved" | "claude" | "answered"
   resolvedBy?: string
   editedAt?: string
   createdAt: string
@@ -68,6 +75,9 @@ export function HousekeepingView() {
   const [showing, setShowing] = React.useState<Set<string>>(new Set())
   const [writing, setWriting] = React.useState<Set<string>>(new Set())
   const [focus, setFocus] = React.useState<string | null>(null)
+  // The thread a reply is being written on, and its draft; comments just sent to Claude, flashing Sent.
+  const [replying, setReplying] = React.useState<{ id: string; text: string } | null>(null)
+  const [sent, setSent] = React.useState<Set<string>>(new Set())
   const listRef = React.useRef<HTMLDivElement>(null)
   const fileRef = React.useRef<HTMLInputElement>(null)
 
@@ -105,7 +115,7 @@ export function HousekeepingView() {
     return () => window.removeEventListener(HOUSEKEEPING_OPEN, take)
   }, [])
 
-  const list = (thread?.messages ?? []).filter((m) => (archive ? m.status === "resolved" : m.status !== "resolved"))
+  const list = grouped(thread?.messages ?? []).filter(({ message: m }) => (archive ? m.status === "resolved" : m.status !== "resolved"))
 
   // The newest message in view whenever the list grows, or the focused one once it has arrived.
   const count = list.length
@@ -145,6 +155,35 @@ export function HousekeepingView() {
     setText("")
     setShots([])
     setArchive(false)
+    await load()
+  }
+
+  /** A reply of the reader's own on a message's thread. */
+  const sendReply = async (m: Message) => {
+    const draft = replying?.id === m.id ? replying.text.trim() : ""
+    if (!draft || sending) return
+    setSending(true)
+    const res = await fetch("/api/housekeeping", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: "reply", pk: m.pk, sk: m.sk, text: draft }) })
+    setSending(false)
+    if (!res.ok) return setError((await res.json().catch(() => ({}))).error ?? "That reply did not send.")
+    setReplying(null)
+    await load()
+  }
+
+  /** The super admin sends a pointed comment to Claude: its status goes "claude", and the mark flashes Sent. */
+  const sendToClaude = async (m: Message) => {
+    const res = await fetch("/api/housekeeping", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pk: m.pk, sk: m.sk, status: "claude" }) })
+    if (!res.ok) return setError((await res.json().catch(() => ({}))).error ?? "That did not go to Claude.")
+    setSent((s) => new Set(s).add(m.id))
+    window.setTimeout(
+      () =>
+        setSent((s) => {
+          const n = new Set(s)
+          n.delete(m.id)
+          return n
+        }),
+      1600,
+    )
     await load()
   }
 
@@ -219,14 +258,20 @@ export function HousekeepingView() {
           </p>
         )}
         <div className="flex flex-col gap-4">
-          {list.map((m) => {
+          {list.map(({ message: m, replies }) => {
             const resolved = m.status === "resolved"
             const photo = photoOf(m.author)
             const asPrompt = !!me?.superAdmin && showing.has(m.id)
             const isWriting = writing.has(m.id)
             const shown = asPrompt ? m.prompt : m.text
+            const composing = replying?.id === m.id
+            const branch = replies.length > 0 || composing
+            const pointed = m.kind === "comment" && !!m.route && !!m.path
             return (
-              <div key={m.id} data-message={m.id} className={cn("group -mx-2 flex gap-3 rounded-xl px-2 py-1 transition-colors duration-700", focus === m.id && "bg-pax2-lavender")}>
+              <div key={m.id}>
+              <div data-message={m.id} className={cn("group relative -mx-2 flex gap-3 rounded-xl px-2 py-1 transition-colors duration-700", focus === m.id && "bg-pax2-lavender")}>
+                {/* The branched comment design (components/comment-thread.tsx): the trunk leaves the avatar and runs down into the replies. */}
+                {branch && <span aria-hidden className="absolute -bottom-2 left-6 top-10 w-px bg-slate-300" />}
                 {photo ? (
                   // eslint-disable-next-line @next/next/no-img-element -- a 32px headshot from public/
                   <img src={photo} alt="" className="mt-0.5 size-8 shrink-0 rounded-full object-cover" />
@@ -238,6 +283,9 @@ export function HousekeepingView() {
                     <span className="text-sm font-semibold text-slate-900">{m.authorName}</span>
                     <span className="text-[11px] text-slate-400">{when(m.createdAt)}</span>
                     {m.editedAt && <span className="text-[11px] text-slate-400">edited</span>}
+                    {me?.superAdmin && (m.status === "claude" || m.status === "answered") && (
+                      <span className="rounded-full bg-pax2-lavender px-1.5 py-px text-[10px] font-semibold text-pax2-blue">{m.status === "claude" ? "With Claude" : "Answered"}</span>
+                    )}
                     {me?.superAdmin && editing?.id !== m.id && (
                       <span className="ml-auto flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                         {asPrompt && m.prompt && m.prompt !== PROMPT_UNAVAILABLE && (
@@ -256,9 +304,9 @@ export function HousekeepingView() {
                       </span>
                     )}
                   </div>
-                  {((m.kind === "comment" && m.route && m.path) || me?.superAdmin) && (
+                  {(pointed || me?.superAdmin) && (
                     <div className="mt-1 flex gap-1.5">
-                      {m.kind === "comment" && m.route && m.path && (
+                      {pointed && (
                         <Chip label={`Go to the comment on ${m.route}`} onClick={() => goToComment(m.route!, m.path!, m.target, (href) => router.push(href))}>
                           <MapPin className="size-3.5" />
                         </Chip>
@@ -266,6 +314,16 @@ export function HousekeepingView() {
                       {me?.superAdmin && (
                         <Chip label={asPrompt ? "Show the comment" : "Show the prompt"} on={asPrompt} onClick={() => void togglePrompt(m)}>
                           <SquareTerminal className="size-3.5" />
+                        </Chip>
+                      )}
+                      {me?.superAdmin && pointed && !resolved && (
+                        <Chip label={sent.has(m.id) ? "Sent to Claude" : m.status === "claude" ? "With Claude: send again" : "Send to Claude"} on={m.status === "claude"} onClick={() => void sendToClaude(m)}>
+                          {sent.has(m.id) ? (
+                            <Check className="size-3.5" />
+                          ) : (
+                            // eslint-disable-next-line @next/next/no-img-element -- the Claude mark from public/
+                            <img src={CLAUDE_MARK} alt="" className="size-3.5" />
+                          )}
                         </Chip>
                       )}
                     </div>
@@ -319,7 +377,94 @@ export function HousekeepingView() {
                       ))}
                     </div>
                   ) : null}
+                  {editing?.id !== m.id && !composing && (
+                    <button type="button" onClick={() => setReplying({ id: m.id, text: "" })} className="mt-1 text-xs font-medium text-pax2-blue hover:underline">
+                      Reply
+                    </button>
+                  )}
                 </div>
+              </div>
+              {branch && (
+                <ul className="mt-2 flex flex-col">
+                  {replies.map((r, i) => {
+                    const last = i === replies.length - 1 && !composing
+                    const byClaude = r.author === CLAUDE
+                    const mine = r.author === me?.email
+                    const rPhoto = byClaude ? null : photoOf(r.author)
+                    return (
+                      <li key={r.id} className="relative pb-2 pl-11 pt-1 last:pb-0">
+                        {/* The trunk runs on past this reply to the next; the elbow turns into this one. */}
+                        {!last && <span aria-hidden className="absolute bottom-0 left-4 top-0 w-px bg-slate-300" />}
+                        <span aria-hidden className={cn("absolute left-4 top-0 h-4 w-5 rounded-bl-[10px] border-b-[1.5px] border-l-[1.5px]", mine ? "border-pax2-light-blue" : "border-slate-300")} />
+                        <div className="flex gap-2.5">
+                          {byClaude ? (
+                            // eslint-disable-next-line @next/next/no-img-element -- the Claude mark from public/
+                            <img src={CLAUDE_MARK} alt="" className="mt-0.5 size-6 shrink-0 rounded-full bg-pax2-surface object-contain p-1 shadow-e1" />
+                          ) : rPhoto ? (
+                            // eslint-disable-next-line @next/next/no-img-element -- a 24px headshot from public/
+                            <img src={rPhoto} alt="" className="mt-0.5 size-6 shrink-0 rounded-full object-cover" />
+                          ) : (
+                            <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-pax2-blue text-[10px] font-semibold text-white">{initials(r.authorName)}</span>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-baseline gap-2">
+                              <span className={cn("text-xs font-semibold", mine ? "text-pax2-blue" : "text-slate-900")}>{r.authorName}</span>
+                              <span className="text-[11px] text-slate-400">{when(r.createdAt)}</span>
+                            </div>
+                            <p className={cn("mt-0.5 text-sm whitespace-pre-wrap text-slate-700", resolved && "text-slate-400")}>{r.text}</p>
+                            {/* Claude has answered: the super admin approves it (the resolve lever) or replies, which sends it back. */}
+                            {me?.superAdmin && m.status === "answered" && last && (
+                              <div className="mt-1.5 flex items-center gap-3 text-xs">
+                                <button type="button" onClick={() => void change(m, { status: "resolved" })} className="rounded-full bg-pax2-blue px-3 py-1 font-medium text-white">
+                                  Approve
+                                </button>
+                                <button type="button" onClick={() => setReplying({ id: m.id, text: "" })} className="font-medium text-pax2-blue hover:underline">
+                                  Reply
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </li>
+                    )
+                  })}
+                  {composing && (
+                    <li className="relative pb-0 pl-11 pt-1">
+                      <span aria-hidden className="absolute left-4 top-0 h-4 w-5 rounded-bl-[10px] border-b-[1.5px] border-l-[1.5px] border-pax2-light-blue" />
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault()
+                          void sendReply(m)
+                        }}
+                        className="flex flex-col gap-2"
+                      >
+                        <textarea
+                          autoFocus
+                          value={replying.text}
+                          onChange={(e) => setReplying({ id: m.id, text: e.target.value })}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                              e.preventDefault()
+                              void sendReply(m)
+                            }
+                          }}
+                          placeholder="Add a reply"
+                          rows={2}
+                          className="w-full resize-none rounded-xl border border-slate-200 bg-pax2-surface px-3 py-2 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-pax2-blue"
+                        />
+                        <div className="flex justify-end gap-2 text-xs">
+                          <button type="button" onClick={() => setReplying(null)} className="rounded-full px-3 py-1.5 font-medium text-slate-800 hover:bg-slate-100">
+                            Cancel
+                          </button>
+                          <button type="submit" disabled={!replying.text.trim() || sending} className="rounded-full bg-pax2-blue px-3 py-1.5 font-medium text-white disabled:opacity-50">
+                            Reply
+                          </button>
+                        </div>
+                      </form>
+                    </li>
+                  )}
+                </ul>
+              )}
               </div>
             )
           })}
