@@ -95,12 +95,7 @@ export function snippetOf(markdown: string): string {
 
 export type Recorded = { id: string; threadId: string; mailboxes: string[] }
 
-/**
- * A message as sent: the sender's sent row, and an unread inbox row for every platform identity it
- * reached (a member or an agent; a plus-address or an outside address is no one's mailbox here). The
- * sender's own address among the recipients gets no second row: it is in their sent already.
- */
-export async function recordMessage(m: {
+export type MessageInput = {
   /** The sender's mailbox: an agent's slug or a person's canonical email. */
   mailbox: string
   from: MailParty
@@ -114,9 +109,20 @@ export async function recordMessage(m: {
   held?: string[]
   source?: MailSource
   at?: string
-}): Promise<Recorded> {
-  const id = ulid(m.at ? Date.parse(m.at) : Date.now())
+  /** A fixed id, so a reconstruction written twice is written once (the backfill). */
+  id?: string
+  /** Whether the recipients' rows start read (the seed keeps its threads' unread marks). */
+  read?: boolean
+}
+
+/**
+ * A message's rows: the sender's in sent, and an unread inbox row for every platform identity it reached
+ * (a member or an agent; a plus-address or an outside address is no one's mailbox here). The sender's own
+ * address among the recipients gets no second row: it is in their sent already.
+ */
+export function messageRows(m: MessageInput): MailRow[] {
   const createdAt = m.at ?? new Date().toISOString()
+  const id = m.id ?? ulid(Date.parse(createdAt))
   const threadId = m.threadId || id
   const base = {
     sk: `${createdAt}#${id}`,
@@ -142,9 +148,15 @@ export async function recordMessage(m: {
     const box = platformMailbox(address)
     if (box && box !== m.mailbox && !reached.has(box)) reached.add(box)
   }
-  for (const box of reached) rows.push({ ...base, pk: pkOf(box), folder: "inbox", read: false })
+  for (const box of reached) rows.push({ ...base, pk: pkOf(box), folder: "inbox", read: m.read ?? false })
+  return rows
+}
+
+/** A message as sent, kept: its rows written once each. */
+export async function recordMessage(m: MessageInput): Promise<Recorded> {
+  const rows = messageRows(m)
   await Promise.all(rows.map((row) => putOnce(row)))
-  return { id, threadId, mailboxes: rows.map((r) => r.pk.slice(5)) }
+  return { id: rows[0].id, threadId: rows[0].threadId, mailboxes: rows.map((r) => r.pk.slice(5)) }
 }
 
 /** A subject as threads match it: Re:, Fwd: and Fw: prefixes dropped, case and spacing ignored. */
