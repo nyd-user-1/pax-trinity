@@ -4,9 +4,10 @@ import * as React from "react"
 import { ArrowLeft, Check, Copy, ExternalLink, Forward as ForwardIcon, MailOpen, Maximize2, PenSquare, Reply as ReplyIcon, RotateCcw, Star, Trash2, UserRound } from "lucide-react"
 
 import { agent as findAgent, maxRounds } from "@/lib/agents/registry"
-import { addressFor, findAddress, inFolder, isPerson, isUnread, loadThreads, matches, messageId, nameOf, newThread, reply, running, runners, saveThreads, settle, shownRecipients, snippet, teaser, threadCost, when, type Attached, type Folder, type Message, type Thread } from "@/lib/agents/inbox"
+import { addressFor, findAddress, inFolder, isPerson, isUnread, loadThreads, mergeKept, matches, messageId, nameOf, newThread, reply, running, runners, saveThreads, settle, shownRecipients, snippet, teaser, threadCost, when, type Attached, type Folder, type Message, type Thread } from "@/lib/agents/inbox"
 import { emptyRun, runAgent, type RunTurn } from "@/lib/agents/run-client"
 import { HISTORY } from "@/lib/agents/history"
+import type { MailThread } from "@/lib/mail/store"
 import { PENDING_DRAFT } from "@/lib/agents/pending-draft"
 import { fieldingRequest, liveThread, type LiveFielding } from "@/lib/agents/live"
 import { cn } from "@/lib/utils"
@@ -173,7 +174,7 @@ export default function Page() {
     // kept. govblock's placeholders and featured deliveries are gone
     // (2026-10-29); the reader's own threads stay. A cleared inbox gets the
     // history back too; Trash is how one goes away.
-    const kept = loadThreads().filter((thread) => !/^(sample|featured|live)-/.test(thread.id))
+    const kept = loadThreads().filter((thread) => !/^(sample|featured|live|kept)-/.test(thread.id))
     const authored = new Map(HISTORY.map((thread) => [thread.id, thread]))
     const flags = new Map(kept.filter((thread) => authored.has(thread.id)).map((thread) => [thread.id, thread]))
     const history = HISTORY.map((fresh) => {
@@ -244,6 +245,24 @@ export default function Page() {
       // Signed out, or the table unreachable: the inbox stands on what it has.
     }
   }, [])
+
+  // What I have sent, as the server keeps it (lib/mail/store.ts, 2026-11-02): Sent holds it after a
+  // reload and on any browser. A thread this tab already holds (its kept ids, set when it was mailed)
+  // is not drawn twice; a kept thread's star and trash stay this browser's, as the live ones' do.
+  const refreshKept = React.useCallback(async () => {
+    try {
+      const res = await fetch("/api/inbox/mail?mailbox=me&folder=sent")
+      if (!res.ok) return
+      const { threads: kept } = (await res.json()) as { threads?: MailThread[] }
+      if (kept) setThreads((current) => mergeKept(current, kept))
+    } catch {
+      // Signed out, or the table unreachable: Sent stands on this browser's own.
+    }
+  }, [])
+
+  React.useEffect(() => {
+    if (restored) void refreshKept()
+  }, [restored, refreshKept])
 
   React.useEffect(() => {
     if (!restored) return
@@ -367,7 +386,9 @@ export default function Page() {
           body: JSON.stringify({ from: draft.from ?? "you", to: mailTo, cc: mailCc, subject: draft.subject, markdown: draft.body }),
         })
           .then((res) => res.json())
-          .then((res: { sent?: string[]; held?: string[]; error?: string }) => {
+          .then((res: { sent?: string[]; held?: string[]; error?: string; threadIds?: string[] }) => {
+            // The server kept it (lib/mail/store.ts): note its threads so Sent draws this one once.
+            if (res.threadIds?.length) patch(thread.id, (t) => ({ ...t, kept: res.threadIds }))
             const held = res.held?.length ? `${res.held.length} held by the allowlist` : ""
             setMailNote(res.error ? `Not mailed: ${res.error}` : res.sent?.length ? [`Mailed to ${res.sent.join(", ")}`, held].filter(Boolean).join(" · ") : held || null)
           })
@@ -389,7 +410,7 @@ export default function Page() {
       const turns: RunTurn[] = [{ role: "user", text: draft.body }]
       await Promise.all(recipients.map((slug) => dispatch(thread.id, slug, turns, thread.subject, thread.reportType)))
     },
-    [announce, dispatch, selected, refreshLive]
+    [announce, dispatch, selected, refreshLive, patch]
   )
 
   // A reply on an existing thread: your message joins it, and every agent on

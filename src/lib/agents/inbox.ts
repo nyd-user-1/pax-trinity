@@ -1,6 +1,7 @@
 import { AGENTS, type AgentDefinition } from "@/lib/agents/registry"
 import { reportBody } from "@/lib/agents/report-modes"
 import { emptyRun, type RunState } from "@/lib/agents/run-client"
+import type { MailThread } from "@/lib/mail/store"
 
 // The Agentic Inbox's store, which is this browser's localStorage and nothing
 // else.
@@ -234,6 +235,8 @@ export type Thread = {
   important?: boolean
   /** Where the report was delivered, if a connection took it. */
   deliveredTo?: string
+  /** The threads the server keeps for what this one mailed (lib/mail/store.ts), so Sent draws them once. */
+  kept?: string[]
   messages: Message[]
 }
 
@@ -295,6 +298,41 @@ export function runners(thread: Thread) {
 }
 
 /** Everyone who ran it. Bcc is deliberately absent — that is what bcc means. */
+/** A thread the server keeps (lib/mail/store.ts, 2026-11-02), drawn as the Inbox's own: a message
+ *  this mailbox sent is "you"; an address the book knows shows by its handle, anyone else by address. */
+export function keptThread(t: MailThread): Thread {
+  const handle = (email: string) => ADDRESSES.find((a) => a.email.toLowerCase() === email.toLowerCase())?.agent ?? email
+  const first = t.messages[0]
+  const to = first.to.map((p) => handle(p.email))
+  return {
+    id: `kept-${t.threadId}`,
+    kept: [t.threadId],
+    agent: to[0] ?? "",
+    agentName: first.to[0]?.name || first.to[0]?.email || "",
+    to,
+    cc: (first.cc ?? []).map((p) => handle(p.email)),
+    bcc: [],
+    subject: first.subject,
+    createdAt: Date.parse(first.createdAt),
+    updatedAt: Date.parse(t.latest.createdAt),
+    status: "delivered",
+    starred: t.messages.some((m) => m.starred),
+    messages: t.messages.map((m) => ({ id: m.id, from: m.folder === "sent" ? "you" : handle(m.from.email), at: Date.parse(m.createdAt), body: m.markdown ?? m.snippet, unread: !m.read })),
+  }
+}
+
+/** The kept threads merged into this browser's: one this tab already holds (by its kept ids) is not
+ *  drawn twice, and a kept thread keeps the star, trash and importance this browser gave it. */
+export function mergeKept(current: Thread[], kept: MailThread[]): Thread[] {
+  const held = new Set(current.filter((t) => !t.id.startsWith("kept-")).flatMap((t) => t.kept ?? []))
+  const flags = new Map(current.filter((t) => t.id.startsWith("kept-")).map((t) => [t.id, t]))
+  const fresh = kept
+    .filter((t) => !held.has(t.threadId))
+    .map(keptThread)
+    .map((t) => ({ ...t, starred: flags.get(t.id)?.starred ?? t.starred, trashed: flags.get(t.id)?.trashed, important: flags.get(t.id)?.important }))
+  return [...fresh, ...current.filter((t) => !t.id.startsWith("kept-"))].sort((x, y) => y.updatedAt - x.updatedAt)
+}
+
 export function shownRecipients(thread: Thread) {
   const lines = [...(thread.to ?? []), ...(thread.cc ?? [])]
   // Threads written before recipients were plural carry only `agent`.

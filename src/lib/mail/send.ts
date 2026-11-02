@@ -2,19 +2,19 @@ import "server-only"
 
 import { screen } from "@/lib/mail/allowlist"
 import { designedHtml } from "@/lib/mail/design"
+import { AGENT_MAILBOX, personMailbox, recordMessage } from "@/lib/mail/store"
 
 // Real mail, one place for it (2026-10-29). An agent sends from its own
 // AgentMail inbox; a person through Resend from their nysgpt.com address. Every
 // recipient passes the allowlist first; anyone not on it is held and returned,
 // never mailed. The body is the composer's markdown, drawn in pax2's mail design
 // (lib/mail/design.ts); {{NAME}} fields are filled from `fields` before it goes,
-// and a field left unfilled stops the send.
+// and a field left unfilled stops the send. Every message that goes is kept (lib/mail/store.ts): in the
+// sender's Sent and in the Inbox of every platform recipient it reached (Brendan, 2026-11-02). This is
+// the one place that records, so the flows, the surveys' and tests' invitations and reminders, the
+// readouts and /api/inbox/send are all kept the same way.
 
-export const AGENT_INBOX: Record<string, string> = {
-  tracker: "pax-pollster@agentmail.to",
-  "bill-reader": "pax-analyst@agentmail.to",
-  assistant: "pax-assistant@agentmail.to",
-}
+export const AGENT_INBOX: Record<string, string> = Object.fromEntries(Object.entries(AGENT_MAILBOX).map(([slug, p]) => [slug, p.email]))
 /** An agent's name on nysgpt.com, for when AgentMail will not carry a message; replies still go to its AgentMail inbox. */
 const AGENT_RELAY: Record<string, string> = {
   tracker: "Pollster <pollster@nysgpt.com>",
@@ -44,7 +44,7 @@ export function fill(text: string, fields: Record<string, string>): { text: stri
   return { text: out, missing: [...missing] }
 }
 
-export type Sent = { sent: string[]; held: string[]; error?: string }
+export type Sent = { sent: string[]; held: string[]; error?: string; /** The kept message's thread, once it went. */ threadId?: string }
 
 const pause = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
@@ -69,9 +69,17 @@ function personFrom(from: string): { from: string; replyTo?: string } {
   return { from: PERSON_FROM.you }
 }
 
+/** The sender as the Inbox keeps it: an agent's mailbox and name, or a person's. */
+function senderOf(from: string): { mailbox: string; party: { name: string; email: string } } {
+  if (AGENT_MAILBOX[from]) return { mailbox: from, party: AGENT_MAILBOX[from] }
+  const [email, name] = from.includes("@") ? from.split("|") : ["brendan@nysgpt.com", "Brendan Stanton"]
+  return { mailbox: personMailbox(email), party: { name: name || "", email: email.trim().toLowerCase() } }
+}
+
 /** One message to one or more recipients, screened by the allowlist. `from` is an agent's slug, or a
- *  signed-in person as "email|name" (the route derives it from the session, never from the client). */
-export async function sendMail({ from, to, cc = [], subject, markdown, base }: { from: string; to: string[]; cc?: string[]; subject: string; markdown: string; base: string }): Promise<Sent> {
+ *  signed-in person as "email|name" (the route derives it from the session, never from the client).
+ *  A reply passes its thread's id; a template's id rides along to the kept message. */
+export async function sendMail({ from, to, cc = [], subject, markdown, base, threadId, templateId }: { from: string; to: string[]; cc?: string[]; subject: string; markdown: string; base: string; threadId?: string; templateId?: string }): Promise<Sent> {
   const a = screen(to)
   const b = screen(cc.filter((x) => !a.allowed.includes(x.toLowerCase())))
   const held = [...a.held, ...b.held]
@@ -112,5 +120,13 @@ export async function sendMail({ from, to, cc = [], subject, markdown, base }: {
   } catch (error) {
     return { sent: [], held, error: error instanceof Error ? error.message : "Send failed" }
   }
-  return { sent: [...primary, ...(copied ?? [])], held }
+  // It went: keep it. A failure to keep is logged, never turned into a failed send (the mail is out).
+  let kept: string | undefined
+  try {
+    const sender = senderOf(from)
+    kept = (await recordMessage({ mailbox: sender.mailbox, from: sender.party, to: primary, cc: copied, subject, markdown, html: body, threadId, templateId, held })).threadId
+  } catch (error) {
+    console.error("mail: sent but not kept", error)
+  }
+  return { sent: [...primary, ...(copied ?? [])], held, ...(kept ? { threadId: kept } : {}) }
 }

@@ -20,6 +20,9 @@ import { BatchGetCommand, DeleteCommand, DynamoDBDocumentClient, GetCommand, Put
 //   FLOW#<email>            <flowId>                        a marketing-flow enrollment, written once (lib/flows/store.ts)
 //   FLOWS                   <email>#<flowId>                the same enrollment in the roster the flows tick reads
 //   FLOWSEND#<email>        DAY#<date> | <flowId>#<day>[#outcome]  a flow send: the day's claim, the step's claim, its outcome
+//   MAIL#<mailbox>          <iso>#<id>                      a kept message as one mailbox holds it (lib/mail/store.ts)
+//   MAIL#<agent slug>       WATERMARK                       an agent's AgentMail high-water mark (inbound)
+//   MAIL                    <iso>#<rand>                    lib/mail.ts's outbox (Originals' notices), apart
 
 // The new account's us-east-2 (Brendan, 2026-10-30): pax-trinity-ledger holds the 1,522 items copied from
 // the old account's pax2-ledger (us-east-1), which neither production nor the local dev server could reach;

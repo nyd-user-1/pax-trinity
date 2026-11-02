@@ -105,7 +105,7 @@ export async function startFielding(o: { type: "test" | "survey"; target: string
     const fields = { RECIPIENT_NAME: firstName(member.name), QUESTION_COUNT: String(questions), MINUTES: o.type === "test" ? "4" : "2", TEST_URL: link, SURVEY_URL: link, TOPIC: title.toLowerCase() }
     // A breath between sends: AgentMail limits how fast one inbox may send.
     if (i) await new Promise((r) => setTimeout(r, 400))
-    const r = await sendMail({ from: "tracker", to: [member.email], subject: fill(tpl.subject, fields).text, markdown: fill(tpl.body, fields).text, base: o.base })
+    const r = await sendMail({ from: "tracker", to: [member.email], subject: fill(tpl.subject, fields).text, markdown: fill(tpl.body, fields).text, base: o.base, templateId: tpl.id })
     if (r.sent.length) sent++
     else held++
     await record(def.fid, { kind: "invite", pid, email: member.email, name: member.name, arm: assigned[i], at: new Date().toISOString(), held: !r.sent.length || undefined, error: r.error })
@@ -335,7 +335,7 @@ export async function tick(base: string, armName: (id: string) => string) {
       const link = linkFor(s.def, inv.pid, base)
       const tpl = template(s.def.type === "test" ? "Test reminder" : "Survey reminder")
       const fields = { RECIPIENT_NAME: firstName(inv.name), SENT_DATE: day(inv.at), MINUTES: s.def.type === "test" ? "4" : "2", TEST_URL: link, SURVEY_URL: link, SURVEY_NAME: s.def.title, TOPIC: s.def.title.toLowerCase(), CLOSE_DATE: day(s.def.closeAt) }
-      await sendMail({ from: "tracker", to: [inv.email], subject: fill(tpl.subject, fields).text, markdown: fill(tpl.body, fields).text, base })
+      await sendMail({ from: "tracker", to: [inv.email], subject: fill(tpl.subject, fields).text, markdown: fill(tpl.body, fields).text, base, templateId: tpl.id })
       did.push(`${round} reminder ${inv.email}`)
     }
     if (did.length) out.push({ fid, did })

@@ -11,8 +11,8 @@ import { claimDay, claimStep, daySk, readRoster, readSends, stepSk, writeEnrollm
 
 /** The contract's FlowDef (lib/flows/defs.ts), restated so the engine needs nothing from that file. */
 export type FlowLike = { id: string; page: string; priority: number; steps: { template: string; day: number }[] }
-type TemplateLike = { name: string; subject: string; body: string }
-type Mail = { from: string; to: string[]; subject: string; markdown: string; base: string }
+type TemplateLike = { id?: string; name: string; subject: string; body: string }
+type Mail = { from: string; to: string[]; subject: string; markdown: string; base: string; templateId?: string }
 type Sent = { sent: string[]; held: string[]; error?: string }
 
 export type FlowDeps = {
@@ -117,7 +117,7 @@ export async function flowsTick(base: string, deps: FlowDeps): Promise<TickLine[
       }
       let r: Sent
       try {
-        r = await deps.mail({ from: "assistant", to: [email], subject: subject.text, markdown: body.text, base })
+        r = await deps.mail({ from: "assistant", to: [email], subject: subject.text, markdown: body.text, base, templateId: tpl.id })
       } catch (e) {
         r = { sent: [], held: [], error: e instanceof Error ? e.message : String(e) }
       }

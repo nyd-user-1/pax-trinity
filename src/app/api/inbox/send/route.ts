@@ -11,7 +11,8 @@ import { memberByEmail } from "@/lib/roles"
 // sends as someone else or as an agent from here; agents send from the engine. A template's fields are
 // filled before it goes: {{RECIPIENT_NAME}} per recipient (each then gets their
 // own copy), and any other field still in braces stops the send so nobody
-// receives a raw {{TEST_NAME}}. Admins only.
+// receives a raw {{TEST_NAME}}. Admins only. What goes is kept by sendMail (lib/mail/store.ts); the reply
+// names the kept threads, so the Inbox draws a send once.
 
 type Person = { email: string; name?: string }
 type Body = { to?: Person[]; cc?: Person[]; subject?: string; markdown?: string }
@@ -36,16 +37,18 @@ export async function POST(request: Request) {
   if (/\{\{RECIPIENT_NAME\}\}/.test(subject + markdown)) {
     const sent: string[] = []
     const held: string[] = []
+    const threadIds: string[] = []
     for (const person of [...to, ...cc]) {
       const fields = { RECIPIENT_NAME: first(person) }
       const r = await sendMail({ from, to: [person.email], subject: fill(subject, fields).text, markdown: fill(markdown, fields).text, base })
-      if (r.error) return NextResponse.json({ ...r, sent, held: [...held, ...r.held] }, { status: 502 })
+      if (r.error) return NextResponse.json({ ...r, sent, held: [...held, ...r.held], threadIds }, { status: 502 })
       sent.push(...r.sent)
       held.push(...r.held)
+      if (r.threadId) threadIds.push(r.threadId)
     }
-    return NextResponse.json({ sent, held })
+    return NextResponse.json({ sent, held, threadIds })
   }
 
   const r = await sendMail({ from, to: to.map((p) => p.email), cc: cc.map((p) => p.email), subject, markdown, base })
-  return NextResponse.json(r, { status: r.error ? 502 : 200 })
+  return NextResponse.json({ ...r, threadIds: r.threadId ? [r.threadId] : [] }, { status: r.error ? 502 : 200 })
 }
