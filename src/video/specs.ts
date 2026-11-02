@@ -24,10 +24,8 @@ export type AnySpec = TemplateSpec<any>
 
 const SPECS: AnySpec[] = [exampleSpec, liftCardSpec, liftLeaderboardSpec, surveySplitSpec, metricTrendSpec, yesOn3CardSpec, yesOn3CaptionsSpec, yesOn3ExplainerSpec, yesOn3QuoteSpec]
 
-/** The Yes on 3 family, the four cards a recorded take can be set in (docs/briefs/record-template-flow.md):
- *  each vertical, its length from `seconds`, a take under it as `backdrop`. */
-export const YES_ON_3_FAMILY = ["yes-on-3-card", "yes-on-3-captions", "yes-on-3-explainer", "yes-on-3-quote"] as const
-export type YesOn3TemplateId = (typeof YES_ON_3_FAMILY)[number]
+// The Yes on 3 family lives in ./family, zod-free, for client surfaces that only list it.
+export { YES_ON_3_FAMILY, type YesOn3TemplateId } from "./family"
 
 const BY_ID: Readonly<Record<string, AnySpec>> = Object.fromEntries(SPECS.map((s) => [s.id, s]))
 
