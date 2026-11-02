@@ -7,7 +7,7 @@ import { VIDEO_MODEL_OPTIONS } from "@/lib/video-model-options"
 // and appear only where they are known. Original is the PAX Series 1.0 cards, word for word.
 
 export type Fact = [label: string, value: string]
-/** `sub` stands in for the maker under the name; an original card's is its tagline. */
+/** `sub` stands in for the maker under the name; an original card's is its number in the series. */
 export type CommercialCard = { id: string; kind: "llm" | "visual" | "original"; name: string; maker: string; sub?: string; logo: string | null; badge?: { label: string; tone: "blue" | "amber" }; facts: Fact[] }
 export type OriginalCard = { id: string; name: string; tagline: string; what: string; who: string; proof: string; uses: string[] }
 
@@ -177,26 +177,34 @@ export const ORIGINAL_CARDS: OriginalCard[] = [
   },
 ]
 
-// The originals as the other cards read (Brendan, 2026-11-02): each one's inputs and hit rate, from its
-// card above, and the series' two facts. Lift and Sticky state no hit rate.
+// The originals as the other cards read (Brendan, 2026-11-02): the LLM cards' rows in their order wherever a true
+// value exists, then the series' own. The values are each model's card on Hugging Face (NYSgpt's private repos):
+// Affinity the resonance encoder's behavior arm, Craft the composition ranker (combined), Duel the headline ranker,
+// Lift the persuasion reference, Lookalikes the encoder and its reranker, Odds Are the classifier (v3 beside a
+// transcript, v1 without), Sticky the retention regressor, Surge the velocity classifier at six hours, Wave the
+// resonance encoder's full arm. Sizes are the repos' parameter counts, or a small model's feature count; a token
+// window is the model's max sequence length; Surge's cap is the views it reads. No repo is public, so the weights
+// are closed. A row with no true value stays off. The hit rates are the cards' own.
 const ORIGINAL_FACTS: Record<string, Fact[]> = {
-  affinity: [["Inputs", "Title, description, transcript"], ["Hit rate", "58 in 100"]],
-  craft: [["Inputs", "Cuts, loudness, on-screen text, speech"], ["Hit rate", "60 in 100"]],
-  duel: [["Inputs", "Two headlines"], ["Hit rate", "67 in 100"]],
-  lift: [["Built on", "146 randomized ad tests"]],
-  lookalikes: [["Inputs", "Title, description, transcript"], ["Hit rate", "61 in 100"]],
-  "odds-are": [["Inputs", "Title, description, tags, length, posting time, thumbnail, transcript"], ["Hit rate", "59 in 100"]],
-  sticky: [["Inputs", "Length, format, tags"]],
-  surge: [["Inputs", "Views at one, three and six hours"], ["Hit rate", "73 in 100"]],
-  wave: [["Inputs", "Title, description, transcript"], ["Hit rate", "62 in 100"]],
+  affinity: [["Released", "Oct 20, 2026"], ["Context window", "256 tokens"], TEXT, CLOSED, ["Size", "568M"], ["Model ID", "affinity"], ["Hit rate", "58 in 100"]],
+  craft: [["Released", "Oct 20, 2026"], ["Inputs", "Video"], CLOSED, ["Size", "25 features"], ["Model ID", "craft"], ["Hit rate", "60 in 100"]],
+  duel: [["Released", "Oct 18, 2026"], ["Context window", "40 tokens"], TEXT, CLOSED, ["Size", "110M"], ["Model ID", "duel"], ["Hit rate", "67 in 100"]],
+  lift: [["Released", "Oct 3, 2026"], ["Inputs", "Coded ad traits"], CLOSED, ["Size", "28 traits"], ["Model ID", "lift"]],
+  lookalikes: [["Released", "Oct 19, 2026"], ["Context window", "256 tokens"], TEXT, CLOSED, ["Size", "568M, with a 150M reranker"], ["Model ID", "lookalikes"], ["Hit rate", "61 in 100"]],
+  "odds-are": [["Released", "Oct 20, 2026"], IMAGES, CLOSED, ["Size", "472 features, 47 without a transcript"], ["Model ID", "odds-are"], ["Hit rate", "59 in 100"]],
+  sticky: [["Released", "Oct 18, 2026"], ["Inputs", "Length, upload type, tags"], CLOSED, ["Size", "67 features"], ["Model ID", "sticky"]],
+  surge: [["Released", "Oct 19, 2026"], ["Input cap", "First 6 hours"], ["Inputs", "Views, likes, comments, text"], CLOSED, ["Size", "45 features"], ["Model ID", "surge"], ["Hit rate", "73 in 100"]],
+  wave: [["Released", "Oct 20, 2026"], ["Context window", "256 tokens"], TEXT, CLOSED, ["Size", "568M"], ["Model ID", "wave"], ["Hit rate", "62 in 100"]],
 }
 
-export const ORIGINAL_FACT_CARDS: CommercialCard[] = ORIGINAL_CARDS.map((m) => ({
+// Under the name, where a maker sits, each is numbered in the series in the catalog's order (Brendan, 2026-11-02);
+// the tagline stays in ORIGINAL_CARDS for SeriesCard.
+export const ORIGINAL_FACT_CARDS: CommercialCard[] = ORIGINAL_CARDS.map((m, i) => ({
   id: m.id,
   kind: "original",
   name: m.name,
   maker: PAX_SERIES[0]![1],
-  sub: m.tagline,
+  sub: `Series 1.0 Model ${i + 1}`,
   logo: null,
   facts: [...(ORIGINAL_FACTS[m.id] ?? []), ["Series", "PAX Series 1.0"], ...PAX_SERIES],
 }))

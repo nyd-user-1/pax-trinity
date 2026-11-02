@@ -178,7 +178,7 @@ ${shot("models", "Models")}
 
 - The ${LLM_CARDS.length} models in Chat's model picker, each with its release, context window, inputs, weights, size, model ID and, where it does more than answer in Chat, its job.
 - The ${VISUAL_CARDS.length} video models. The four that make b-roll go in the order a failed generation falls back through them; Runway Aleph cleans up a recorded take.
-- The PAX Series 1.0, ${ORIGINAL_CARDS.length} models trained by NYSgpt.com and sponsored by Unite America: ${ORIGINAL_CARDS.map((m) => m.name).join(", ")}. Each card gives its inputs and, where it's measured, how often it picks right.
+- The PAX Series 1.0, ${ORIGINAL_CARDS.length} models trained by NYSgpt.com and sponsored by Unite America: ${ORIGINAL_CARDS.map((m) => m.name).join(", ")}. Each is numbered in the series, and its card gives its release, inputs, weights, size and model ID as the others do and, where it's measured, how often it picks right.
 
 Each card's ⋮ menu favorites it, adds it to [Blocks](${doc("blocks")}), or asks me about it.`,
   },
