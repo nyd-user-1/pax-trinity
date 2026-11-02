@@ -81,12 +81,8 @@ function monogram(name: string) {
 
 /** Distinct background colours for each agent's monogram dot, Google Drive palette. */
 const AGENT_COLORS: Record<string, string> = {
-  "bill-reader":          "bg-[#4285F4] text-white",   // Clerk — Google blue
-  "jurisdiction-guide":   "bg-[#EA4335] text-white",   // Parliamentarian — Google red
-  "money-follower":       "bg-[#FBBC05] text-white",   // Treasurer — Google yellow
-  "tracker":              "bg-[#34A853] text-white",   // Whip — Google green
-  "researcher":           "bg-[#9C27B0] text-white",   // Librarian — purple
-  "reporter":             "bg-[#FF6D00] text-white",   // Reporter — orange
+  "bill-reader":          "bg-[#4285F4] text-white",   // the Analyst — Google blue
+  "tracker":              "bg-[#34A853] text-white",   // the Pollster — Google green
 }
 
 /** Who a message is from, as mail shows it: your account, or the agent by its monogram. */
@@ -101,8 +97,8 @@ function Sender({ from, className }: { from: string; className?: string }) {
       </Avatar>
     )
   }
-  // Pax wears its own mark; the other agents keep their coloured monograms.
-  if (from === "bill-reader") return <img src="/pax-avatar.svg" alt="Pax" className={cn("size-10 shrink-0 rounded-full", className)} />
+  // Pax (the assistant) wears its own mark; the Pollster and the Analyst keep their coloured monograms.
+  if (from === "assistant") return <img src="/pax-avatar.svg" alt="Pax" className={cn("size-10 shrink-0 rounded-full", className)} />
   const color = AGENT_COLORS[from] ?? "bg-muted text-foreground"
   return <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-medium", color, className)}>{monogram(nameOf(from))}</span>
 }

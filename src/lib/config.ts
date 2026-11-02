@@ -86,59 +86,6 @@ export function hasItems(
   return "items" in item && Array.isArray(item.items)
 }
 
-/**
- * The six specialists and the Filer, one page each under /agents. They used
- * to be a menu of their own in the header; Agents is one entry in the
- * Workspace menu now (Brendan, 2026-09-12), and the rail and search still
- * list the pages from here.
- */
-export const AGENT_PAGES: NavLink[] = [
-  {
-    href: "/agents/bill-reader",
-    label: "Clerk",
-    description: "A bill you need to understand before the meeting.",
-    icon: "Stamp",
-  },
-  {
-    href: "/agents/form-filler",
-    label: "Filer",
-    description: "A benefits form filled in by answering questions.",
-    icon: "FileSignature",
-  },
-  {
-    href: "/agents/researcher",
-    label: "Librarian",
-    description: "A question that needs a report, not an answer.",
-    icon: "Library",
-  },
-  {
-    href: "/agents/jurisdiction-guide",
-    label: "Parliamentarian",
-    description:
-      "Whose district, which committee, and where the bill is stuck.",
-    icon: "Gavel",
-  },
-  {
-    href: "/agents/money-follower",
-    label: "Treasurer",
-    description: "Who paid, who filed, and what the record leaves out.",
-    icon: "Receipt",
-  },
-  {
-    href: "/agents/reporter",
-    label: "Reporter",
-    description:
-      "The day's press on your desk, with a source on every line.",
-    icon: "NotebookPen",
-  },
-  {
-    href: "/agents/tracker",
-    label: "Whip",
-    description: "A topic you cannot watch every day.",
-    icon: "Radar",
-  },
-]
-
 export const siteConfig = {
   name: "govblock",
   url: "https://gov.nysgpt.com",
@@ -555,7 +502,7 @@ export const siteConfig = {
         {
           href: "/chat",
           label: "Chat",
-          description: "Ask the Clerk about a bill, or fill a form with the Filer.",
+          description: "Ask about a poll, a survey or a short.",
           icon: "MessageSquare",
         },
         {

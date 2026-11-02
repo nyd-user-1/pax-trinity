@@ -42,13 +42,7 @@ type Line = "to" | "cc" | "bcc"
 /** Distinct background colours for each agent's monogram dot, matching the thread view. */
 const AGENT_COLORS: Record<string, string> = {
   "bill-reader":          "bg-[#4285F4] text-white",
-  "jurisdiction-guide":   "bg-[#EA4335] text-white",
-  "money-follower":       "bg-[#FBBC05] text-white",
   "tracker":              "bg-[#34A853] text-white",
-  "researcher":           "bg-[#9C27B0] text-white",
-  "reporter":             "bg-[#FF6D00] text-white",
-  "strategist":           "bg-[#00897B] text-white",
-  "producer":             "bg-[#5C6BC0] text-white",
   "assistant":            "bg-[#F4511E] text-white",
 }
 

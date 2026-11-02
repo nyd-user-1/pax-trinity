@@ -3,7 +3,7 @@ import { TEMPLATES, TEMPLATE_KINDS } from "@/lib/agents/templates"
 import { shot } from "./media"
 import { doc, type Doc } from "./types"
 
-const SENDER: Record<string, string> = { tracker: "the Pollster", "bill-reader": "the Analyst", assistant: "the Assistant", brendan: "Brendan" }
+const SENDER: Record<string, string> = { tracker: "the Pollster", "bill-reader": "the Analyst", assistant: "Pax", brendan: "Brendan" }
 const fields = (s: string) => [...new Set([...s.matchAll(/\{\{([A-Z_]+)\}\}/g)].map((m) => m[1]))]
 
 export const INBOX: Doc[] = [
@@ -19,16 +19,16 @@ ${shot("inbox", "The Inbox")}
 
 ## The agents
 
-- **The Pollster** fields consensus conversations, surveys and tests. It mails each member of a contact group a link of their own, tracks who opened, started and finished, sends reminders, and closes at the quota or the deadline.
+- **Pax**, the assistant, sends staff and partners their notices, reminders, digests and onboarding mail.
+- **The Pollster** sends consensus conversations, surveys and tests. It mails each member of a contact group a link of their own, tracks who opened, started and finished, sends reminders, and closes when enough have answered or at the deadline.
 - **The Analyst** writes the question cards, toplines and readouts.
-- **The Assistant** sends staff and partners their notices, reminders, digests and onboarding mail.
 
-Each fielding is one live thread that rewrites itself: the send, the reminders, the count, the close and the readout.
+Each survey or test sent out is one live thread that rewrites itself: the send, the reminders, the count, the close and the readout.
 
 ## Start work
 
 - **New test** and **New survey** open a request to the Pollster.
-- **Groups** in the address book are the audiences a fielding goes to.
+- **Groups** in the address book are the audiences a survey or test goes to.
 - [Templates](${doc("email-templates")}) start the common messages.
 
 > Sending needs a staff account. While mail is being proved out, it reaches only approved addresses; mail to anyone else is held and counted.`,

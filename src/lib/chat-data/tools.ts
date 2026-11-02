@@ -28,7 +28,8 @@ import { atlas, searchQuestions, topline as questionTopline } from "./america-th
 // nothing here writes anything. Each wraps a reader the platform already has, and each answers small,
 // since the model pays for every token it is handed: ten rows by default, twenty-five at most, long text
 // cut, and `total` beside the rows so a count never needs a second call. Signed in only; a message test's
-// questions and results, and the fieldings, are an admin's alone, as their pages are. A person's state is
+// questions and results, and who was invited to answer, are an admin's alone, as their pages are. What
+// the store calls a fielding the tools call invitations: the word is not the readers' (Brendan, 2026-11-02). A person's state is
 // their own, or anyone's for an admin, and holds only what their own pages show: their role and the
 // Consensus surveys they have taken.
 
@@ -74,9 +75,9 @@ export const DATA_TOOLS: Record<DataToolName, DataDefinition> = {
   },
   list_records: {
     description:
-      "List what the platform holds of one kind, with counts: topline surveys, Consensus conversations, pretrainings, published clips, your own template videos, and, for an admin, message tests, fieldings and test results. `q` filters by words in the title or id.",
+      "List what the platform holds of one kind, with counts: topline surveys, Consensus conversations, pretrainings, published clips, your own template videos, and, for an admin, message tests, test results and invitations (each time a survey or test went out to a group: who was invited, how many opened it, when it closes). `q` filters by words in the title or id.",
     properties: {
-      kind: { type: "string", description: "What to list.", enum: ["surveys", "conversations", "pretrainings", "clips", "my_videos", "tests", "fieldings", "results"] },
+      kind: { type: "string", description: "What to list.", enum: ["surveys", "conversations", "pretrainings", "clips", "my_videos", "tests", "results", "invitations"] },
       q: { type: "string", description: "Words the title or id holds." },
       limit: { type: "integer", description: "1–25, default 10." },
     },
@@ -123,6 +124,8 @@ const matches = (q: string, ...fields: (string | undefined)[]) => {
   return ws.every((w) => hay.includes(w))
 }
 const ADMIN_ONLY = "That is an admin's alone, as its pages are."
+/** A test's status in the readers' words: one taking answers is open. */
+const statusWord = (s: string) => (s === "fielding" ? "open" : s)
 
 /** Survey's places, for the bank: the tests only for an admin. */
 async function bankOrigins(viewer: Viewer) {
@@ -218,7 +221,7 @@ async function surveyResults(input: Record<string, unknown>, viewer: Viewer) {
     return {
       id: test.id,
       title: test.title,
-      status: test.status,
+      status: statusWord(test.status),
       target_per_arm: test.targetPerArm,
       responses: items ? { ...byKind, completes_by_arm: completesByArm } : "could not be read just now",
       result: set ? resultSummary(set) : null,
@@ -235,10 +238,10 @@ async function listRecords(input: Record<string, unknown>, viewer: Viewer) {
     const kept = q ? rows.filter((r) => matches(q, text(r))) : rows
     return { kind, total: kept.length, rows: kept.slice(0, limit) }
   }
-  if (["tests", "fieldings", "results"].includes(kind) && !viewer.admin) return { error: ADMIN_ONLY }
+  if (["tests", "results", "invitations"].includes(kind) && !viewer.admin) return { error: ADMIN_ONLY }
   switch (kind) {
     case "surveys":
-      return page(SURVEYS.map((s) => ({ slug: s.slug, title: s.title, questions: s.questions.length, fielded_by: s.fieldedBy })), (r) => `${r.slug} ${r.title}`)
+      return page(SURVEYS.map((s) => ({ slug: s.slug, title: s.title, questions: s.questions.length, by: s.fieldedBy })), (r) => `${r.slug} ${r.title}`)
     case "conversations":
       return page((await conversations()).map((c) => ({ slug: c.slug, title: c.title, statements: c.statements.length, participants: c.stats.voters })), (r) => `${r.slug} ${r.title}`)
     case "pretrainings":
@@ -251,23 +254,23 @@ async function listRecords(input: Record<string, unknown>, viewer: Viewer) {
     case "my_videos":
       return page((await listVersions(viewer.email)).map((v) => ({ id: v.id, title: v.title, template: v.templateId, version: v.version, made: v.createdAt.slice(0, 10), from: v.source })), (r) => `${r.id} ${r.title} ${r.template}`)
     case "tests":
-      return page((await listTests()).tests.map((t) => ({ id: t.id, title: t.title, status: t.status, arms: t.arms.length, target_per_arm: t.targetPerArm, updated: t.updatedAt?.slice(0, 10) ?? "seeded" })), (r) => `${r.id} ${r.title}`)
-    case "fieldings": {
+      return page((await listTests()).tests.map((t) => ({ id: t.id, title: t.title, status: statusWord(t.status), arms: t.arms.length, target_per_arm: t.targetPerArm, updated: t.updatedAt?.slice(0, 10) ?? "seeded" })), (r) => `${r.id} ${r.title}`)
+    case "invitations": {
       const ids = await fieldingIds()
       const rows = await Promise.all(
         ids.map(async (fid) => {
           const evs = await events(fid)
           const def = evs.find((e): e is FieldingDef => e.kind === "fielding")
           const count = (k: string) => evs.filter((e) => e.kind === k).length
-          return { fid, title: def?.title ?? fid, type: def?.type, target: def?.target, group: def?.groupName, closes: def?.closeAt?.slice(0, 10), invited: count("invite"), opened: count("open"), closed: evs.some((e) => e.kind === "closed") }
+          return { id: fid, title: def?.title ?? fid, type: def?.type, target: def?.target, group: def?.groupName, closes: def?.closeAt?.slice(0, 10), invited: count("invite"), opened: count("open"), closed: evs.some((e) => e.kind === "closed") }
         }),
       )
-      return page(rows, (r) => `${r.fid} ${r.title} ${r.target ?? ""}`)
+      return page(rows, (r) => `${r.id} ${r.title} ${r.target ?? ""}`)
     }
     case "results":
       return page(RESULT_SETS.map((r) => ({ id: r.id, title: r.title, fielded: r.fielded.end, sample: r.sample.raw, arms: r.arms.length, simulated: r.simulated || undefined })), (r) => `${r.id} ${r.title}`)
     default:
-      return { error: "kind is surveys, conversations, pretrainings, clips, my_videos, tests, fieldings or results." }
+      return { error: "kind is surveys, conversations, pretrainings, clips, my_videos, tests, results or invitations." }
   }
 }
 
@@ -310,7 +313,10 @@ async function personState(input: Record<string, unknown>, viewer: Viewer) {
 async function findShorts(input: Record<string, unknown>) {
   const q = str(input.q)
   if (!q) return { error: "Give title words, a channel, a link or an id." }
-  const found = await videosMentioned(q, limitOf(input.limit, 6, 10))
+  const limit = limitOf(input.limit, 6, 10)
+  // The matcher wants most of a title's words; a few words that appear together in a title are a phrase.
+  let found = await videosMentioned(q, limit)
+  if (!found.length && q.length >= 4 && !/["“”]/.test(q)) found = await videosMentioned(`"${q}"`, limit)
   return {
     total: found.length,
     shorts: found.map((e) => ({ id: e.id, page: `/v/yt-${e.id}`, title: cut(e.title, 160), channel: e.channel || undefined, views: e.views, outlier_score: e.ratio != null ? Math.round(e.ratio * 100) / 100 : null, published: e.published?.slice(0, 10) ?? null })),

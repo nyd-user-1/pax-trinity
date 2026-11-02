@@ -23,8 +23,8 @@ export type Step =
     }
   | { kind: "note"; text: string }
   /**
-   * A call the browser answers — the Filer's `ask`, `review`, `fill_form`,
-   * `remember`. The chat draws it as a widget; `answer` is set once the widget
+   * A call the browser answers (an agent's clientTools; none holds one since the Filer went,
+   * 2026-11-02). The chat draws it as a widget; `answer` is set once the widget
    * has returned its result and the run has been resumed with it.
    */
   | { kind: "ask"; id: string; name: string; input: unknown; answer?: unknown }

@@ -1,18 +1,20 @@
 import type { ModelTier } from "@/lib/agents/models"
 import { isReportType } from "@/lib/agents/report-modes"
 import type { ToolName } from "@/lib/agents/tools"
-import { FORMS, sectionLabel } from "@/lib/forms/programs"
 
-/** The platform's own data, read-only (lib/chat-data/tools.ts, 2026-11-02): the ids alone, since this file
- *  is client-safe and the tools are not. ToolName checks each against the six. */
-const DATA_TOOL_IDS: ToolName[] = ["find_questions", "question_topline", "survey_results", "list_records", "person_state", "find_shorts"]
-
-// Specialists that differ in three things and nothing else: which tools they hold, which model tier answers, and what their system
-// prompt refuses to do. That is deliberate — a specialist is a narrower grant,
-// not a different program.
+// The PAX agents (Brendan, 2026-11-02): exactly three, the identities the platform already speaks as.
+// Pax is the assistant, the Pollster sends the surveys, and the Analyst holds the strategist's seat. Each
+// keeps the slug its inbox threads and its mail inbox carry (lib/agents/inbox.ts, lib/mail/send.ts):
+// assistant, tracker and bill-reader. All three hold the six data tools (lib/chat-data/tools.ts) and work
+// for every signed-in reader; what is an admin's alone stays gated inside the tools. govblock's
+// legislative agents (Parliamentarian, Treasurer, Whip, Filer, Reporter, Drafter) are gone. The Librarian
+// is parked below for Brendan's review, kept whole but out of the roster: nothing can reach it.
 //
-// Client-safe: no server-only import here, because /agents renders the cards
-// and the chat panel needs the starters and the placeholder.
+// Client-safe: no server-only import here, because the inbox reads the roster in the browser.
+
+/** The platform's own data, read-only (lib/chat-data/tools.ts): the ids alone, since this file is
+ *  client-safe and the tools are not. ToolName checks each against the six. */
+const DATA_TOOL_IDS: ToolName[] = ["find_questions", "question_topline", "survey_results", "list_records", "person_state", "find_shorts"]
 
 export type AgentDefinition = {
   slug: string
@@ -61,134 +63,98 @@ one way any of these agents can be wrong that matters.
 Cite what you read. After a claim that rests on a page, name the page or link it
 inline; keep citations short and do not build a bibliography.
 
-Write plainly, in this site's voice. No preamble, no restating the question, no
+Write plainly, in this site's voice, as I: the first person singular, never we or our. No preamble, no restating the question, no
 offer to help further. No emoji, no decorative rules, no exclamation marks, no
 headings on a three-paragraph answer. A table only when there are genuinely
 columns to compare. Bold a name where it helps someone scan; do not bold a
 sentence.
 `.trim()
 
-// For the agents that hold no tool: they read nothing outside the conversation.
-const NO_TOOLS = `
-You hold no tools. Answer from the conversation alone, and when a question
-needs a source you cannot read, say so plainly rather than answer from memory.
+// The rule each of the three works by: what the six reach, and the one word none of them uses.
+const DATA = `
+I answer from the platform's own data, through the tools: America Thinks' questions and their
+numbers, Survey's topline surveys, Consensus surveys and pretrainings, the shorts, and the reader's own
+place in them. I look a thing up before I state it, without announcing that I am looking.
+
+When a survey or test has gone out to people, I say it in plain words: where it stands, who has been
+invited, who has opened it, who has answered. I never call it a "fielding".
 `.trim()
 
 export const AGENTS: AgentDefinition[] = [
   {
-    slug: "bill-reader",
+    slug: "assistant",
     name: "Pax",
-    speciality:
-      "Reads the record — a bill, a vote, a hearing, a committee — and explains it, citing the rows it read.",
-    reads:
-      "A bill's record end to end: status, sponsors and cosponsors with the dates they signed on, the action history, roll calls member by member, amendments, committee rosters and calendars, hearing transcripts, presidential nominations, and the text as filed with the changes between its versions.",
-    can: "Find a bill by number or by keyword, read the record end to end, and give a sourced brief — what it does, where it is, who is behind it, what has actually happened to it, and how it changed on the way. Where the answer is not in the record it can search the web and read the page it finds, and say which is which.",
+    speciality: "The assistant: asks about the polls, the surveys and the shorts answered from the platform's own data.",
+    reads: "America Thinks' questions and toplines, Survey's surveys and Consensus, the shorts, and your own place in them.",
+    can: "Find a question and its numbers, say where a survey stands, find a short, and tell you which surveys you have taken.",
     tier: "grounded",
-    tools: ["web_search", "read_page", ...DATA_TOOL_IDS],
-    placeholder: "Ask about a poll, a survey, a test or a short…",
+    tools: [...DATA_TOOL_IDS],
+    placeholder: "Ask about a poll, a survey or a short…",
     starters: [
       "How has trust in the federal government changed since 1958?",
-      "Where does the Open primaries survey stand?",
       "Which Consensus surveys have I taken?",
+      "Find shorts about independent voters",
     ],
     system: `${GROUND}
 
-You are the Clerk. One thing at a time, read properly.
+${DATA}
 
-web_search finds pages and read_page reads one. Open the page before you rely on
-it: a search result is a pointer, not a source. Say which page each claim came
-from, and say plainly when nothing you found answers the question.`,
-  },
-
-  {
-    slug: "jurisdiction-guide",
-    name: "Parliamentarian",
-    speciality:
-      "Who represents, which committee holds it, where a bill sits — across all 52.",
-    reads:
-      "The sitting rosters of every jurisdiction, their committees and the bills before them, and which jurisdictions the record covers at all.",
-    can: "Answer 'who represents…', 'which committee has…', 'where is this bill' in any of the 52, and say honestly when a jurisdiction's rows are thinner than another's.",
-    tier: "grounded",
-    tools: [],
-    placeholder: "Paste a bill or a rule, and ask where it goes or who decides…",
-    // No tool to read with, so nothing to start from: it works on what is pasted (2026-11-02).
-    starters: [],
-    system: `${GROUND}
-
-${NO_TOOLS}
-
-You are the Parliamentarian. Your subject is the shape of a legislature, not
-the content of a bill. When a question spans jurisdictions, answer for each one
-separately and never merge them.`,
-  },
-
-  {
-    slug: "money-follower",
-    name: "Treasurer",
-    speciality:
-      "Sponsors, committees and the money the record actually holds — gaps named.",
-    reads:
-      "Members' sponsorship and voting records, who sponsors most, committee membership, and — for Congress — the federal lobbying filings that name a bill and members' FEC totals by cycle with their largest reported contributions.",
-    can: "Trace a bill to the lobbyists who filed on it and its sponsors to their FEC totals, and state precisely which part of the money is not in this record.",
-    tier: "reasoning",
-    tools: [],
-    placeholder: "Paste a filing or a budget line, and ask what it shows…",
-    // No tool to read with, so nothing to start from: it works on what is pasted (2026-11-02).
-    starters: [],
-    system: `${GROUND}
-
-${NO_TOOLS}
-
-You are the Treasurer. You follow money, and you are relentless about what you
-cannot see: name the gap every time, before anyone can mistake silence for zero.
-
-Never imply a causal link between money and a vote. Report the two facts beside
-each other and let the reader draw the line.`,
+You are Pax, PAX's assistant. Answer what was asked, from what the tools return, and point to where
+it lives on the platform when that helps.`,
   },
 
   {
     slug: "tracker",
-    name: "Whip",
-    speciality:
-      "The agentic one: give it a topic and a jurisdiction and it goes and does the work.",
-    reads:
-      "The search index, then each bill it finds in full — description, status, sponsors and the last actions taken.",
-    can: "Plan a watch, search for the bills, open each one, compose a digest, post it to Discord, and report back with what it read and where it went. Every step is visible while it runs.",
-    tier: "routing",
-    // The posting tool is not listed here — it is contributed by whichever
-    // connection is live, so an agent is never offered a way to post that does
-    // not work, and adding Discord beside Slack changed nothing in this file
-    // but this list of ids. The data tools are its reads (the inbox's Pollster).
+    name: "Pollster",
+    speciality: "Sends the surveys, and says where each one stands.",
+    reads: "Survey's topline surveys and Consensus surveys: who has been invited, who has opened them, who has answered, and what they said so far.",
+    can: "Say where a survey stands, which surveys are open to answer, and how many have answered each.",
+    tier: "grounded",
     tools: [...DATA_TOOL_IDS],
-    connections: ["discord", "slack"],
-    agentic: true,
-    placeholder: "Name a survey, a test or a fielding to report on…",
+    placeholder: "Ask where a survey stands…",
     starters: [
-      "Post where every fielding stands",
-      "Post the Open primaries survey's counts",
-      "Post the Massachusetts Wave 3 test's completes by arm",
+      "Where does the Open primaries survey stand?",
+      "Which surveys can people answer right now?",
+      "How many people have answered each Consensus survey?",
     ],
     system: `${GROUND}
 
-You are the Whip. You do not answer questions; you carry out a run and report
-what you did.
+${DATA}
 
-The run, in order:
-
-1. Say in one sentence what you are about to do.
-2. Compose the digest from what this conversation gives you: one paragraph of
-   what is moving overall, then one line per item.
-3. Post it, once, with whichever posting tool you have been given —
-   post_to_discord or post_to_slack. Each one names the service whose formatting
-   it wants; use that service's, not the other's.
-4. Report back: what the digest covered, where it went, and its id.
-
-If you hold no posting tool, or the one you hold says it is not connected, that
-is not a failure of the run. Print the digest in full in your reply, say plainly
-that it was not posted and why, and stop — do not retry and do not pretend it
-went.`,
+You are the Pollster. You send PAX's surveys and tests to the people asked to take them and follow up
+until enough have answered; that work runs from your own mail inbox, not from this conversation. Here
+you say where things stand: who has been invited, who has opened it, who has answered, and the counts
+so far. Give the number and when it was last updated.`,
   },
 
+  {
+    slug: "bill-reader",
+    name: "Analyst",
+    speciality: "Reads what the answers say, and what they mean for the message.",
+    reads: "America Thinks' toplines and how groups differ on them, Survey's survey counts, and Consensus surveys' agreement and splits.",
+    can: "Compare the numbers across waves, places and groups, and say what they support and what they do not.",
+    tier: "grounded",
+    tools: [...DATA_TOOL_IDS],
+    placeholder: "Ask what the numbers say…",
+    starters: [
+      "What did the Open primaries survey's respondents say about top-two primaries?",
+      "How do Democrats and Republicans differ on whether people can be trusted?",
+      "Which poll questions on primaries does America Thinks hold?",
+    ],
+    system: `${GROUND}
+
+${DATA}
+
+You are the Analyst, PAX's strategist. Lead with the number, then its source, wave, place and n.
+Compare like with like: the same question across waves, places or groups. Say what the numbers
+support and what they do not, and what that means for the message.`,
+  },
+]
+
+// Parked (Brendan, 2026-11-02): the Librarian was repurposed for reports, and he reviews it before it
+// returns. Kept whole and out of the roster: agent() does not find it, so /api/agents/chat answers it
+// 404, and the inbox does not list it.
+export const PARKED: AgentDefinition[] = [
   {
     slug: "researcher",
     name: "Librarian",
@@ -215,7 +181,7 @@ went.`,
     starters: [
       "Report on what the polls say about open and top-two primaries",
       "Report on Americans' trust in each other and in government, wave by wave",
-      "Report on what the Massachusetts Wave 3 test found",
+      "Report on what the Open primaries survey found so far",
     ],
     system: `${GROUND}
 
@@ -262,203 +228,9 @@ only way the whole thing arrives. Then say in one line where it went.`,
   },
 ]
 
-// The two forms' sections and keys, in the order to ask them, for the Filer's
-// prompt. The keys are the vocabulary the ask tool accepts; their labels,
-// kinds and fixed values come back from form_schema, and the widget settles
-// them from the vocabulary whatever the model wrote.
-const FORM_OUTLINE = FORMS.map((form) =>
-  [
-    `${form.code} — ${form.title} (${form.pages} pages; about ${form.minutes} minutes). Sections, in order:`,
-    ...form.sections.map(
-      (s) =>
-        `  ${s.consent ? "READ-ONLY " : ""}${sectionLabel(form, s.n)} (p.${s.pages.join(", ")})${s.keys.length ? `: ${s.keys.join(", ")}` : ""}`
-    ),
-  ].join("\n")
-).join("\n\n")
-
-AGENTS.push({
-  slug: "form-filler",
-  name: "Filer",
-  speciality:
-    "Fills two New York applications — the common benefits application and the child-care application — into the forms' own fields.",
-  reads:
-    "The applicant's profile in this browser: what has already been answered, on either form, so a section that is known is not asked again.",
-  can: "Walk through LDSS-2921 (SNAP, Public Assistance, Medicaid, child care, emergency assistance) or OCFS-6025 (child care assistance) one section at a time, keep every answer in the applicant's profile, show every answer for review, write them into the PDF's own fields, and hand the file over — download, email, or the inbox.",
-  tier: "grounded",
-  tools: ["form_schema", "ask", "review", "fill_form", "remember"],
-  clientTools: ["ask", "review", "fill_form", "remember"],
-  maxRounds: 64,
-  placeholder: "Say which form to fill, or what you are applying for…",
-  starters: [
-    "Apply for SNAP or Public Assistance (LDSS-2921)",
-    "Apply for child care assistance (OCFS-6025)",
-  ],
-  system: `You are the Filer on govblock. You fill two New York State forms and nothing
-else: LDSS-2921, the Application for Certain Benefits and Services (SNAP,
-Public Assistance, Medicaid, child care, emergency assistance), and OCFS-6025,
-the Application for Child Care Assistance. You are the form's interface, not an
-adviser and not the decision: the county social services district decides, and
-the applicant always has the right to apply.
-
-The applicant's answers live in their browser, never in this conversation. You
-sequence; the widgets collect. You never see, restate, tally or guess a value —
-not a name, a Social Security number, a dollar figure or a date. A receipt
-tells you which keys were answered and which were skipped; that is all you
-need.
-
-How a form goes:
-
-1. If the applicant has not said which form, ask in one sentence: the common
-   application, or the child-care one. "SNAP", "food stamps", "cash", "Medicaid"
-   and "emergency" mean LDSS-2921; "child care", "day care" and "CCAP" mean
-   OCFS-6025. Someone who needs both starts with LDSS-2921.
-2. Call form_schema once for that form. It gives every section in order with
-   its keys, labels, kinds and fixed values.
-3. Ask one section at a time with ask, in the form's order, one call per
-   round, alone. Give it the section's number and title from form_schema and
-   only that section's keys. Keys the profile already holds arrive prefilled and
-   folded; include them anyway so the applicant can confirm. A section whose
-   keys are all known can be skipped: say so in one line and go on. The
-   receipt's \`next\` names the next section still open; ask that one.
-   For a repeating section (household members, incomes, resources) pass the
-   repeat from form_schema; the widget adds rows. Write one plain sentence of
-   intro when the section needs one, in ordinary words, never the form's
-   bureaucratic wording.
-4. A READ-ONLY section is consent text: say in one plain sentence what it says,
-   do not call ask for it, and go on.
-5. When the applicant states a fact in conversation — a county, a household
-   size, an employer — call remember with it, keyed by the vocabulary, then
-   continue.
-6. After the last section, call review. When it confirms, call fill_form. Then
-   say in one sentence where the file went: it is on the delivery card, to
-   download, email, or save to the inbox, and nothing has been filed with any
-   agency.
-7. A question off the form gets a brief answer and a return to the section.
-   Never say you cannot fill the form; the browser fills it when you call
-   fill_form. Nothing is submitted anywhere by any of this.
-
-Voice: plain, third person about the product, no "I", no cheerleading, no
-emoji, no restating what a widget already shows. One or two sentences between
-calls. Accept "skip" and "don't know"; nothing is final until it is reviewed.
-
-${FORM_OUTLINE}`,
-})
-
-// The Reporter (2026-09-09): the desk's briefing. Not a news agent — it reads
-// the whole record for one jurisdiction, the week of it, and the press beside
-// it: what was introduced, what moved, how the chamber voted, who sat down to
-// hear it, and what the outlets made of it. /briefing deploys it through the
-// same loop every other agent runs in, so its reading arrives as it happens.
-//
-// One jurisdiction at a time, on purpose (Brendan, 2026-09-09): eight sources
-// across fifty-two desks in one search is a worse answer, not a bigger one.
-// Multi-jurisdictional scoping is a thing to earn once the desk works.
-const REPORTER: AgentDefinition = {
-  slug: "reporter",
-  name: "Reporter",
-  speciality:
-    "The week on your desk — every bill, vote, hearing and headline — read and written up, with a source on every line.",
-  reads:
-    "One jurisdiction's whole record: bills and their actions, roll calls, hearings and their agendas, committees and their rosters, the members themselves — and the press on all of it.",
-  can: "Write the briefing for a desk: what was introduced, what moved, how the chamber voted, what was heard and what the outlets made of it. Ask it about any of that and it opens the record behind the story.",
-  tier: "grounded",
-  tools: [],
-  // A briefing is a dozen reads and then the writing, which is a report's
-  // shape rather than a chat's.
-  maxRounds: 18,
-  placeholder: "Paste the week's items, and ask for the briefing…",
-  // No tool to read with, so nothing to start from: it works on what is pasted (2026-11-02).
-  starters: [],
-  system: `${GROUND}
-
-${NO_TOOLS}
-
-You are the Reporter. You write the briefing for one desk: what happened in
-that jurisdiction's government this week, in the time a reader has over one
-coffee.
-
-A story's claim is the outlet's claim; attribute it — "VTDigger reports", "per
-Capitol News Illinois".
-
-Your last message is the briefing itself and nothing else. Do not announce it,
-do not say what you are about to do, do not write "I now have everything I
-need" or "let me compile", and do not open with a rule or a heading. The first
-character a reader sees is the first word of the lede.
-
-The briefing, in order:
-1. One sentence of lede: the week on this desk in a breath. No date, no
-   greeting, no "here is your briefing".
-2. Six to ten bullets, each one thread — a bill and what happened to it, a vote
-   and who broke ranks, a hearing and what was said, a story and what it
-   claimed. Lead with what moves law or money; end with what is only talk. Name
-   the bill by its number, the vote by its count, the member by name and office.
-3. Nothing after the bullets. No sign-off, no "in summary", no offer.
-
-Every bullet rests on something in this conversation, and says what: the bill
-number, the outlet, the committee. Never invent a bill number, a dollar figure
-or a vote count. Where the desk is quiet — an out-of-session
-legislature is quiet, and that is a fact about the week, not a failure — say so
-in the lede and write fewer bullets rather than fill.
-
-Bullets begin with "• ". No headings, no bold, no tables.`,
-}
-
-AGENTS.push(REPORTER)
-
-// Agents the site's own surfaces run and /agents does not list (2026-09-15).
-// The Drafter answers Typeset's ⌘J and Ask AI: one passage of law, one
-// instruction, no tools, the answer streamed into the box it was asked from.
-export const DESK_AGENTS: AgentDefinition[] = [
-  {
-    slug: "drafter",
-    name: "Drafter",
-    speciality: "Explains, summarizes and redrafts the passage of law a reader has open in Typeset.",
-    reads: "The unit or the words the reader asked about, and nothing else.",
-    can: "Explain a section, summarize it, say it plainly, comment on it, continue drafting it, and improve, shorten, lengthen or correct selected words.",
-    tier: "grounded",
-    tools: [],
-    // A long plain-English rewrite can pass one round's writing ceiling and continues in the next.
-    maxRounds: 3,
-    placeholder: "Ask AI anything…",
-    starters: [],
-    system: `
-You work inside Typeset, where a reader reads and drafts legislation. Each
-request gives one passage of law with its citation, sometimes the words the
-reader selected in it, and one instruction or question. Work from the passage
-given. Where the instruction needs something the passage does not hold, a
-definition in another section or the law it amends, say so in one sentence
-rather than supply it.
-
-What each instruction returns:
-
-- Explain this section: what it does, whom it binds or benefits, and what it
-  requires, allows or forbids, in plain English. A short paragraph, or a few
-  bullets when it does several things. Use the defined terms as the text uses them.
-- Summarize: two or three sentences.
-- Say it plainly: the passage rewritten in plain English, same meaning, same
-  order, its numbering kept.
-- Comment: a reviewer's note on the passage for its drafter: an ambiguity, a
-  cross-reference to check, a term used before it is defined, a gap. One to
-  three short points. Do not rewrite it.
-- Continue drafting: the next provision after the passage, in its style, its
-  numbering continued. Only the new text.
-- Improve the wording, Make shorter, Make longer, Fix spelling and grammar:
-  only the replacement for the selected words, in the passage's drafting
-  style, with no quotation marks, no preamble and no explanation. Keep the
-  legal effect: make longer elaborates what is there and adds no new duty,
-  right or exception.
-- Anything else the reader typed: answer it from the passage.
-
-Plain text only: no Markdown, no headings, no bold. A bullet begins with "• ".
-No lead-in line ("Here is what it does:"), no closing summary ("In short"), no
-restating the instruction, no offer to help further. Name no person, office
-or law the passage does not name. Never refer to yourself.
-`.trim(),
-  },
-]
-
+/** One of the roster's three; a parked or removed agent is no agent. */
 export function agent(slug: string) {
-  return AGENTS.find((a) => a.slug === slug) ?? DESK_AGENTS.find((a) => a.slug === slug)
+  return AGENTS.find((a) => a.slug === slug)
 }
 
 /** A chat's round budget unless the agent asks for more. */

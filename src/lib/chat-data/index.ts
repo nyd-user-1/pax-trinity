@@ -66,8 +66,8 @@ export const STORES: Store[] = [
   {
     name: "pax-trinity-test-responses",
     kind: "dynamodb",
-    holds: "Append-only, shared by partition: a test's respondents (<test id>: start, complete, screenout), its derived results (result:<test>), topline survey answers (survey:<slug>), Consensus answers by hashed email (consensus:<slug>), fieldings (fieldings, fielding:<fid>), the Delivery Board (delivery:<partner>), recordings kept as clips (clips).",
-    keys: "pk test, sk id (ULID, or latest / video / <env>:u:<sha256 email>)",
+    holds: "Append-only, shared by partition: a test's respondents (<test id>: start, complete, screenout), its derived results (result:<test>), topline survey answers (survey:<slug>), Consensus answers by hashed email (consensus:<slug>), who was invited to answer a survey or test and who opened it, the Delivery Board (delivery:<partner>), recordings kept as clips (clips).",
+    keys: "pk test, sk id (ULID, or latest / video / <env>:u:<sha256 email>); invitations under fieldings and fielding:<fid>",
     readWith: "lib/tests/responses.ts, lib/results/complete.ts, lib/surveys/responses.ts, lib/consensus/taken.ts, lib/fielding/store.ts, lib/delivery/store.ts, lib/clips/recorded.ts",
     tool: "survey_results, list_records, person_state",
   },

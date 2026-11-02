@@ -41,17 +41,17 @@ function monogramOf(name: string) {
     .toUpperCase()
 }
 
-// The PAX roster (Brendan, 2026-10-29): three agents, one for each stage of
-// the loop. The Pollster fields everything that asks people questions
-// (Consensus conversations, recruitment surveys, tests) and follows up until a
-// quota closes; the Analyst turns what comes back into question cards,
-// toplines, reports and Lift; the Assistant keeps staff and partners told and
-// reminded, and onboards them. Each sends from its own AgentMail inbox. The
-// Pollster and the Analyst keep the slugs the threads on file carry.
+// The PAX roster (Brendan, 2026-10-29; confirmed 2026-11-02 as Pax, the Pollster and the Analyst): three
+// agents, one for each stage of the loop. The Pollster sends everything that asks people questions
+// (Consensus conversations, recruitment surveys, tests) and follows up until enough have answered; the
+// Analyst turns what comes back into question cards, toplines, reports and Lift; Pax, the assistant, keeps
+// staff and partners told and reminded, and onboards them. Each sends from its own AgentMail inbox, and
+// each keeps the slug the threads on file carry. Pax's mail still goes out as "Assistant" (lib/mail/send.ts)
+// until Brendan says otherwise.
 const ROSTER: { slug: string; name: string; email: string; speciality: string }[] = [
-  { slug: "tracker", name: "Pollster", email: "pax-pollster@agentmail.to", speciality: "Fields Consensus conversations, surveys and tests, and follows up until each quota closes." },
+  { slug: "tracker", name: "Pollster", email: "pax-pollster@agentmail.to", speciality: "Sends Consensus conversations, surveys and tests, and follows up until enough have answered." },
   { slug: "bill-reader", name: "Analyst", email: "pax-analyst@agentmail.to", speciality: "Writes the question cards, toplines and reports, and updates Lift and America Thinks." },
-  { slug: "assistant", name: "Assistant", email: "pax-assistant@agentmail.to", speciality: "Notices, reminders, digests and onboarding for staff and partners." },
+  { slug: "assistant", name: "Pax", email: "pax-assistant@agentmail.to", speciality: "Notices, reminders, digests and onboarding for staff and partners." },
 ]
 
 export const AGENT_ADDRESSES: Address[] = ROSTER.map((agent) => ({
@@ -156,9 +156,8 @@ export function addressFor(handle: string): Address | undefined {
   return ADDRESSES.find((a) => a.agent === handle) ?? (AGENTS.find((a) => a.slug === handle) && addressOf(AGENTS.find((a) => a.slug === handle)!))
 }
 
-/** Whether a recipient runs the task in this tab. None does today: the three
- *  agents work through their AgentMail inboxes, and govblock's legislative runs
- *  that stood behind the old slugs no longer answer here. */
+/** Whether a recipient runs the task in this tab. None does today (checked 2026-11-02: so the inbox's send
+ *  never reaches /api/agents/chat): the three agents work through their AgentMail inboxes. */
 export function runs(_handle: string) {
   return false
 }
