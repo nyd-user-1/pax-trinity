@@ -46,6 +46,10 @@ the question it opens: q/<source lowercased>/<construct>.json holds that questio
 the same order, {source, question, first, last, waves, options}: the first and last wave years
 and their count (the distinct years of period_end over all its rows), and its options, each
 response option once in row order. The whole-source files stay beside them.
+
+--source <SOURCE> rewrites that source's files alone and merges its entries into the index.json
+already in public/audience-data/, leaving every other source's files as they are: other writers
+(scripts/results/publish.mjs, for PAX_TEST) keep rows there that the store does not hold.
 """
 
 from __future__ import annotations
@@ -184,6 +188,115 @@ def construct_families(store: Store, exported: set[str]) -> list[dict]:
             if cid in members]
 
 
+def write_source(store: Store, source: str, out: Path, labels: dict[str, str]
+                 ) -> tuple[list[dict], set[str], set[str], list[dict]]:
+    """One source's files: <source>.json (split at MAX_BYTES) and q/<source>/<construct>.json.
+    Returns its index.json sources entries, the file names and question paths written, and
+    its index.json questions entries."""
+    rows = source_rows(store, source)
+    lines = [json.dumps(r, ensure_ascii=False, separators=(",", ":")) for r in rows]
+    stem = source.lower()
+    files, names, qnames, summaries = [], set(), set(), []
+    for i, chunk in enumerate(_chunks(lines), start=1):
+        name = f"{stem}.json" if i == 1 else f"{stem}-{i}.json"
+        _write_array(out / name, chunk)
+        names.add(name)
+        files.append({"source": source, "label": labels.get(source, source),
+                      "rows": len(chunk), "file": name})
+    # The same rows again, one file per question: rows run by construct, so each
+    # question is one contiguous slice.
+    qdir = out / QUESTION_DIR / stem
+    qdir.mkdir(parents=True, exist_ok=True)
+    start = 0
+    for end in range(1, len(rows) + 1):
+        if end < len(rows) and rows[end][0] == rows[start][0]:
+            continue
+        construct = rows[start][0]
+        _write_array(qdir / f"{construct}.json", lines[start:end])
+        qnames.add(f"{stem}/{construct}.json")
+        summaries.append(question_summary(source, construct, rows[start:end]))
+        start = end
+    return files, names, qnames, summaries
+
+
+def construct_entries(store: Store, source: str | None = None) -> list[dict]:
+    """index.json's constructs: those with exported rows (in one source's rows, if given)."""
+    worded = store.column_exists("concordance", "gss_wording")
+    tag_cols = [c for c in TOPIC_COLUMNS if store.column_exists("concordance", c)] or ["NULL"]
+    scope = " AND source = ?" if source else ""
+    return [
+        {"construct": c, "label": label, "definition": definition,
+         **({"wording": wording} if wording else {}),
+         **({"topics": _topics(tags)} if _topics(tags) else {})}
+        for c, label, definition, wording, *tags in store.query(
+            f"SELECT construct, label, definition, {'gss_wording' if worded else 'NULL'}, "
+            f"{', '.join(tag_cols)} "
+            "FROM concordance WHERE construct IN "
+            f"(SELECT DISTINCT construct FROM norms WHERE geography <> 'BLOCKGROUP'{scope}) ORDER BY 1",
+            [source] if source else [])]
+
+
+def geography_entries(store: Store) -> list[dict]:
+    placeholders = ", ".join("?" for _ in LEVELS)
+    level_order = {lvl: i for i, lvl in enumerate(LEVELS)}
+    return sorted(
+        ({"code": code, "name": name, "level": level, "parent": parent}
+         for code, name, level, parent in store.query(
+             f"SELECT geo_code, name, level, parent_code FROM geographies "
+             f"WHERE level IN ({placeholders})", list(LEVELS))),
+        key=lambda g: (level_order[g["level"]], g["code"]))
+
+
+def export_source(store: Store, source: str, out: Path = OUT) -> dict:
+    """Rewrite one source's files and merge its entries into the index.json already in out,
+    leaving every other source's files and entries as they are, the way
+    scripts/results/publish.mjs merges PAX_TEST (other writers keep rows the store lacks).
+    The source's sources and questions entries are replaced where they stood, its constructs
+    entries upserted, and any geography its rows name added."""
+    index_path = out / "index.json"
+    text = index_path.read_text(encoding="utf-8")
+    index = json.loads(text)
+    compact = not text.startswith("{\n")   # publish.mjs writes it compact; keep its form
+    labels = dict(store.query("SELECT source, name FROM sources"))
+    stem = source.lower()
+    old_files = {s["file"] for s in index["sources"] if s["source"] == source}
+    files, names, qnames, summaries = write_source(store, source, out, labels)
+
+    def splice(entries: list[dict], new: list[dict], mine) -> list[dict]:
+        at = next((i for i, e in enumerate(entries) if mine(e)), None)
+        kept = [e for e in entries if not mine(e)]
+        if at is None:   # a new source: after the sources that sort before it
+            at = sum(1 for e in kept if e["source"] < source)
+        else:
+            at = sum(1 for e in entries[:at] if not mine(e))
+        return kept[:at] + new + kept[at:]
+
+    index["sources"] = splice(index["sources"], files, lambda e: e["source"] == source)
+    index["questions"] = splice(index.get("questions", []), summaries,
+                                lambda e: e["source"] == source)
+    by_construct = {c["construct"]: c for c in index["constructs"]}
+    for c in construct_entries(store, source):
+        by_construct[c["construct"]] = c
+    index["constructs"] = [by_construct[k] for k in sorted(by_construct)]
+    have = {g["code"] for g in index["geographies"]}
+    used = {code for (code,) in store.query(
+        "SELECT DISTINCT geo_code FROM norms WHERE source = ?", [source])}
+    level_order = {lvl: i for i, lvl in enumerate(LEVELS)}
+    index["geographies"] = sorted(
+        index["geographies"] + [g for g in geography_entries(store)
+                                if g["code"] in used and g["code"] not in have],
+        key=lambda g: (level_order[g["level"]], g["code"]))
+    index_path.write_text(
+        json.dumps(index, ensure_ascii=False, separators=(",", ":")) if compact
+        else json.dumps(index, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    for stale in old_files - names:
+        (out / stale).unlink(missing_ok=True)
+    for stale in (out / QUESTION_DIR / stem).glob("*.json"):
+        if f"{stem}/{stale.name}" not in qnames:
+            stale.unlink()
+    return index
+
+
 def export(store: Store, out: Path = OUT) -> dict:
     out.mkdir(parents=True, exist_ok=True)
     labels = dict(store.query("SELECT source, name FROM sources"))
@@ -194,47 +307,13 @@ def export(store: Store, out: Path = OUT) -> dict:
     index_sources = []
     questions = []
     for source in sources:
-        rows = source_rows(store, source)
-        lines = [json.dumps(r, ensure_ascii=False, separators=(",", ":")) for r in rows]
-        stem = source.lower()
-        for i, chunk in enumerate(_chunks(lines), start=1):
-            name = f"{stem}.json" if i == 1 else f"{stem}-{i}.json"
-            _write_array(out / name, chunk)
-            written.add(name)
-            index_sources.append({"source": source, "label": labels.get(source, source),
-                                  "rows": len(chunk), "file": name})
-        # The same rows again, one file per question: rows run by construct, so each
-        # question is one contiguous slice.
-        qdir = out / QUESTION_DIR / stem
-        qdir.mkdir(parents=True, exist_ok=True)
-        start = 0
-        for end in range(1, len(rows) + 1):
-            if end < len(rows) and rows[end][0] == rows[start][0]:
-                continue
-            construct = rows[start][0]
-            _write_array(qdir / f"{construct}.json", lines[start:end])
-            written_q.add(f"{stem}/{construct}.json")
-            questions.append(question_summary(source, construct, rows[start:end]))
-            start = end
-    worded = store.column_exists("concordance", "gss_wording")
-    tag_cols = [c for c in TOPIC_COLUMNS if store.column_exists("concordance", c)] or ["NULL"]
-    constructs = [
-        {"construct": c, "label": label, "definition": definition,
-         **({"wording": wording} if wording else {}),
-         **({"topics": _topics(tags)} if _topics(tags) else {})}
-        for c, label, definition, wording, *tags in store.query(
-            f"SELECT construct, label, definition, {'gss_wording' if worded else 'NULL'}, "
-            f"{', '.join(tag_cols)} "
-            "FROM concordance WHERE construct IN "
-            "(SELECT DISTINCT construct FROM norms WHERE geography <> 'BLOCKGROUP') ORDER BY 1")]
-    placeholders = ", ".join("?" for _ in LEVELS)
-    level_order = {lvl: i for i, lvl in enumerate(LEVELS)}
-    geos = sorted(
-        ({"code": code, "name": name, "level": level, "parent": parent}
-         for code, name, level, parent in store.query(
-             f"SELECT geo_code, name, level, parent_code FROM geographies "
-             f"WHERE level IN ({placeholders})", list(LEVELS))),
-        key=lambda g: (level_order[g["level"]], g["code"]))
+        files, names, qnames, summaries = write_source(store, source, out, labels)
+        index_sources += files
+        written |= names
+        written_q |= qnames
+        questions += summaries
+    constructs = construct_entries(store)
+    geos = geography_entries(store)
     index = {"sources": index_sources, "constructs": constructs, "geographies": geos}
     families = construct_families(store, {c["construct"] for c in constructs})
     if families:
@@ -255,9 +334,25 @@ def export(store: Store, out: Path = OUT) -> dict:
     return index
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    import argparse
+
+    parser = argparse.ArgumentParser(prog="python -m audience.export")
+    parser.add_argument("--source", help="rewrite this source's files alone and merge its "
+                        "entries into the existing index.json")
+    args = parser.parse_args(argv)
     store = connect()
     try:
+        if args.source:
+            index = export_source(store, args.source)
+            mine = [s for s in index["sources"] if s["source"] == args.source]
+            for s in mine:
+                size = (OUT / s["file"]).stat().st_size
+                print(f"  {s['file']:<24}{s['rows']:>8,} rows  {size / 1e6:6.2f} MB")
+            q = sum(1 for e in index.get("questions", []) if e["source"] == args.source)
+            print(f"{args.source}: {q:,} questions merged into index.json "
+                  f"({(OUT / 'index.json').stat().st_size / 1e6:.2f} MB)")
+            return 0
         index = export(store)
     finally:
         store.close()

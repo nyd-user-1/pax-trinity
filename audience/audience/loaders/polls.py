@@ -6,7 +6,8 @@ subgroup_value on a subgroup_dim 'all' row is the store's 'all'. A row missing
 provenance_url, or with any other required field empty, is rejected and named; the rest load.
 
 Each (source, source_version) in the seed is one slice, pruned on rerun. A slice that leaves
-the seed is deleted too, except slices other loaders own (the AP-NORC microdata).
+the seed is deleted too, except slices other loaders own: the AP-NORC microdata, the MA town
+returns (loaders/ma_results.py) and every VoteHub poll (loaders/votehub.py).
 """
 
 from __future__ import annotations
@@ -32,10 +33,34 @@ REQUIRED = ("source", "source_version", "geography", "geo_code", "period_start",
             "provenance_url")
 
 
-def owned_elsewhere() -> set[tuple[str, str]]:
-    from . import apnorc
+def owned_elsewhere(source: str, version: str) -> bool:
+    """A POLL slice another loader writes, which this one never prunes."""
+    from . import apnorc, ma_results, votehub
 
-    return {(apnorc.SOURCE, apnorc.SOURCE_VERSION)}
+    return ((source, version) == (apnorc.SOURCE, apnorc.SOURCE_VERSION)
+            or (source == ma_results.SOURCE
+                and version in {ma_results.source_version(e) for e in ma_results.ELECTIONS})
+            or (source == votehub.SOURCE and votehub.owns(version)))
+
+
+# The POLL source's description, one text for every loader that writes POLL rows.
+POLL_SOURCE = dict(
+    name="Published public-opinion polls: toplines from pollsters' releases, every public poll "
+         "VoteHub compiles, and the AP-NORC May 2016 public-use file",
+    url="https://votehub.com/polls/api/",
+    license="Toplines are quoted from each publisher's release, and rights stay with the publisher. "
+            "VoteHub's compilation is CC BY 4.0 (credit: VoteHub, https://votehub.com/polls/). "
+            "The AP-NORC public-use file is posted for public use; its codebook states no license.",
+    access_notes="The open-primaries toplines from audience/seed/open_primary_polls.csv; VoteHub's "
+                 "public API (no key), cached in raw/votehub/; the AP-NORC zip, downloaded once into "
+                 "raw/apnorc/. Every row carries its publisher's URL in provenance_url.",
+)
+
+
+def describe(store: Store) -> None:
+    store.execute("UPDATE sources SET name = ?, url = ?, license = ?, access_notes = ? "
+                  "WHERE source = 'POLL'",
+                  [POLL_SOURCE[k] for k in ("name", "url", "license", "access_notes")])
 
 
 def read_seed(path: Path = SEED) -> tuple[list[dict], list[str]]:
@@ -88,15 +113,16 @@ def run(store: Store, refresh: bool = False, seed: Path | None = None) -> int:
     total = 0
     for key, batch in sorted(slices.items()):
         total += store.upsert_norms(batch, prune=key)
-    keep = set(slices) | owned_elsewhere()
+    keep = set(slices)
     stale = [(s, v) for s, v in store.query(
         "SELECT DISTINCT source, source_version FROM norms WHERE source IN (?, ?)", list(SOURCES))
-        if (s, v) not in keep]
+        if (s, v) not in keep and not owned_elsewhere(s, v)]
     for s, v in stale:
         store.execute("DELETE FROM norms WHERE source = ? AND source_version = ?", [s, v])
         print(f"  removed {s} / {v}: no longer in the seed")
     for source in {k[0] for k in slices}:
         store.touch_source(source)
+    describe(store)
     by_source = {s: sum(len(b) for k, b in slices.items() if k[0] == s) for s in SOURCES}
     print(f"{path.name}: {total} rows ({', '.join(f'{s} {n}' for s, n in by_source.items())}) "
           f"in {len(slices)} polls and results; {len(rejected)} rejected")

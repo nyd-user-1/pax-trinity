@@ -116,3 +116,23 @@ def test_an_oversized_source_splits_and_stale_files_go(loaded, tmp_path, monkeyp
     assert sum(s["rows"] for s in acs) == total
     assert all((out / s["file"]).stat().st_size <= 1_000_000 for s in acs)
     assert not (out / "old-source.json").exists()
+
+
+def test_export_source_merges_one_source(loaded, tmp_path):
+    store, counts = loaded
+    need(counts, "ACS")
+    polls.run(store)
+    index, out = run_export(store, tmp_path)
+    # Another writer's rows the store lacks, and its compact index, as publish.mjs leaves them.
+    (out / "acs.json").write_text("[]\n")
+    (out / "index.json").write_text(json.dumps(index, separators=(",", ":")))
+    store.execute("UPDATE concordance SET label = 'Relabeled' WHERE construct = 'top_two_favorability'")
+    merged = export.export_source(store, "POLL", out)
+    assert (out / "acs.json").read_text() == "[]\n"
+    assert not (out / "index.json").read_text().startswith("{\n")
+    assert [s for s in merged["sources"] if s["source"] != "POLL"] == \
+        [s for s in index["sources"] if s["source"] != "POLL"]
+    assert [q for q in merged["questions"] if q["source"] != "POLL"] == \
+        [q for q in index["questions"] if q["source"] != "POLL"]
+    labels = {c["construct"]: c["label"] for c in merged["constructs"]}
+    assert labels["top_two_favorability"] == "Relabeled"
