@@ -120,7 +120,8 @@ export function SourceRail({
         <RailRow on={topic === FAVORITES} onClick={() => onTopic(FAVORITES)} pane={`/america-thinks?topic=${FAVORITES}`} icon={Star} label="Favorites" count={favorites} />
         <RailRow on={topic === IMPORTANT} onClick={() => onTopic(IMPORTANT)} pane={`/america-thinks?topic=${IMPORTANT}`} icon={Flag} label="Important" count={important} />
       </RailGroup>
-      <RailGroup label="Index" collapsible maxRows={10}>
+      {/* Shut on load (Brendan, 2026-11-02), as Data is; open on arrival when the address named a topic. */}
+      <RailGroup label="Index" collapsible defaultOpen={topic != null && topic !== FAVORITES && topic !== IMPORTANT} maxRows={10}>
         {topics.map((t) => (
           <RailRow
             key={t.topic}

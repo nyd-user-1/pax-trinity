@@ -503,7 +503,7 @@ export function AudienceInbox() {
   )
 
   const aboutPanel = (from: string | null, layer = false) =>
-    about && <AboutPanel layer={layer} about={about} onClose={() => setAbout(null)} source={from} groups={groups} files={files} info={info} label={label} place={place} geoLevel={geoLevel} />
+    about && <AboutPanel layer={layer} about={about} onClose={() => setAbout(null)} source={from} groups={groups} files={files} info={info} place={place} />
 
   const drafting = drafted != null && (
     <div role="status" className="absolute bottom-4 left-4 z-20 flex items-center gap-4 rounded-md bg-foreground px-4 py-2.5 text-sm text-background shadow-lg">

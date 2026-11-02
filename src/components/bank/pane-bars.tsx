@@ -120,7 +120,9 @@ export function RefreshButton({ onRefresh }: { onRefresh: () => void }) {
 }
 
 /** The segmented toggle: Data, Crosstab, Trend, Topline and the globe on America Thinks, each an icon. A view with an icon shows the icon alone, its label as the name. */
-export function ViewToggle<V extends string>({ views, value, onChange }: { views: readonly { value: V; label: string; icon?: LucideIcon }[]; value: V; onChange: (v: V) => void }) {
+/** A view with nothing to show for what's open stays in the group, greyed and unclickable
+ *  (Brendan, 2026-11-02: "better greyed out than removed"); pass its value in `disabled`. */
+export function ViewToggle<V extends string>({ views, value, onChange, disabled }: { views: readonly { value: V; label: string; icon?: LucideIcon }[]; value: V; onChange: (v: V) => void; disabled?: ReadonlySet<V> }) {
   const rail = React.useContext(BankTone) === "rail"
   // The hover's grey slides from one view to the next (Brendan, 2026-10-29),
   // under the buttons, so the picked one's own ground covers it there. It
@@ -139,23 +141,32 @@ export function ViewToggle<V extends string>({ views, value, onChange }: { views
       />
       {views.map((v) => {
         const Icon = v.icon
-        const on = value === v.value
+        const off = disabled?.has(v.value) ?? false
+        const on = value === v.value && !off
         return (
           <button
             key={v.value}
             type="button"
+            disabled={off}
             aria-pressed={on}
             aria-label={Icon ? v.label : undefined}
             title={Icon ? v.label : undefined}
             onClick={() => onChange(v.value)}
             onMouseEnter={(event) => {
+              if (off) return setHl((h) => ({ ...h, shown: false, slide: false }))
               const { offsetLeft: left, offsetWidth: width } = event.currentTarget
               setHl((h) => ({ left, width, shown: true, slide: h.shown }))
             }}
             className={cn(
               "relative rounded-md py-1 transition-colors",
               Icon ? "px-2" : "px-2.5",
-              on ? (rail ? "bg-pax2-lift font-semibold text-pax2-blue shadow-e1" : "bg-pax2-mist font-semibold text-pax2-blue") : "text-muted-foreground hover:text-foreground"
+              off
+                ? "cursor-not-allowed text-muted-foreground/35"
+                : on
+                  ? rail
+                    ? "bg-pax2-lift font-semibold text-pax2-blue shadow-e1"
+                    : "bg-pax2-mist font-semibold text-pax2-blue"
+                  : "text-muted-foreground hover:text-foreground"
             )}
           >
             {Icon ? <Icon className="size-4" /> : v.label}

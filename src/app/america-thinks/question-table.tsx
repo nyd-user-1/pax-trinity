@@ -145,7 +145,14 @@ export function QuestionTable({
   ) : undefined
   // At the title row's right in every view. The globe needs the question's
   // source to find its dossier.
-  const viewToggle = <ViewToggle views={source ? VIEWS : VIEWS.filter((v) => v.value !== "global")} value={view} onChange={setView} />
+  // A view with nothing to show for this question greys out (Brendan, 2026-11-02): the
+  // Crosstab without a breakdown, the Trend with one wave. A question opened on one of
+  // them reads its rows instead, and the pick holds for the next question that has it.
+  const disabled = new Set<View>()
+  if (!tab.banner.length) disabled.add("crosstab")
+  if (tab.years.length < 2) disabled.add("chart")
+  const shown: View = disabled.has(view) ? "tidy" : view
+  const viewToggle = <ViewToggle views={source ? VIEWS : VIEWS.filter((v) => v.value !== "global")} value={shown} onChange={setView} disabled={disabled} />
 
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
@@ -156,7 +163,7 @@ export function QuestionTable({
           </PaneTitleRow>
           {aboutLayer}
         </>
-      ) : view === "global" && source ? (
+      ) : shown === "global" && source ? (
         <>
           <PaneTitleRow title={heading} leading={leading} search={search}>
             {viewToggle}
@@ -165,7 +172,7 @@ export function QuestionTable({
             <Dossier source={source.toLowerCase()} id={metric} embedded given={local ? { rows, label: title, wording, sourceLabel } : undefined} />
           </div>
         </>
-      ) : view === "tidy" ? (
+      ) : shown === "tidy" ? (
         <RowsView rows={rows} id={metric} source={source} header={heading} leading={leading} trailing={viewToggle} search={search} about={about} onPick={onPick} />
       ) : (
         <>
@@ -176,13 +183,13 @@ export function QuestionTable({
           itself to the banner's intrinsic width, which blew the pane out
           sideways and swallowed the vertical scroll with it. */}
       <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
-        {view === "topline" ? (
+        {shown === "topline" ? (
           <ToplineView tab={tab} title={title} wording={wording} metric={metric} source={source} sourceLabel={sourceLabel} rows={rows} about={about} onPick={onPick} local={local}>
             <ViewHeading sub={facts(baseName, src, tab.years.length > 1 ? `${oldest}–${tab.latestYear}, ${tab.years.length} waves` : null)}>
               {people ? <>Every answer from {asked}.</> : <>Every figure on file for {baseName} in <B>{tab.latestYear}</B>.</>}
             </ViewHeading>
           </ToplineView>
-        ) : view === "chart" ? (
+        ) : shown === "chart" ? (
           <ViewColumn>
             <ViewHeading sub={facts(baseName, src)}>
               {tab.years.length > 1 ? (

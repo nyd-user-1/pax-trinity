@@ -10,14 +10,13 @@ import { Button } from "@govblock/ui/components/nova/button"
 import { PaneTitleRow, type PaneSearch } from "@/components/bank/pane-bars"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@govblock/ui/components/ny4/dropdown-menu"
 
-import { num, weightOf, year, type SourceRow } from "./audience-data"
+import { fieldDates, num, weightOf, year, type SourceRow } from "./audience-data"
 import { type About } from "./audience-pane"
 
 // The Rows view — the raw rows exactly as the source reported them, the
 // instrument's default read: newest wave first, the total before its
 // subgroups, bands in the order the latest total ranks them, and the three
-// filters as chips. Sixty rows to a read on the house mark. The export
-// carries no weight column yet, so none prints.
+// filters as chips. Sixty rows to a read on the house mark.
 
 const PER_READ = 60
 
@@ -105,8 +104,46 @@ export function RowsView({
     )
     const seg = (r: SourceRow) => (r[5] ? (order.segRank.get(`${r[5]}: ${r[6]}`) ?? 999999) : -1)
     const bnd = (r: SourceRow) => (r[4] ? (order.bandRank.get(r[4]) ?? 999) : 999)
-    return kept.sort((a, b) => year(b[3]).localeCompare(year(a[3])) || seg(a) - seg(b) || bnd(a) - bnd(b))
+    // Newest first by the field period's end, a poll's rows kept together, then segment and band.
+    return kept.sort((a, b) => b[3].localeCompare(a[3]) || (a[10] ?? "").localeCompare(b[10] ?? "") || seg(a) - seg(b) || bnd(a) - bnd(b))
   }, [rows, wave, segment, band, order])
+
+  // The columns this question's rows fill (Brendan, 2026-11-02): one that would print a dash
+  // on every row isn't drawn. Where the rows come from several polls, a Poll column names each
+  // (pollster, sponsor, population, the margin its release states), and where a year can't
+  // tell two rows apart the wave prints its field dates.
+  const shape = React.useMemo(() => {
+    const polls = new Set(rows.map((r) => r[10] ?? "")).size > 1
+    const seen = new Set<string>()
+    let dated = false
+    for (const r of rows) {
+      const k = [year(r[3]), r[1], r[4], r[5], r[6]].join("|")
+      if (seen.has(k)) {
+        dated = true
+        break
+      }
+      seen.add(k)
+    }
+    return {
+      polls,
+      dated,
+      moe: rows.some((r) => r[9] != null),
+      n: rows.some((r) => r[11] != null),
+      weight: rows.some((r) => weightOf(source, year(r[3])) != null),
+    }
+  }, [rows, source])
+  type Cells = ReturnType<typeof rowCells>
+  const cols: { key: keyof Cells; label: string; right?: boolean; className: string }[] = [
+    { key: "wave", label: "Wave", className: "text-muted-foreground tabular-nums whitespace-nowrap" },
+    ...(shape.polls ? [{ key: "poll" as const, label: "Poll", className: "text-muted-foreground" }] : []),
+    { key: "segment", label: "Segment", className: "" },
+    { key: "band", label: "Band", className: "" },
+    { key: "est", label: "Est. %", right: true, className: "font-semibold tabular-nums" },
+    ...(shape.moe ? [{ key: "moe" as const, label: "MoE", right: true, className: "text-muted-foreground tabular-nums" }] : []),
+    ...(shape.n ? [{ key: "n" as const, label: "n", right: true, className: "text-muted-foreground tabular-nums" }] : []),
+    { key: "geo", label: "Geo", className: "text-muted-foreground" },
+    ...(shape.weight ? [{ key: "weight" as const, label: "Weight", className: "text-muted-foreground" }] : []),
+  ]
 
   const listed = sorted.slice(0, depth)
   const more = React.useCallback(() => setDepth((d) => d + PER_READ), [])
@@ -174,9 +211,9 @@ export function RowsView({
         <table className="w-full border-separate border-spacing-0 text-sm">
           <thead>
             <tr>
-              {["Wave", "Segment", "Band", "Est. %", "MoE", "n", "Geo", "Weight"].map((h, i) => (
-                <th key={h} className={cn("sticky top-0 z-10 border-b bg-background px-4 py-2 text-xs font-medium text-muted-foreground", i >= 3 && i <= 5 ? "text-right" : "text-left")}>
-                  {h}
+              {cols.map((col) => (
+                <th key={col.key} className={cn("sticky top-0 z-10 border-b bg-background px-4 py-2 text-xs font-medium text-muted-foreground", col.right ? "text-right" : "text-left")}>
+                  {col.label}
                 </th>
               ))}
               <th aria-label="Row actions" className="sticky top-0 z-10 w-14 border-b bg-background" />
@@ -184,7 +221,7 @@ export function RowsView({
           </thead>
           <tbody>
             {listed.map((r, i) => {
-              const c = rowCells(r, source)
+              const c = rowCells(r, source, shape.dated)
               const pick = onPick ? () => onPick({ r, metric: id, segment: r[5] ? `${r[5]}: ${r[6]}` : "All" }) : undefined
               return (
                 <tr
@@ -193,19 +230,16 @@ export function RowsView({
                   // The house row (components/row-dress.tsx, Brendan, 2026-10-31).
                   className={cn(TR, !r[5] && "bg-muted/40", onPick && "cursor-pointer", onPick && about?.r === r && ON)}
                 >
-                  <td className={cn(TD, "px-4 text-muted-foreground tabular-nums")}>{c.wave}</td>
-                  <td className={cn(TD, "px-4")}>{c.segment}</td>
-                  <td className={cn(TD, "px-4")}>{c.band}</td>
-                  {/* The cell knows its estimate's type: a count prints whole, a lift signed in points, a share one-decimal. */}
-                  <td className={cn(TD, "px-4 text-right font-semibold tabular-nums")}>{c.est}</td>
-                  <td className={cn(TD, "px-4 text-right text-muted-foreground tabular-nums")}>{c.moe}</td>
-                  <td className={cn(TD, "px-4 text-right text-muted-foreground tabular-nums")}>{c.n}</td>
-                  <td className={cn(TD, "px-4 text-muted-foreground")}>{c.geo}</td>
-                  <td className={cn(TD, "px-4 text-muted-foreground")}>{c.weight}</td>
+                  {/* The estimate cell knows its type: a count prints whole, a lift signed in points, a share one-decimal. */}
+                  {cols.map((col) => (
+                    <td key={col.key} className={cn(TD, "px-4", col.right && "text-right", col.className)}>
+                      {c[col.key]}
+                    </td>
+                  ))}
                   <td className={cn(TD, "w-14 pr-5 pl-1 text-right")}>
                     <RowMenu>
                       {pick && <MenuRow icon={<PanelRight />} label="Open in the panel" onClick={pick} />}
-                      <MenuRow icon={<Copy />} label="Copy row" onClick={() => void navigator.clipboard.writeText([c.wave, c.segment, c.band, c.est, c.moe, c.n, c.geo, c.weight].join("\t"))} />
+                      <MenuRow icon={<Copy />} label="Copy row" onClick={() => void navigator.clipboard.writeText(cols.map((col) => c[col.key]).join("\t"))} />
                       <MenuSeparator />
                       <MenuFoot title={String(c.segment)} sub={`${c.wave} · ${c.band}`} />
                     </RowMenu>
@@ -215,12 +249,12 @@ export function RowsView({
             })}
             {!sorted.length && (
               <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                <td colSpan={cols.length + 1} className="px-4 py-8 text-center text-sm text-muted-foreground">
                   Nothing matches the filters.
                 </td>
               </tr>
             )}
-            {depth < sorted.length && <MoreRow onMore={more} />}
+            {depth < sorted.length && <MoreRow onMore={more} span={cols.length + 1} />}
           </tbody>
         </table>
       </div>
@@ -229,9 +263,10 @@ export function RowsView({
 }
 
 /** A row's cells as they print, for the table and for Copy row alike. */
-function rowCells(r: SourceRow, source: string | null) {
+function rowCells(r: SourceRow, source: string | null, dated = false) {
   return {
-    wave: year(r[3]),
+    wave: dated ? fieldDates(r[2], r[3]) : year(r[3]),
+    poll: r[10] ?? "",
     segment: r[5] ? `${r[5]}: ${r[6]}` : "All",
     band: r[4] ?? "",
     est: r[8] === "count" ? num(r[7], 0) : r[8] === "lift_pp" ? `${r[7] >= 0 ? "+" : "−"}${num(Math.abs(r[7]))}` : num(r[7]),
@@ -244,7 +279,7 @@ function rowCells(r: SourceRow, source: string | null) {
 
 /** The row's kebab, shown on hover (held while open): the row into the panel, or onto the clipboard. */
 /** The end of the table: reaching it reads sixty more. */
-function MoreRow({ onMore }: { onMore: () => void }) {
+function MoreRow({ onMore, span }: { onMore: () => void; span: number }) {
   const mark = React.useRef<HTMLDivElement>(null)
   React.useEffect(() => {
     const el = mark.current
@@ -255,7 +290,7 @@ function MoreRow({ onMore }: { onMore: () => void }) {
   }, [onMore])
   return (
     <tr>
-      <td colSpan={9} className="py-3 text-center text-muted-foreground">
+      <td colSpan={span} className="py-3 text-center text-muted-foreground">
         <div ref={mark}>
           <Loader2 aria-label="Loading more" className="inline size-4 animate-spin" />
         </div>

@@ -284,9 +284,8 @@ export function SurveyInbox({
               groups={[{ source: CONSENSUS, label: sourceLabel ?? "Consensus", rows: rows.length, files: [] }]}
               files={{}}
               info={info}
-              label={() => statement.text}
               place={place}
-              geoLevel={GEO_LEVEL}
+              rows={rows}
             />
           )
         }

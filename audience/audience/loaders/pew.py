@@ -256,9 +256,9 @@ def trust_rows(md: str) -> tuple[list[dict], dict]:
                     note += f"; {LEANERS}"
                 if col == "Asian*":
                     note += "; Asian adults who speak English"
+                asked = pollster if pollster == CREDIT else f"{pollster}, compiled by {CREDIT}"
                 rows.append(row(TRUST["construct"], f"trust {who} {date.isoformat()}", date, date,
-                                TRUST["option"], v, f"{pollster}, compiled by {CREDIT}",
-                                TRUST_URL, note, dim, value))
+                                TRUST["option"], v, asked, TRUST_URL, note, dim, value))
     return rows, {TRUST["construct"]: TRUST}
 
 

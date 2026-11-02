@@ -37,7 +37,8 @@ out. A repeated question is (pollster, place, wording, title) normalized, in MIN
 releases with different end dates (three for the first batch, two since). Its id is the
 pollster, place and title or wording, ending in a hash of that identity so it never moves. Each is one POLL construct, labelled by its title (or wording) with the
 verbatim wording in concordance.gss_wording. Each release is a slice, source_version
-"Release <pollster>/<end date>[ <sha8>]"; item_text names the pollster and the release; rows are
+"Release <pollster>/<end date>[ <sha8>]"; item_text names the pollster, the sample and the margin
+the release states (as printed, 95%; the moe column is the store's 90% and stays empty); rows are
 Total as "all" and each mapped column as its subgroup; n is the column's unweighted N where the
 release prints one.
 """
@@ -397,9 +398,14 @@ def rows_of(rep: dict) -> list[dict]:
         start = dt.date.fromisoformat(s["start"])
         end = dt.date.fromisoformat(s["end"])
         start, end = min(start, end), max(start, end)
-        name = (s["release"].get("name") or "").strip().strip('"')
-        text = f"{s['pollster']}" + (f", {name}" if name else "") + (f", {s['release']['sample']}"
-                                                                     if s["release"].get("sample") else "")
+        # The poll as its rows name it: the pollster, its sample and the margin it states, as
+        # printed (a 95% margin, which the store's 90% moe column does not take). The parsed
+        # name is often a page heading ("NOTE ABOUT RESULTS") and stays out.
+        rel = s["release"]
+        sample = (rel.get("sample") or "").strip()
+        if sample.upper() == sample:
+            sample = ""   # a headline the parse took for the sample ("2026 MAJORITY OF VOTERS")
+        text = ", ".join(x for x in (s["pollster"], sample, (rel.get("margin_of_error") or "").strip()) if x)
         version = f"{VERSION_PREFIX}{slug(s['pollster'])}/{s['end']} {s['sha'][:8]}"
         seen = set()
         for label, values in q["rows"]:

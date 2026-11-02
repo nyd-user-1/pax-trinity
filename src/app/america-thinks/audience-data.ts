@@ -165,6 +165,18 @@ export const topicOf = (tags?: string[]): string | null => {
 }
 
 export const year = (x: string) => String(x).slice(0, 4)
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+/** A field period as a reader writes it: "Oct 28, 2026", "Oct 26–28, 2026", "Sep 24–Oct 7, 2018". */
+export function fieldDates(start: string, end: string): string {
+  const [ys, ms, ds] = start.slice(0, 10).split("-").map(Number)
+  const [ye, me, de] = end.slice(0, 10).split("-").map(Number)
+  const day = (m: number, d: number) => `${MONTHS[m - 1]} ${d}`
+  if (start === end) return `${day(me, de)}, ${ye}`
+  if (ys !== ye) return `${day(ms, ds)}, ${ys}–${day(me, de)}, ${ye}`
+  return ms === me ? `${day(ms, ds)}–${de}, ${ye}` : `${day(ms, ds)}–${day(me, de)}, ${ye}`
+}
 export const period = (start: string, end: string) => (year(start) === year(end) ? year(start) : `${year(start)}–${year(end)}`)
 export const num = (x: number, digits = 1) => x.toLocaleString("en-US", { maximumFractionDigits: digits })
 export const value = (estimate: number, type: string, moe: number | null) => {
