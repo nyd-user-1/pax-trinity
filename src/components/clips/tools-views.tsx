@@ -1,9 +1,9 @@
 "use client"
 
 import * as React from "react"
-import { FileText } from "lucide-react"
 
 import type { Nav } from "@/components/connect-view"
+import { BlockCard } from "@/ui/components/nova/block-card"
 import { useClipsPanel } from "@/lib/clips-panel"
 
 import { PUBLISHED, type Clip } from "./catalog"
@@ -95,21 +95,7 @@ export function ClipReports({ onNav }: { onNav: (nav: Nav) => void }) {
       <div ref={box} className="h-full">
         <div className="grid content-start" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap: GAP }}>
           {TESTED.map(({ clip: c, sub }) => (
-            <div
-              key={c.id}
-              role="button"
-              tabIndex={0}
-              onClick={() => open(c.id)}
-              onKeyDown={(e) => e.key === "Enter" && open(c.id)}
-              aria-label={`Open the report on ${c.title}`}
-              className="group relative flex aspect-square cursor-pointer flex-col justify-between overflow-hidden rounded-xl border border-slate-200 bg-pax2-surface p-2.5 shadow-e1 transition-[box-shadow,border-color] hover:border-pax2-blue hover:shadow-e2"
-            >
-              <FileText className="size-4 text-pax2-blue" />
-              <span className="min-w-0">
-                <span className="line-clamp-3 text-[12px] font-semibold leading-snug text-slate-900">{c.title}</span>
-                <span className="mt-0.5 block truncate text-[10px] text-slate-500">{sub}</span>
-              </span>
-            </div>
+            <BlockCard key={c.id} role="button" tabIndex={0} onClick={() => open(c.id)} onKeyDown={(e) => e.key === "Enter" && open(c.id)} aria-label={`Open the report on ${c.title}`} kind="report" title={c.title} sub={sub} />
           ))}
           {Array.from({ length: Math.max(0, rows * cols - TESTED.length) }, (_, i) => (
             <div key={i} aria-hidden className="aspect-square rounded-xl border border-dashed border-slate-300" />

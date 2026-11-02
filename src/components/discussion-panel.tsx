@@ -12,6 +12,7 @@ import { ConnectView, type Nav } from "@/components/connect-view"
 import { useShellPanel } from "@/components/shell"
 import { useHiddenBlocks, useShelf, type PageBlock, type ShelfBlock, type ShelfItem } from "@/lib/home-blocks"
 import { setPageBlockDrag, setShelfDrag } from "@/lib/shelf-drag"
+import { BlockCard } from "@/ui/components/nova/block-card"
 import { cn } from "@/ui/lib/utils"
 import { DEVTOOLS_OPEN, HOUSEKEEPING_OPEN, takeDevTools, takeOpen, usePointer } from "@/components/housekeeping/tool"
 import { LIFT_ANALYSIS_OPEN, LIFT_TOOLS_OPEN, takeToolsOnCards } from "@/lib/lift-analyses"
@@ -174,13 +175,8 @@ function BlocksShelf() {
     },
     }
   }
-  const tile = (key: string) =>
-    cn(
-      "relative aspect-square cursor-grab overflow-hidden rounded-xl border bg-pax2-surface shadow-e1 transition-[opacity,box-shadow,border-color] active:cursor-grabbing",
-      selected === key ? "border-pax2-blue" : "border-slate-200 hover:border-pax2-blue",
-      dragging === key && "opacity-40",
-      over === key && dragging !== key && "ring-2 ring-pax2-light-blue",
-    )
+  // A tile's frame states, for the kit's BlockCard (src/ui/components/nova/block-card.tsx).
+  const state = (key: string) => ({ selected: selected === key, dragging: dragging === key, dropTarget: over === key })
   return (
     <div data-shelf className="min-h-0 flex-1 overflow-y-auto px-6 pb-6 pt-1">
     <div ref={box} className="h-full">
@@ -188,7 +184,7 @@ function BlocksShelf() {
       {layout.map((b) => {
         const off = offPage(b)
         return (
-          <div
+          <BlockCard
             key={`p:${b.page}/${b.id}`}
             draggable
             onDragStart={(e) => {
@@ -200,21 +196,15 @@ function BlocksShelf() {
             onClick={() => reveal(b)}
             onKeyDown={(e) => e.key === "Enter" && reveal(b)}
             aria-label={off ? `Put ${b.label} back on the page` : `Go to ${b.label}`}
-            className={cn(tile(`p:${b.id}`), "group flex flex-col justify-between p-2.5 hover:shadow-e2", !off && "border-dashed bg-slate-50 opacity-70")}
-          >
-            <LayoutGrid className={cn("size-4", off ? "text-pax2-blue" : "text-slate-400")} />
-            <span className="line-clamp-3 min-w-0 text-[12px] font-semibold leading-snug text-slate-900">{b.label}</span>
-          </div>
+            title={b.label}
+            muted={!off}
+            {...state(`p:${b.id}`)}
+          />
         )
       })}
       {items.map((it) =>
         it.block ? (
-          <div key={it.key} {...drag(it)} role="button" tabIndex={0} onClick={() => open(it.block)} onKeyDown={(e) => e.key === "Enter" && open(it.block)} aria-label={`Open ${it.block.title}`} className={cn(tile(it.key), "group flex flex-col justify-between p-2.5 hover:shadow-e2")}>
-            {pending && going === it.key ? <Loader2 className="size-4 animate-spin text-pax2-blue" /> : <LayoutGrid className="size-4 text-pax2-blue" />}
-            <span className="min-w-0">
-              <span className="line-clamp-3 text-[12px] font-semibold leading-snug text-slate-900">{it.block.title}</span>
-              <span className="mt-0.5 block truncate text-[10px] text-slate-500">{PLACE(it.block.path)}</span>
-            </span>
+          <BlockCard key={it.key} {...drag(it)} role="button" tabIndex={0} onClick={() => open(it.block)} onKeyDown={(e) => e.key === "Enter" && open(it.block)} aria-label={`Open ${it.block.title}`} title={it.block.title} sub={PLACE(it.block.path)} loading={pending && going === it.key} {...state(it.key)}>
             <button
               type="button"
               onClick={(e) => (e.stopPropagation(), remove(it.block.key))}
@@ -223,16 +213,22 @@ function BlocksShelf() {
             >
               <X className="size-3.5" />
             </button>
-          </div>
+          </BlockCard>
         ) : (
-          <div key={it.key} {...drag(it)} role="button" tabIndex={0} onClick={() => play(it.video.id)} onKeyDown={(e) => e.key === "Enter" && play(it.video.id)} aria-label={`Play ${it.video.title}`} className={tile(it.key)}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={`https://i.ytimg.com/vi/${it.video.id}/hqdefault.jpg`} alt="" draggable={false} className="absolute inset-0 size-full object-cover" />
-            <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-night-950/85 to-transparent px-2 pb-1.5 pt-6">
-              <span className="line-clamp-2 text-[11px] font-semibold leading-snug text-white">{it.video.title}</span>
-            </span>
-            {it.video.duration && <span className="absolute right-1.5 top-1.5 rounded-md bg-night-950/70 px-1 py-0.5 font-mono text-[10px] text-white">{it.video.duration}</span>}
-          </div>
+          <BlockCard
+            key={it.key}
+            {...drag(it)}
+            role="button"
+            tabIndex={0}
+            onClick={() => play(it.video.id)}
+            onKeyDown={(e) => e.key === "Enter" && play(it.video.id)}
+            aria-label={`Play ${it.video.title}`}
+            variant="thumbnail"
+            title={it.video.title}
+            image={`https://i.ytimg.com/vi/${it.video.id}/hqdefault.jpg`}
+            badge={it.video.duration || undefined}
+            {...state(it.key)}
+          />
         ),
       )}
       {Array.from({ length: Math.max(0, empties) }, (_, i) => (
@@ -286,21 +282,7 @@ function LiftAnalyses() {
         {!loaded && <Loader2 className="mb-3 size-4 animate-spin text-pax2-blue" />}
         <div className="grid content-start" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap: GAP }}>
           {list.map((a) => (
-            <div
-              key={a.href}
-              role="button"
-              tabIndex={0}
-              onClick={() => open(a)}
-              onKeyDown={(e) => e.key === "Enter" && open(a)}
-              aria-label={`Open the analysis of ${a.title}`}
-              className="group relative flex aspect-square cursor-pointer flex-col justify-between overflow-hidden rounded-xl border border-slate-200 bg-pax2-surface p-2.5 shadow-e1 transition-[box-shadow,border-color] hover:border-pax2-blue hover:shadow-e2"
-            >
-              <ChartColumn className="size-4 text-pax2-blue" />
-              <span className="min-w-0">
-                <span className="line-clamp-3 text-[12px] font-semibold leading-snug text-slate-900">{a.title}</span>
-                <span className="mt-0.5 block truncate text-[10px] text-slate-500">{a.sub}</span>
-              </span>
-            </div>
+            <BlockCard key={a.href} role="button" tabIndex={0} onClick={() => open(a)} onKeyDown={(e) => e.key === "Enter" && open(a)} aria-label={`Open the analysis of ${a.title}`} kind="lift" title={a.title} sub={a.sub} />
           ))}
           {Array.from({ length: Math.max(0, rows * cols - list.length) }, (_, i) => (
             <div key={i} aria-hidden className="aspect-square rounded-xl border border-dashed border-slate-300" />
