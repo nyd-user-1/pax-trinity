@@ -1,8 +1,9 @@
 "use client"
 
 import * as React from "react"
+import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
-import { Archive, Check, Copy, Crosshair, ImagePlus, Loader2, MapPin, Pencil, RotateCcw, SendHorizontal, SquareTerminal, X } from "lucide-react"
+import { Archive, Check, ChevronDown, ChevronRight, Copy, Crosshair, ImagePlus, Loader2, MapPin, Pencil, RotateCcw, SendHorizontal, SquareTerminal, X } from "lucide-react"
 
 import { CLAUDE, CLAUDE_MARK, grouped } from "@/lib/housekeeping-thread"
 import { cn } from "@/ui/lib/utils"
@@ -19,7 +20,27 @@ import { goToComment, HOUSEKEEPING_CHANGED, HOUSEKEEPING_OPEN, shrink, takeFocus
 // the branched comment design's lines (components/comment-thread.tsx), a trunk from its avatar and an
 // elbow into each reply, and Reply opens a reply of your own at the foot. The super admin can send a
 // pointed comment to Claude (the Claude mark beside its pin and prompt); Claude's reply joins the thread
-// with the same mark, and the thread then offers Approve (resolve) or a reply, which sends it back.
+// with the same mark, and the thread then offers Approve (resolve) or a reply, which sends it back. A reply
+// of Claude's that carries the diff of what it changed ends in a folded row, Diff · its files · its commit,
+// which opens govblock's GitHub diff (components/dev/unified-diff.tsx). The composer and the reply box grow
+// with their text, as the sonar popover's does, up to 40% of the window, then scroll.
+
+// The diff view, and CodeMirror's diff with it, load only when a diff is opened.
+const UnifiedDiff = dynamic(() => import("@/components/dev/unified-diff").then((m) => m.UnifiedDiff), {
+  ssr: false,
+  loading: () => <Loader2 className="my-2 size-4 animate-spin text-pax2-blue" />,
+})
+
+/** The sonar popover's autosize (overlay/popover.ts): as tall as its text, from its own two rows up to 40%
+ *  of the window, past which it scrolls. */
+function autosize(el: HTMLTextAreaElement | null) {
+  if (!el) return
+  el.style.height = "auto"
+  el.style.height = `${Math.min(el.scrollHeight + 2, Math.round(window.innerHeight * 0.4))}px`
+}
+
+/** A diff's files, counted by their headers. */
+const fileCount = (diff: string) => (diff.match(/^diff --git /gm) ?? []).length || (diff.match(/^\+\+\+ /gm) ?? []).length
 
 const PROMPT_UNAVAILABLE = "Prompt unavailable"
 
@@ -33,6 +54,8 @@ type Message = {
   text: string
   kind: "comment" | "message" | "reply"
   replyTo?: string
+  commit?: string
+  diff?: string
   route?: string
   target?: string
   path?: string
@@ -78,6 +101,12 @@ export function HousekeepingView() {
   // The thread a reply is being written on, and its draft; comments just sent to Claude, flashing Sent.
   const [replying, setReplying] = React.useState<{ id: string; text: string } | null>(null)
   const [sent, setSent] = React.useState<Set<string>>(new Set())
+  // Claude's replies whose diff is open.
+  const [diffOpen, setDiffOpen] = React.useState<Set<string>>(new Set())
+  const composerRef = React.useRef<HTMLTextAreaElement>(null)
+  const replyRef = React.useRef<HTMLTextAreaElement>(null)
+  React.useLayoutEffect(() => autosize(composerRef.current), [text])
+  React.useLayoutEffect(() => autosize(replyRef.current), [replying?.text, replying?.id])
   const listRef = React.useRef<HTMLDivElement>(null)
   const fileRef = React.useRef<HTMLInputElement>(null)
 
@@ -412,6 +441,32 @@ export function HousekeepingView() {
                               <span className="text-[11px] text-slate-400">{when(r.createdAt)}</span>
                             </div>
                             <p className={cn("mt-0.5 text-sm whitespace-pre-wrap text-slate-700", resolved && "text-slate-400")}>{r.text}</p>
+                            {byClaude && r.diff ? (
+                              <div className="mt-2">
+                                <button
+                                  type="button"
+                                  aria-expanded={diffOpen.has(r.id)}
+                                  onClick={() =>
+                                    setDiffOpen((o) => {
+                                      const n = new Set(o)
+                                      if (n.has(r.id)) n.delete(r.id)
+                                      else n.add(r.id)
+                                      return n
+                                    })
+                                  }
+                                  className="flex w-full items-center gap-1.5 rounded-lg border border-slate-200 bg-pax2-surface px-2.5 py-1.5 text-left text-xs font-medium text-slate-600 shadow-e1 transition-colors hover:text-pax2-blue"
+                                >
+                                  {diffOpen.has(r.id) ? <ChevronDown className="size-3.5 shrink-0" /> : <ChevronRight className="size-3.5 shrink-0" />}
+                                  <span className="truncate">
+                                    Diff · {fileCount(r.diff) === 1 ? "1 file" : `${fileCount(r.diff)} files`}
+                                    {r.commit ? <span className="font-mono"> · {r.commit.slice(0, 7)}</span> : null}
+                                  </span>
+                                </button>
+                                {diffOpen.has(r.id) && <UnifiedDiff text={r.diff} anchor={`hk-${r.id}`} className="mt-2" />}
+                              </div>
+                            ) : byClaude && r.commit ? (
+                              <p className="mt-1 font-mono text-[11px] text-slate-500">{r.commit.slice(0, 7)}</p>
+                            ) : null}
                             {/* Claude has answered: the super admin approves it (the resolve lever) or replies, which sends it back. */}
                             {me?.superAdmin && m.status === "answered" && last && (
                               <div className="mt-1.5 flex items-center gap-3 text-xs">
@@ -439,6 +494,7 @@ export function HousekeepingView() {
                         className="flex flex-col gap-2"
                       >
                         <textarea
+                          ref={replyRef}
                           autoFocus
                           value={replying.text}
                           onChange={(e) => setReplying({ id: m.id, text: e.target.value })}
@@ -450,7 +506,7 @@ export function HousekeepingView() {
                           }}
                           placeholder="Add a reply"
                           rows={2}
-                          className="w-full resize-none rounded-xl border border-slate-200 bg-pax2-surface px-3 py-2 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-pax2-blue"
+                          className="max-h-[40vh] w-full resize-none overflow-y-auto rounded-xl border border-slate-200 bg-pax2-surface px-3 py-2 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-pax2-blue"
                         />
                         <div className="flex justify-end gap-2 text-xs">
                           <button type="button" onClick={() => setReplying(null)} className="rounded-full px-3 py-1.5 font-medium text-slate-800 hover:bg-slate-100">
@@ -495,6 +551,7 @@ export function HousekeepingView() {
             </div>
           )}
           <textarea
+            ref={composerRef}
             value={text}
             onChange={(e) => setText(e.target.value)}
             onPaste={(e) => {
@@ -511,7 +568,7 @@ export function HousekeepingView() {
             }}
             rows={2}
             placeholder={partner ? `Message ${partner.name}…` : "Message everyone…"}
-            className="w-full resize-none bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
+            className="max-h-[40vh] w-full resize-none overflow-y-auto bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
           />
           <div className="flex items-center justify-between">
             <button type="button" onClick={() => fileRef.current?.click()} className="flex size-8 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100" aria-label="Attach a screenshot" title="Attach a screenshot">
