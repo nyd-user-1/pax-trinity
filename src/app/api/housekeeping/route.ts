@@ -17,7 +17,8 @@ import { ADMIN, CLAUDE, forReader } from "@/lib/housekeeping-thread"
 //                                             message it answers (the super admin)
 //   POST  { text, to?, kind, page, … }       a message or a pointed comment, screenshots as data URLs
 //   POST  { text, channel: "admin", images? } a message in the Admin channel (the super admin's): with Claude
-//                                             at once, it enters GET ?claude=1 as a pointed comment sent there does
+//                                             at once, it enters GET ?claude=1 as a pointed comment sent there does.
+//                                             His pointed comments land in the channel too (open until sent)
 //   POST  { kind: "reply", pk, sk, text, images? }  a person's reply on a message's thread, screenshots as data URLs
 //   POST  { kind: "claude-reply", pk, sk, text, commit?, diff?, images? }  Claude's reply on a comment with Claude
 //                                             or already answered (a follow-up): answers it, its commit and
@@ -139,10 +140,11 @@ export async function POST(req: Request) {
   const text = (body.text ?? "").trim()
   if (!text && !body.images?.length) return NextResponse.json({ error: "Nothing to send." }, { status: 400 })
   if (body.to && !known(body.to)) return NextResponse.json({ error: "Not someone in Housekeeping." }, { status: 400 })
-  const channel = body.channel === "admin" ? ("admin" as const) : undefined
-  if (channel && !user.superAdmin) return NextResponse.json({ error: "The Admin channel is the super admin's." }, { status: 403 })
+  if (body.channel === "admin" && !user.superAdmin) return NextResponse.json({ error: "The Admin channel is the super admin's." }, { status: 403 })
+  // The super admin's pointed comments live in his channel with Claude; everyone else's in the stream.
+  const channel = body.channel === "admin" || (body.kind === "comment" && user.superAdmin) ? ("admin" as const) : undefined
   try {
-    const message = await post({ ...body, channel, ...(channel ? { to: null } : {}), author: user.email, text, kind: channel ? "message" : body.kind === "comment" ? "comment" : "message" })
+    const message = await post({ ...body, channel, ...(channel ? { to: null } : {}), author: user.email, text, kind: body.kind === "comment" ? "comment" : "message" })
     return NextResponse.json({ message })
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 })

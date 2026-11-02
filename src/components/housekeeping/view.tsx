@@ -96,6 +96,8 @@ export function HousekeepingView() {
   // The Admin channel (the super admin and Claude): first among the chips, and where his panel opens until he picks another.
   const [adminChan, setAdminChan] = React.useState(false)
   const picked = React.useRef(false)
+  /** My email as the focus-take knows it (the effect outlives any one thread load). */
+  const meRef = React.useRef<string | undefined>(undefined)
   const pick = (to: { admin?: boolean; email?: string | null }) => {
     picked.current = true
     setAdminChan(!!to.admin)
@@ -137,14 +139,15 @@ export function HousekeepingView() {
     if (!res.ok) return setError(body.error ?? "Housekeeping did not load.")
     setError(null)
     setThread(body as Thread)
+    meRef.current = (body as Thread).me?.email
     // The super admin's panel opens on the Admin channel.
     if (!picked.current && (body as Thread).me?.superAdmin && !adminChan) {
       picked.current = true
       setAdminChan(true)
       return
     }
-    // The Bookmarks thread rides on All, for the super admin.
-    if (!withEmail && !adminChan && (body as Thread).me?.superAdmin) {
+    // The Bookmarks thread rides on the Admin channel, with the rest of his and Claude's.
+    if (adminChan && (body as Thread).me?.superAdmin) {
       const b = await fetch("/api/housekeeping?bookmarks=1", { cache: "no-store" }).catch(() => null)
       setMarks(b?.ok ? ((await b.json()) as { bookmarks: { reply: Message; parent: Message }[] }).bookmarks : null)
     }
@@ -162,14 +165,18 @@ export function HousekeepingView() {
     }
   }, [load])
 
-  // A comment just sent, or a page marker pressed: the stream, with that message in view.
+  // A comment just sent, or a page marker pressed: its own thread, with that message in view. The focus
+  // carries the message's partition, so the super admin's comments open the Admin channel.
   React.useEffect(() => {
     const take = () => {
-      const id = takeFocus()
-      if (!id) return
-      pick({})
+      const f = takeFocus()
+      if (!f) return
+      picked.current = true
+      const admin = f.pk === ADMIN
+      setAdminChan(admin)
+      setWith(admin || !f.pk?.startsWith("DM#") ? null : (f.pk.slice(3).split("|").find((e) => e !== meRef.current) ?? null))
       setArchive(false)
-      setFocus(id)
+      setFocus(f.id)
     }
     take()
     window.addEventListener(HOUSEKEEPING_OPEN, take)
@@ -500,8 +507,8 @@ export function HousekeepingView() {
           </p>
         )}
         <div className="flex flex-col gap-4">
-          {/* The Bookmarks thread: every reply of Claude's the super admin bookmarked, a live view (GET ?bookmarks=1), pinned at the top of everyone's stream. */}
-          {me?.superAdmin && !withEmail && !adminChan && !archive && marks && marks.length > 0 && (
+          {/* The Bookmarks thread: every reply of Claude's the super admin bookmarked, a live view (GET ?bookmarks=1), pinned at the top of the Admin channel. */}
+          {me?.superAdmin && adminChan && !archive && marks && marks.length > 0 && (
             <div key={BOOKMARKS}>
               <div className="relative -mx-2 flex gap-3 rounded-xl px-2 py-1">
                 {line(BOOKMARKS, collapsed.has(BOOKMARKS) ? "top-10 bottom-[13px]" : "-bottom-2 top-10")}

@@ -146,9 +146,10 @@ export async function post(input: {
     path: input.path?.slice(0, 1000),
     bundle: input.bundle?.slice(0, 6000),
     images: input.images?.length ? await putImages(id, input.images) : undefined,
-    // A message in the Admin channel is Claude's to answer from the start.
-    status: input.channel === "admin" ? "claude" : "open",
-    claudeAt: input.channel === "admin" ? createdAt : undefined,
+    // A message written in the Admin channel is Claude's to answer from the start; a pointed comment there
+    // waits, as any comment does, for Send to Claude.
+    status: input.channel === "admin" && input.kind === "message" ? "claude" : "open",
+    claudeAt: input.channel === "admin" && input.kind === "message" ? createdAt : undefined,
     createdAt,
   }
   if (item.pk === ADMIN) delete item.to
@@ -165,7 +166,8 @@ export async function getMessage(key: { pk: string; sk: string }): Promise<Messa
  *  direct messages'. The page marks each one's element (components/housekeeping/tool.tsx). */
 export async function openOnRoute(route: string, viewer: string): Promise<Message[]> {
   const me = canonical(viewer)
-  const keys = ["STREAM", ...PEOPLE.filter((p) => p.email !== me).map((p) => dmKey(me, p.email))]
+  const superAdmin = PEOPLE.find((p) => p.email === me)?.role === "superadmin"
+  const keys = ["STREAM", ...(superAdmin ? [ADMIN] : []), ...PEOPLE.filter((p) => p.email !== me).map((p) => dmKey(me, p.email))]
   const threads = await Promise.all(keys.map((pk) => listThread(pk)))
   // A comment with Claude, or answered, is still unresolved, so its element stays marked.
   return threads.flat().filter((m) => m.kind === "comment" && m.status !== "resolved" && m.route === route && m.path)

@@ -27,12 +27,13 @@ let running: { unmount: () => void } | null = null
 const listeners = new Set<(on: boolean) => void>()
 const announce = () => listeners.forEach((l) => l(!!running))
 
-/** The message the panel should bring into view when it next opens or hears HOUSEKEEPING_OPEN. */
-let focusNext: string | null = null
+/** The message the panel should bring into view when it next opens or hears HOUSEKEEPING_OPEN, with its
+ *  partition so the panel opens the thread it lives in (the Admin channel, the stream, a direct one). */
+let focusNext: { id: string; pk?: string } | null = null
 export const takeFocus = () => {
-  const id = focusNext
+  const f = focusNext
   focusNext = null
-  return id
+  return f
 }
 /** Was the panel asked to open on Housekeeping since it last looked? */
 let openPending = false
@@ -43,8 +44,8 @@ export const takeOpen = () => {
 }
 
 /** Opens the right panel on Housekeeping, with one message brought into view. */
-export function openHousekeeping(id?: string) {
-  focusNext = id ?? null
+export function openHousekeeping(id?: string, pk?: string) {
+  focusNext = id ? { id, pk } : null
   openPending = true
   window.dispatchEvent(new Event(HOUSEKEEPING_OPEN))
 }
@@ -112,7 +113,7 @@ export async function togglePointer() {
       const { message } = (await res.json().catch(() => ({}))) as { message?: { id: string; pk: string; sk: string } }
       window.dispatchEvent(new Event(HOUSEKEEPING_CHANGED))
       if (message) {
-        openHousekeeping(message.id)
+        openHousekeeping(message.id, message.pk)
         // The prompt that would address it is written in the background and stored beside it.
         void fetch("/api/housekeeping/prompt", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pk: message.pk, sk: message.sk }) })
           .then(() => window.dispatchEvent(new Event(HOUSEKEEPING_CHANGED)))
@@ -188,7 +189,7 @@ export function usePointer(): [boolean, () => void] {
   return [on, () => void togglePointer()]
 }
 
-type Mark = { id: string; path: string; target?: string; author: string; authorName: string; photo?: string; text: string; point?: { xf: number; yf: number } }
+type Mark = { id: string; pk: string; path: string; target?: string; author: string; authorName: string; photo?: string; text: string; point?: { xf: number; yf: number } }
 
 /** The header's crosshair, the page's comment markers, and the outline that waits for a page to arrive. */
 export function HousekeepingTool() {
@@ -338,7 +339,7 @@ function Marks({ marks }: { marks: Mark[] }) {
               else refs.current.delete(m.id)
             }}
             type="button"
-            onClick={() => openHousekeeping(m.id)}
+            onClick={() => openHousekeeping(m.id, m.pk)}
             title={`${m.authorName}: ${m.text}`}
             aria-label={`Open ${m.authorName}'s comment`}
             data-sonar-exempt
