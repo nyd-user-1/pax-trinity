@@ -81,6 +81,8 @@ const TITLES: [string, string][] = [
   ["/america-thinks", "America Thinks"],
   ["/data-dictionary", "Data dictionary"],
   ["/q/", "Question"],
+  ["/s/", "Survey"],
+  ["/r/", "Survey results"],
   ["/reports-2", "Report 2"],
   ["/constructs", "Constructs"],
   ["/electorate", "Electorate"],
@@ -332,9 +334,10 @@ export function Shell({ children, drawer, signedIn = false, admin = false, super
   // /signup and /signin are the landing's first screen with a form in place of the hero, sidebar and all.
   // Trinity's front door lives inside the shell; only the auth screens stay full bleed.
   const home = path === "/signup" || path === "/signin"
-  // A message test's respondent page (/test/<id>), a survey's (/s/<slug>) and a reader's results on it (/r/<slug>) are
-  // bare: no sidebar, nothing of the product.
-  if (path.startsWith("/test/") || path.startsWith("/s/") || path.startsWith("/r/")) return <>{children}</>
+  // A message test's respondent page (/test/<id>) is bare: no sidebar, nothing of the product. Every other page sits in
+  // the shell (Brendan, 2026-11-02: nothing renders outside it unless he asked or it was flagged first); a survey
+  // (/s/<slug>) and a reader's results on it (/r/<slug>) came back in.
+  if (path.startsWith("/test/")) return <>{children}</>
   if (path === "/record" || (path.startsWith("/sign") && !home))
     return (
       <div className="min-h-dvh bg-pax2-surface">

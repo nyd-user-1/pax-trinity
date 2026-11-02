@@ -10,8 +10,8 @@ import { surveyBySlug } from "@/lib/surveys/catalog"
 
 import { SurveyForm } from "./survey-form"
 
-// /s/<slug>: the survey's respondent page, the link a survey is shared by: bare,
-// outside the shell like a message test's /test/<id>, nothing of the product around it.
+// /s/<slug>: the survey's respondent page, the link a survey is shared by, in the shell like every page
+// (Brendan, 2026-11-02: no page renders outside it unless he asked).
 // Since 2026-11-02 (Brendan) it is the consensus survey itself, its questions as
 // the two columns of cards; a signed-in reader who has taken it goes to their
 // results at /r/<slug>, since no one takes a survey twice. A Pollster's link,
@@ -41,28 +41,24 @@ export default async function RespondPage({ params, searchParams }: Props) {
     // A Pollster's link carries a fielding's pid: the open is recorded, and the pid rides with the answers.
     const fielding = pid ? await armForPid(pid).catch(() => null) : null
     return (
-      <main className="min-h-dvh bg-pax2-surface text-slate-900">
-        <div className="mx-auto w-full max-w-xl px-5 py-12">
-          {fielding?.closed ? (
-            <div className="flex flex-col gap-3 rounded-xl border border-slate-200 p-8">
-              <h1 className="text-2xl font-semibold tracking-tight text-pax2-blue">{topline.title}</h1>
-              <p className="text-sm text-slate-600">This survey is closed.</p>
-            </div>
-          ) : (
-            <SurveyForm survey={topline} pid={pid} />
-          )}
-        </div>
-      </main>
+      <div className="mx-auto w-full max-w-xl text-slate-900">
+        {fielding?.closed ? (
+          <div className="flex flex-col gap-3 rounded-xl border border-slate-200 p-8">
+            <h1 className="text-2xl font-semibold tracking-tight text-pax2-blue">{topline.title}</h1>
+            <p className="text-sm text-slate-600">This survey is closed.</p>
+          </div>
+        ) : (
+          <SurveyForm survey={topline} pid={pid} />
+        )}
+      </div>
     )
   }
 
   const user = await currentUser()
   if (user && (await takenBy(slug, user.email))) redirect(`/r/${encodeURIComponent(slug)}`)
   return (
-    <main className="min-h-dvh bg-pax2-surface text-slate-900" data-not-typeset="true">
-      <div className="mx-auto w-full max-w-[920px] px-5 py-10 md:px-8">
-        <Survey conversation={open} survey={at + 1} keep={!!user} />
-      </div>
-    </main>
+    <div className="mx-auto w-full max-w-[920px] text-slate-900" data-not-typeset="true">
+      <Survey conversation={open} survey={at + 1} keep={!!user} />
+    </div>
   )
 }

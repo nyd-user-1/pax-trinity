@@ -6,7 +6,7 @@ import { currentUser } from "@/lib/auth"
 import { conversations } from "@/lib/consensus/store"
 import { takenBy } from "@/lib/consensus/taken"
 
-// /r/<slug>: a reader's results on a consensus survey they have taken (Brendan, 2026-11-02), bare like /s/<slug>:
+// /r/<slug>: a reader's results on a consensus survey they have taken (Brendan, 2026-11-02), in the shell:
 // the PAX Series card summing up where they stood with the consensus, then every question in the nysgpt
 // walkthrough's view. A reader who hasn't taken it goes to the survey; a signed-out one, to sign in.
 
@@ -30,10 +30,8 @@ export default async function ResultsPage({ params }: Props) {
   const taken = await takenBy(slug, user.email)
   if (!taken) redirect(`/s/${encodeURIComponent(slug)}`)
   return (
-    <main className="min-h-dvh bg-pax2-surface text-slate-900" data-not-typeset="true">
-      <div className="mx-auto w-full max-w-[920px] px-5 py-10 md:px-8">
-        <SurveyResults conversation={all[at]} survey={at + 1} answers={taken.answers} completedAt={taken.completedAt} />
-      </div>
-    </main>
+    <div className="mx-auto w-full max-w-[920px] text-slate-900" data-not-typeset="true">
+      <SurveyResults conversation={all[at]} survey={at + 1} answers={taken.answers} completedAt={taken.completedAt} />
+    </div>
   )
 }
