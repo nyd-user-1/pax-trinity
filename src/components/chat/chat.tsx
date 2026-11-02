@@ -16,7 +16,7 @@ import { ArrowDown, ArrowUp, Check, ChevronDown, ChevronLeft, ChevronRight, Chev
 
 import { ChatFields } from '@/components/chat/chat-fields'
 import { MarkdownContent } from '@/components/chat/markdown'
-import { RecordFlow, type Analysis } from '@/components/chat/record-flow'
+import type { Analysis } from '@/components/chat/record-flow'
 import { ScriptCard } from '@/components/chat/script-card'
 import { blockKey, withVersions } from '@/lib/studio'
 import { useDraft } from '@/components/record/draft'
@@ -96,6 +96,8 @@ const brollOf = (m: { model?: string; content: string }) => (m.model === 'librar
 const TextType = dynamic(() => import('@/components/text-type'), { loading: () => <span className="block h-[65px]" /> })
 // Remotion's Player and the templates load the first time a reply carries a video.
 const VideoBlock = dynamic(() => import('@/components/chat/video-block').then((m) => m.VideoBlock), { ssr: false, loading: () => <div className="aspect-video w-full animate-pulse rounded-xl bg-pax2-surface/70" /> })
+// The record flow (camera, upload, the template chooser with Remotion's Player and zod) loads when Record is pressed.
+const RecordFlow = dynamic(() => import('@/components/chat/record-flow').then((m) => m.RecordFlow), { ssr: false })
 const READY = ['Ready to make change?', 'Ready to make a video?', 'Ready to make a storyboard?', 'Ready to make a script?', 'Ready to make a difference?', 'Ready. Set. Go.']
 
 const RECORD_OPENER = "I'm ready to make my first video — where do we start?"
