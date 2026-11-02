@@ -3,7 +3,7 @@
 import * as React from "react"
 import { ArrowLeft, Check, ChevronLeft, ChevronRight, Clock, Copy, ExternalLink, Forward as ForwardIcon, PenSquare, Reply as ReplyIcon, RotateCcw, Star, Trash2 } from "lucide-react"
 
-import { ADDRESSES, PEOPLE_ADDRESSES, addressFor, keptThread, loadDrafts, nameOf, newThread, saveDrafts, shownRecipients, snippet, when, type Attached, type Folder, type Message, type Thread } from "@/lib/agents/inbox"
+import { ADDRESSES, PEOPLE_ADDRESSES, addressFor, keptThread, recipientsOf, loadDrafts, nameOf, newThread, saveDrafts, shownRecipients, snippet, when, type Attached, type Folder, type Message, type Thread } from "@/lib/agents/inbox"
 import { applyFiling, fileThread, isAgentBox, listTime, marksOf, readFolder, showsIn, snoozeTime, type Counts, type Filing, type Kept } from "@/lib/mail/client"
 import { PENDING_DRAFT } from "@/lib/agents/pending-draft"
 import { sendRequest } from "@/lib/agents/live"
@@ -28,7 +28,7 @@ import { isTrace } from "@/lib/agents/report-modes"
 import { reportFor, save } from "@/lib/agents/report-pdf"
 import { AttachmentGroup } from "@/registry/blocks/sidebar-09/components/attachment"
 import { TraceReport } from "@/registry/blocks/sidebar-09/components/trace-report"
-import { Marker } from "@/registry/blocks/sidebar-09/components/thread-list"
+import { Marker, TITLES } from "@/registry/blocks/sidebar-09/components/thread-list"
 import { Button } from "@govblock/ui/components/nova/button"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@govblock/ui/components/ny4/resizable"
 import { Separator } from "@govblock/ui/components/ny4/separator"
@@ -105,17 +105,6 @@ function Tip({ label, children }: { label: string; children: React.ReactNode }) 
   )
 }
 
-/** A handle as the send route takes it: an agent by its AgentMail address, a person or partner by theirs, a bare address as it is. Groups and channels are no one's mailbox. */
-function recipientsOf(handles: string[]) {
-  return handles.flatMap((handle) => {
-    const a = addressFor(handle)
-    if (!a) return handle.includes("@") ? [{ email: handle }] : []
-    if (a.kind === "agent") return [{ email: a.email }]
-    if (a.kind === "person" || a.kind === "partner") return [{ email: a.email, name: a.name }]
-    return []
-  })
-}
-
 /** An address as the composer's lines hold it: the book's handle where it knows it, else the address. */
 const handleOf = (email: string) => ADDRESSES.find((a) => a.email.toLowerCase() === email.toLowerCase())?.agent ?? email
 
@@ -150,7 +139,11 @@ export default function Page() {
   const [mailbox, setMailbox] = React.useState("me")
   // The address the server reads as "me" (lib/mail/store.ts personMailbox), learned from its first answer.
   const [myBox, setMyBox] = React.useState<string | null>(null)
-  const [folder, setFolder] = React.useState<Folder>("inbox")
+  // A link can open a folder and a thread: /inbox?folder=sent&thread=<id> (a note's Compose, after its send).
+  const [folder, setFolder] = React.useState<Folder>(() => {
+    const asked = new URLSearchParams(window.location.search).get("folder")
+    return asked && asked in TITLES ? (asked as Folder) : "inbox"
+  })
   // The open folder as the server keeps it, keyed so a late answer for another folder is dropped.
   const [mail, setMail] = React.useState<{ key: string; threads: Kept[] }>({ key: "", threads: [] })
   const [counts, setCounts] = React.useState<Counts>({})
@@ -158,7 +151,7 @@ export default function Page() {
   const [error, setError] = React.useState<string | null>(null)
   const [drafts, setDrafts] = React.useState<Thread[]>([])
   const [restored, setRestored] = React.useState(false)
-  const [selected, setSelected] = React.useState<string | null>(null)
+  const [selected, setSelected] = React.useState<string | null>(() => new URLSearchParams(window.location.search).get("thread"))
   const [unreadOnly, setUnreadOnly] = React.useState(false)
   const [composing, setComposing] = React.useState(false)
   // The composer popped out into Gmail's floating window (compose-window.tsx); the draft is the same one.

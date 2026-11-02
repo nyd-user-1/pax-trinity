@@ -47,3 +47,38 @@ export function useNoteFavorites() {
   }, [])
   return { favs, toggle }
 }
+
+// The card's shapes (Brendan, 2026-11-02): what a drawn note can be, switched from its header. The reader's default,
+// kept in this browser, is the shape a card opens on.
+export type NoteShape = "note" | "chat" | "compose" | "collect" | "team" | "watch"
+const SHAPE_KEY = "pax2-note-default-shape"
+const SHAPE_EVENT = "pax2-note-default-shape"
+
+export function readDefaultShape(): NoteShape | null {
+  try {
+    return (localStorage.getItem(SHAPE_KEY) as NoteShape | null) ?? null
+  } catch {
+    return null
+  }
+}
+
+export function useDefaultShape() {
+  const [shape, setShape] = React.useState<NoteShape | null>(null)
+  React.useEffect(() => {
+    const on = () => setShape(readDefaultShape())
+    on()
+    window.addEventListener(SHAPE_EVENT, on)
+    window.addEventListener("storage", on)
+    return () => {
+      window.removeEventListener(SHAPE_EVENT, on)
+      window.removeEventListener("storage", on)
+    }
+  }, [])
+  const choose = React.useCallback((next: NoteShape) => {
+    try {
+      localStorage.setItem(SHAPE_KEY, next)
+    } catch {}
+    window.dispatchEvent(new Event(SHAPE_EVENT))
+  }, [])
+  return { shape, choose }
+}

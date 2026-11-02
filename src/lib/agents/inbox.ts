@@ -155,6 +155,18 @@ export function runs(_handle: string) {
   return false
 }
 
+/** A handle as /api/inbox/send takes it: an agent by its AgentMail address (kept in its mailbox, never mailed), a person
+ *  or partner by theirs, a bare address as it is. Groups and channels are no one's mailbox. */
+export function recipientsOf(handles: string[]): { email: string; name?: string }[] {
+  return handles.flatMap((handle) => {
+    const a = addressFor(handle)
+    if (!a) return handle.includes("@") ? [{ email: handle }] : []
+    if (a.kind === "agent") return [{ email: a.email }]
+    if (a.kind === "person" || a.kind === "partner") return [{ email: a.email, name: a.name }]
+    return []
+  })
+}
+
 export function isPerson(handle: string) {
   return !runs(handle)
 }

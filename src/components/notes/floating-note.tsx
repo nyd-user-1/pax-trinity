@@ -2,17 +2,18 @@
 
 import * as React from "react"
 import { createPortal } from "react-dom"
-import { ChevronsUpDown, Copy, Download, EllipsisVertical, GripVertical, LayoutGrid, MessagesSquare, Star, StickyNote, Trash2, X } from "lucide-react"
+import { ChevronsUpDown, Copy, Download, EllipsisVertical, GripVertical, LayoutGrid, MessagesSquare, Send, Star, StickyNote, Trash2, X, type LucideIcon } from "lucide-react"
 import { generateJSON, type Editor, type JSONContent } from "@tiptap/react"
 
 import { createMyNote, removeNote, saveNote } from "@/app/note-actions"
 import { KebabMenu, MenuFlyout, MenuFoot, MenuRow, MenuSeparator } from "@/components/kebab-menu"
 import { useShellPanel } from "@/components/shell"
 import { useShelf } from "@/lib/home-blocks"
-import { NOTES_CHANGED, useNoteFavorites } from "@/lib/drawn-notes"
+import { NOTES_CHANGED, readDefaultShape, useDefaultShape, useNoteFavorites, type NoteShape } from "@/lib/drawn-notes"
 import { pageContext } from "@/lib/page-text"
 import { TaskSurface, TaskToolbar, useTaskEditor } from "@/registry/blocks/sidebar-09/components/rich-body"
 
+import { NoteCompose } from "./note-compose"
 import { noteExtensions } from "./note-menus"
 import { PaxReply, turnsOf } from "./pax-reply"
 
@@ -20,7 +21,8 @@ import { PaxReply, turnsOf } from "./pax-reply"
 // in the model card's shape as Nav is: the tinted frame titled Note, the inbox rows' grip before it and the three-dot
 // menu opposite, and in the white card the Agentic Inbox compose's editor (TipTap, markdown in and out) under its
 // toolbar. It keeps itself once there is something in it, 700ms after the last keystroke, as one of the reader's
-// own notes, the Inbox's My notes.
+// own notes, the Inbox's My notes. Since 2026-11-02 (Brendan) the header switches the card between its shapes, and
+// the reader picks the one it opens on.
 
 export type Rect = { x: number; y: number; w: number; h: number }
 
@@ -28,6 +30,15 @@ export type Rect = { x: number; y: number; w: number; h: number }
 const titleOf = (md: string) => md.split("\n").map((l) => l.replace(/<[^>]+>/g, "").replace(/^[#>\-*+\s]+|\d+\.\s+/g, "").replace(/[*_`]/g, "").trim()).find(Boolean) ?? "Note"
 
 const SORRY = "Something went wrong. Please try again."
+
+/** The card's shapes, in the switcher's order (Brendan, 2026-11-02): the note, PAX's chat beside it, and the note as
+ *  a mail. The star beside each makes it the reader's default, the shape a card opens on. */
+const SHAPES: { shape: NoteShape; label: string; icon: LucideIcon }[] = [
+  { shape: "note", label: "Note", icon: StickyNote },
+  { shape: "chat", label: "Chat", icon: MessagesSquare },
+  { shape: "compose", label: "Compose", icon: Send },
+]
+const shapeOf = (s: NoteShape | null): NoteShape => (s && SHAPES.some((x) => x.shape === s) ? s : "note")
 
 /** tiptap-markdown's storage on an editor: its types leave the parser out. */
 const mdOf = (editor: Editor) => (editor.storage as unknown as { markdown: { getMarkdown(): string; parser: { parse(md: string): string } } }).markdown
@@ -42,7 +53,8 @@ export function FloatingNote({ rect, id: firstId, body: firstBody, chat: firstCh
   // Both editors take tables, headings and the "/" and "@" menus (note-menus.tsx); the chat's carries PAX's replies.
   const [noteExt] = React.useState(noteExtensions)
   const [chatExt] = React.useState(() => [...noteExtensions(), PaxReply])
-  const editor = useTaskEditor({ value: firstBody, onChange: setBody, placeholder: "Write a note…", extensions: noteExt, headings: true })
+  // The note's text, which Compose edits too: the editor follows it when Compose changes it.
+  const editor = useTaskEditor({ value: body, onChange: setBody, placeholder: "Write a note…", extensions: noteExt, headings: true })
   const { askAbout } = useShellPanel()
   const { favs, toggle: toggleFav } = useNoteFavorites()
   const shelf = useShelf()
@@ -51,12 +63,15 @@ export function FloatingNote({ rect, id: firstId, body: firstBody, chat: firstCh
   // on it. The chat is one text (pax-reply.ts), kept with the note: Shift Enter sends what the reader wrote since PAX
   // last answered, with the pages open on screen (lib/page-text.ts) and the note as its context, and the answer
   // streams into the text with a fresh line under it.
-  const [mode, setMode] = React.useState<"note" | "chat">(firstBody.trim() || !firstChat.trim() ? "note" : "chat")
+  // It opens on the reader's default shape (Brendan, 2026-11-02), Note until they pick one.
+  const [mode, setMode] = React.useState<NoteShape>(() => (firstBody.trim() || !firstChat.trim() ? shapeOf(readDefaultShape()) : "chat"))
+  const { shape: preferred, choose } = useDefaultShape()
+  const mine = shapeOf(preferred)
   const talk = useTaskEditor({ value: firstChat, onChange: setChat, placeholder: "Ask PAX. Shift Enter sends.", extensions: chatExt, headings: true })
   const [busy, setBusy] = React.useState(false)
   React.useEffect(() => {
     if (mode === "chat") talk?.commands.focus("end")
-    else editor?.commands.focus("end")
+    else if (mode === "note") editor?.commands.focus("end")
   }, [mode, talk, editor])
   const send = async () => {
     const ed = talk
@@ -218,19 +233,39 @@ export function FloatingNote({ rect, id: firstId, body: firstBody, chat: firstCh
             end the page switcher's up-down mark, which opens Note and Chat. */}
         <div className="min-w-0 flex-1">
           <KebabMenu
-            label="Note or chat"
+            label="Shape"
             align="left"
-            width="w-44"
+            width="w-56"
             trigger={
               <>
-                {mode === "note" ? "Note" : "Chat"}
+                {SHAPES.find((x) => x.shape === mode)?.label ?? "Note"}
                 <ChevronsUpDown className="size-3.5 text-slate-400 opacity-0 transition-opacity group-hover/anchor:opacity-100 group-aria-expanded/anchor:opacity-100" />
               </>
             }
             triggerClassName="group/anchor inline-flex items-center gap-1.5 rounded px-1.5 py-0.5 text-[15px] font-semibold text-slate-900 outline-none transition-colors select-none hover:bg-muted aria-expanded:bg-muted focus-visible:outline-1 focus-visible:outline-ring"
           >
-            <MenuRow icon={<StickyNote />} label="Note" checked={mode === "note"} onClick={() => setMode("note")} />
-            <MenuRow icon={<MessagesSquare />} label="Chat" checked={mode === "chat"} onClick={() => setMode("chat")} />
+            {SHAPES.map(({ shape, label, icon: Icon }) => (
+              <div key={shape} className="flex items-center gap-0.5">
+                <div className="min-w-0 flex-1">
+                  <MenuRow icon={<Icon />} label={label} checked={mode === shape} onClick={() => setMode(shape)} />
+                </div>
+                {/* The reader's default: the shape every card opens on. */}
+                <button
+                  type="button"
+                  role="menuitemcheckbox"
+                  aria-checked={mine === shape}
+                  aria-label={mine === shape ? `${label} is my default` : `Make ${label} my default`}
+                  title={mine === shape ? "My default" : "Make this my default"}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    choose(shape)
+                  }}
+                  className="flex size-7 shrink-0 items-center justify-center rounded-lg text-slate-300 transition-colors hover:bg-slate-100 hover:text-slate-500"
+                >
+                  <Star className={mine === shape ? "size-3.5 fill-amber-400 text-amber-400" : "size-3.5"} />
+                </button>
+              </div>
+            ))}
           </KebabMenu>
         </div>
         <KebabMenu label="Note options" width="w-52" trigger={<EllipsisVertical className="size-4" />} triggerClassName="inline-flex size-8 items-center justify-center rounded-md text-slate-800 outline-none hover:bg-foreground/8 hover:text-foreground aria-expanded:bg-foreground/8">
@@ -274,7 +309,9 @@ export function FloatingNote({ rect, id: firstId, body: firstBody, chat: firstCh
         </KebabMenu>
       </div>
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[14px] border border-slate-200 bg-pax2-surface shadow-e1">
-        {mode === "note" ? (
+        {mode === "compose" ? (
+          <NoteCompose body={body} onBody={setBody} onClose={() => setMode("note")} />
+        ) : mode === "note" ? (
           <>
             <TaskToolbar editor={editor} className="shrink-0 border-b border-slate-200 px-2 py-1" />
             <div className="min-h-0 flex-1 cursor-text overflow-y-auto px-4 py-3" onClick={() => editor?.commands.focus()}>

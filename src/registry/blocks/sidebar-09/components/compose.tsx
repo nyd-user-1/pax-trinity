@@ -73,6 +73,9 @@ const matchesQuery = (a: Address, query: string) => {
 // the field, typing narrows the list, arrow keys and Enter (or a click) add one,
 // Backspace in an empty field takes the last back off. The list is grouped:
 // the agents, the staff, the partners, the channels.
+/** The address book's groups a composer offers; the inbox's offers them all. */
+const Book = React.createContext<string[] | null>(null)
+
 function Recipients({
   line,
   label,
@@ -90,9 +93,10 @@ function Recipients({
   const anchor = React.useRef<HTMLDivElement>(null)
   const [open, setOpen] = React.useState(false)
   const chosen = chips.map((handle) => addressFor(handle) ?? unknown(handle))
+  const book = React.useContext(Book)
   return (
     <Combobox.Root
-      items={ADDRESS_GROUPS}
+      items={book ? ADDRESS_GROUPS.filter((g) => book.includes(g.value)) : ADDRESS_GROUPS}
       multiple
       autoHighlight
       open={open}
@@ -178,6 +182,8 @@ export function Compose({
   inline = false,
   reply = false,
   placeholder,
+  book,
+  plain = false,
 }: {
   draft: Draft
   onChange: (draft: Draft) => void
@@ -190,6 +196,10 @@ export function Compose({
   reply?: boolean
   /** What the empty surface says; a reply says Reply…, a new message nothing. */
   placeholder?: string
+  /** The address book's groups offered on the lines (a note's Compose: Agents, Staff, Partners); all of them when absent. */
+  book?: string[]
+  /** The body as a plain writing surface instead of the mail's card: a note's Compose, in a card a few hundred pixels wide. */
+  plain?: boolean
 }) {
   const [showCc, setShowCc] = React.useState(false)
   const [showBcc, setShowBcc] = React.useState(false)
@@ -202,6 +212,7 @@ export function Compose({
   })
 
   return (
+    <Book.Provider value={book ?? null}>
     <form
       className="flex min-h-0 w-full flex-1 flex-col gap-3"
       onSubmit={(event) => {
@@ -289,6 +300,10 @@ export function Compose({
           renders the same subset back. */}
       {inline ? (
         <TaskSurface editor={editor} className="[&_.ProseMirror]:min-h-24 min-h-24" />
+      ) : plain ? (
+        <div className="min-h-0 flex-1 cursor-text overflow-y-auto" onClick={() => editor?.commands.focus()}>
+          <TaskSurface editor={editor} className="min-h-full [&_.ProseMirror]:min-h-full" />
+        </div>
       ) : (
         // A new message is written inside the card it is sent in (lib/mail/design.ts, Brendan, 2026-10-31): the pale
         // page, the PAX mark, the white card, the subject heading it until the body opens on its own bold line, and the
@@ -327,5 +342,6 @@ export function Compose({
         </Button>
       </div>
     </form>
+    </Book.Provider>
   )
 }
