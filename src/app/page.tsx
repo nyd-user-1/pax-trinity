@@ -20,8 +20,10 @@ export default async function HomePage() {
       <LandingGrid />
       <SwitchboardProvider cards={CARDS} digest={digest}>
         {/* min-h-full + justify-center: the two plates sit at the true middle of the
-            content area, scrolling normally once they outgrow it. */}
-        <div className="relative mx-auto flex min-h-full w-full max-w-[1360px] flex-col justify-center px-6 py-10 sm:px-10 md:px-14">
+            content area, scrolling normally once they outgrow it. The side paddings answer
+            the pane's width (the shell's @container), so a page sharing the screen with the
+            second panel gets a narrow page's paddings. */}
+        <div className="relative mx-auto flex min-h-full w-full max-w-[1360px] flex-col justify-center px-6 py-10 @min-[40rem]:px-10 @min-[48rem]:px-14">
           <RevealFx delay={0.08} translateY={6}>
             <HomeMasthead ledger={LEDGER} />
           </RevealFx>

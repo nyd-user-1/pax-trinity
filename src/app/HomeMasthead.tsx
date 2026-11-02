@@ -50,15 +50,15 @@ export function HomeMasthead({ ledger }: { ledger: LedgerEntry[] }) {
   return (
     // A rounded frame matching the app shell (2026-10-08); the grid inside sits
     // 1px outward so its own edge rules fall under the frame and are clipped.
-    <div className="overflow-hidden rounded-2xl border border-[var(--paper-rule)] bg-[var(--paper)]">
-    <div data-inspect="HomeMasthead" className="-m-px grid grid-cols-1 items-stretch border-t border-b border-[var(--paper-rule)] lg:grid-cols-[auto_1fr]">
-      {/* border-r closes the cell's right edge when the masthead stacks below lg.
+    <div className="@container/mast overflow-hidden rounded-2xl border border-[var(--paper-rule)] bg-[var(--paper)]">
+    <div data-inspect="HomeMasthead" className="-m-px grid grid-cols-1 items-stretch border-t border-b border-[var(--paper-rule)] @min-[48rem]/mast:grid-cols-[auto_1fr]">
+      {/* border-r closes the cell's right edge when the masthead stacks (under 48rem of masthead).
           Side by side the ledger's own border-l closes that seam, so it is
           dropped at lg to avoid a double rule. */}
       {/* The nameplate: plain, no link, no AWS (Brendan, 2026-10-24). The Data cell opens the switchboard. */}
       <div
         data-inspect="Wordmark"
-        className="relative self-stretch flex items-center justify-center border-l border-r lg:border-r-0 border-[var(--paper-rule)] px-6 py-8 sm:px-10 lg:w-[360px]"
+        className="relative self-stretch flex items-center justify-center border-l border-r @min-[48rem]/mast:border-r-0 border-[var(--paper-rule)] px-6 py-8 @min-[30rem]/mast:px-10 @min-[48rem]/mast:w-[360px]"
       >
         {/* The curtain's PAX, drawn live in the nameplate; the stroke takes the plate's ink.
             The draw holds until the curtain lifts (HOLD + TRAIL + SWEEP, load-curtain.tsx) —
@@ -81,7 +81,7 @@ export function HomeMasthead({ ledger }: { ledger: LedgerEntry[] }) {
 
       {/* Bottom-row cells drop border-b so it does not double with the
           container's own bottom rule. */}
-      <div className="grid grid-cols-2 border-t border-l border-[var(--paper-rule)] lg:border-t-0">
+      <div className="grid grid-cols-2 border-t border-l border-[var(--paper-rule)] @min-[48rem]/mast:border-t-0">
         {ledger.map((l, i) => {
           const fig = compact(l.value)
           const [short, full] = SPELL(l.value.toLocaleString('en-US').length)
@@ -133,7 +133,7 @@ export function HomeMasthead({ ledger }: { ledger: LedgerEntry[] }) {
                     },
                   }
                 : {})}
-              className={`@container group/fig relative grid min-h-[7.5rem] min-w-0 items-center overflow-hidden border-r border-[var(--paper-rule)] px-5 py-6 sm:px-7 transition-colors hover:bg-[var(--kind-tint)] ${i < 2 ? 'border-b' : ''} ${i === 0 || i === 1 || i === 3 ? 'cursor-pointer' : ''}`}
+              className={`@container group/fig relative grid min-h-[7.5rem] min-w-0 items-center overflow-hidden border-r border-[var(--paper-rule)] px-5 py-6 @min-[30rem]/mast:px-7 transition-colors hover:bg-[var(--kind-tint)] ${i < 2 ? 'border-b' : ''} ${i === 0 || i === 1 || i === 3 ? 'cursor-pointer' : ''}`}
               /* The word's kind colour, as the boxes of that kind wear it on hover. */
               style={{ '--kind': l.color, '--kind-tint': `color-mix(in oklab, ${l.color} 5%, var(--paper))` } as React.CSSProperties}
             >

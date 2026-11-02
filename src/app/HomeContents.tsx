@@ -98,19 +98,20 @@ export function HomeContents() {
           tools beyond a gap. The boxes scroll inside their own frame, so its
           rounded ends always show; that scroll stops at its end
           (overscroll-contain) rather than spilling into the rail, so the dev
-          tools arrive only from their box. A column is a fifth of the frame on
-          desktop, a half on a tablet, the whole frame on a phone. */}
+          tools arrive only from their box. A column is a fifth of the frame from
+          52rem of frame, a half from 30rem, the whole frame below: the frame's
+          width, not the window's, since the second panel can halve the page. */}
       {/* The composer banner: a notice docked to the plate's top edge, as a chat
           app docks one to its input. It sits outside the rail, so it stays put
           while the plate scrolls sideways. Its foot tucks 16px under the plate, whose
           rounded top corners sit over it, as a chat app's input sits over its banner. A sample (2026-10-08). */}
       {/* The plate keeps its place whether or not the banner shows: the banner is
           out of the flow, anchored above the plate and tucked 16px behind it. */}
-      <div className="relative mt-[72px]">
+      <div className="@container/rail relative mt-[72px]">
       <div
         data-inspect="ContentsPlate"
         ref={rail}
-        className="no-scrollbar flex snap-x snap-mandatory gap-6 overflow-x-auto [--col:100%] sm:[--col:50%] lg:[--col:20%]"
+        className="no-scrollbar flex snap-x snap-mandatory gap-6 overflow-x-auto [--col:100%] [--mcol:100%] @min-[30rem]/rail:[--col:50%] @min-[30rem]/rail:[--mcol:50%] @min-[52rem]/rail:[--col:20%] @min-[52rem]/rail:[--mcol:calc(100%/3)]"
       >
         {/* The frame keeps its rounded corners and sits over the banner's tucked-in foot. */}
         <div className={`${FRAME} relative z-10 w-full bg-[var(--paper)]`}>
@@ -138,7 +139,7 @@ export function HomeContents() {
 
         {/* The dev tools, off screen until the Dev Tools box slides them in. */}
         <div ref={devFrame} className={`${FRAME} w-full`}>
-          <div className="-m-px grid flex-1 grid-cols-1 border-t border-l border-[var(--paper-rule)] sm:grid-cols-2">
+          <div className="-m-px grid flex-1 grid-cols-1 border-t border-l border-[var(--paper-rule)] @min-[38rem]/rail:grid-cols-2">
             {devTools.map((card, i) => (
               <HomeCard key={card.href + card.title} card={card} index={i} category={card.tag} panel={false} large onOpen={() => setOpen(card)} />
             ))}
@@ -148,15 +149,18 @@ export function HomeContents() {
         {/* Slide 4: the six public NYSgpt models on Hugging Face (2026-10-10).
             Standard card size (no `large`) so the frame matches the plate's
             existing height. 3 cols × 2 rows. No dialog — each card is a plain
-            link that opens its HF page in a new tab (panel=false, no onOpen). */}
+            link that opens its HF page in a new tab (panel=false, no onOpen).
+            A narrow frame scrolls its columns sideways, as the boxes' frame does. */}
         <div ref={modelsFrame} className={`${FRAME} w-full`}>
-          <div
-            className="-m-px grid flex-1 border-t border-l border-[var(--paper-rule)]"
-            style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gridTemplateRows: 'repeat(2, minmax(210px, auto))' }}
-          >
-            {HF_MODELS.map((card, i) => (
-              <HomeCard key={card.href + card.title} card={card} index={i} category={card.tag} panel={false} />
-            ))}
+          <div className="no-scrollbar -m-px flex-1 snap-x snap-proximity overflow-x-auto overscroll-x-contain">
+            <div
+              className="grid h-full border-t border-l border-[var(--paper-rule)] [&>*]:snap-start"
+              style={{ width: 'calc(3 * var(--mcol))', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gridTemplateRows: 'repeat(2, minmax(210px, auto))' }}
+            >
+              {HF_MODELS.map((card, i) => (
+                <HomeCard key={card.href + card.title} card={card} index={i} category={card.tag} panel={false} />
+              ))}
+            </div>
           </div>
         </div>
       </div>

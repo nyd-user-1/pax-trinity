@@ -17,9 +17,12 @@ const MONO = { fontFamily: "var(--font-mono), ui-monospace, monospace" } as cons
 /**
  * One type size for every figure. compact() caps results at five characters,
  * so 532, 16.8K, 16.4M and 4.3B all set at the same size — the scale responds
- * to the viewport, never to the length of the number.
+ * to the viewport, never to the length of the number. 33cqw caps it by the
+ * card (its own @container): five monospace characters are 3em, and 3 × 33cqw
+ * stays inside the card however narrow a pane makes it. On a full-width page
+ * the cap is above the viewport size, so it never engages there.
  */
-const FIGURE_SIZE = "clamp(2.4rem, 3.4vw, 3.6rem)";
+const FIGURE_SIZE = "min(clamp(2.4rem, 3.4vw, 3.6rem), 33cqw)";
 
 /** How long a product's check shows once it comes up, before the live dot returns. */
 const CHECK_MS = 2_500;
@@ -136,7 +139,7 @@ export function HomeCard({ card, index, productIndex, category, featured = false
         e.preventDefault();
         setActive((v) => !v);
       }}
-      className={`group/card relative flex ${paper ? "h-[210px] overflow-hidden px-5 py-5" : large ? "min-h-[300px] px-8 py-8 lg:min-h-[421px]" : "min-h-[210px] px-5 py-5"} flex-col border-b border-r border-[var(--paper-rule)] transition-colors [-webkit-tap-highlight-color:transparent] ${
+      className={`@container group/card relative flex min-w-0 overflow-hidden ${paper ? "h-[210px] px-5 py-5" : large ? "min-h-[300px] px-8 py-8 @min-[52rem]/rail:min-h-[421px]" : "min-h-[210px] px-5 py-5"} flex-col border-b border-r border-[var(--paper-rule)] transition-colors [-webkit-tap-highlight-color:transparent] ${
         lit ? "bg-[var(--accent-tint)]" : rest === "grey" ? "bg-[var(--paper-quiet)]" : ""
       }`}
     >
