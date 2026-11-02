@@ -18,6 +18,7 @@ import { currentUser } from "@/lib/auth"
 import { armRecordings } from "@/lib/clips/recorded"
 import { PRETRAININGS } from "@/lib/consensus/pretrainings"
 import { conversation, conversations } from "@/lib/consensus/store"
+import { takenBy } from "@/lib/consensus/taken"
 import { BANK, CONSENSUS_TABS, editTestHref, newTestHref, testHref, testsHref, type ConsensusTab, type Surface } from "@/lib/survey-links"
 import { consensusOrigin, pretrainingOrigin, surveyOrigin, testOrigin } from "@/lib/surveys/question-bank"
 import { SURVEYS } from "@/lib/surveys/catalog"
@@ -28,7 +29,7 @@ import { buttonVariants } from "@/ui/components/nova/button"
 import { QuestionBank } from "./question-bank"
 
 // The pages /survey's rail opens inside its inbox (Brendan, 2026-10-31): Consensus's four surfaces (Questions,
-// where a conversation is voted on; Surveys, the conversations as a directory; Results, what it thought; Admin,
+// where a conversation is voted on; Surveys, the conversations as a directory, each card opening /s/<slug>; Results, what it thought; Admin,
 // for admins) and the message tests (the list, a new test, a test's monitor and its edit form, admins only).
 // They were /consensus and /message-tests; the panels and forms are theirs, unchanged, read from where they stand.
 
@@ -40,15 +41,20 @@ const BALANCE = ["party", "vote2024"]
 /** The page `s` names, for the inbox to show in place of its list; null where there is none (Admin for a non-admin). */
 export async function surfacePage({ s, c, id }: { s: Surface; c?: string; id?: string }): Promise<ReactNode> {
   if (isConsensusTab(s)) {
-    const admin = !!(await currentUser())?.admin
+    const user = await currentUser()
+    const admin = !!user?.admin
     if (s === "admin" && !admin) return null
     const all = await conversations()
     const open = (await conversation(c ?? "")) ?? all[0]
     if (!open) return null
     // The survey's number, the first part of every card's code (components/consensus/question-code.ts).
     const survey = Math.max(0, all.findIndex((x) => x.slug === open.slug)) + 1
-    if (s === "questions") return <QuestionsPanel conversation={open} survey={survey} />
-    if (s === "surveys") return <SurveysPanel all={all} admin={admin} />
+    // No one takes a survey twice (Brendan, 2026-11-02): the reader's kept answers, where they have any.
+    if (s === "questions") return <QuestionsPanel conversation={open} survey={survey} taken={user ? await takenBy(open.slug, user.email) : null} keep={!!user} />
+    if (s === "surveys") {
+      const taken = user ? (await Promise.all(all.map(async (x) => ((await takenBy(x.slug, user.email)) ? x.slug : null)))).filter((x): x is string => !!x) : []
+      return <SurveysPanel all={all} taken={taken} />
+    }
     if (s === "results") return <ResultsPanel conversation={open} survey={survey} />
     return <AdminPanel conversation={open} survey={survey} />
   }

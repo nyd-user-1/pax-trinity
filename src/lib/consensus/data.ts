@@ -140,3 +140,13 @@ export function divisiveStatements(c: Conversation, limit = 6) {
     .sort((a, b) => divisiveness(b) - divisiveness(a))
     .slice(0, limit)
 }
+
+/** The statements a survey asks, in its order: the accepted and unreviewed ones (a pulled one, moderated -1, is
+ *  not asked), the first 25. */
+export const asked = (c: Conversation) => c.statements.filter((s) => s.moderated >= 0).slice(0, 25)
+
+/** The side most of the room took on a statement, passes aside: agree, disagree, or null on a tie. */
+export function roomSide(s: Statement): "agree" | "disagree" | null {
+  const v = share(s.votes)
+  return v.agree > v.disagree ? "agree" : v.disagree > v.agree ? "disagree" : null
+}

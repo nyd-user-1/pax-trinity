@@ -110,7 +110,7 @@ export function StatementCard({ statement, number, code, side, yours }: { statem
       badge={side && <Badge tone="blue">{side === "agree" ? "Agreed" : "Disagreed"}</Badge>}
     >
       <div className="flex flex-col gap-5 px-4 py-5 sm:px-5">
-        <p className="text-[17px] leading-snug text-balance text-slate-900">{statement.text}</p>
+        <p className="text-[17px] leading-snug text-slate-900">{statement.text}</p>
         <StatusBars votes={statement.votes} figures />
       </div>
       {yours && <Fact label="Your answer">{yours}</Fact>}

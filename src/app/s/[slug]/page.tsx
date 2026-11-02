@@ -1,42 +1,67 @@
 import type { Metadata } from "next"
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 
+import { Survey } from "@/components/consensus/survey"
+import { currentUser } from "@/lib/auth"
 import { armForPid } from "@/lib/fielding/engine"
-import { surveyBySlug, SURVEYS } from "@/lib/surveys/catalog"
+import { conversations } from "@/lib/consensus/store"
+import { takenBy } from "@/lib/consensus/taken"
+import { surveyBySlug } from "@/lib/surveys/catalog"
 
 import { SurveyForm } from "./survey-form"
 
 // /s/<slug>: the survey's respondent page, the link a survey is shared by: bare,
 // outside the shell like a message test's /test/<id>, nothing of the product around it.
+// Since 2026-11-02 (Brendan) it is the consensus survey itself, its questions as
+// the two columns of cards; a signed-in reader who has taken it goes to their
+// results at /r/<slug>, since no one takes a survey twice. A Pollster's link,
+// which carries a fielding's pid, still answers the topline's own questions
+// (lib/surveys/catalog.ts), as the fielding mailed it.
 
 type Props = { params: Promise<{ slug: string }>; searchParams: Promise<{ pid?: string | string[] }> }
 
-export function generateStaticParams() {
-  return SURVEYS.map((s) => ({ slug: s.slug }))
-}
+export const dynamic = "force-dynamic"
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  return { title: surveyBySlug((await params).slug)?.title ?? "Survey" }
+  const slug = (await params).slug
+  return { title: (await conversations()).find((c) => c.slug === slug)?.title ?? surveyBySlug(slug)?.title ?? "Survey" }
 }
 
 export default async function RespondPage({ params, searchParams }: Props) {
-  const survey = surveyBySlug((await params).slug)
-  if (!survey) notFound()
-  // A Pollster's link carries a fielding's pid: the open is recorded, and the pid rides with the answers.
+  const slug = (await params).slug
   const raw = (await searchParams).pid
   const pid = typeof raw === "string" && /^[0-9a-z-]{8,64}$/.test(raw) ? raw : null
-  const fielding = pid ? await armForPid(pid).catch(() => null) : null
+  const topline = surveyBySlug(slug)
+  const all = pid && topline ? [] : await conversations()
+  const at = all.findIndex((c) => c.slug === slug)
+  const open = all[at]
+
+  if (!open) {
+    if (!topline) notFound()
+    // A Pollster's link carries a fielding's pid: the open is recorded, and the pid rides with the answers.
+    const fielding = pid ? await armForPid(pid).catch(() => null) : null
+    return (
+      <main className="min-h-dvh bg-pax2-surface text-slate-900">
+        <div className="mx-auto w-full max-w-xl px-5 py-12">
+          {fielding?.closed ? (
+            <div className="flex flex-col gap-3 rounded-xl border border-slate-200 p-8">
+              <h1 className="text-2xl font-semibold tracking-tight text-pax2-blue">{topline.title}</h1>
+              <p className="text-sm text-slate-600">This survey is closed.</p>
+            </div>
+          ) : (
+            <SurveyForm survey={topline} pid={pid} />
+          )}
+        </div>
+      </main>
+    )
+  }
+
+  const user = await currentUser()
+  if (user && (await takenBy(slug, user.email))) redirect(`/r/${encodeURIComponent(slug)}`)
   return (
-    <main className="min-h-dvh bg-pax2-surface text-slate-900">
-      <div className="mx-auto w-full max-w-xl px-5 py-12">
-        {fielding?.closed ? (
-          <div className="flex flex-col gap-3 rounded-xl border border-slate-200 p-8">
-            <h1 className="text-2xl font-semibold tracking-tight text-pax2-blue">{survey.title}</h1>
-            <p className="text-sm text-slate-600">This survey is closed.</p>
-          </div>
-        ) : (
-          <SurveyForm survey={survey} pid={pid} />
-        )}
+    <main className="min-h-dvh bg-pax2-surface text-slate-900" data-not-typeset="true">
+      <div className="mx-auto w-full max-w-[920px] px-5 py-10 md:px-8">
+        <Survey conversation={open} survey={at + 1} keep={!!user} />
       </div>
     </main>
   )

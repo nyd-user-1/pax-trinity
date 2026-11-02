@@ -2,16 +2,19 @@
 
 import * as React from "react"
 
-import { Check, Info, Minus, X } from "lucide-react"
+import { Check, Copy, EllipsisVertical, Info, Minus, X } from "lucide-react"
 
-import { Badge, Block, Fact, FIELD, SMALL, SMALL_PRIMARY } from "@/components/settings/blocks"
+import { KebabMenu, MenuFoot, MenuHeader, MenuRow, MenuSeparator } from "@/components/kebab-menu"
+import { SeriesCard } from "@/components/models/model-card"
+import { Badge, Block, Fact, FIELD, Passage, SMALL, SMALL_PRIMARY } from "@/components/settings/blocks"
 import { Toggle } from "@/components/settings/controls"
 import { StatementCard } from "@/components/consensus/status-bars"
-import { consensusOn, emergedStatements, everyGroupAgrees, share, WALKTHROUGH_BAR, type ConsensusRule, type Conversation, type Statement } from "@/lib/consensus/data"
+import { asked, consensusOn, emergedStatements, everyGroupAgrees, roomSide, share, WALKTHROUGH_BAR, type ConsensusRule, type Conversation, type Statement } from "@/lib/consensus/data"
 import { ViewToggle } from "@/components/bank/pane-bars"
 import { questionCode } from "@/components/consensus/question-code"
 import { SLIDE } from "@/lib/motion"
 import { cn } from "@/lib/utils"
+import type { Taken } from "@/lib/consensus/taken"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/nova/tooltip"
 
 // The vote cards, and a catalogue of what Polis's own gets wrong.
@@ -43,6 +46,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components
 // answer) and the nysgpt walkthrough's (every question, those every group
 // agrees on first, each group's agreement in ten). Voting is local here,
 // against the published conversations.
+//
+// No one takes a survey twice (Brendan, 2026-11-02): a signed-in reader's
+// answers are kept once the last question has one (lib/consensus/taken.ts),
+// and from then on the survey opens on their results (SurveyResults) in place
+// of the cards, with no Review my answers.
 
 type Answer = "agree" | "disagree" | "pass"
 
@@ -56,14 +64,12 @@ const CHOICES: { value: Answer; label: string; icon: React.ReactNode }[] = [
   { value: "pass", label: "Pass", icon: <Minus className="size-4" /> },
 ]
 
-/** `survey` is the conversation's place in the directory, 1 up: the first part of every card's code. */
-export function Survey({ conversation, survey }: { conversation: Conversation; survey: number }) {
-  const queue = React.useMemo(
-    () =>
-      // 1 accepted, 0 unreviewed, -1 pulled.
-      conversation.statements.filter((s) => s.moderated >= 0).slice(0, 25),
-    [conversation]
-  )
+/** `survey` is the conversation's place in the directory, 1 up: the first part of every card's code. `taken` is
+ *  the reader's kept answers, when they have taken it; `keep`, that the reader is signed in and their answers are
+ *  kept once the last question has one. */
+export function Survey({ conversation, survey, taken = null, keep = false }: { conversation: Conversation; survey: number; taken?: Taken | null; keep?: boolean }) {
+  // 1 accepted, 0 unreviewed, -1 pulled.
+  const queue = React.useMemo(() => asked(conversation), [conversation])
   const [answers, setAnswers] = React.useState<Record<number, Answer>>({})
   const [salient, setSalient] = React.useState<Set<number>>(new Set())
   const [written, setWritten] = React.useState("")
@@ -130,6 +136,27 @@ export function Survey({ conversation, survey }: { conversation: Conversation; s
   const done = answered && (review || gone.size === queue.length)
   const [rule, setRule] = useRule()
 
+  // The answers kept once the last question has one; a reader who had already taken it gets their first
+  // answers back from the server. Should keeping fail, the survey ends as it does for a signed-out reader.
+  const [failed, setFailed] = React.useState(false)
+  const sent = React.useRef(false)
+  React.useEffect(() => {
+    if (!keep || !answered || review || sent.current) return
+    sent.current = true
+    fetch(`/api/consensus/${encodeURIComponent(conversation.slug)}/answers`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ answers, salient: [...salient] }),
+    })
+      .then((r) => {
+        if (r.status === 409) window.location.reload()
+        else if (r.status !== 201) setFailed(true)
+      })
+      .catch(() => setFailed(true))
+  }, [keep, answered, review, answers, salient, conversation.slug])
+
+  if (taken) return <SurveyResults conversation={conversation} survey={survey} answers={taken.answers} completedAt={taken.completedAt} />
+
   return (
     <div className="space-y-6">
       <div className="space-y-2">
@@ -165,6 +192,7 @@ export function Survey({ conversation, survey }: { conversation: Conversation; s
               >
                 <Card
                   n={n}
+                  title={conversation.title}
                   code={questionCode(survey, n)}
                   statement={statement}
                   selected={active === statement.tid}
@@ -185,7 +213,13 @@ export function Survey({ conversation, survey }: { conversation: Conversation; s
           })}
       </div>
 
-      {done && (
+      {done && keep && !failed && (
+        <Unfold>
+          <SurveyResults conversation={conversation} survey={survey} answers={answers} />
+        </Unfold>
+      )}
+
+      {done && (!keep || failed) && (
         <Unfold>
           <Emerged
             conversation={conversation}
@@ -304,9 +338,15 @@ function Emerged({
 
 /** The nysgpt walkthrough's results (its app/illustrations/Consensus.tsx), on this survey's votes: every question,
  *  those every group agrees on first (in the order they were asked), each marked as the walkthrough marks them
- *  and showing each group's agreement as ten people, filled for each who agrees. */
+ *  and showing each group's agreement as ten people, filled for each who agrees. Within each, the questions
+ *  where the reader stood with the consensus come first (Brendan, 2026-11-02): with every group, agreeing; with
+ *  the rest, on most of the room's side. */
 function Walkthrough({ conversation, survey, queue, answers }: { conversation: Conversation; survey: number; queue: Statement[]; answers: Record<number, Answer> }) {
-  const record = [...queue.filter(everyGroupAgrees), ...queue.filter((s) => !everyGroupAgrees(s))]
+  const rank = (s: Statement) => {
+    const mine = answers[s.tid]
+    return everyGroupAgrees(s) ? (mine === "agree" ? 0 : 1) : mine && mine === roomSide(s) ? 2 : 3
+  }
+  const record = [...queue].sort((a, b) => rank(a) - rank(b) || queue.indexOf(a) - queue.indexOf(b))
   const agreed = queue.filter(everyGroupAgrees).length
   const groups = conversation.groups
   return (
@@ -319,9 +359,9 @@ function Walkthrough({ conversation, survey, queue, answers }: { conversation: C
         const all = everyGroupAgrees(s)
         const mine = answers[s.tid]
         return (
-          <Block key={s.tid} title={<span className="font-medium">{`Question ${n}`}</span>} badge={<Badge tone={all ? "blue" : "slate"}>{all ? (groups.length === 2 ? "Both agree" : "Every group agrees") : "Split"}</Badge>}>
+          <Block key={s.tid} title={<span className="font-medium">{`Question ${n}`}</span>} badge={<Badge tone={all ? "blue" : "slate"}>{all ? (groups.length === 2 ? "Both agree" : "Every group agrees") : "Split"}</Badge>} action={<QuestionMenu n={n} title={conversation.title} code={questionCode(survey, n)} text={s.text} />}>
             <div className="flex flex-col gap-4 px-4 py-5 sm:px-5">
-              <p className={cn("text-[17px] leading-snug text-balance", all ? "text-slate-900" : "text-slate-500")}>{s.text}</p>
+              <p className={cn("text-[17px] leading-snug", all ? "text-slate-900" : "text-slate-500")}>{s.text}</p>
               <div className="flex flex-wrap gap-x-6 gap-y-2">
                 {groups.map((g, i) => {
                   const t = s.byGroup[String(g.id)]
@@ -330,12 +370,62 @@ function Walkthrough({ conversation, survey, queue, answers }: { conversation: C
                 })}
               </div>
             </div>
-            {mine && <Fact label="Your answer">{ANSWER_LABEL[mine]}</Fact>}
+            {mine && (
+              <Fact label="Your answer">
+                {ANSWER_LABEL[mine]}
+                {mine !== "pass" && roomSide(s) && <span className="text-slate-400">{mine === roomSide(s) ? " · with most of the room" : " · against most of the room"}</span>}
+              </Fact>
+            )}
             <p className="px-4 py-3 text-[13px] text-slate-500 tabular-nums sm:px-5">{questionCode(survey, n)}</p>
           </Block>
         )
       })}
     </div>
+  )
+}
+
+const numbered = (ns: number[]) => (ns.length === 1 ? `Question ${ns[0]}` : `Questions ${ns.slice(0, -1).join(", ")} and ${ns[ns.length - 1]}`)
+
+/** A reader's results once they have taken the survey (Brendan, 2026-11-02): the walkthrough's view of every
+ *  question, under a PAX Series card that sums up where they stood with the consensus. */
+export function SurveyResults({ conversation, survey, answers, completedAt }: { conversation: Conversation; survey: number; answers: Record<number, Answer>; completedAt?: string }) {
+  const queue = asked(conversation)
+  const n = (s: Statement) => queue.indexOf(s) + 1
+  const mine = (s: Statement) => answers[s.tid]
+  const voted = queue.filter((s) => mine(s) && mine(s) !== "pass" && roomSide(s))
+  const withRoom = voted.filter((s) => mine(s) === roomSide(s))
+  const against = voted.filter((s) => mine(s) !== roomSide(s))
+  const passed = queue.filter((s) => mine(s) === "pass").length
+  const everyGroup = queue.filter(everyGroupAgrees)
+  const joined = everyGroup.filter((s) => mine(s) === "agree")
+  const when = completedAt ? new Date(completedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : null
+  const counts = [`sided with most of the room on ${withRoom.length} of the ${queue.length} questions`, against.length ? `went against it on ${against.length}` : null, passed ? `passed on ${passed}` : null].filter(Boolean) as string[]
+  return (
+    <div className="space-y-6">
+      <SeriesCard m={{ name: conversation.title, tagline: when ? `Answered ${when}` : "Answered just now" }}>
+        <Passage>You {counts.length > 1 ? `${counts.slice(0, -1).join(", ")} and ${counts[counts.length - 1]}` : counts[0]}.</Passage>
+        {withRoom.length > 0 && <Passage label="With the room">{numbered(withRoom.map(n))}</Passage>}
+        {against.length > 0 && <Passage label="Against it">{numbered(against.map(n))}</Passage>}
+        <Passage label="Every group agrees">
+          {everyGroup.length ? `${numbered(everyGroup.map(n))}; you agreed on ${joined.length} of ${everyGroup.length}.` : `On none of the ${queue.length}: no question reached ${WALKTHROUGH_BAR}% in every opinion group.`}
+        </Passage>
+      </SeriesCard>
+      <Walkthrough conversation={conversation} survey={survey} queue={queue} answers={answers} />
+    </div>
+  )
+}
+
+/** A question card's three-dot menu, in the model cards' kebab dress: its code to copy, the question to copy,
+ *  and the survey and the question's number at the foot. */
+function QuestionMenu({ n, title, code, text }: { n: number; title: string; code: string; text: string }) {
+  return (
+    <KebabMenu label={`Question ${n} options`} trigger={<EllipsisVertical className="size-4" />} triggerClassName="inline-flex size-8 shrink-0 self-start items-center justify-center rounded-md text-slate-800 outline-none hover:bg-foreground/8 hover:text-foreground aria-expanded:bg-foreground/8">
+      <MenuHeader text={code} copy={code} />
+      <MenuSeparator />
+      <MenuRow icon={<Copy />} label="Copy the question" onClick={() => void navigator.clipboard.writeText(text)} />
+      <MenuSeparator />
+      <MenuFoot title={title} sub={`Question ${n}`} />
+    </KebabMenu>
   )
 }
 
@@ -396,11 +486,11 @@ function Unfold({ children }: { children: React.ReactNode }) {
 
 /** One question as a block: Question and its number on the frame; inside, the statement, the three
  *  answers (the picked one filled) and the mark that it matters, then the question's code. */
-function Card({ n, code, statement, selected, answer, onAnswer, salient, onSalient }: { n: number; code: string; statement: Statement; selected: boolean; answer?: Answer; onAnswer: (a: Answer) => void; salient: boolean; onSalient: () => void }) {
+function Card({ n, title, code, statement, selected, answer, onAnswer, salient, onSalient }: { n: number; title: string; code: string; statement: Statement; selected: boolean; answer?: Answer; onAnswer: (a: Answer) => void; salient: boolean; onSalient: () => void }) {
   return (
-    <Block stretch selected={selected} title={<span className="font-medium">Question {n}</span>}>
+    <Block stretch selected={selected} title={<span className="font-medium">Question {n}</span>} action={<QuestionMenu n={n} title={title} code={code} text={statement.text} />}>
       <div className="flex flex-1 flex-col gap-6 px-4 py-5 sm:px-5">
-        <p className="text-[17px] leading-snug text-balance text-slate-900">{statement.text}</p>
+        <p className="text-[17px] leading-snug text-slate-900">{statement.text}</p>
         <div className="mt-auto grid grid-cols-3 gap-2">
           {CHOICES.map((choice) => {
             const on = answer === choice.value

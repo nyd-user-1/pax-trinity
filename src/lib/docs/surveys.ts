@@ -14,7 +14,7 @@ ${video("guide-survey", "Answer a survey")}
 
 ## Answer the questions
 
-1. Open [Survey](/survey) and choose **Questions**.
+1. Open [Survey](/survey) and choose **Questions**, or open the survey's card under **Surveys**, which takes you to the survey on its own page.
 2. Each card is one statement. Pick **Agree**, **Disagree** or **Pass**.
 3. The card holds a moment so you see your pick, then leaves, and every card after it moves up a place.
 
@@ -22,7 +22,7 @@ Answer in any order. The blue outline marks the next question you haven't answer
 
 ${shot("survey-questions", "The question cards")}
 
-> Changed your mind? Once you finish, **Review my answers** brings every card back.
+> Signed in, your answers are kept once you finish, and you can't take the survey again: it opens on your results from then on. Signed out, nothing is kept, and **Review my answers** brings every card back.
 
 ## Mark what matters
 
@@ -34,7 +34,7 @@ Under a statement's answers, mark it as important to you. It's a second signal, 
 
 ## See the results
 
-When the last card leaves, the results open: the questions consensus emerged on, each with your own answer beside the room's. See [How consensus is decided](${doc("consensus-rules")}).`,
+When the last card leaves, your results open. Signed in, a card at the top sums up where you stood with the room, and under it every question, with those every opinion group agrees on first and, within each, the ones where you stood with the room. Signed out, the results are the questions consensus emerged on, each with your own answer beside the room's. See [How consensus is decided](${doc("consensus-rules")}).`,
   },
   {
     slug: "consensus-rules",
@@ -103,9 +103,9 @@ Votes cast on the cards aren't recorded yet.`,
 
 ${shot("survey", "Survey")}
 
-- [Survey](/survey) holds the consensus conversations as folders, the Toplines group, and the pretraining draft.
+- [Survey](/survey) holds Consensus (Questions, Surveys, Results), the pretrainings, the message tests and the Toplines group.
 - The Open Primaries topline is at [/survey/open-primaries](/survey/open-primaries): its methodology (fielded by, population, mode, interview dates, sample size, margin of error) and each question's shares with its total once anyone has answered. Its questions are America Thinks' own four primaries items.
-- People answer at [/s/open-primaries](/s/open-primaries). **Copy link** and **Open survey** on the topline carry that link, and the Pollster can mail it to a group.
+- The Pollster can mail it to a group: the link it sends answers these four questions. [/s/open-primaries](/s/open-primaries) without that link is the consensus survey.
 
 The topline is self-selected and unweighted.`,
   },
