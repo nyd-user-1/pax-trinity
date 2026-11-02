@@ -14,7 +14,7 @@ ${video("guide-survey", "Answer a survey")}
 
 ## Answer the questions
 
-1. Open [Survey](/survey) and choose **Questions**, or open the survey's card under **Surveys**, which takes you to the survey on its own page.
+1. Open [Survey](/survey) and choose **Questions**, or open the survey's card under **Surveys**, which takes you to the survey on its own page. Its card at the top says who fields it and what it's for; **Begin** takes you to Question 1.
 2. Each card is one statement. Pick **Agree**, **Disagree** or **Pass**.
 3. The card holds a moment so you see your pick, then leaves, and every card after it moves up a place.
 

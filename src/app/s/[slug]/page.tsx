@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation"
 
 import { Survey } from "@/components/consensus/survey"
 import { currentUser } from "@/lib/auth"
+import { aboutOf } from "@/lib/consensus/about"
 import { armForPid } from "@/lib/fielding/engine"
 import { conversations } from "@/lib/consensus/store"
 import { takenBy } from "@/lib/consensus/taken"
@@ -14,7 +15,8 @@ import { SurveyForm } from "./survey-form"
 // (Brendan, 2026-11-02: no page renders outside it unless he asked).
 // Since 2026-11-02 (Brendan) it is the consensus survey itself, its questions as
 // the two columns of cards; a signed-in reader who has taken it goes to their
-// results at /r/<slug>, since no one takes a survey twice. A Pollster's link,
+// results at /r/<slug>, since no one takes a survey twice. Its head is the PAX Series card: the title, the author
+// and what the survey is for (lib/consensus/about.ts), with Begin. A Pollster's link,
 // which carries a fielding's pid, still answers the topline's own questions
 // (lib/surveys/catalog.ts), as the fielding mailed it.
 
@@ -58,7 +60,7 @@ export default async function RespondPage({ params, searchParams }: Props) {
   if (user && (await takenBy(slug, user.email))) redirect(`/r/${encodeURIComponent(slug)}`)
   return (
     <div className="mx-auto w-full max-w-[920px] text-slate-900" data-not-typeset="true">
-      <Survey conversation={open} survey={at + 1} keep={!!user} />
+      <Survey conversation={open} survey={at + 1} keep={!!user} about={aboutOf(open.slug, open.description)} />
     </div>
   )
 }
