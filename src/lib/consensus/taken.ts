@@ -3,7 +3,7 @@ import "server-only"
 import { createHash } from "node:crypto"
 
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb"
-import { DynamoDBDocumentClient, GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb"
+import { DynamoDBDocumentClient, PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb"
 
 import { asked, type Conversation } from "@/lib/consensus/data"
 import { ENV } from "@/lib/tests/responses"
@@ -17,6 +17,8 @@ import { ENV } from "@/lib/tests/responses"
 //
 // The put refuses a second item for the same reader, so the first answers stand. The email itself is not
 // stored. Development and production keep apart by the key's env. A signed-out reader's answers are not kept.
+// The read is a Query on the full key, not a GetItem: the compute roles hold PutItem and Query on the table,
+// not GetItem, and a denied read would show a reader who has taken the survey "Take the survey" again.
 
 const TABLE = process.env.PAX_TRINITY_TEST_RESPONSES_TABLE ?? "pax-trinity-test-responses"
 const client = DynamoDBDocumentClient.from(new DynamoDBClient({ region: process.env.PAX_TRINITY_TABLES_REGION ?? "us-east-2" }), {
@@ -58,8 +60,11 @@ export function validTaken(c: Conversation, body: unknown): { ok: true; answers:
 /** The reader's answers to the survey, or null when they haven't taken it (or the table can't be read). */
 export async function takenBy(slug: string, email: string): Promise<Taken | null> {
   try {
-    const r = await client.send(new GetCommand({ TableName: TABLE, Key: key(slug, email) }))
-    const it = r.Item as TakenItem | undefined
+    const k = key(slug, email)
+    const r = await client.send(
+      new QueryCommand({ TableName: TABLE, KeyConditionExpression: "#t = :t AND #i = :i", ExpressionAttributeNames: { "#t": "test", "#i": "id" }, ExpressionAttributeValues: { ":t": k.test, ":i": k.id }, Limit: 1 }),
+    )
+    const it = r.Items?.[0] as TakenItem | undefined
     return it?.kind === "consensus" ? { answers: it.answers, salient: it.salient ?? [], completedAt: it.completedAt } : null
   } catch (err) {
     console.warn(`consensus answers unreachable (${(err as Error).name})`)
