@@ -3,7 +3,7 @@
   "slug": "open-primaries",
   "title": "Open primaries",
   "topic": "Elections",
-  "description": "Who may vote in a primary, and who pays for it \u2014 statements gathered on one question, voted agree, disagree or pass.",
+  "description": "Who may vote in a primary, and who pays for it — statements gathered on one question, voted agree, disagree or pass.",
   "source": null,
   "stats": {
    "views": 1964,
@@ -769,6 +769,1406 @@
       "disagree": 34,
       "pass": 12,
       "seen": 79
+     }
+    }
+   }
+  ]
+ },
+ {
+  "slug": "money-in-ballot-measures",
+  "title": "Money in ballot measures",
+  "topic": "Elections",
+  "description": "Who pays for ballot-measure campaigns, and what disclosure is owed — statements voted agree, disagree or pass.",
+  "source": null,
+  "stats": {
+   "views": 1317,
+   "voters": 305,
+   "commenters": 43,
+   "statements": 16,
+   "groups": 3,
+   "votes": 4200
+  },
+  "groups": [
+   {
+    "id": 0,
+    "size": 128
+   },
+   {
+    "id": 1,
+    "size": 104
+   },
+   {
+    "id": 2,
+    "size": 73
+   }
+  ],
+  "statements": [
+   {
+    "tid": 0,
+    "text": "A ballot measure's five biggest donors should be printed in the voter guide.",
+    "moderated": 1,
+    "votes": {
+     "agree": 178,
+     "disagree": 37,
+     "pass": 49,
+     "seen": 264
+    },
+    "byGroup": {
+     "0": {
+      "agree": 92,
+      "disagree": 10,
+      "pass": 6,
+      "seen": 108
+     },
+     "1": {
+      "agree": 46,
+      "disagree": 17,
+      "pass": 27,
+      "seen": 90
+     },
+     "2": {
+      "agree": 40,
+      "disagree": 10,
+      "pass": 16,
+      "seen": 66
+     }
+    }
+   },
+   {
+    "tid": 1,
+    "text": "Out-of-state money has no place in a state's ballot measures.",
+    "moderated": 1,
+    "votes": {
+     "agree": 155,
+     "disagree": 93,
+     "pass": 30,
+     "seen": 278
+    },
+    "byGroup": {
+     "0": {
+      "agree": 48,
+      "disagree": 61,
+      "pass": 12,
+      "seen": 121
+     },
+     "1": {
+      "agree": 73,
+      "disagree": 15,
+      "pass": 5,
+      "seen": 93
+     },
+     "2": {
+      "agree": 34,
+      "disagree": 17,
+      "pass": 13,
+      "seen": 64
+     }
+    }
+   },
+   {
+    "tid": 2,
+    "text": "Who funds a measure matters less than what the measure does.",
+    "moderated": 1,
+    "votes": {
+     "agree": 120,
+     "disagree": 100,
+     "pass": 54,
+     "seen": 274
+    },
+    "byGroup": {
+     "0": {
+      "agree": 71,
+      "disagree": 27,
+      "pass": 11,
+      "seen": 109
+     },
+     "1": {
+      "agree": 24,
+      "disagree": 47,
+      "pass": 27,
+      "seen": 98
+     },
+     "2": {
+      "agree": 25,
+      "disagree": 26,
+      "pass": 16,
+      "seen": 67
+     }
+    }
+   },
+   {
+    "tid": 3,
+    "text": "A wealthy donor bankrolling a reform he believes in is civic, not corrupt.",
+    "moderated": 1,
+    "votes": {
+     "agree": 101,
+     "disagree": 100,
+     "pass": 56,
+     "seen": 257
+    },
+    "byGroup": {
+     "0": {
+      "agree": 59,
+      "disagree": 28,
+      "pass": 21,
+      "seen": 108
+     },
+     "1": {
+      "agree": 19,
+      "disagree": 43,
+      "pass": 21,
+      "seen": 83
+     },
+     "2": {
+      "agree": 23,
+      "disagree": 29,
+      "pass": 14,
+      "seen": 66
+     }
+    }
+   },
+   {
+    "tid": 4,
+    "text": "Donors who route money through nonprofits to stay hidden are hiding something.",
+    "moderated": 1,
+    "votes": {
+     "agree": 156,
+     "disagree": 33,
+     "pass": 60,
+     "seen": 249
+    },
+    "byGroup": {
+     "0": {
+      "agree": 54,
+      "disagree": 17,
+      "pass": 24,
+      "seen": 95
+     },
+     "1": {
+      "agree": 61,
+      "disagree": 10,
+      "pass": 22,
+      "seen": 93
+     },
+     "2": {
+      "agree": 41,
+      "disagree": 6,
+      "pass": 14,
+      "seen": 61
+     }
+    }
+   },
+   {
+    "tid": 5,
+    "text": "Every committee for or against a measure should name its donors within a week.",
+    "moderated": 1,
+    "votes": {
+     "agree": 173,
+     "disagree": 32,
+     "pass": 62,
+     "seen": 267
+    },
+    "byGroup": {
+     "0": {
+      "agree": 79,
+      "disagree": 12,
+      "pass": 20,
+      "seen": 111
+     },
+     "1": {
+      "agree": 56,
+      "disagree": 13,
+      "pass": 23,
+      "seen": 92
+     },
+     "2": {
+      "agree": 38,
+      "disagree": 7,
+      "pass": 19,
+      "seen": 64
+     }
+    }
+   },
+   {
+    "tid": 6,
+    "text": "Reform that can only pass with national money is not really local reform.",
+    "moderated": 1,
+    "votes": {
+     "agree": 125,
+     "disagree": 89,
+     "pass": 56,
+     "seen": 270
+    },
+    "byGroup": {
+     "0": {
+      "agree": 38,
+      "disagree": 57,
+      "pass": 25,
+      "seen": 120
+     },
+     "1": {
+      "agree": 61,
+      "disagree": 16,
+      "pass": 17,
+      "seen": 94
+     },
+     "2": {
+      "agree": 26,
+      "disagree": 16,
+      "pass": 14,
+      "seen": 56
+     }
+    }
+   },
+   {
+    "tid": 7,
+    "text": "When both sides spend heavily, the money roughly cancels out.",
+    "moderated": 1,
+    "votes": {
+     "agree": 70,
+     "disagree": 106,
+     "pass": 67,
+     "seen": 243
+    },
+    "byGroup": {
+     "0": {
+      "agree": 29,
+      "disagree": 33,
+      "pass": 30,
+      "seen": 92
+     },
+     "1": {
+      "agree": 24,
+      "disagree": 47,
+      "pass": 20,
+      "seen": 91
+     },
+     "2": {
+      "agree": 17,
+      "disagree": 26,
+      "pass": 17,
+      "seen": 60
+     }
+    }
+   },
+   {
+    "tid": 8,
+    "text": "Voters can judge a measure on its merits no matter who paid for the ads.",
+    "moderated": 1,
+    "votes": {
+     "agree": 112,
+     "disagree": 93,
+     "pass": 68,
+     "seen": 273
+    },
+    "byGroup": {
+     "0": {
+      "agree": 52,
+      "disagree": 33,
+      "pass": 29,
+      "seen": 114
+     },
+     "1": {
+      "agree": 34,
+      "disagree": 36,
+      "pass": 24,
+      "seen": 94
+     },
+     "2": {
+      "agree": 26,
+      "disagree": 24,
+      "pass": 15,
+      "seen": 65
+     }
+    }
+   },
+   {
+    "tid": 9,
+    "text": "Spending caps would do more good than more disclosure.",
+    "moderated": 1,
+    "votes": {
+     "agree": 96,
+     "disagree": 92,
+     "pass": 56,
+     "seen": 244
+    },
+    "byGroup": {
+     "0": {
+      "agree": 36,
+      "disagree": 43,
+      "pass": 24,
+      "seen": 103
+     },
+     "1": {
+      "agree": 36,
+      "disagree": 28,
+      "pass": 17,
+      "seen": 81
+     },
+     "2": {
+      "agree": 24,
+      "disagree": 21,
+      "pass": 15,
+      "seen": 60
+     }
+    }
+   },
+   {
+    "tid": 10,
+    "text": "The press covers who funded a measure more than what it would do.",
+    "moderated": 1,
+    "votes": {
+     "agree": 137,
+     "disagree": 57,
+     "pass": 70,
+     "seen": 264
+    },
+    "byGroup": {
+     "0": {
+      "agree": 71,
+      "disagree": 23,
+      "pass": 24,
+      "seen": 118
+     },
+     "1": {
+      "agree": 37,
+      "disagree": 22,
+      "pass": 26,
+      "seen": 85
+     },
+     "2": {
+      "agree": 29,
+      "disagree": 12,
+      "pass": 20,
+      "seen": 61
+     }
+    }
+   },
+   {
+    "tid": 11,
+    "text": "A hundred small donors mean more than one large one, even at the same total.",
+    "moderated": 1,
+    "votes": {
+     "agree": 142,
+     "disagree": 53,
+     "pass": 51,
+     "seen": 246
+    },
+    "byGroup": {
+     "0": {
+      "agree": 56,
+      "disagree": 21,
+      "pass": 17,
+      "seen": 94
+     },
+     "1": {
+      "agree": 52,
+      "disagree": 22,
+      "pass": 20,
+      "seen": 94
+     },
+     "2": {
+      "agree": 34,
+      "disagree": 10,
+      "pass": 14,
+      "seen": 58
+     }
+    }
+   },
+   {
+    "tid": 12,
+    "text": "National donor networks treating states as laboratories is fine.",
+    "moderated": 1,
+    "votes": {
+     "agree": 83,
+     "disagree": 136,
+     "pass": 43,
+     "seen": 262
+    },
+    "byGroup": {
+     "0": {
+      "agree": 54,
+      "disagree": 45,
+      "pass": 20,
+      "seen": 119
+     },
+     "1": {
+      "agree": 12,
+      "disagree": 54,
+      "pass": 9,
+      "seen": 75
+     },
+     "2": {
+      "agree": 17,
+      "disagree": 37,
+      "pass": 14,
+      "seen": 68
+     }
+    }
+   },
+   {
+    "tid": 13,
+    "text": "It is fair to repeal a reform by outspending its defenders.",
+    "moderated": 1,
+    "votes": {
+     "agree": 71,
+     "disagree": 145,
+     "pass": 58,
+     "seen": 274
+    },
+    "byGroup": {
+     "0": {
+      "agree": 19,
+      "disagree": 74,
+      "pass": 22,
+      "seen": 115
+     },
+     "1": {
+      "agree": 37,
+      "disagree": 36,
+      "pass": 25,
+      "seen": 98
+     },
+     "2": {
+      "agree": 15,
+      "disagree": 35,
+      "pass": 11,
+      "seen": 61
+     }
+    }
+   },
+   {
+    "tid": 14,
+    "text": "Hidden money is a bigger problem in ballot measures than in candidate races.",
+    "moderated": 1,
+    "votes": {
+     "agree": 114,
+     "disagree": 69,
+     "pass": 84,
+     "seen": 267
+    },
+    "byGroup": {
+     "0": {
+      "agree": 51,
+      "disagree": 28,
+      "pass": 32,
+      "seen": 111
+     },
+     "1": {
+      "agree": 33,
+      "disagree": 24,
+      "pass": 30,
+      "seen": 87
+     },
+     "2": {
+      "agree": 30,
+      "disagree": 17,
+      "pass": 22,
+      "seen": 69
+     }
+    }
+   },
+   {
+    "tid": 15,
+    "text": "Public financing should be available to ballot-measure campaigns.",
+    "moderated": 1,
+    "votes": {
+     "agree": 83,
+     "disagree": 117,
+     "pass": 68,
+     "seen": 268
+    },
+    "byGroup": {
+     "0": {
+      "agree": 44,
+      "disagree": 36,
+      "pass": 27,
+      "seen": 107
+     },
+     "1": {
+      "agree": 18,
+      "disagree": 49,
+      "pass": 28,
+      "seen": 95
+     },
+     "2": {
+      "agree": 21,
+      "disagree": 32,
+      "pass": 13,
+      "seen": 66
+     }
+    }
+   }
+  ]
+ },
+ {
+  "slug": "reform-by-ballot-measure",
+  "title": "Reform by ballot measure",
+  "topic": "Elections",
+  "description": "Whether election rules should change by initiative or in the legislature, and what a loss at the polls settles — statements voted agree, disagree or pass.",
+  "source": null,
+  "stats": {
+   "views": 1245,
+   "voters": 344,
+   "commenters": 49,
+   "statements": 15,
+   "groups": 3,
+   "votes": 4365
+  },
+  "groups": [
+   {
+    "id": 0,
+    "size": 141
+   },
+   {
+    "id": 1,
+    "size": 117
+   },
+   {
+    "id": 2,
+    "size": 86
+   }
+  ],
+  "statements": [
+   {
+    "tid": 0,
+    "text": "Changing how elections work is exactly what ballot measures are for.",
+    "moderated": 1,
+    "votes": {
+     "agree": 140,
+     "disagree": 78,
+     "pass": 58,
+     "seen": 276
+    },
+    "byGroup": {
+     "0": {
+      "agree": 68,
+      "disagree": 14,
+      "pass": 22,
+      "seen": 104
+     },
+     "1": {
+      "agree": 34,
+      "disagree": 44,
+      "pass": 26,
+      "seen": 104
+     },
+     "2": {
+      "agree": 38,
+      "disagree": 20,
+      "pass": 10,
+      "seen": 68
+     }
+    }
+   },
+   {
+    "tid": 1,
+    "text": "Election rules are too complicated to settle with a yes-or-no vote.",
+    "moderated": 1,
+    "votes": {
+     "agree": 122,
+     "disagree": 108,
+     "pass": 66,
+     "seen": 296
+    },
+    "byGroup": {
+     "0": {
+      "agree": 25,
+      "disagree": 57,
+      "pass": 29,
+      "seen": 111
+     },
+     "1": {
+      "agree": 63,
+      "disagree": 22,
+      "pass": 21,
+      "seen": 106
+     },
+     "2": {
+      "agree": 34,
+      "disagree": 29,
+      "pass": 16,
+      "seen": 79
+     }
+    }
+   },
+   {
+    "tid": 2,
+    "text": "When voters reject a reform, that should settle it for a decade.",
+    "moderated": 1,
+    "votes": {
+     "agree": 93,
+     "disagree": 148,
+     "pass": 50,
+     "seen": 291
+    },
+    "byGroup": {
+     "0": {
+      "agree": 18,
+      "disagree": 93,
+      "pass": 17,
+      "seen": 128
+     },
+     "1": {
+      "agree": 55,
+      "disagree": 26,
+      "pass": 12,
+      "seen": 93
+     },
+     "2": {
+      "agree": 20,
+      "disagree": 29,
+      "pass": 21,
+      "seen": 70
+     }
+    }
+   },
+   {
+    "tid": 3,
+    "text": "Losing at the ballot once is a reason to rewrite, not to retreat.",
+    "moderated": 1,
+    "votes": {
+     "agree": 152,
+     "disagree": 76,
+     "pass": 62,
+     "seen": 290
+    },
+    "byGroup": {
+     "0": {
+      "agree": 86,
+      "disagree": 14,
+      "pass": 24,
+      "seen": 124
+     },
+     "1": {
+      "agree": 33,
+      "disagree": 46,
+      "pass": 24,
+      "seen": 103
+     },
+     "2": {
+      "agree": 33,
+      "disagree": 16,
+      "pass": 14,
+      "seen": 63
+     }
+    }
+   },
+   {
+    "tid": 4,
+    "text": "Legislators will never fix the system that elected them, so voters must.",
+    "moderated": 1,
+    "votes": {
+     "agree": 156,
+     "disagree": 66,
+     "pass": 53,
+     "seen": 275
+    },
+    "byGroup": {
+     "0": {
+      "agree": 79,
+      "disagree": 9,
+      "pass": 15,
+      "seen": 103
+     },
+     "1": {
+      "agree": 38,
+      "disagree": 42,
+      "pass": 18,
+      "seen": 98
+     },
+     "2": {
+      "agree": 39,
+      "disagree": 15,
+      "pass": 20,
+      "seen": 74
+     }
+    }
+   },
+   {
+    "tid": 5,
+    "text": "A measure that bundles several changes at once deserves to fail.",
+    "moderated": 1,
+    "votes": {
+     "agree": 131,
+     "disagree": 101,
+     "pass": 64,
+     "seen": 296
+    },
+    "byGroup": {
+     "0": {
+      "agree": 33,
+      "disagree": 54,
+      "pass": 27,
+      "seen": 114
+     },
+     "1": {
+      "agree": 64,
+      "disagree": 24,
+      "pass": 20,
+      "seen": 108
+     },
+     "2": {
+      "agree": 34,
+      "disagree": 23,
+      "pass": 17,
+      "seen": 74
+     }
+    }
+   },
+   {
+    "tid": 6,
+    "text": "If a measure needs a long explainer, it does not belong on the ballot.",
+    "moderated": 1,
+    "votes": {
+     "agree": 121,
+     "disagree": 104,
+     "pass": 66,
+     "seen": 291
+    },
+    "byGroup": {
+     "0": {
+      "agree": 29,
+      "disagree": 58,
+      "pass": 27,
+      "seen": 114
+     },
+     "1": {
+      "agree": 62,
+      "disagree": 19,
+      "pass": 22,
+      "seen": 103
+     },
+     "2": {
+      "agree": 30,
+      "disagree": 27,
+      "pass": 17,
+      "seen": 74
+     }
+    }
+   },
+   {
+    "tid": 7,
+    "text": "Repeal campaigns deserve the same respect as the reforms they target.",
+    "moderated": 1,
+    "votes": {
+     "agree": 142,
+     "disagree": 74,
+     "pass": 75,
+     "seen": 291
+    },
+    "byGroup": {
+     "0": {
+      "agree": 41,
+      "disagree": 45,
+      "pass": 26,
+      "seen": 112
+     },
+     "1": {
+      "agree": 60,
+      "disagree": 13,
+      "pass": 32,
+      "seen": 105
+     },
+     "2": {
+      "agree": 41,
+      "disagree": 16,
+      "pass": 17,
+      "seen": 74
+     }
+    }
+   },
+   {
+    "tid": 8,
+    "text": "Another state's loss says nothing about whether reform fits this state.",
+    "moderated": 1,
+    "votes": {
+     "agree": 166,
+     "disagree": 71,
+     "pass": 72,
+     "seen": 309
+    },
+    "byGroup": {
+     "0": {
+      "agree": 81,
+      "disagree": 22,
+      "pass": 30,
+      "seen": 133
+     },
+     "1": {
+      "agree": 41,
+      "disagree": 31,
+      "pass": 24,
+      "seen": 96
+     },
+     "2": {
+      "agree": 44,
+      "disagree": 18,
+      "pass": 18,
+      "seen": 80
+     }
+    }
+   },
+   {
+    "tid": 9,
+    "text": "The side that loses a ballot fight usually lost on the merits.",
+    "moderated": 1,
+    "votes": {
+     "agree": 108,
+     "disagree": 130,
+     "pass": 75,
+     "seen": 313
+    },
+    "byGroup": {
+     "0": {
+      "agree": 25,
+      "disagree": 70,
+      "pass": 36,
+      "seen": 131
+     },
+     "1": {
+      "agree": 53,
+      "disagree": 24,
+      "pass": 24,
+      "seen": 101
+     },
+     "2": {
+      "agree": 30,
+      "disagree": 36,
+      "pass": 15,
+      "seen": 81
+     }
+    }
+   },
+   {
+    "tid": 10,
+    "text": "Getting an initiative on the ballot is already too hard.",
+    "moderated": 1,
+    "votes": {
+     "agree": 109,
+     "disagree": 93,
+     "pass": 78,
+     "seen": 280
+    },
+    "byGroup": {
+     "0": {
+      "agree": 50,
+      "disagree": 25,
+      "pass": 32,
+      "seen": 107
+     },
+     "1": {
+      "agree": 28,
+      "disagree": 42,
+      "pass": 25,
+      "seen": 95
+     },
+     "2": {
+      "agree": 31,
+      "disagree": 26,
+      "pass": 21,
+      "seen": 78
+     }
+    }
+   },
+   {
+    "tid": 11,
+    "text": "Courts should stay out of ballot-measure fights unless rights are at stake.",
+    "moderated": 1,
+    "votes": {
+     "agree": 158,
+     "disagree": 69,
+     "pass": 58,
+     "seen": 285
+    },
+    "byGroup": {
+     "0": {
+      "agree": 57,
+      "disagree": 26,
+      "pass": 23,
+      "seen": 106
+     },
+     "1": {
+      "agree": 63,
+      "disagree": 25,
+      "pass": 21,
+      "seen": 109
+     },
+     "2": {
+      "agree": 38,
+      "disagree": 18,
+      "pass": 14,
+      "seen": 70
+     }
+    }
+   },
+   {
+    "tid": 12,
+    "text": "A narrow loss is a mandate to try again; a blowout is an answer.",
+    "moderated": 1,
+    "votes": {
+     "agree": 162,
+     "disagree": 69,
+     "pass": 73,
+     "seen": 304
+    },
+    "byGroup": {
+     "0": {
+      "agree": 80,
+      "disagree": 25,
+      "pass": 21,
+      "seen": 126
+     },
+     "1": {
+      "agree": 39,
+      "disagree": 29,
+      "pass": 36,
+      "seen": 104
+     },
+     "2": {
+      "agree": 43,
+      "disagree": 15,
+      "pass": 16,
+      "seen": 74
+     }
+    }
+   },
+   {
+    "tid": 13,
+    "text": "States copying each other's reforms is how good ideas spread.",
+    "moderated": 1,
+    "votes": {
+     "agree": 140,
+     "disagree": 58,
+     "pass": 77,
+     "seen": 275
+    },
+    "byGroup": {
+     "0": {
+      "agree": 70,
+      "disagree": 17,
+      "pass": 34,
+      "seen": 121
+     },
+     "1": {
+      "agree": 38,
+      "disagree": 27,
+      "pass": 24,
+      "seen": 89
+     },
+     "2": {
+      "agree": 32,
+      "disagree": 14,
+      "pass": 19,
+      "seen": 65
+     }
+    }
+   },
+   {
+    "tid": 14,
+    "text": "One state's experiment is worth more than ten states' caution.",
+    "moderated": 1,
+    "votes": {
+     "agree": 124,
+     "disagree": 105,
+     "pass": 64,
+     "seen": 293
+    },
+    "byGroup": {
+     "0": {
+      "agree": 71,
+      "disagree": 27,
+      "pass": 21,
+      "seen": 119
+     },
+     "1": {
+      "agree": 26,
+      "disagree": 49,
+      "pass": 20,
+      "seen": 95
+     },
+     "2": {
+      "agree": 27,
+      "disagree": 29,
+      "pass": 23,
+      "seen": 79
+     }
+    }
+   }
+  ]
+ },
+ {
+  "slug": "ranked-choice-voting",
+  "title": "Ranked-choice voting",
+  "topic": "Elections",
+  "description": "Ranking candidates instead of picking one — statements voted agree, disagree or pass.",
+  "source": null,
+  "stats": {
+   "views": 1220,
+   "voters": 276,
+   "commenters": 38,
+   "statements": 14,
+   "groups": 2,
+   "votes": 3263
+  },
+  "groups": [
+   {
+    "id": 0,
+    "size": 154
+   },
+   {
+    "id": 1,
+    "size": 122
+   }
+  ],
+  "statements": [
+   {
+    "tid": 0,
+    "text": "Ranking candidates is no harder than ranking anything else.",
+    "moderated": 1,
+    "votes": {
+     "agree": 106,
+     "disagree": 73,
+     "pass": 44,
+     "seen": 223
+    },
+    "byGroup": {
+     "0": {
+      "agree": 71,
+      "disagree": 15,
+      "pass": 25,
+      "seen": 111
+     },
+     "1": {
+      "agree": 35,
+      "disagree": 58,
+      "pass": 19,
+      "seen": 112
+     }
+    }
+   },
+   {
+    "tid": 1,
+    "text": "The candidate most people can live with should beat the one some people love.",
+    "moderated": 1,
+    "votes": {
+     "agree": 129,
+     "disagree": 70,
+     "pass": 50,
+     "seen": 249
+    },
+    "byGroup": {
+     "0": {
+      "agree": 87,
+      "disagree": 24,
+      "pass": 27,
+      "seen": 138
+     },
+     "1": {
+      "agree": 42,
+      "disagree": 46,
+      "pass": 23,
+      "seen": 111
+     }
+    }
+   },
+   {
+    "tid": 2,
+    "text": "Ranked-choice elections take too long to count.",
+    "moderated": 1,
+    "votes": {
+     "agree": 82,
+     "disagree": 98,
+     "pass": 54,
+     "seen": 234
+    },
+    "byGroup": {
+     "0": {
+      "agree": 34,
+      "disagree": 75,
+      "pass": 27,
+      "seen": 136
+     },
+     "1": {
+      "agree": 48,
+      "disagree": 23,
+      "pass": 27,
+      "seen": 98
+     }
+    }
+   },
+   {
+    "tid": 3,
+    "text": "A ballot that runs out of ranked choices is a voice that vanished.",
+    "moderated": 1,
+    "votes": {
+     "agree": 105,
+     "disagree": 72,
+     "pass": 63,
+     "seen": 240
+    },
+    "byGroup": {
+     "0": {
+      "agree": 45,
+      "disagree": 49,
+      "pass": 31,
+      "seen": 125
+     },
+     "1": {
+      "agree": 60,
+      "disagree": 23,
+      "pass": 32,
+      "seen": 115
+     }
+    }
+   },
+   {
+    "tid": 4,
+    "text": "Ranked choice rewards candidates who reach beyond their base.",
+    "moderated": 1,
+    "votes": {
+     "agree": 133,
+     "disagree": 39,
+     "pass": 39,
+     "seen": 211
+    },
+    "byGroup": {
+     "0": {
+      "agree": 96,
+      "disagree": 11,
+      "pass": 14,
+      "seen": 121
+     },
+     "1": {
+      "agree": 37,
+      "disagree": 28,
+      "pass": 25,
+      "seen": 90
+     }
+    }
+   },
+   {
+    "tid": 5,
+    "text": "If voters cannot say how the winner was chosen, the system failed.",
+    "moderated": 1,
+    "votes": {
+     "agree": 119,
+     "disagree": 48,
+     "pass": 57,
+     "seen": 224
+    },
+    "byGroup": {
+     "0": {
+      "agree": 53,
+      "disagree": 35,
+      "pass": 26,
+      "seen": 114
+     },
+     "1": {
+      "agree": 66,
+      "disagree": 13,
+      "pass": 31,
+      "seen": 110
+     }
+    }
+   },
+   {
+    "tid": 6,
+    "text": "Ranked choice belongs in primaries before it belongs in November.",
+    "moderated": 1,
+    "votes": {
+     "agree": 116,
+     "disagree": 62,
+     "pass": 47,
+     "seen": 225
+    },
+    "byGroup": {
+     "0": {
+      "agree": 64,
+      "disagree": 30,
+      "pass": 28,
+      "seen": 122
+     },
+     "1": {
+      "agree": 52,
+      "disagree": 32,
+      "pass": 19,
+      "seen": 103
+     }
+    }
+   },
+   {
+    "tid": 7,
+    "text": "Candidates are more civil when they want to be your second choice.",
+    "moderated": 1,
+    "votes": {
+     "agree": 144,
+     "disagree": 41,
+     "pass": 65,
+     "seen": 250
+    },
+    "byGroup": {
+     "0": {
+      "agree": 94,
+      "disagree": 12,
+      "pass": 29,
+      "seen": 135
+     },
+     "1": {
+      "agree": 50,
+      "disagree": 29,
+      "pass": 36,
+      "seen": 115
+     }
+    }
+   },
+   {
+    "tid": 8,
+    "text": "A runoff a month later is more honest than an instant one.",
+    "moderated": 1,
+    "votes": {
+     "agree": 83,
+     "disagree": 102,
+     "pass": 52,
+     "seen": 237
+    },
+    "byGroup": {
+     "0": {
+      "agree": 36,
+      "disagree": 82,
+      "pass": 26,
+      "seen": 144
+     },
+     "1": {
+      "agree": 47,
+      "disagree": 20,
+      "pass": 26,
+      "seen": 93
+     }
+    }
+   },
+   {
+    "tid": 9,
+    "text": "Cities should prove ranked choice before any state adopts it.",
+    "moderated": 1,
+    "votes": {
+     "agree": 115,
+     "disagree": 53,
+     "pass": 67,
+     "seen": 235
+    },
+    "byGroup": {
+     "0": {
+      "agree": 51,
+      "disagree": 41,
+      "pass": 43,
+      "seen": 135
+     },
+     "1": {
+      "agree": 64,
+      "disagree": 12,
+      "pass": 24,
+      "seen": 100
+     }
+    }
+   },
+   {
+    "tid": 10,
+    "text": "The major parties oppose ranked choice to protect themselves, not voters.",
+    "moderated": 1,
+    "votes": {
+     "agree": 121,
+     "disagree": 55,
+     "pass": 47,
+     "seen": 223
+    },
+    "byGroup": {
+     "0": {
+      "agree": 92,
+      "disagree": 18,
+      "pass": 20,
+      "seen": 130
+     },
+     "1": {
+      "agree": 29,
+      "disagree": 37,
+      "pass": 27,
+      "seen": 93
+     }
+    }
+   },
+   {
+    "tid": 11,
+    "text": "A 35% plurality winner is a bigger problem than any counting rule.",
+    "moderated": 1,
+    "votes": {
+     "agree": 125,
+     "disagree": 50,
+     "pass": 50,
+     "seen": 225
+    },
+    "byGroup": {
+     "0": {
+      "agree": 77,
+      "disagree": 14,
+      "pass": 20,
+      "seen": 111
+     },
+     "1": {
+      "agree": 48,
+      "disagree": 36,
+      "pass": 30,
+      "seen": 114
+     }
+    }
+   },
+   {
+    "tid": 12,
+    "text": "Ballot design matters more than the counting rule.",
+    "moderated": 1,
+    "votes": {
+     "agree": 93,
+     "disagree": 68,
+     "pass": 68,
+     "seen": 229
+    },
+    "byGroup": {
+     "0": {
+      "agree": 50,
+      "disagree": 42,
+      "pass": 35,
+      "seen": 127
+     },
+     "1": {
+      "agree": 43,
+      "disagree": 26,
+      "pass": 33,
+      "seen": 102
+     }
+    }
+   },
+   {
+    "tid": 13,
+    "text": "Ranked choice should come paired with open primaries or not at all.",
+    "moderated": 1,
+    "votes": {
+     "agree": 88,
+     "disagree": 91,
+     "pass": 79,
+     "seen": 258
+    },
+    "byGroup": {
+     "0": {
+      "agree": 54,
+      "disagree": 47,
+      "pass": 43,
+      "seen": 144
+     },
+     "1": {
+      "agree": 34,
+      "disagree": 44,
+      "pass": 36,
+      "seen": 114
      }
     }
    }
