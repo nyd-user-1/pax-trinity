@@ -1,0 +1,63 @@
+from audience.loaders import polls, releases as R
+
+COLS = [{"group": "", "label": "Total"}, {"group": "Gender", "label": "Male"},
+        {"group": "Gender", "label": "Female"}, {"group": "Party ID", "label": "Dem"},
+        {"group": "Region", "label": "West"}]
+
+
+def q(**kw):
+    base = dict(number="3", title="Trump Job Approval (2 Categories)",
+                wording="Do you approve or disapprove of the way Donald Trump is handling his job as president?",
+                columns=COLS, n=["(1,500)", "(700)", "(800)", "(500)", "(300)"],
+                rows=[{"label": "Approve", "values": ["40%", "45%", "35%", "5%", "38%"]},
+                      {"label": "Disapprove", "values": ["58%", "53%", "63%", "94%", "60%"]},
+                      {"label": "Totals", "values": ["100%"] * 5}])
+    base.update(kw)
+    return base
+
+
+def test_column_map_and_shift():
+    cmap, shifted = R.column_map(COLS)
+    assert cmap == [("all", "all"), ("sex", "Male"), ("sex", "Female"), ("party", "Democrat"), None]
+    assert not shifted
+    _, shifted = R.column_map(COLS[:1] + [{"group": "2016 Vote", "label": "Liberal"}])
+    assert shifted                                    # the header-shift fault
+    _, shifted = R.column_map(COLS[:1] + [{"group": "Party ID", "label": "Ind Rep"}])
+    assert not shifted                                # unknown label: dropped, not a shift
+
+
+def test_clean_question_rules():
+    good = R.clean_question(q(), {})
+    assert [label for label, _ in good["rows"]] == ["Approve", "Disapprove"]   # Totals dropped
+    assert good["n"] == [1500, 700, 800, 500, 300]
+    assert R.clean_question(q(wording="GALLUP POLL SOCIAL SURVEY"), {}) is None
+    assert R.clean_question(q(wording="Immigration policy"), {}) is None      # stem lost
+    assert R.clean_question(q(title=None, wording="What is your age range?"), {}) is None
+    short = q(rows=[{"label": "Approve", "values": ["40%", "45%"]}])
+    assert R.clean_question(short, {}) is None                               # misaligned
+    off = q(rows=[{"label": "Approve", "values": ["40%"] * 5}, {"label": "Disapprove", "values": ["20%"] * 5}])
+    assert R.clean_question(off, {}) is None                                 # Total sums to 60
+    numbered = R.clean_question(q(title=None, wording="1* Do you approve or disapprove of the way President Trump is performing his job?"), {})
+    assert numbered["wording"].startswith("Do you approve")
+
+
+def test_verify_and_repeats():
+    qs = [R.clean_question(q(), {})]
+    vh = [{"answers": [{"choice": "Approve", "pct": 40.0}, {"choice": "Disapprove", "pct": 58.0}]}]
+    assert R.verify(qs, vh) == "verified"
+    vh_lv = [{"answers": [{"choice": "Approve", "pct": 38.0}, {"choice": "Disapprove", "pct": 60.0}]}]
+    assert R.verify(qs, vh_lv) == "verified"         # agrees in another column
+    bad = [{"answers": [{"choice": "Approve", "pct": 50.0}, {"choice": "Disapprove", "pct": 48.0}]}]
+    assert R.verify(qs, bad) == "disagrees"
+    surveys = [{"sha": f"{i:064x}", "pollster": "YouGov", "state": None, "start": f"2026-0{i}-01",
+                "end": f"2026-0{i}-03", "url": "https://example.org/r.pdf",
+                "release": {"name": "CBS News Poll"}, "questions": qs} for i in (1, 2, 3)]
+    surveys.append({**surveys[0], "sha": "f" * 64, "state": "TX"})        # another place
+    reps = R.repeats(surveys)
+    assert [r["construct"] for r in reps] == ["yougov_trump_job_approval_2_categories"]
+    rows = R.rows_of(reps[0])
+    assert {r["geo_code"] for r in rows} == {"US"}
+    assert {(r["subgroup_dim"], r["subgroup_value"]) for r in rows} == {
+        ("all", "all"), ("sex", "Male"), ("sex", "Female"), ("party", "Democrat")}
+    assert all(R.owns(r["source_version"]) for r in rows)
+    assert polls.owned_elsewhere("POLL", rows[0]["source_version"])

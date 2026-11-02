@@ -7,8 +7,8 @@ provenance_url, or with any other required field empty, is rejected and named; t
 
 Each (source, source_version) in the seed is one slice, pruned on rerun. A slice that leaves
 the seed is deleted too, except slices other loaders own: the AP-NORC microdata, the MA town
-returns (loaders/ma_results.py), every VoteHub poll (loaders/votehub.py) and Pew's series
-(loaders/pew.py).
+returns (loaders/ma_results.py), every VoteHub poll (loaders/votehub.py), Pew's series
+(loaders/pew.py) and the pollsters' repeated questions (loaders/releases.py).
 """
 
 from __future__ import annotations
@@ -38,20 +38,21 @@ def owned_elsewhere(source: str, version: str) -> bool:
     """A POLL slice another loader writes, which this one never prunes."""
     from . import apnorc, ma_results, votehub
 
-    from . import pew
+    from . import pew, releases
 
     return ((source, version) == (apnorc.SOURCE, apnorc.SOURCE_VERSION)
             or (source == ma_results.SOURCE
                 and version in {ma_results.source_version(e) for e in ma_results.ELECTIONS})
             or (source == votehub.SOURCE and votehub.owns(version))
-            or (source == pew.SOURCE and pew.owns(version)))
+            or (source == pew.SOURCE and pew.owns(version))
+            or (source == releases.SOURCE and releases.owns(version)))
 
 
 # The POLL source's description, one text for every loader that writes POLL rows.
 POLL_SOURCE = dict(
-    name="Published public-opinion polls: toplines from pollsters' releases, every public poll "
-         "VoteHub compiles, Pew Research Center's published trends, and the AP-NORC May 2016 "
-         "public-use file",
+    name="Published public-opinion polls: toplines and crosstabs from pollsters' releases, every "
+         "public poll VoteHub compiles, Pew Research Center's published trends, and the AP-NORC "
+         "May 2016 public-use file",
     url="https://votehub.com/polls/api/",
     license="Toplines are quoted from each publisher's release, and rights stay with the publisher. "
             "VoteHub's compilation is CC BY 4.0 (credit: VoteHub, https://votehub.com/polls/). "
@@ -59,7 +60,9 @@ POLL_SOURCE = dict(
             "The AP-NORC public-use file is posted for public use; its codebook states no license.",
     access_notes="The open-primaries toplines from audience/seed/open_primary_polls.csv; VoteHub's "
                  "public API (no key), cached in raw/votehub/; Pew's pages and topline PDFs, cached in "
-                 "raw/pew/; the AP-NORC zip, downloaded once into "
+                 "raw/pew/; pollsters' releases as govblock's release reader parsed them (2026-09-25), "
+                 "copied to s3://pax-trinity-audience-613473203863/raw/polls/releases/; "
+                 "the AP-NORC zip, downloaded once into "
                  "raw/apnorc/. Every row carries its publisher's URL in provenance_url.",
 )
 
