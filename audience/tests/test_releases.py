@@ -43,6 +43,10 @@ def test_clean_question_rules():
     assert R.clean_question(off, {}) is None                                 # Total sums to 60
     numbered = R.clean_question(q(title=None, wording="1* Do you approve or disapprove of the way President Trump is performing his job?"), {})
     assert numbered["wording"].startswith("Do you approve")
+    for labels in (["Approve", "Dis-", "Dis- approve"], ["taking vacation this", "Take my vacation"],
+                   ["Perceived motivation", "Perceived motivation Mainly the law"], ["2025 Dec 1-15", "Approve"]):
+        rows = [{"label": l, "values": [f"{100 // len(labels)}%"] * 5} for l in labels]
+        assert R.clean_question(q(rows=rows), {}) is None, labels
     for code in ("CURY2. ", "(A1). ", "Q12. "):
         w = R.clean_question(q(title=None, wording=code + "Do you approve or disapprove of the way Donald Trump is handling his job?"), {})
         assert w["wording"].startswith("Do you approve")

@@ -28,8 +28,9 @@ The gate, per release:
   Per question: verbatim wording (a question, or a statement of eight words or more; not a
   heading in capitals or a battery item that lost its stem), with its numbering stripped; not
   a question about the sample itself (gender, age, race, education, party, past vote, mode);
-  a Total column first; distinct, non-empty answer labels; every row as many values as
-  columns; Total shares summing to 90-110.
+  a Total column first; distinct, non-empty answer labels that don't show a misread table
+  (misread: hyphen fragments, wrapped or lowercase-led labels, one label inside another, dates);
+  every row as many values as columns; Total shares summing to 90-110.
 
 A release stands where its VoteHub polls do: one state's races put it in that state, approval
 and the generic ballot put it in the U.S.; a release whose polls stand in two places is left
@@ -266,6 +267,22 @@ def column_map(columns: list[dict], pollster: str = "") -> tuple[list[tuple[str,
     return out, shifted
 
 
+def misread(rows: list) -> bool:
+    """Answer labels that show the parse misread the table (the 2026-11-02 sample of 20
+    unchecked releases): a label broken at a hyphen ("Dis-", "Dis- approve", Gallup's trend
+    table read sideways), one that starts mid-sentence in lowercase or continues a wrapped
+    label ("taking vacation this", Ipsos; "else? (Wouldn't vote)", Beacon), one that is another
+    with words added ("Perceived motivation" / "... Mainly the law", Marquette's trend table),
+    or a date where an answer belongs (a trend table's rows)."""
+    labels = [label for label, _ in rows]
+    keys = [label.lower() for label in labels]
+    return (any(re.search(r"\w-$|\w- \w", label) for label in labels)
+            or any(label[:1].islower() for label in labels)
+            or any(a != b and b.startswith(a + " ") for a in keys for b in keys)
+            or any(re.match(r"(\d{1,2}/\d|(19|20)\d\d\b|(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]* \d)",
+                            label, re.I) for label in labels))
+
+
 def clean_question(q: dict, release: dict, pollster: str = "") -> dict | None:
     wording = NUMBERING.sub("", re.sub(r"\s+", " ", q.get("wording") or "")).strip()
     title = NUMBERING.sub("", re.sub(r"\s+", " ", q.get("title") or "")).strip() or None
@@ -289,7 +306,7 @@ def clean_question(q: dict, release: dict, pollster: str = "") -> dict | None:
         if len(values) != len(columns):
             return None
         rows.append((label, values))
-    if not rows or len({_key(label) for label, _ in rows}) < len(rows):
+    if not rows or len({_key(label) for label, _ in rows}) < len(rows) or misread(rows):
         return None
     total = [pct(v[0]) for _, v in rows]
     if any(t is None for t in total) or not 90 <= sum(total) <= 110:
