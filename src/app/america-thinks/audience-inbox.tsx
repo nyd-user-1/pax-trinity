@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { Blocks, ClipboardList, Columns3, Maximize2, PanelRight, Pin, PinOff, Star, X } from "lucide-react"
+import { Blocks, ClipboardList, Columns3, Copy, Maximize2, PanelRight, Pin, PinOff, Star, X } from "lucide-react"
 
 import { addToDraft } from "@/lib/consensus/draft"
 import { BankFrame, BankSplit } from "@/components/bank/bank-frame"
@@ -413,6 +413,8 @@ export function AudienceInbox() {
           <MenuSeparator />
           <MenuRow icon={<Maximize2 />} label="Open" onClick={() => open(id, "none")} />
           <MenuRow icon={<PanelRight />} label="Open split view" onClick={() => open(id)} />
+          {/* Copy, as the Question Bank's rows carry it (Brendan, 2026-11-02): the header copies the construct id, this the wording. */}
+          <MenuRow icon={<Copy />} label="Copy the question" onClick={() => void navigator.clipboard.writeText(normalizeWording(wordingOf(id) ?? label(id)))} />
           <MenuSeparator />
           <MenuRow icon={top.includes(id) ? <PinOff /> : <Pin />} label={top.includes(id) ? "Unpin from top" : "Pin to top"} onClick={() => toggle(setTop, id)} />
           <MenuRow icon={<Star className={pinned.includes(id) ? "fill-amber-400 text-amber-400" : undefined} />} label={pinned.includes(id) ? "Unfavorite" : "Favorite"} onClick={() => toggle(setPinned, id)} />
