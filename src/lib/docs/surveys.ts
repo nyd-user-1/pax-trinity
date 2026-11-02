@@ -87,7 +87,7 @@ ${shot("survey-results-surface", "A conversation's results")}
 
 ## Make a question card
 
-On Results, **Make question card** sets the Open Primaries survey's questions beside the statements every group shared and the ones that split them, and hands the card to the [Inbox](/inbox) as a New test for the Pollster.
+On Results, **Make question card** sets the Open Primaries survey's questions beside the statements every group shared and the ones that split them, and hands the card to the [Agentic Inbox](/agentic-inbox) as a New test for the Pollster.
 
 ## Not built yet
 
@@ -136,7 +136,7 @@ Open [Tests](/survey?s=tests) in Survey. A test carries:
 - **Field kit**: the entry link a panel vendor uses, with their respondent id in place of {PID}.
 - **Monitor**: completes per arm against the target.
 
-To field to your own contacts instead, ask the Pollster in the [Inbox](${doc("inbox")}): it mails personal links, reminds, and closes the test at its quota.
+To field to your own contacts instead, ask the Pollster in the [Agentic Inbox](${doc("inbox")}): it mails personal links, reminds, and closes the test at its quota.
 
 ## Close it
 

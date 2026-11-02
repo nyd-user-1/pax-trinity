@@ -65,7 +65,7 @@ const SHOTS = {
   "chat": async () => go("/chat"),
   "clips": async () => go("/clips"),
   "studio": async () => (await go("/studio"), settle(6000)),
-  "inbox": async () => go("/inbox"),
+  "inbox": async () => go("/agentic-inbox"),
   "reports": async () => go("/reports"),
   "data-dictionary": async () => go("/data-dictionary"),
   "block-menu": async () => (await go("/data-dictionary"), await page.locator('button[aria-label="Block options"]').first().click(), settle(500)),

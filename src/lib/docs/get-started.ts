@@ -18,7 +18,7 @@ Everything here serves one loop. Each step has its own page.
 
 1. **Make a video.** Write a script with me in [Chat](/chat) and record it on camera there, or record one in [Clips](/clips).
 2. **Test it.** A message test shows a randomized panel either one video or a placebo, then asks how they would vote. Staff set tests up in [Tests](/survey?s=tests), in Survey.
-3. **Field it.** The Pollster in the [Inbox](/inbox) mails each person in a contact group a link of their own, reminds whoever hasn't finished, and closes the test at its quota or its deadline.
+3. **Field it.** The Pollster in the [Agentic Inbox](/agentic-inbox) mails each person in a contact group a link of their own, reminds whoever hasn't finished, and closes the test at its quota or its deadline.
 4. **Compute the lift.** When a test closes, I weight the respondents to the population's targets and compute each video's lift against the placebo.
 5. **Read it.** The result reads in [Lift](/lift), on the video's panel in Clips, and in [Reports](/reports).
 
@@ -63,7 +63,7 @@ They sound alike, but they answer different questions.
 | Connect a YouTube channel | | Yes | Yes |
 | Answer a survey or test link | Yes | Yes | Yes |
 | Set up, field and close tests | | | Yes |
-| Send mail from the Inbox | | | Yes |
+| Send mail from the Agentic Inbox | | | Yes |
 | Dashboard, Studio, Dev Tools, Schema and ERD | | | Yes |
 
 ## Staff
@@ -98,7 +98,7 @@ Anyone can use the pages without an account, with a free allowance in Chat. See 
 - **Admin** in the sidebar, holding [Dashboard](/dashboard) and [Studio](/studio).
 - In [Survey](/survey), the message [Tests](/survey?s=tests) and Consensus's [Admin](/survey?s=admin).
 - The **Schema** and **ERD** tabs in the [Data dictionary](/data-dictionary).
-- Sending from the [Inbox](/inbox), including **New test** and **New survey**.
+- Sending from the [Agentic Inbox](/agentic-inbox), including **New test** and **New survey**.
 - [Dev Tools](${doc("dev-tools")}) in the Tools panel.`,
   },
   {
@@ -136,7 +136,7 @@ ${shot("sidebar", "The sidebar open beside America Thinks")}
 
 ## The sidebar
 
-The sidebar lists the pages A to Z: America Thinks, Chat, Clips, Data dictionary, Inbox, Lift, Reports and Survey. Staff also see the **Admin** group with Dashboard and Studio.
+The sidebar lists the pages A to Z: Agentic Inbox, America Thinks, Chat, Clips, Data dictionary, Lift, Reports and Survey. Staff also see the **Admin** group with Dashboard and Studio.
 
 - The button at the top left of every page opens and shuts it.
 - Hover a page to see its arrow: it opens that page in a [second panel](${doc("second-panel")}), beside the one you're on.
@@ -152,7 +152,7 @@ ${shot("page-switcher", "The page's name opens a list of every page")}
 
 ## Pages with their own sidebar
 
-America Thinks, Lift, Survey and the Inbox each have a sidebar of their own inside the page: its search, its folders, and its filters. The button in the page's toolbar opens and shuts it.
+America Thinks, Lift, Survey and the Agentic Inbox each have a sidebar of their own inside the page: its search, its folders, and its filters. The button in the page's toolbar opens and shuts it.
 
 ## Search
 
@@ -173,7 +173,7 @@ ${video("guide-second-panel", "Open a page in the second panel")}`,
     body: `Press ⌘K anywhere, or choose the search field under the wordmark.
 
 - Before you type, you see Suggestions, Pages and Commands.
-- Type, and every kind of thing is searched by every word, grouped by kind: pages, commands, America Thinks questions, clips, reports, Lift, tests, surveys, the Inbox, chats, the glossary and the data dictionary.
+- Type, and every kind of thing is searched by every word, grouped by kind: pages, commands, America Thinks questions, clips, reports, Lift, tests, surveys, the Agentic Inbox, chats, the glossary and the data dictionary.
 - ⌘K again lists the picked row's actions: open, open in a new tab, copy link, add to Blocks, ask about it.
 - **Tab**, or **Ask PAX**, turns the search into a question for me. Type @ to point it at a page.
 - The arrows move, Enter runs, Escape steps back and closes.

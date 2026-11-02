@@ -21,6 +21,9 @@ const config: NextConfig = {
       { source: "/break-out", destination: "/outliers", permanent: true },
       // Audience became America Thinks (Brendan, 2026-10-27); the query string carries over.
       { source: "/audience", destination: "/america-thinks", permanent: true },
+      // The Inbox became the Agentic Inbox (Brendan, 2026-11-02): mailed links and muscle memory still land, the
+      // query carried over (a note's View, ?folder=sent&thread=). /api/inbox is the mail's own contract and stays.
+      { source: "/inbox", destination: "/agentic-inbox", permanent: true },
     ]
   },
   // The ledger and the model run on the server; the compute role supplies credentials. Every AWS

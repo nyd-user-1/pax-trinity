@@ -342,7 +342,7 @@ export const TEMPLATES: Template[] = [
     "name": "Inbox flow 1: Three agents",
     "from": "assistant",
     "subject": "Mail between you and three agents",
-    "body": "**Mail between you and three agents**\n\nHi {{RECIPIENT_NAME}},\n\nThe Inbox is mail between you and three agents, each with an address of its own. Send a task and the work comes back as replies on the same thread.\n\n- **The Pollster** fields consensus conversations, surveys and tests to a contact group.\n- **The Analyst** writes the question cards, toplines and readouts.\n- **The Assistant** sends the notices, reminders, digests and onboarding mail, this one included.\n\n[Open the Inbox]({{PAGE_URL}})\n\nAssistant"
+    "body": "**Mail between you and three agents**\n\nHi {{RECIPIENT_NAME}},\n\nThe Agentic Inbox is mail between you and three agents, each with an address of its own. Send a task and the work comes back as replies on the same thread.\n\n- **The Pollster** fields consensus conversations, surveys and tests to a contact group.\n- **The Analyst** writes the question cards, toplines and readouts.\n- **The Assistant** sends the notices, reminders, digests and onboarding mail, this one included.\n\n[Open the Agentic Inbox]({{PAGE_URL}})\n\nAssistant"
   },
   {
     "id": "local-inbox-flow-2-field-a-survey-or-a-test",
@@ -350,7 +350,7 @@ export const TEMPLATES: Template[] = [
     "name": "Inbox flow 2: Field a survey or a test",
     "from": "assistant",
     "subject": "Field a survey or a test",
-    "body": "**Field a survey or a test**\n\nHi {{RECIPIENT_NAME}},\n\nA survey or test runs end to end on one thread:\n\n1. Under **Templates** in the Inbox's sidebar, **New test** or **New survey** opens a request to the Pollster.\n2. Fill in the test or survey, a quota and a close date, and add a group from the address book as a recipient.\n3. The Pollster mails each member a link of their own, tracks who opened, started and finished, and reminds whoever hasn't.\n4. It closes at the quota or the deadline, and the Analyst's readout lands on the same thread.\n\nSending a task needs a staff account.\n\n[Open the Inbox]({{PAGE_URL}})\n\nAssistant"
+    "body": "**Field a survey or a test**\n\nHi {{RECIPIENT_NAME}},\n\nA survey or test runs end to end on one thread:\n\n1. Under **Templates** in the Agentic Inbox's sidebar, **New test** or **New survey** opens a request to the Pollster.\n2. Fill in the test or survey, a quota and a close date, and add a group from the address book as a recipient.\n3. The Pollster mails each member a link of their own, tracks who opened, started and finished, and reminds whoever hasn't.\n4. It closes at the quota or the deadline, and the Analyst's readout lands on the same thread.\n\nSending a task needs a staff account.\n\n[Open the Agentic Inbox]({{PAGE_URL}})\n\nAssistant"
   },
   {
     "id": "local-inbox-flow-3-templates",
@@ -358,7 +358,7 @@ export const TEMPLATES: Template[] = [
     "name": "Inbox flow 3: Templates",
     "from": "assistant",
     "subject": "Start from a template",
-    "body": "**Start from a template**\n\nHi {{RECIPIENT_NAME}},\n\nEvery message that goes out more than once has a template: invitations, reminders, updates, results and account mail. Open **Templates** in the Inbox's sidebar and pick one, and the composer fills with it. The parts in capitals between double braces are the ones you fill in.\n\nEach goes out in the same design: the mark, a white card headed by the message's first line, and its details in a pale panel. This mail started as one.\n\n[Open the Inbox]({{PAGE_URL}})\n\nAssistant"
+    "body": "**Start from a template**\n\nHi {{RECIPIENT_NAME}},\n\nEvery message that goes out more than once has a template: invitations, reminders, updates, results and account mail. Open **Templates** in the Agentic Inbox's sidebar and pick one, and the composer fills with it. The parts in capitals between double braces are the ones you fill in.\n\nEach goes out in the same design: the mark, a white card headed by the message's first line, and its details in a pale panel. This mail started as one.\n\n[Open the Agentic Inbox]({{PAGE_URL}})\n\nAssistant"
   },
   {
     "id": "local-inbox-flow-4-from-a-conversation-to-a-test",
@@ -366,7 +366,7 @@ export const TEMPLATES: Template[] = [
     "name": "Inbox flow 4: From a conversation to a test",
     "from": "assistant",
     "subject": "From a conversation to a test",
-    "body": "**From a conversation to a test**\n\nHi {{RECIPIENT_NAME}},\n\nThe Inbox is where the loop meets. On a consensus survey's **Results** in Survey, **Make question card** sets the Open Primaries survey's questions beside the statements every group shared and the ones that split them, and hands the card to the Inbox as a New test for the Pollster.\n\nFrom there the send runs on one thread, and the readout comes back to it when the test closes. Your notes live here too, under **My notes** in the sidebar.\n\n[Read the Inbox guide]({{SITE_URL}}/docs/inbox)\n\nAssistant"
+    "body": "**From a conversation to a test**\n\nHi {{RECIPIENT_NAME}},\n\nThe Agentic Inbox is where the loop meets. On a consensus survey's **Results** in Survey, **Make question card** sets the Open Primaries survey's questions beside the statements every group shared and the ones that split them, and hands the card to the Agentic Inbox as a New test for the Pollster.\n\nFrom there the send runs on one thread, and the readout comes back to it when the test closes. Your notes live here too, under **My notes** in the sidebar.\n\n[Read the Agentic Inbox guide]({{SITE_URL}}/docs/inbox)\n\nAssistant"
   },
   {
     "id": "local-survey-flow-1-agree-disagree-or-pass",
@@ -398,6 +398,6 @@ export const TEMPLATES: Template[] = [
     "name": "Survey flow 4: Toplines",
     "from": "assistant",
     "subject": "Ask everyone the same questions",
-    "body": "**Ask everyone the same questions**\n\nHi {{RECIPIENT_NAME}},\n\nBeside the conversations, Survey keeps **Toplines**: surveys that ask everyone the same questions, with no video and no comparison group. The Open Primaries topline sets out its methodology and each question's shares, and its questions are America Thinks' own primaries items, worded the same way.\n\n**Copy link** on the topline carries its answer page. Share it yourself, or ask the Pollster in the Inbox to mail it to a group, a link for each member.\n\n[Read about toplines]({{SITE_URL}}/docs/survey-toplines)\n\nAssistant"
+    "body": "**Ask everyone the same questions**\n\nHi {{RECIPIENT_NAME}},\n\nBeside the conversations, Survey keeps **Toplines**: surveys that ask everyone the same questions, with no video and no comparison group. The Open Primaries topline sets out its methodology and each question's shares, and its questions are America Thinks' own primaries items, worded the same way.\n\n**Copy link** on the topline carries its answer page. Share it yourself, or ask the Pollster in the Agentic Inbox to mail it to a group, a link for each member.\n\n[Read about toplines]({{SITE_URL}}/docs/survey-toplines)\n\nAssistant"
   }
 ]

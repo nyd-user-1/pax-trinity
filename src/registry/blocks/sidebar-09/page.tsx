@@ -139,7 +139,7 @@ export default function Page() {
   const [mailbox, setMailbox] = React.useState("me")
   // The address the server reads as "me" (lib/mail/store.ts personMailbox), learned from its first answer.
   const [myBox, setMyBox] = React.useState<string | null>(null)
-  // A link can open a folder and a thread: /inbox?folder=sent&thread=<id> (a note's Compose, after its send).
+  // A link can open a folder and a thread: /agentic-inbox?folder=sent&thread=<id> (a note's Compose, after its send).
   const [folder, setFolder] = React.useState<Folder>(() => {
     const asked = new URLSearchParams(window.location.search).get("folder")
     return asked && asked in TITLES ? (asked as Folder) : "inbox"

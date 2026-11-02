@@ -40,7 +40,7 @@ export const FLOWS: FlowDef[] = [
   },
   {
     id: "inbox",
-    page: "/inbox",
+    page: "/agentic-inbox",
     priority: 5,
     steps: steps(["Inbox flow 1: Three agents", "Inbox flow 2: Field a survey or a test", "Inbox flow 3: Templates", "Inbox flow 4: From a conversation to a test"]),
   },

@@ -285,7 +285,7 @@ export function FloatingNote({ rect, id: firstId, body: firstBody, chat: firstCh
               const key = `note:${id.current}`
               if (!id.current) return
               if (shelf.has(key)) shelf.remove(key)
-              else shelf.add({ key, title: titleOf(body.trim() ? body : chat), path: "/inbox", anchor: `note-${id.current}` })
+              else shelf.add({ key, title: titleOf(body.trim() ? body : chat), path: "/agentic-inbox", anchor: `note-${id.current}` })
             }}
           />
           <MenuRow icon={<MessagesSquare />} label="Ask PAX" onClick={() => askAbout({ context: () => `My note, "${titleOf(body)}":\n\n${body}` })} />

@@ -10,7 +10,7 @@ import { Button } from "@/ui/components/nova/button"
 // Make question card (Brendan, 2026-10-29): Consensus is the question writer.
 // The card puts the bank's normed items (the Open primaries survey's America
 // Thinks questions) beside the statements every group shared and the ones that
-// split them, as agree/disagree items, and hands it to the Inbox as a New test
+// split them, as agree/disagree items, and hands it to the Agentic Inbox as a New test
 // addressed to the Pollster.
 export function MakeQuestionCard({ title, voters, groups, shared, split }: { title: string; voters: string; groups: number; shared: string[]; split: string[] }) {
   const router = useRouter()
@@ -30,7 +30,7 @@ export function MakeQuestionCard({ title, voters, groups, shared, split }: { tit
       "**Close by:** ",
     ].join("\n\n")
     leaveDraft({ to: ["tracker", "group-test-panel"], subject: `New test: ${title}`, body })
-    router.push("/inbox")
+    router.push("/agentic-inbox")
   }
   return (
     <Button size="sm" onClick={make} className="shrink-0 gap-1.5">

@@ -90,10 +90,10 @@ export const KINDS: Record<Kind, { section: string; label: string; icon: LucideI
   test: { section: "Tests", label: "Test", icon: ClipboardList, tint: "#d97706", action: "Open Test" },
   survey: { section: "Surveys", label: "Survey", icon: ListChecks, tint: "#059669", action: "Open Survey" },
   statement: { section: "Consensus", label: "Statement", icon: MessageSquareQuote, tint: "#9333ea", action: "Open Statement" },
-  thread: { section: "Inbox", label: "Thread", icon: Mail, tint: "#0284c7", action: "Open Thread" },
-  agent: { section: "Inbox", label: "Agent", icon: Bot, tint: "#4f46e5", action: "Open Agent" },
-  template: { section: "Inbox", label: "Template", icon: LayoutTemplate, tint: "#0369a1", action: "Open Template" },
-  group: { section: "Inbox", label: "Group", icon: Users, tint: "#0e7490", action: "Open Group" },
+  thread: { section: "Agentic Inbox", label: "Thread", icon: Mail, tint: "#0284c7", action: "Open Thread" },
+  agent: { section: "Agentic Inbox", label: "Agent", icon: Bot, tint: "#4f46e5", action: "Open Agent" },
+  template: { section: "Agentic Inbox", label: "Template", icon: LayoutTemplate, tint: "#0369a1", action: "Open Template" },
+  group: { section: "Agentic Inbox", label: "Group", icon: Users, tint: "#0e7490", action: "Open Group" },
   chat: { section: "Chat", label: "Chat", icon: MessagesSquare, tint: "#1d4ed8", action: "Open Chat" },
   script: { section: "Chat", label: "Script", icon: NotebookPen, tint: "#c2410c", action: "Use Script" },
   voice: { section: "Chat", label: "Voice", icon: AudioLines, tint: "#a21caf", action: "Hear Voice" },
@@ -102,7 +102,7 @@ export const KINDS: Record<Kind, { section: string; label: string; icon: LucideI
 }
 
 /** The sections in the order the palette lists them. */
-export const SECTIONS = ["Pages", "Commands", "America Thinks", "Clips", "Reports", "Lift", "Tests", "Surveys", "Consensus", "Inbox", "Chat", "Glossary", "Data dictionary"]
+export const SECTIONS = ["Pages", "Commands", "America Thinks", "Clips", "Reports", "Lift", "Tests", "Surveys", "Consensus", "Agentic Inbox", "Chat", "Glossary", "Data dictionary"]
 
 const r = (kind: Kind, title: string, subtitle?: string, href?: string, keywords?: string): CommandItem => ({ id: `${kind}:${title}`, kind, title, subtitle, href, keywords })
 
@@ -116,7 +116,7 @@ export const ITEMS: CommandItem[] = [
   r("page", "Data dictionary", "Every table and field", "/data-dictionary"),
   r("page", "Electorate", "Massachusetts registration and turnout", "/electorate"),
   r("page", "Dashboard", "The Delivery Board", "/dashboard", "delivery board partners work requests"),
-  r("page", "Inbox", "The Pollster, the Analyst and the Assistant", "/inbox", "mail agents"),
+  r("page", "Agentic Inbox", "The Pollster, the Analyst and the Assistant", "/agentic-inbox", "mail agents"),
   r("page", "Lift", "Every lift against its placebo", "/lift", "results benchmarks"),
   r("page", "Tests", "Survey", testsHref(), "message tests setup field kit"),
   r("page", "Reports", "Every report as a card", "/reports"),
@@ -127,8 +127,8 @@ export const ITEMS: CommandItem[] = [
   r("command", "New Chat", "Chat", "/chat"),
   r("command", "Record a Video", "Chat · record mode", "/chat?record=1", "camera teleprompter"),
   r("command", "New Test", "Tests", newTestHref(), "message test"),
-  r("command", "New Survey", "Inbox · to the Pollster"),
-  r("command", "Field a Test", "Inbox · to a contact group"),
+  r("command", "New Survey", "Agentic Inbox · to the Pollster"),
+  r("command", "Field a Test", "Agentic Inbox · to a contact group"),
   r("command", "Make a Question Card", "Consensus · from the results"),
   r("command", "Upload a Clip", "Clips"),
   r("command", "Toggle Sidebar", "Shell"),
@@ -200,7 +200,7 @@ export const ITEMS: CommandItem[] = [
   r("statement", "Congress should require states to let unaffiliated voters vote in federal primaries.", "The sharpest divide"),
   r("statement", "Unenrolled voters, the largest group in Massachusetts, should not have to pick a party's ballot to vote in a primary.", "49% agree · 3 groups"),
 
-  // Inbox
+  // Agentic Inbox
   r("thread", "Massachusetts Wave 2 closed, read", "Analyst · Oct 16 · Green +14, DiZoglio and Matt Wilson +11"),
   r("thread", "Massachusetts Wave 3 in the field", "Pollster · today · 12 of 14 finished"),
   r("thread", "Weekly digest", "Assistant · Monday"),
@@ -243,6 +243,6 @@ export const ASK_AT: { label: string; icon: LucideIcon; tint: string }[] = [
   { label: "Chat", icon: Mic, tint: "#1e3a8a" },
   { label: "Reports", icon: FileText, tint: "#1d4ed8" },
   { label: "Consensus", icon: Vote, tint: "#9333ea" },
-  { label: "Inbox", icon: Inbox, tint: "#0284c7" },
+  { label: "Agentic Inbox", icon: Inbox, tint: "#0284c7" },
   { label: "Data dictionary", icon: BookA, tint: "#57534e" },
 ]

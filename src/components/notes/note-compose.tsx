@@ -73,7 +73,7 @@ export function NoteCompose({ body, onBody, onClose }: { body: string; onBody: (
               {sent.threadId && (
                 <>
                   {" · "}
-                  <Link href={`/inbox?folder=sent&thread=${encodeURIComponent(sent.threadId)}`} className="font-medium text-pax2-blue hover:underline">
+                  <Link href={`/agentic-inbox?folder=sent&thread=${encodeURIComponent(sent.threadId)}`} className="font-medium text-pax2-blue hover:underline">
                     View
                   </Link>
                 </>

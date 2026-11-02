@@ -1,5 +1,5 @@
 // The second panel (Brendan, 2026-10-31): a page opened beside the main one, each navigating on its own.
-// The address holds both, /inbox?pane=/data-dictionary, so a reload or a shared link brings back the pair.
+// The address holds both, /agentic-inbox?pane=/data-dictionary, so a reload or a shared link brings back the pair.
 // The panel is this app in a frame: its links, tabs and filters move only the panel, as the main page's
 // move only the main page. Framed, the app shows only the page (EMBED_SCRIPT marks <html>; pax2.css hides
 // the shell's chrome) and tells the shell around it where it has gone (PANE_MESSAGE), which keeps ?pane.

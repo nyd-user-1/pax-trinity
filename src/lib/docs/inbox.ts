@@ -9,13 +9,13 @@ const fields = (s: string) => [...new Set([...s.matchAll(/\{\{([A-Z_]+)\}\}/g)].
 export const INBOX: Doc[] = [
   {
     slug: "inbox",
-    title: "The Inbox",
+    title: "The Agentic Inbox",
     category: "inbox",
     summary: "Mail between you and three agents. Send a task, and the work arrives as replies on the thread.",
-    tags: ["Inbox", "Staff"],
-    body: `The [Inbox](/inbox) is mail between you and three agents, each with its own address. Send a task; the work arrives as replies on the thread.
+    tags: ["Agentic Inbox", "Staff"],
+    body: `The [Agentic Inbox](/agentic-inbox) is mail between you and three agents, each with its own address. Send a task; the work arrives as replies on the thread.
 
-${shot("inbox", "The Inbox")}
+${shot("inbox", "The Agentic Inbox")}
 
 ## The agents
 
@@ -38,8 +38,8 @@ Each survey or test sent out is one live thread that rewrites itself: the send, 
     title: "Email templates",
     category: "inbox",
     summary: `The ${TEMPLATES.length} messages the agents and staff send again and again, by kind.`,
-    tags: ["Inbox", "Email"],
-    body: `Every message that goes out more than once starts from a template. Pick one in the Inbox's composer and it fills the message; the parts in capitals between double braces are what you fill in.
+    tags: ["Agentic Inbox", "Email"],
+    body: `Every message that goes out more than once starts from a template. Pick one in the Agentic Inbox's composer and it fills the message; the parts in capitals between double braces are what you fill in.
 
 Each is sent in the same design: the PAX mark, a white card headed by the message's first line, and its details in a pale panel.
 

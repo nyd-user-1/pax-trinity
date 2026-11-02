@@ -29,7 +29,7 @@ describe("FLOWS", () => {
       ["lift", "/lift", 2],
       ["america-thinks", "/america-thinks", 3],
       ["studio", "/studio", 4],
-      ["inbox", "/inbox", 5],
+      ["inbox", "/agentic-inbox", 5],
       ["survey", "/survey", 6],
     ])
     expect(new Set(FLOWS.map((f) => f.priority)).size).toBe(FLOWS.length)

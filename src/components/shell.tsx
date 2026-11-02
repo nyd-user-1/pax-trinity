@@ -41,7 +41,7 @@ const DiscussionPanel = dynamic(() => import("@/components/discussion-panel").th
 // as a route, off the sidebar.
 // The pages trinity keeps (the 2026-10-27 kill list, /reports since): every other destination renders in place but
 // goes nowhere. /changelog is unpublished pending Brendan's word, reachable by URL alone.
-const LIVE = new Set(["/", "/chat", "/clips", "/america-thinks", "/inbox", "/survey", "/lift", "/reports", "/dashboard", "/data-dictionary", "/docs", "/studio", "/signin", "/signup"])
+const LIVE = new Set(["/", "/chat", "/clips", "/america-thinks", "/agentic-inbox", "/survey", "/lift", "/reports", "/dashboard", "/data-dictionary", "/docs", "/studio", "/signin", "/signup"])
 
 /** `who`: a page not everyone may open shows only to them — "admin" for the admins, "board" for the admins
  *  and the partners (the Delivery Board). */
@@ -58,6 +58,7 @@ const InboxTray = createLucideIcon("InboxTray", [
 ])
 
 const NAV_TREE: (NavLink | NavGroup)[] = [
+  { href: "/agentic-inbox", label: "Agentic Inbox", icon: InboxTray },
   { href: "/america-thinks", label: "America Thinks", icon: Users },
   { href: "/chat", label: "Chat", icon: MessagesSquare },
   { href: "/clips", label: "Clips", icon: Film },
@@ -65,7 +66,6 @@ const NAV_TREE: (NavLink | NavGroup)[] = [
   { href: "/data-dictionary", label: "Data dictionary", icon: BookA },
   // The help center (Brendan, 2026-10-31), in the sidebar and the page switcher as well as the account menu.
   { href: "/docs", label: "Docs", icon: BookOpen },
-  { href: "/inbox", label: "Inbox", icon: InboxTray },
   { href: "/lift", label: "Lift", icon: FlaskConical },
   { href: "/reports", label: "Reports", icon: FileText },
   { href: "/studio", label: "Studio", icon: Clapperboard, who: "admin" },
@@ -77,6 +77,7 @@ const NAV: NavLink[] = NAV_TREE.flatMap((n) => ("children" in n ? n.children : [
 
 // The header names the page; the first match wins, so a deeper route comes before its parent.
 const TITLES: [string, string][] = [
+  ["/agentic-inbox", "Agentic Inbox"],
   ["/v/", "Video"],
   ["/america-thinks", "America Thinks"],
   ["/data-dictionary", "Data dictionary"],
@@ -525,7 +526,7 @@ export function Shell({ children, drawer, signedIn = false, admin = false, super
   const closePanel = () => (panelOpen ? router.back() : pane ? setPane(null) : discuss ? setDiscuss(false) : setAside(null))
   // /chat fills the content card edge to edge, as solar's chat fills its main area; /app/home is the same chat dressed as the home.
   // /studio's Studio frame does too.
-  const full = path === "/" || ["/data-dictionary", "/america-thinks", "/survey", "/lift", "/chat", "/inbox", "/studio", "/docs"].some((p) => path.startsWith(p))
+  const full = path === "/" || ["/data-dictionary", "/america-thinks", "/survey", "/lift", "/chat", "/agentic-inbox", "/studio", "/docs"].some((p) => path.startsWith(p))
   return (
     <PanelCtx.Provider value={panel}>
       <CommandKHost />
