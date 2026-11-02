@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, ChartColumn, ClipboardCheck, Copy, FlaskConical, MessagesSquare, PanelRight, Plus, Shield, Vote } from "lucide-react"
+import { ArrowLeft, ChartColumn, ClipboardCheck, Copy, FlaskConical, Library, MessagesSquare, PanelRight, Plus, Shield, Vote } from "lucide-react"
 
 import { BankFrame, BankSplit, RailToggle } from "@/components/bank/bank-frame"
 import { BankRail, RailGroup, RailRow, RailSearch } from "@/components/bank/bank-rail"
@@ -19,7 +19,7 @@ import { buildInfo } from "@/app/america-thinks/audience-data"
 import { AboutPanel, type About } from "@/app/america-thinks/audience-pane"
 import { QuestionTable } from "@/app/america-thinks/question-table"
 import { fmtNumber } from "@/lib/format"
-import { consensusHref, newTestHref, testsHref, type Surface } from "@/lib/survey-links"
+import { BANK, bankHref, consensusHref, newTestHref, testsHref, type Surface } from "@/lib/survey-links"
 
 // /survey — the second consensus experience on /audience's anatomy: the
 // surveys and pretrainings as the rail's folders, the open one's questions as
@@ -189,6 +189,10 @@ export function SurveyInbox({
           <RailRow href={newTestHref()} on={surface === "new-test"} icon={Plus} label="New test" />
         </RailGroup>
       )}
+      {/* Every question from every survey, test and pretraining, with where it was asked (survey/question-bank.tsx). */}
+      <RailGroup label="Question Bank">
+        <RailRow href={bankHref()} on={surface === BANK} icon={Library} label="All questions" />
+      </RailGroup>
       <RailGroup label="Toplines">
         <p className="px-3 py-2 text-sm text-slate-400">None yet</p>
       </RailGroup>
