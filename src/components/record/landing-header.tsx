@@ -10,6 +10,7 @@ import { useShellPanel } from "@/components/shell"
 import StrokeText from "@/components/stroke-text"
 import { cn } from "@/ui/lib/utils"
 import { whiteButton } from "@/components/white-button"
+import { CircleButton } from "@/ui/components/nova/circle-button"
 
 /** The landing's sticky top bar: transparent over the hero, then white with
  *  the shell's hairline-and-shadow once the feed scrolls beneath it. The feed's
@@ -46,12 +47,12 @@ export function LandingHeader({ signedIn = false, arriveAt = CURTAIN, signIn = f
     >
       {signedIn ? (
         <>
-          <button type="button" onClick={toggleSidebar} aria-label="Toggle sidebar" className={whiteButton("circle")}>
+          <CircleButton type="button" onClick={toggleSidebar} aria-label="Toggle sidebar">
             {sidebarOpen ? <PanelLeftClose className="size-4" strokeWidth={2} /> : <PanelLeftOpen className="size-4" strokeWidth={2} />}
-          </button>
-          <button type="button" onClick={toggleDiscuss} aria-pressed={discuss} aria-label="Open Tools" className={whiteButton("circle")}>
+          </CircleButton>
+          <CircleButton type="button" onClick={toggleDiscuss} aria-pressed={discuss} aria-label="Open Tools">
             <MessagesSquare className="size-4 fill-pax2-lavender text-pax2-blue" />
-          </button>
+          </CircleButton>
         </>
       ) : (
         <>

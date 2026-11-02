@@ -13,7 +13,6 @@ import { useShellPanel } from "@/components/shell"
 import { useHiddenBlocks, useShelf, type PageBlock, type ShelfBlock, type ShelfItem } from "@/lib/home-blocks"
 import { setPageBlockDrag, setShelfDrag } from "@/lib/shelf-drag"
 import { cn } from "@/ui/lib/utils"
-import { whiteButton } from "@/components/white-button"
 import { DEVTOOLS_OPEN, HOUSEKEEPING_OPEN, takeDevTools, takeOpen, usePointer } from "@/components/housekeeping/tool"
 import { LIFT_ANALYSIS_OPEN, LIFT_TOOLS_OPEN, takeToolsOnCards } from "@/lib/lift-analyses"
 import { useDeliverables, type Deliverable } from "@/app/lift/deliverables"
@@ -21,6 +20,7 @@ import { useThemePanel } from "@/components/theme/theme-palette"
 import { STUDIO_OPEN, takeStudio } from "@/lib/studio"
 import { openDrawnNote } from "@/lib/drawn-notes"
 import { TOOLS_OPEN, takeTools } from "@/lib/clips-panel"
+import { CircleButton } from "@/ui/components/nova/circle-button"
 
 // 44b's DiscussionPanel (components/DiscussionPanel.tsx), cut to five doors: Blocks, Chat, Record, Slack and
 // Discord. Blocks is the shelf after Cloudflare's chat canvas: a handful of shorts, and any block added
@@ -409,16 +409,16 @@ export function DiscussionPanel({ onClose: close, admin = false }: { onClose: ()
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {view === "studio" && (
-            <Link href={studio ? `/studio?v=${encodeURIComponent(studio)}` : "/studio"} className={whiteButton("circle")} aria-label="Open the Studio full page" title="Open the Studio full page">
+            <CircleButton render={<Link href={studio ? `/studio?v=${encodeURIComponent(studio)}` : "/studio"} />} nativeButton={false} aria-label="Open the Studio full page" title="Open the Studio full page">
               <Maximize2 className="size-4" />
-            </Link>
+            </CircleButton>
           )}
-          <button type="button" onClick={() => setWide(!wide)} className={whiteButton("circle", "hidden md:inline-flex")} aria-label={wide ? "Narrow the panel" : "Widen the panel"}>
+          <CircleButton type="button" onClick={() => setWide(!wide)} className="hidden md:inline-flex" aria-label={wide ? "Narrow the panel" : "Widen the panel"}>
             {wide ? <Columns3 className="size-4" /> : <Columns2 className="size-4" />}
-          </button>
-          <button type="button" onClick={onClose} className={whiteButton("circle")} aria-label="Close">
+          </CircleButton>
+          <CircleButton type="button" onClick={onClose} aria-label="Close">
             <X className="size-4" />
-          </button>
+          </CircleButton>
         </div>
       </div>
       <div className={cn("flex min-h-0 flex-1 flex-col", view === "welcome" && "overflow-y-auto")}>

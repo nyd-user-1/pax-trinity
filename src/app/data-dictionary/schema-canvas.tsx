@@ -13,6 +13,7 @@ import { whiteButton } from "@/components/white-button"
 import { cn } from "@/ui/lib/utils"
 
 import { FLOW, HEAD_H, ROW_H, TABLES, build, rowY, tableH, type KeyData, type TableData } from "./schema"
+import { CircleButton } from "@/ui/components/nova/circle-button"
 
 // /schema: the audience store on /erd's canvas (components/factory-canvas.tsx), in its dress. One node kind,
 // the table, in the store box's dress with its columns under its name; one line kind, the key, from the
@@ -313,16 +314,16 @@ export function SchemaCanvas() {
           <RotateCcw className="size-4" /> Reset layout
         </button>
       )}
-      <button
+      <CircleButton
         type="button"
         onClick={() => (showing ? openAside(null) : (setView("rows"), panel("rows")))}
         aria-pressed={showing}
         aria-label="Schema"
         title="Schema"
-        className={whiteButton("circle", "absolute right-4 top-4 z-10")}
+        className="absolute right-4 top-4 z-10"
       >
         <Settings2 className="size-4" />
-      </button>
+      </CircleButton>
     </div>
   )
 }

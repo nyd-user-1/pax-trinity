@@ -3,7 +3,9 @@
 import * as React from "react"
 import { ArrowUp, ChevronDown } from "lucide-react"
 
-import { whiteButton, FLOAT } from "@/components/white-button"
+import { FLOAT } from "@/components/white-button"
+import { CircleButton } from "@/ui/components/nova/circle-button"
+import { cn } from "@/ui/lib/utils"
 
 /** The classic circled down-arrow at a section's foot: one tap moves on to what comes next. It leaves
  *  as soon as the reader scrolls. The hero's (no `next`) scrolls a full viewport and comes back once
@@ -37,13 +39,12 @@ export function ScrollCue({ className, next }: { className?: string; next?: stri
     }
   }, [next])
   return (
-    <button
+    <CircleButton
       ref={ref}
       type="button"
       aria-label="Scroll down"
       onClick={() => (next ? document.getElementById(next)?.scrollIntoView({ behavior: "smooth" }) : window.scrollTo({ top: window.innerHeight, behavior: "smooth" }))}
-      className={whiteButton(
-        "circle",
+      className={cn(
         FLOAT,
         // Block-level: inline, it would sit on a text line of the hero's huge font size and drop.
         "absolute bottom-7 left-1/2 flex -translate-x-1/2 transition-[opacity,color,background-color,border-color] duration-500",
@@ -52,7 +53,7 @@ export function ScrollCue({ className, next }: { className?: string; next?: stri
       )}
     >
       <ChevronDown className="size-5" />
-    </button>
+    </CircleButton>
   )
 }
 
@@ -67,17 +68,16 @@ export function ScrollTop() {
     return () => window.removeEventListener("scroll", on)
   }, [])
   return (
-    <button
+    <CircleButton
       type="button"
       aria-label="Back to top"
       onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-      className={whiteButton(
-        "circle",
+      className={cn(
         "fixed bottom-6 right-6 z-50 transition-[opacity,color,background-color,border-color] duration-200",
         shown ? "opacity-100" : "pointer-events-none opacity-0",
       )}
     >
       <ArrowUp className="size-5" />
-    </button>
+    </CircleButton>
   )
 }

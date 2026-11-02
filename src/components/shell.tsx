@@ -15,7 +15,6 @@ import { CommandKHost, openCommandK } from "@/components/command/command-k-host"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/ui/components/nova/dropdown-menu"
 import { cn } from "@/ui/lib/utils"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/ui/components/nova/tooltip"
-import { whiteButton } from "@/components/white-button"
 import { DEVTOOLS_OPEN, HOUSEKEEPING_OPEN, HousekeepingTool, openDevTools } from "@/components/housekeeping/tool"
 import { LIFT_TOOLS_OPEN } from "@/lib/lift-analyses"
 import { useThemePanel } from "@/components/theme/theme-palette"
@@ -29,6 +28,7 @@ import { PaneFrame, PaneSync } from "@/components/pane"
 import { PANE_MESSAGE, PANE_PARAM, isEmbedded, isPanePath } from "@/lib/pane"
 import { useThemeFollow } from "@/lib/theme-client"
 import type { ChipOffer } from "@/lib/question-resolver"
+import { CircleButton } from "@/ui/components/nova/circle-button"
 
 // The discussion panel carries the whole chat (markdown, the Remotion player): it loads the first time it opens,
 // not with every page.
@@ -539,9 +539,9 @@ export function Shell({ children, drawer, signedIn = false, admin = false, super
               </nav>
             </header>
             <div data-chrome onContextMenu={headerMenu("main")} className={cn("relative z-10 hidden min-h-[73px] shrink-0 items-center gap-3 bg-pax2-surface px-5 py-4 shadow-header md:flex")}>
-              <button type="button" onClick={() => setSidebarOpen((v) => !v)} aria-label="Toggle sidebar" className={whiteButton("circle")}>
+              <CircleButton type="button" onClick={() => setSidebarOpen((v) => !v)} aria-label="Toggle sidebar">
                 {sidebarOpen ? <PanelLeftClose className="size-4" strokeWidth={2} /> : <PanelLeftOpen className="size-4" strokeWidth={2} />}
-              </button>
+              </CircleButton>
               {/* /home's title is the context switcher again (restored 2026-10-20); everywhere else it stays plain. */}
               <PageSwitcher title={title} items={findable} />
               {/* The header's empty run is the right-click page switcher's ground, and nothing said so
@@ -559,9 +559,9 @@ export function Shell({ children, drawer, signedIn = false, admin = false, super
               {/* Housekeeping's pointer (Brendan, 2026-10-30): admins comment on any element for the super admin. */}
               {admin && <HousekeepingTool />}
               {/* 44b's DiscussionHeaderButton: the discussion panel opens from every page. */}
-              <button type="button" onClick={() => (setAside(null), setDiscuss((v) => !v))} aria-pressed={discuss} aria-label="Open Tools" className={whiteButton("circle")}>
+              <CircleButton type="button" onClick={() => (setAside(null), setDiscuss((v) => !v))} aria-pressed={discuss} aria-label="Open Tools">
                 <MessagesSquare className="size-4 fill-pax2-lavender text-pax2-blue" />
-              </button>
+              </CircleButton>
               {goTo && <GoToMenu at={goTo} side={goTo.side} here={goTo.here} pages={findable} titleOf={titleFor} onOpen={(href, to) => (to === "pane" ? openPane(href) : router.push(href))} onClose={() => setGoTo(null)} />}
             </div>
             <main className={cn("flex-1", full ? "flex min-h-0 flex-col md:overflow-hidden" : "md:overflow-y-auto")} onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 0)}>
@@ -977,12 +977,12 @@ function AsidePanel({ aside, wide, onWide, onClose }: { aside: Aside; wide: bool
           <p className="truncate font-display text-xl text-slate-900">{aside.title}</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <button type="button" onClick={() => onWide(!wide)} className={whiteButton("circle", "hidden md:inline-flex")} aria-label={wide ? "Narrow the panel" : "Widen the panel"}>
+          <CircleButton type="button" onClick={() => onWide(!wide)} className="hidden md:inline-flex" aria-label={wide ? "Narrow the panel" : "Widen the panel"}>
             {wide ? <Columns3 className="size-4" /> : <Columns2 className="size-4" />}
-          </button>
-          <button type="button" onClick={onClose} className={whiteButton("circle")} aria-label="Close">
+          </CircleButton>
+          <CircleButton type="button" onClick={onClose} aria-label="Close">
             <X className="size-4" />
-          </button>
+          </CircleButton>
         </div>
       </div>
       <div className={cn("min-h-0 flex-1 overflow-y-auto", !aside.flush && "px-6 py-5")}>{aside.body}</div>

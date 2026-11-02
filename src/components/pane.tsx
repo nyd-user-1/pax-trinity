@@ -5,9 +5,9 @@ import { usePathname, useSearchParams } from "next/navigation"
 import { Columns2, Columns3, Maximize2, X } from "lucide-react"
 
 import { cn } from "@/ui/lib/utils"
-import { whiteButton } from "@/components/white-button"
 import { PANE_MESSAGE, PANE_PARAM, isEmbedded, isPanePath } from "@/lib/pane"
 import type { PanelSize } from "@/components/shell"
+import { CircleButton } from "@/ui/components/nova/circle-button"
 
 // The second panel's frame (lib/pane.ts): the right column's header, title and size and close, over the
 // page in its frame. The frame's src is set once per opening; the page moves inside it on its own.
@@ -19,12 +19,12 @@ export function PaneFrame({ src, title, nextSize, onSize, onClose, dragging, fra
         <p className="truncate font-display text-xl text-slate-900">{title}</p>
         <div className="flex shrink-0 items-center gap-2">
           {/* The icon shows the size the next press goes to: a third, half, then the whole area. */}
-          <button type="button" onClick={onSize} className={whiteButton("circle", "hidden md:inline-flex")} aria-label={nextSize === "half" ? "Half the page" : nextSize === "full" ? "Full page" : "A third of the page"}>
+          <CircleButton type="button" onClick={onSize} className="hidden md:inline-flex" aria-label={nextSize === "half" ? "Half the page" : nextSize === "full" ? "Full page" : "A third of the page"}>
             {nextSize === "half" ? <Columns2 className="size-4" /> : nextSize === "full" ? <Maximize2 className="size-4" /> : <Columns3 className="size-4" />}
-          </button>
-          <button type="button" onClick={onClose} className={whiteButton("circle")} aria-label="Close the panel">
+          </CircleButton>
+          <CircleButton type="button" onClick={onClose} aria-label="Close the panel">
             <X className="size-4" />
-          </button>
+          </CircleButton>
         </div>
       </div>
       {/* While the divider is dragged the frame gives up the pointer, or it would swallow the drag. */}

@@ -15,6 +15,7 @@ import {
 import { useShellPanel } from "@/components/shell"
 import { whiteButton } from "@/components/white-button"
 import { cn } from "@/ui/lib/utils"
+import { CircleButton } from "@/ui/components/nova/circle-button"
 
 // /erd (once /pipeline-2): the whole PAX2 factory as one fixed diagram on the xyflow canvas. Six node kinds
 // (door, stage, store, instrument, service, surface) and three edge kinds (flow, loop, planned). Boxes carry
@@ -819,16 +820,16 @@ export function FactoryCanvas() {
           <RotateCcw className="size-4" /> Reset layout
         </button>
       )}
-      <button
+      <CircleButton
         type="button"
         onClick={() => (showing ? openAside(null) : (setView("rows"), panel("rows")))}
         aria-pressed={showing}
         aria-label="Architecture"
         title="Architecture"
-        className={whiteButton("circle", "absolute right-4 top-4 z-10")}
+        className="absolute right-4 top-4 z-10"
       >
         <Settings2 className="size-4" />
-      </button>
+      </CircleButton>
     </div>
   )
 }

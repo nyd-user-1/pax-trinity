@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 
 import { ScrollCue } from "@/components/record/scroll-cue"
 import SplitFlapText from "@/components/split-flap-text"
-import { whiteButton } from "@/components/white-button"
+import { CircleButton } from "@/ui/components/nova/circle-button"
 
 // The hero board, two rows in lockstep: one word per row, every row the same
 // eleven boards, both rows driven through the three messages by one clock so
@@ -99,21 +99,21 @@ export function FlapHero() {
           {/* Under the board, flush with its right edge; out of the flow so the board keeps its centre. */}
           <div className="absolute right-0 top-full mt-4 flex gap-2 text-base">
             {stepped && (
-              <button type="button" aria-label="Previous" onClick={() => turn(-1)} className={whiteButton("circle", "flex size-8")}>
+              <CircleButton type="button" aria-label="Previous" onClick={() => turn(-1)} className="flex size-8">
                 <ChevronLeft className="size-4" />
-              </button>
+              </CircleButton>
             )}
-            <button
+            <CircleButton
               type="button"
               aria-label="Next"
               onClick={() => {
                 turn(1)
                 setStepped(true)
               }}
-              className={whiteButton("circle", "flex size-8")}
+              className="flex size-8"
             >
               <ChevronRight className="size-4" />
-            </button>
+            </CircleButton>
           </div>
         </div>
       ) : (

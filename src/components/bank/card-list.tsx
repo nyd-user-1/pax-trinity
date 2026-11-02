@@ -16,11 +16,11 @@ import {
 } from "@govblock/ui/components/ny4/dropdown-menu"
 import { ScrollArea } from "@govblock/ui/components/ny4/scroll-area"
 import { KebabMenu } from "@/components/kebab-menu"
-import { whiteButton } from "@/components/white-button"
 
 import { BankRail, BankTone, RailToggle } from "./bank-frame"
 import { Marks, type MarkState } from "./marks"
 import { SearchField } from "./pane-bars"
+import { CircleButton } from "@/ui/components/nova/circle-button"
 
 // The middle list in Gmail's anatomy, as Brendan restyled it by hand
 // (2026-10-27, docs/wireframes/inbox-row-changes.png and his later row edit):
@@ -359,19 +359,18 @@ export function CardList({
         </ul>
         {depth < ids.length && <MoreMark onMore={more} />}
       </ScrollArea>
-      <button
+      <CircleButton
         type="button"
         aria-label="Back to top"
         title="Back to top"
         onClick={() => viewport.current?.scrollTo({ top: 0, behavior: "smooth" })}
-        className={whiteButton(
-          "circle",
+        className={cn(
           "absolute right-6 bottom-6 z-20 transition-[opacity,color,background-color,border-color] duration-200",
-          deep ? "opacity-100" : "pointer-events-none opacity-0"
+          deep ? "opacity-100" : "pointer-events-none opacity-0",
         )}
       >
         <ArrowUp className="size-5" />
-      </button>
+      </CircleButton>
     </div>
   )
 }

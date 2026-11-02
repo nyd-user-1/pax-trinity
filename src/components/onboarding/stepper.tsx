@@ -5,11 +5,11 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { ArrowRight, BarChart3, Check, ChevronLeft, Clapperboard, Gauge, LineChart, PenLine, Send, Sparkles, TriangleAlert, Upload, Video } from "lucide-react"
 
 import { linkUpload, myVideos, saveProfile, videoUploadUrl, type Profile } from "@/app/onboarding-actions"
-import { whiteButton } from "@/components/white-button"
 import { ChannelCard, ChannelChip } from "@/components/onboarding/ingest"
 import TextType from "@/components/text-type"
 import type { Progress } from "@/lib/channel-ingest"
 import { cn } from "@/ui/lib/utils"
+import { CircleButton } from "@/ui/components/nova/circle-button"
 
 // The onboarding stepper, after account creation at /signup. Its skeleton is ElevenLabs' app onboarding
 // (elevenlabs.io/app/onboarding): one step at a time in a 451px column, a Skip that turns into Continue
@@ -232,9 +232,9 @@ function Tile({ icon: Icon, label, on, onClick }: { icon: React.ComponentType<{ 
 
 function BackChevron({ onClick }: { onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} aria-label="Back" className={whiteButton("circle")}>
+    <CircleButton type="button" onClick={onClick} aria-label="Back">
       <ChevronLeft className="size-4" />
-    </button>
+    </CircleButton>
   )
 }
 

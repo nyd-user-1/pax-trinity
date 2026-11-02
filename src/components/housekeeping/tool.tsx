@@ -5,8 +5,8 @@ import { createPortal } from "react-dom"
 import { usePathname } from "next/navigation"
 import { Crosshair, X } from "lucide-react"
 
-import { whiteButton } from "@/components/white-button"
 import { describe, describeV2, legacyDescribe } from "./overlay/describe"
+import { CircleButton } from "@/ui/components/nova/circle-button"
 
 // Housekeeping's pointer (Brendan, 2026-10-30): sonar's overlay as PAX's own comment tool. Dev Tools' Sonar
 // starts it, and from then the header's crosshair shows for the tab's session to switch it on and off; sonar
@@ -261,9 +261,9 @@ export function HousekeepingTool() {
         <span data-sonar-exempt className="relative inline-flex">
           <span aria-hidden className="absolute inset-0 animate-ping rounded-full bg-pax2-light-blue/35 [animation-duration:2.2s]" />
           <span aria-hidden className="pointer-events-none absolute -inset-1 rounded-full ring-2 ring-pax2-light-blue/30" />
-          <button type="button" data-sonar-exempt aria-pressed aria-label="Point and Click is on" title="Point and Click is on" className={whiteButton("circle", "relative ring-2 ring-pax2-light-blue")}>
+          <CircleButton type="button" data-sonar-exempt aria-pressed aria-label="Point and Click is on" title="Point and Click is on" className="relative ring-2 ring-pax2-light-blue">
             <Crosshair className="size-4 text-pax2-blue" />
-          </button>
+          </CircleButton>
           <button
             type="button"
             data-sonar-exempt

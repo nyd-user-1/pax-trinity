@@ -6,7 +6,7 @@ import { Columns2, Columns3, Maximize2, X } from "lucide-react"
 
 import { useShellPanel } from "@/components/shell"
 import { cn } from "@/ui/lib/utils"
-import { whiteButton } from "@/components/white-button"
+import { CircleButton } from "@/ui/components/nova/circle-button"
 
 /** The take docks in the shell's right panel; closing returns to the page beneath. A short's title is
  *  its channel: pressing it searches the feed for that channel. */
@@ -45,12 +45,12 @@ export function TakePanel({ title, search, children }: { title: string; search?:
         )}
         <div className="flex shrink-0 items-center gap-2">
           {/* The icon shows the size the next press goes to: a third, half, then the whole area; a dragged split goes to whichever is wider. */}
-          <button type="button" onClick={cycleSize} className={whiteButton("circle", "hidden md:inline-flex")} aria-label={nextSize === "half" ? "Half the page" : nextSize === "full" ? "Full page" : "A third of the page"}>
+          <CircleButton type="button" onClick={cycleSize} className="hidden md:inline-flex" aria-label={nextSize === "half" ? "Half the page" : nextSize === "full" ? "Full page" : "A third of the page"}>
             {nextSize === "half" ? <Columns2 className="size-4" /> : nextSize === "full" ? <Maximize2 className="size-4" /> : <Columns3 className="size-4" />}
-          </button>
-          <button type="button" onClick={() => router.back()} className={whiteButton("circle")} aria-label="Close">
+          </CircleButton>
+          <CircleButton type="button" onClick={() => router.back()} aria-label="Close">
             <X className="size-4" />
-          </button>
+          </CircleButton>
         </div>
       </div>
       <div className="@container flex-1 overflow-y-auto px-6 py-6" onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 0)}>{children}</div>
