@@ -13,6 +13,7 @@ import { questionCode, questionNumbers } from "@/components/consensus/question-c
 import { Button } from "@govblock/ui/components/nova/button"
 import { consensusStatements, divisiveStatements, share, type Conversation } from "@/lib/consensus/data"
 import { readDraft, type SurveyDraft } from "@/lib/consensus/draft"
+import { PRETRAININGS } from "@/lib/consensus/pretrainings"
 import { CONSENSUS, MASSACHUSETTS, statementRows } from "@/lib/consensus/rows"
 import { buildInfo } from "@/app/america-thinks/audience-data"
 import { AboutPanel, type About } from "@/app/america-thinks/audience-pane"
@@ -42,6 +43,8 @@ import { SURVEYS } from "@/lib/surveys/catalog"
 export type SurveyMeta = { slug: string; title: string; statements: number }
 
 const DRAFT = "draft"
+/** A seed pretraining's folder (lib/consensus/pretrainings.ts), apart from the surveys' slugs. */
+const PRE = "pretraining:"
 
 /** The rows' geographies, for the pane's baseline and its names. */
 const GEO_LEVEL = new Map([
@@ -68,7 +71,7 @@ export function SurveyInbox({
 }) {
   const router = useRouter()
   const [draft, setDraft] = React.useState<SurveyDraft | null>(null)
-  // The open folder: a survey's slug (the server's open one) or the draft.
+  // The open folder: a survey's slug (the server's open one), a seed pretraining or the draft.
   const [folder, setFolder] = React.useState<string | null>(open?.slug ?? null)
   const [selected, setSelected] = React.useState<string | null>(null)
   const [split, setSplit] = React.useState<Split>("none")
@@ -88,7 +91,9 @@ export function SurveyInbox({
   }, [openSlug])
   React.useEffect(() => setSelected(null), [folder])
 
-  const onDraft = folder === DRAFT
+  // The open pretraining, the browser's draft or a seed one; its questions are the cards.
+  const pretraining: SurveyDraft | null = folder === DRAFT ? draft : (PRETRAININGS.find((p) => PRE + p.slug === folder) ?? null)
+  const onDraft = folder === DRAFT || !!folder?.startsWith(PRE)
   const verdicts = React.useMemo(() => {
     const m = new Map<number, string>()
     if (!open) return m
@@ -101,12 +106,12 @@ export function SurveyInbox({
   // The open folder's questions in its own order, through the search.
   const ids = React.useMemo(() => {
     const q = query.trim().toLowerCase()
-    const all = onDraft ? (draft?.questions ?? []).map((x, i) => ({ id: String(i), text: x.text })) : (open?.statements ?? []).map((s) => ({ id: String(s.tid), text: s.text }))
+    const all = onDraft ? (pretraining?.questions ?? []).map((x, i) => ({ id: String(i), text: x.text })) : (open?.statements ?? []).map((s) => ({ id: String(s.tid), text: s.text }))
     return all.filter((x) => !q || x.text.toLowerCase().includes(q)).map((x) => x.id)
-  }, [onDraft, draft, open, query])
+  }, [onDraft, pretraining, open, query])
 
   const statementOf = (id: string) => open?.statements.find((s) => String(s.tid) === id) ?? null
-  const draftQuestionOf = (id: string) => draft?.questions[Number(id)] ?? null
+  const draftQuestionOf = (id: string) => pretraining?.questions[Number(id)] ?? null
 
   // The house row's kebab (Brendan, 2026-10-31): the question's code leads and copies, its survey at the foot.
   const rowMenu = (id: string, text: string, code: string | null, foot: string, sub?: string) => (
@@ -127,7 +132,9 @@ export function SurveyInbox({
     if (onDraft) {
       const dq = draftQuestionOf(id)
       const n = dq?.options.length ?? 0
-      return { title: dq?.text ?? "", hint: dq?.text, chip: n ? `${n} ${n === 1 ? "option" : "options"}` : null, menu: dq ? rowMenu(id, dq.text, null, draft?.title ?? "Pretraining") : undefined }
+      // A seed question names its America Thinks source under the pretraining at the menu's foot.
+      const from = dq && "source" in dq ? String(dq.source) : undefined
+      return { title: dq?.text ?? "", hint: dq?.text, chip: n ? `${n} ${n === 1 ? "option" : "options"}` : null, menu: dq ? rowMenu(id, dq.text, null, pretraining?.title ?? "Pretraining", from) : undefined }
     }
     const s = statementOf(id)
     if (!s) return { title: "" }
@@ -149,7 +156,13 @@ export function SurveyInbox({
     if (surface || slug !== open?.slug) router.push(`/survey?c=${encodeURIComponent(slug)}`, { scroll: false })
   }
 
-  const folderName = onDraft ? (draft?.title ?? "Draft survey") : (open?.title ?? "")
+  const folderName = onDraft ? (pretraining?.title ?? "Draft survey") : (open?.title ?? "")
+  // A pretraining opens in the inbox; from one of the rail's pages it brings the inbox back, keeping the
+  // open survey's ?c= so the server's open survey doesn't change and take the folder back.
+  const openPretraining = (key: string) => {
+    setFolder(key)
+    if (surface) router.push(open ? `/survey?c=${encodeURIComponent(open.slug)}` : "/survey", { scroll: false })
+  }
   const rail = (
     <BankRail title="Surveys">
       <RailGroup label="Toplines">
@@ -163,20 +176,10 @@ export function SurveyInbox({
         ))}
       </RailGroup>
       <RailGroup label="Pretrainings">
-        {draft?.questions.length ? (
-          <RailRow
-            on={!surface && onDraft}
-            onClick={() => {
-              setFolder(DRAFT)
-              if (surface) router.push("/survey", { scroll: false })
-            }}
-            icon={FlaskConical}
-            label={draft.title}
-            count={draft.questions.length}
-          />
-        ) : (
-          <p className="px-3 py-2 text-sm text-slate-400">None yet</p>
-        )}
+        {PRETRAININGS.map((p) => (
+          <RailRow key={p.slug} on={!surface && folder === PRE + p.slug} onClick={() => openPretraining(PRE + p.slug)} icon={FlaskConical} label={p.title} count={p.questions.length} />
+        ))}
+        {!!draft?.questions.length && <RailRow on={!surface && folder === DRAFT} onClick={() => openPretraining(DRAFT)} icon={FlaskConical} label={draft.title} count={draft.questions.length} />}
       </RailGroup>
       <RailGroup label="Consensus">
         <RailRow href={consensusHref("questions", open?.slug)} on={surface === "questions"} icon={Vote} label="Questions" />
