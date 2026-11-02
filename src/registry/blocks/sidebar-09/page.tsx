@@ -193,7 +193,7 @@ export default function Page() {
     const staff = PEOPLE_ADDRESSES.find((p) => p.email.toLowerCase() === email.toLowerCase())
     return { box: "me", name: staff?.name ?? account?.name ?? (email.split("@")[0] || "My inbox"), email, image: staff?.image }
   }, [myBox, account])
-  const owner: Owner = React.useMemo(() => ownersFor(me).find((o) => o.box === mailbox) ?? me, [me, mailbox])
+  const owner: Owner = React.useMemo(() => ownersFor(me, superAdmin).find((o) => o.box === mailbox) ?? me, [me, mailbox, superAdmin])
   const mine = mailbox === "me"
 
   // The drafts, this browser's; a question card handed over from /consensus opens as a New test.

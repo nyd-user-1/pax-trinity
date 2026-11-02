@@ -12,6 +12,8 @@ import { surveyItems, type SurveyItem } from "@/lib/surveys/responses"
 import { ENV, itemsFor, type RecordItem } from "@/lib/tests/responses"
 import { getTest } from "@/lib/tests/store"
 import { PLACEBO } from "@/lib/tests/types"
+import { orgBox } from "@/lib/partners/mailboxes"
+import { TEST_SPONSOR, TOPLINE_SPONSOR } from "@/lib/partners/sponsors"
 
 // The Pollster's sends (Brendan, 2026-10-29; docs/briefs/loop-agent.md).
 // A survey or a test goes to a contact group: every member gets a link of
@@ -114,7 +116,24 @@ export async function startSend(o: { type: "test" | "survey"; target: string; gr
     else held++
     await record(def.fid, { kind: "invite", pid, email: member.email, name: member.name, arm: assigned[i], at: new Date().toISOString(), held: !r.sent.length || undefined, error: r.error })
   }
+  // The sponsor's organization hears it went out, in its own mailbox in the app (never mailed, lib/mail/send.ts).
+  const org = sponsorBox(def)
+  if (org)
+    await sendMail({
+      from: "tracker",
+      to: [org],
+      subject: `Out in the field: ${title}`,
+      markdown: [`${title} went out today to ${group.name}: ${sent} ${sent === 1 ? "invitation" : "invitations"}${held ? `, ${held} held` : ""}. It closes ${day(def.closeAt)} or at its quota, whichever comes first.`, "I'll write when it closes; the Analyst's readout follows.", "Pollster"].join("\n\n"),
+      base: o.base,
+    }).catch((e: Error) => console.error("send: the sponsor's notice wasn't kept", e.message))
   return { fid: def.fid, sent, held }
+}
+
+/** The sponsor's organization mailbox for a send's instrument (lib/partners/sponsors.ts), where its notes and
+ *  readout land in the app; none when no partner sponsors it. */
+function sponsorBox(def: Pick<SendDef, "type" | "target">): string | null {
+  const org = def.type === "test" ? TEST_SPONSOR[def.target] : TOPLINE_SPONSOR[def.target]
+  return orgBox(org)?.box ?? null
 }
 
 type Answer = { pid: string; arm?: string; answers: Record<string, string>; comprehensionCorrect?: boolean; completedAt: string }
@@ -294,7 +313,17 @@ async function finish(l: Loaded, reason: ClosedEvent["reason"], base: string, ar
   const results = await compute(s.def, l.answers.finished)
   if (!(await recordOnce(s.def.fid, "report", { kind: "report", at: new Date().toISOString(), results }))) return false
   const subject = s.def.type === "test" ? `Results: ${s.def.title}` : `Topline: ${s.def.title}`
-  await sendMail({ from: "bill-reader", to: STAFF, subject, markdown: readout(s.def, results, armName, video), base })
+  // The readout goes to the staff and, kept in the app, to the sponsor's organization (lib/partners/mailboxes.ts).
+  const org = sponsorBox(s.def)
+  await sendMail({ from: "bill-reader", to: [...STAFF, ...(org ? [org] : [])], subject, markdown: readout(s.def, results, armName, video), base })
+  if (org)
+    await sendMail({
+      from: "tracker",
+      to: [org],
+      subject: `Closed: ${s.def.title}`,
+      markdown: [`${s.def.title} closed ${reason === "quota" ? "at its quota" : reason === "deadline" ? "at its deadline" : "by hand"} with ${results.n} completes from ${s.def.groupName}. The Analyst's readout is in this inbox.`, "Pollster"].join("\n\n"),
+      base,
+    }).catch((e: Error) => console.error("send: the sponsor's close note wasn't kept", e.message))
   await sendMail({
     from: "assistant",
     to: STAFF,

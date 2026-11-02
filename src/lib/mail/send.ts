@@ -3,6 +3,7 @@ import "server-only"
 import { screen } from "@/lib/mail/allowlist"
 import { designedHtml, plainHtml } from "@/lib/mail/design"
 import { AGENT_MAILBOX, personMailbox, platformMailbox, recordMessage } from "@/lib/mail/store"
+import { orgBox } from "@/lib/partners/mailboxes"
 
 // Real mail, one place for it (2026-10-29). An agent sends from its own
 // AgentMail inbox; a person through Resend from their nysgpt.com address. Every
@@ -81,10 +82,15 @@ function senderOf(from: string): { mailbox: string; party: { name: string; email
  *  A reply passes its thread's id; a template's id rides along to the kept message. */
 export async function sendMail({ from, to, cc = [], subject, markdown, base, threadId, templateId }: { from: string; to: string[]; cc?: string[]; subject: string; markdown: string; base: string; threadId?: string; templateId?: string }): Promise<Sent> {
   // An agent among the recipients (its slug or its AgentMail address) is the platform's own mailbox: the
-  // message is kept in it and never mailed, so a send to an agent alone goes out to no one (2026-11-02).
-  const agent = (a: string) => !!AGENT_MAILBOX[platformMailbox(a) ?? ""]
-  const internalTo = [...new Set(to.filter(agent).map((a) => AGENT_MAILBOX[platformMailbox(a)!].email))]
-  const internalCc = [...new Set(cc.filter(agent).map((a) => AGENT_MAILBOX[platformMailbox(a)!].email))].filter((a) => !internalTo.includes(a))
+  // message is kept in it and never mailed, so a send to an agent alone goes out to no one (2026-11-02). A partner
+  // organization's mailbox is the same (org:<id> or its address, lib/partners/mailboxes.ts): kept, never mailed.
+  const internalOf = (a: string) => {
+    const box = platformMailbox(a) ?? ""
+    return AGENT_MAILBOX[box]?.email ?? orgBox(box)?.email ?? null
+  }
+  const agent = (a: string) => internalOf(a) !== null
+  const internalTo = [...new Set(to.filter(agent).map((a) => internalOf(a)!))]
+  const internalCc = [...new Set(cc.filter(agent).map((a) => internalOf(a)!))].filter((a) => !internalTo.includes(a))
   to = to.filter((a) => !agent(a))
   cc = cc.filter((a) => !agent(a))
   const a = screen(to)

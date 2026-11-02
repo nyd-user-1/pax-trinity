@@ -2,6 +2,8 @@ import { NextResponse } from "next/server"
 
 import { currentUser } from "@/lib/auth"
 import { isFolderView, mailboxRows, patchThread, personMailbox, returnSnoozed, threadPatchOf, threadsOf, unreadCounts } from "@/lib/mail/store"
+import { orgBox } from "@/lib/partners/mailboxes"
+import { lensOf } from "@/lib/partners/sponsors"
 
 // The Inbox's kept mail (lib/mail/store.ts, Brendan 2026-11-02): a mailbox's folder as threads.
 //
@@ -14,8 +16,9 @@ import { isFolderView, mailboxRows, patchThread, personMailbox, returnSnoozed, t
 //   → { mailbox, threadId, updated }: the thread's rows in that mailbox take the change (opening a
 //   thread is what marks it read); snoozedUntil null clears a snooze. 404 when the mailbox holds no such thread.
 //
-// "me" (the default) is the signed-in person's own mailbox. An agent's mailbox (tracker, bill-reader,
-// assistant) or another person's is the super admin's alone; anyone else gets 403. The folder defaults
+// "me" (the default) is the signed-in person's own mailbox. A partner may also open its organization's
+// (org:<id>). An agent's mailbox (tracker, bill-reader, assistant), another person's or another organization's
+// is the super admin's alone; anyone else gets 403. The folder defaults
 // to inbox.
 
 type User = NonNullable<Awaited<ReturnType<typeof currentUser>>>
@@ -25,7 +28,10 @@ function mailboxFor(user: User, asked: unknown): { mailbox: string } | { status:
   const own = personMailbox(user.email)
   const a = (typeof asked === "string" ? asked : "me").trim().toLowerCase()
   const mailbox = !a || a === "me" ? own : a.includes("@") ? personMailbox(a) : a
-  if (mailbox !== own && !user.superAdmin) return { status: 403, error: "Only the super admin reads another mailbox." }
+  // A partner opens its own organization's mailbox beside its own (lib/partners/mailboxes.ts, 2026-11-02).
+  const org = orgBox(mailbox)
+  const theirOrg = !!org && org.box === mailbox && lensOf(user) === org.org
+  if (mailbox !== own && !user.superAdmin && !theirOrg) return { status: 403, error: "Only the super admin reads another mailbox." }
   return { mailbox }
 }
 

@@ -2,6 +2,7 @@ import "server-only"
 
 import { put, putOnce, query } from "@/lib/ledger"
 import { memberByEmail } from "@/lib/roles"
+import { orgBox } from "@/lib/partners/mailboxes"
 import { ulid } from "@/lib/tests/responses"
 
 // The Inbox's mail, kept (Brendan, 2026-11-02: "the agents sent the mail, so the agents need their own
@@ -66,20 +67,25 @@ export const pkOf = (mailbox: string) => `MAIL#${mailbox}`
 export const personMailbox = (email: string) => (memberByEmail(email)?.email ?? email).trim().toLowerCase()
 
 /** The mailbox an address or slug lands in on the platform, or null when it is no platform identity:
- *  an agent (by slug or its AgentMail address) or a member (by any of their addresses). */
+ *  an agent (by slug or its AgentMail address), a partner organization (org:<id> or its address,
+ *  lib/partners/mailboxes.ts) or a member (by any of their addresses). */
 export function platformMailbox(addressOrSlug: string): string | null {
   const a = addressOrSlug.trim().toLowerCase()
   if (AGENT_MAILBOX[a]) return a
   const agent = Object.entries(AGENT_MAILBOX).find(([, p]) => p.email === a)
   if (agent) return agent[0]
+  const org = a.startsWith("org:") || a.endsWith("@partners.pax.com") ? orgBox(a) : undefined
+  if (org) return org.box
   const member = memberByEmail(a)
   return member?.email ? member.email.toLowerCase() : null
 }
 
-/** A party as the Inbox shows it: an agent by its name, a member by theirs, anyone else by address. */
+/** A party as the Inbox shows it: an agent or an organization by its name, a member by theirs, anyone else by address. */
 export function partyOf(address: string): MailParty {
   const box = platformMailbox(address)
   if (box && AGENT_MAILBOX[box]) return AGENT_MAILBOX[box]
+  const org = orgBox(box)
+  if (org) return { name: org.name, email: org.email }
   return { name: memberByEmail(address)?.name ?? "", email: address.trim().toLowerCase() }
 }
 
