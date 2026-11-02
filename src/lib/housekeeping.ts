@@ -8,7 +8,7 @@ import { BedrockRuntimeClient, ConverseCommand } from "@aws-sdk/client-bedrock-r
 import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 
-import { CLAUDE, CLAUDE_NAME, claudeMayReply, repliesWith, statusAfterReply, type Status } from "@/lib/housekeeping-thread"
+import { ADMIN, CLAUDE, CLAUDE_NAME, claudeMayReply, repliesWith, statusAfterReply, type Status } from "@/lib/housekeeping-thread"
 import { MEMBERS, memberByEmail } from "@/lib/roles"
 
 // Housekeeping (Brendan, 2026-10-30): the admins' comments on the app for the super admin, as a
@@ -19,7 +19,9 @@ import { MEMBERS, memberByEmail } from "@/lib/roles"
 //   pk                    sk               item
 //   STREAM                <iso>#<id>       a message to everyone
 //   DM#<email>|<email>    <iso>#<id>       a direct message (the two emails sorted)
-//   (either)              <iso>#<id>       a reply (kind "reply"), replyTo its parent's sk, appended
+//   ADMIN                 <iso>#<id>       the Admin channel: the super admin's messages to Claude, each
+//                                          with Claude from the moment it is posted (status "claude")
+//   (any of these)        <iso>#<id>       a reply (kind "reply"), replyTo its parent's sk, appended
 //
 // A pointed comment can go to Claude (Brendan, 2026-11-01; lib/housekeeping-thread.ts): status "claude",
 // then "answered" when Claude's reply lands, and back to "claude" when a person replies to the answer.
@@ -115,6 +117,8 @@ export async function post(input: {
   to?: string | null
   text: string
   kind: "comment" | "message"
+  /** "admin": the Admin channel, the super admin's to Claude (the route holds it to him). */
+  channel?: "admin"
   page?: string
   route?: string
   target?: string
@@ -128,7 +132,7 @@ export async function post(input: {
   const author = canonical(input.author)
   const to = input.to ? canonical(input.to) : undefined
   const item: Message = {
-    pk: to ? dmKey(author, to) : "STREAM",
+    pk: input.channel === "admin" ? ADMIN : to ? dmKey(author, to) : "STREAM",
     sk: `${createdAt}#${id}`,
     id,
     author,
@@ -142,9 +146,12 @@ export async function post(input: {
     path: input.path?.slice(0, 1000),
     bundle: input.bundle?.slice(0, 6000),
     images: input.images?.length ? await putImages(id, input.images) : undefined,
-    status: "open",
+    // A message in the Admin channel is Claude's to answer from the start.
+    status: input.channel === "admin" ? "claude" : "open",
+    claudeAt: input.channel === "admin" ? createdAt : undefined,
     createdAt,
   }
+  if (item.pk === ADMIN) delete item.to
   await db.send(new PutCommand({ TableName: TABLE, Item: item }))
   return item
 }
@@ -201,24 +208,24 @@ export async function reply(parent: { pk: string; sk: string }, input: { author:
   return { reply: item, status: next ?? p.status }
 }
 
-/** The comments with Claude, for the loop: every pointed comment of the stream's and the super admin's
- *  direct messages' whose status is "claude", each with its replies so far, oldest first. */
-/** Every row the super admin reads: the stream and each of his direct-message threads. */
+/** Every row the super admin reads: the stream, the Admin channel and each of his direct-message threads. */
 async function superRows(): Promise<Message[]> {
   const sa = PEOPLE.find((p) => p.role === "superadmin")?.email
-  const keys = ["STREAM", ...(sa ? PEOPLE.filter((p) => p.email !== sa).map((p) => dmKey(sa, p.email)) : [])]
+  const keys = ["STREAM", ADMIN, ...(sa ? PEOPLE.filter((p) => p.email !== sa).map((p) => dmKey(sa, p.email)) : [])]
   return (await Promise.all(keys.map((pk) => listThread(pk)))).flat()
 }
 
-/** The loop's read: every comment with Claude, each with its replies so far (with their screenshots' links),
- *  and every reply of Claude's the super admin has given feedback on, whatever its comment's status. */
+/** The loop's read: every comment with Claude (a pointed comment sent to it, or a message of the Admin
+ *  channel), each with its replies so far (with their screenshots' links), and every reply of Claude's the
+ *  super admin has given feedback on, whatever its comment's status. */
 export async function forClaude(): Promise<{
   comments: { comment: Message; replies: (Message & { imageUrls: string[] })[]; imageUrls: string[] }[]
   feedback: { reply: Message; parent: Message }[]
 }> {
   const rows = await superRows()
   const links = (m: Message) => Promise.all((m.images ?? []).map((k) => imageUrl(k)))
-  const waiting = rows.filter((m) => m.kind === "comment" && m.status === "claude")
+  // A pointed comment sent to Claude, and every message of the Admin channel (a plain message, no target).
+  const waiting = rows.filter((m) => (m.kind === "comment" || (m.pk === ADMIN && m.kind === "message")) && m.status === "claude")
   const comments = await Promise.all(
     waiting.map(async (comment) => ({
       comment,

@@ -10,6 +10,10 @@
 // not a copy. Claude's replies, those two statuses, the prompt, the locator bundle, and a reply's commit,
 // diff, feedback and bookmark are the super admin's alone: every read path passes its rows through forReader.
 
+/** The Admin channel's partition (Brendan, 2026-11-01): the super admin and Claude. Everything he writes
+ *  there goes straight to Claude, as a pointed comment sent to Claude does; none of it reaches anyone else. */
+export const ADMIN = "ADMIN"
+
 /** The author id of Claude's replies, and the name and mark they show with. */
 export const CLAUDE = "claude"
 export const CLAUDE_NAME = "Claude"
@@ -18,15 +22,15 @@ export const CLAUDE_MARK = "/logos/models/anthropic.webp"
 export type Status = "open" | "resolved" | "claude" | "answered"
 
 /** The fields every reader may see, and the ones that stay the super admin's. */
-type Row = { author: string; kind: string; status: string; replyTo?: string; prompt?: string; promptAt?: string; bundle?: string; claudeAt?: string; answeredAt?: string; commit?: string; diff?: string; feedback?: string; bookmarked?: boolean }
+type Row = { pk?: string; author: string; kind: string; status: string; replyTo?: string; prompt?: string; promptAt?: string; bundle?: string; claudeAt?: string; answeredAt?: string; commit?: string; diff?: string; feedback?: string; bookmarked?: boolean }
 
-/** A thread's rows as one reader may see them: all of it for the super admin; for anyone else, no
- *  reply of Claude's, no prompt, bundle, commit, diff, feedback or bookmark, and a comment with Claude (or
- *  answered) reading as open. */
+/** A thread's rows as one reader may see them: all of it for the super admin; for anyone else, nothing of
+ *  the Admin channel, no reply of Claude's, no prompt, bundle, commit, diff, feedback or bookmark, and a
+ *  comment with Claude (or answered) reading as open. */
 export function forReader<T extends Row>(rows: T[], superAdmin: boolean): T[] {
   if (superAdmin) return rows
   return rows
-    .filter((r) => r.author !== CLAUDE)
+    .filter((r) => r.author !== CLAUDE && r.pk !== ADMIN)
     .map((r) => {
       const { prompt: _p, promptAt: _pa, bundle: _b, claudeAt: _c, answeredAt: _a, commit: _cm, diff: _d, feedback: _f, bookmarked: _bm, ...rest } = r
       return { ...rest, status: r.status === "claude" || r.status === "answered" ? "open" : r.status } as T

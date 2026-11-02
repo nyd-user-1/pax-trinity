@@ -2,11 +2,12 @@ import { NextResponse } from "next/server"
 
 import { currentUser, forbidDemo } from "@/lib/auth"
 import { bookmarks, canonical, dmKey, forClaude, getMessage, listThread, nameOf, openOnRoute, PEOPLE, post, react, reply, update } from "@/lib/housekeeping"
-import { CLAUDE, forReader } from "@/lib/housekeeping-thread"
+import { ADMIN, CLAUDE, forReader } from "@/lib/housekeeping-thread"
 
 // Housekeeping's API (lib/housekeeping.ts). Signed-in admins read the stream and their own direct
 // messages, and post to either; only the super admin edits or resolves.
 //   GET   ?with=<email>                      a thread: the stream, or the direct messages with one person
+//   GET   ?channel=admin                      the Admin channel: the super admin and Claude (his alone)
 //   GET   ?route=<path>                       the unresolved pointed comments on one page, for its markers
 //   GET   ?claude=1                           { comments, feedback }: the comments with Claude, with prompt,
 //                                             bundle, route, images and replies so far; and every reply of
@@ -15,6 +16,8 @@ import { CLAUDE, forReader } from "@/lib/housekeeping-thread"
 //   GET   ?bookmarks=1                        the Bookmarks thread: every bookmarked reply of Claude's with the
 //                                             message it answers (the super admin)
 //   POST  { text, to?, kind, page, … }       a message or a pointed comment, screenshots as data URLs
+//   POST  { text, channel: "admin", images? } a message in the Admin channel (the super admin's): with Claude
+//                                             at once, it enters GET ?claude=1 as a pointed comment sent there does
 //   POST  { kind: "reply", pk, sk, text, images? }  a person's reply on a message's thread, screenshots as data URLs
 //   POST  { kind: "claude-reply", pk, sk, text, commit?, diff?, images? }  Claude's reply on a comment with Claude
 //                                             or already answered (a follow-up): answers it, its commit and
@@ -40,8 +43,10 @@ const known = (email: string) => PEOPLE.some((p) => p.email === email.toLowerCas
  *  takes the second. */
 const claudeSide = (user: { superAdmin: boolean }) => user.superAdmin || process.env.NODE_ENV === "development"
 
-/** Whether this person reads the partition: the stream, or a direct-message thread they are in. */
-const reads = (pk: string, email: string) => pk === "STREAM" || (pk.startsWith("DM#") && pk.slice(3).split("|").includes(canonical(email)))
+/** Whether this person reads the partition: the stream, a direct-message thread they are in, or (the super
+ *  admin alone) the Admin channel. */
+const reads = (pk: string, user: { email: string; superAdmin: boolean }) =>
+  pk === "STREAM" || (pk === ADMIN && user.superAdmin) || (pk.startsWith("DM#") && pk.slice(3).split("|").includes(canonical(user.email)))
 
 export async function GET(req: Request) {
   const user = await admin()
@@ -77,9 +82,11 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: (e as Error).message }, { status: 500 })
     }
   }
-  const withEmail = params.get("with")
+  const adminChannel = params.get("channel") === "admin"
+  if (adminChannel && !user.superAdmin) return NextResponse.json({ error: "The super admin only." }, { status: 403 })
+  const withEmail = adminChannel ? null : params.get("with")
   if (withEmail && !known(withEmail)) return NextResponse.json({ error: "Not someone in Housekeeping." }, { status: 400 })
-  const pk = withEmail ? dmKey(user.email, withEmail) : "STREAM"
+  const pk = adminChannel ? ADMIN : withEmail ? dmKey(user.email, withEmail) : "STREAM"
   try {
     const messages = forReader(await listThread(pk), user.superAdmin)
     return NextResponse.json({ me, people: PEOPLE, messages })
@@ -104,6 +111,7 @@ export async function POST(req: Request) {
     text?: string
     to?: string | null
     kind?: "comment" | "message" | "reply" | "claude-reply"
+    channel?: string
     page?: string
     route?: string
     target?: string
@@ -117,7 +125,7 @@ export async function POST(req: Request) {
     const byClaude = body.kind === "claude-reply"
     if (!body.pk || !body.sk) return NextResponse.json({ error: "Which message?" }, { status: 400 })
     if (!(body.text ?? "").trim() && !body.images?.length) return NextResponse.json({ error: "Nothing to send." }, { status: 400 })
-    if (byClaude ? !claudeSide(user) : !reads(body.pk, user.email)) return NextResponse.json({ error: byClaude ? "The super admin only." : "Not a thread you are in." }, { status: 403 })
+    if (byClaude ? !claudeSide(user) : !reads(body.pk, user)) return NextResponse.json({ error: byClaude ? "The super admin only." : "Not a thread you are in." }, { status: 403 })
     try {
       const images = body.images?.slice(0, 4)
       const r = await reply({ pk: body.pk, sk: body.sk }, byClaude ? { author: CLAUDE, text: body.text!, commit: body.commit, diff: body.diff, images } : { author: user.email, text: body.text!, images })
@@ -131,8 +139,10 @@ export async function POST(req: Request) {
   const text = (body.text ?? "").trim()
   if (!text && !body.images?.length) return NextResponse.json({ error: "Nothing to send." }, { status: 400 })
   if (body.to && !known(body.to)) return NextResponse.json({ error: "Not someone in Housekeeping." }, { status: 400 })
+  const channel = body.channel === "admin" ? ("admin" as const) : undefined
+  if (channel && !user.superAdmin) return NextResponse.json({ error: "The Admin channel is the super admin's." }, { status: 403 })
   try {
-    const message = await post({ ...body, author: user.email, text, kind: body.kind === "comment" ? "comment" : "message" })
+    const message = await post({ ...body, channel, ...(channel ? { to: null } : {}), author: user.email, text, kind: channel ? "message" : body.kind === "comment" ? "comment" : "message" })
     return NextResponse.json({ message })
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 })
@@ -159,7 +169,7 @@ export async function PATCH(req: Request) {
   if (body.status && body.status !== "open" && body.status !== "resolved" && body.status !== "claude") return NextResponse.json({ error: "status is open, resolved or claude." }, { status: 400 })
   if (body.status === "claude") {
     const m = await getMessage({ pk: body.pk, sk: body.sk }).catch(() => null)
-    if (m?.kind !== "comment") return NextResponse.json({ error: "Only a pointed comment goes to Claude." }, { status: 400 })
+    if (m?.kind !== "comment" && !(m?.pk === ADMIN && m.kind === "message")) return NextResponse.json({ error: "Only a pointed comment, or a message of the Admin channel, goes to Claude." }, { status: 400 })
   }
   try {
     await update({ pk: body.pk, sk: body.sk }, { status: body.status, text: body.text, prompt: body.prompt }, user.email)

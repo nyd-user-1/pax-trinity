@@ -15,21 +15,21 @@ export { DiffBar }
 // Changes framing (apps/web/components/create/bill-changes.tsx, ported 2026-11-01): each file a bordered
 // section, its header the chevron that folds it, its path in monospace and the DiffBar of what it added and
 // deleted, then GitHub's diff table (./diff-view.tsx). Text that is not a unified diff shows as it is.
-// `flush` runs it edge to edge, for a diff that breaks out of a column to the full width (Dev Comments): no
-// rounded corners or side borders, and a single file as its bare table, its header being the row that
+// `flush` draws it borderless inside a box of the caller's (Dev Comments' rounded, bordered box): a rule
+// between files and none around them, and a single file as its bare table, its header being the row that
 // opened it.
 
 export function UnifiedDiff({ text, anchor = "diff", flush = false, className }: { text: string; anchor?: string; flush?: boolean; className?: string }) {
   const files = React.useMemo(() => parseUnifiedDiff(text), [text])
   const [shut, setShut] = React.useState<Set<number>>(new Set())
-  if (!files.length) return <pre className={cn("overflow-x-auto p-3 font-mono text-xs whitespace-pre", flush ? "border-y" : "rounded-lg border", className)}>{text}</pre>
-  if (flush && files.length === 1 && files[0].status !== "binary") return <DiffView diff={files[0].diff} anchor={`${anchor}-0-`} className={cn("border-y", className)} />
+  if (!files.length) return <pre className={cn("overflow-x-auto p-3 font-mono text-xs whitespace-pre", !flush && "rounded-lg border", className)}>{text}</pre>
+  if (flush && files.length === 1 && files[0].status !== "binary") return <DiffView diff={files[0].diff} anchor={`${anchor}-0-`} className={className} />
   return (
     <div className={cn("flex flex-col", flush ? "gap-0" : "gap-3", className)}>
       {files.map((f, i) => {
         const open = !shut.has(i)
         return (
-          <section key={`${f.path}-${i}`} data-open={open} className={cn("overflow-hidden", flush ? "border-y" : "rounded-lg border")}>
+          <section key={`${f.path}-${i}`} data-open={open} className={cn("overflow-hidden", flush ? "border-t first:border-t-0" : "rounded-lg border")}>
             <div className="flex items-center gap-2 bg-muted/40 px-3 py-2">
               <button
                 type="button"

@@ -3,13 +3,13 @@
 import * as React from "react"
 import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
-import { Archive, ArrowBigDown, ArrowBigUp, Bookmark, Check, ChevronDown, ChevronRight, Copy, Crosshair, ImagePlus, Loader2, MapPin, Minus, Pencil, Plus, RotateCcw, SendHorizontal, SquareTerminal, X } from "lucide-react"
+import { Archive, ArrowBigDown, ArrowBigUp, Bookmark, Check, ChevronDown, ChevronRight, Copy, ImagePlus, Loader2, MapPin, Minus, Pencil, Plus, RotateCcw, SendHorizontal, SquareTerminal, X } from "lucide-react"
 
 import { DiffBar } from "@/components/dev/diff-bar"
 import { diffStats } from "@/lib/diff/stats"
-import { CLAUDE, CLAUDE_MARK, grouped } from "@/lib/housekeeping-thread"
+import { ADMIN, CLAUDE, CLAUDE_MARK, grouped } from "@/lib/housekeeping-thread"
 import { cn } from "@/ui/lib/utils"
-import { goToComment, HOUSEKEEPING_CHANGED, HOUSEKEEPING_OPEN, shrink, takeFocus, togglePointer } from "./tool"
+import { goToComment, HOUSEKEEPING_CHANGED, HOUSEKEEPING_OPEN, shrink, takeFocus } from "./tool"
 
 // Housekeeping in the right panel (Brendan, 2026-10-30): a chat stream. "Everyone" is the stream
 // every admin reads and writes, pointed comments included; each other person opens a one-to-one
@@ -73,6 +73,8 @@ type Message = {
 type Thread = { me: { email: string; superAdmin: boolean }; people: Person[]; messages: Message[] }
 
 const when = (iso: string) => new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
+/** A message's date in full, for its name's hover: the stream's head rows show the name alone. */
+const fullDate = (iso: string) => new Date(iso).toLocaleString("en-US", { dateStyle: "full", timeStyle: "short" })
 const initials = (name: string) =>
   name
     .split(/\s+/)
@@ -91,6 +93,14 @@ function grow(el: HTMLTextAreaElement | null) {
 export function HousekeepingView() {
   const router = useRouter()
   const [withEmail, setWith] = React.useState<string | null>(null)
+  // The Admin channel (the super admin and Claude): first among the chips, and where his panel opens until he picks another.
+  const [adminChan, setAdminChan] = React.useState(false)
+  const picked = React.useRef(false)
+  const pick = (to: { admin?: boolean; email?: string | null }) => {
+    picked.current = true
+    setAdminChan(!!to.admin)
+    setWith(to.admin ? null : (to.email ?? null))
+  }
   const [archive, setArchive] = React.useState(false)
   const [thread, setThread] = React.useState<Thread | null>(null)
   const [error, setError] = React.useState<string | null>(null)
@@ -122,17 +132,23 @@ export function HousekeepingView() {
   const fileRef = React.useRef<HTMLInputElement>(null)
 
   const load = React.useCallback(async () => {
-    const res = await fetch(`/api/housekeeping${withEmail ? `?with=${encodeURIComponent(withEmail)}` : ""}`, { cache: "no-store" })
+    const res = await fetch(`/api/housekeeping${adminChan ? "?channel=admin" : withEmail ? `?with=${encodeURIComponent(withEmail)}` : ""}`, { cache: "no-store" })
     const body = await res.json().catch(() => ({ error: "Housekeeping did not answer." }))
     if (!res.ok) return setError(body.error ?? "Housekeeping did not load.")
     setError(null)
     setThread(body as Thread)
-    // The Bookmarks thread rides on everyone's stream, for the super admin.
-    if (!withEmail && (body as Thread).me?.superAdmin) {
+    // The super admin's panel opens on the Admin channel.
+    if (!picked.current && (body as Thread).me?.superAdmin && !adminChan) {
+      picked.current = true
+      setAdminChan(true)
+      return
+    }
+    // The Bookmarks thread rides on All, for the super admin.
+    if (!withEmail && !adminChan && (body as Thread).me?.superAdmin) {
       const b = await fetch("/api/housekeeping?bookmarks=1", { cache: "no-store" }).catch(() => null)
       setMarks(b?.ok ? ((await b.json()) as { bookmarks: { reply: Message; parent: Message }[] }).bookmarks : null)
     }
-  }, [withEmail])
+  }, [withEmail, adminChan])
 
   React.useEffect(() => {
     setThread(null)
@@ -151,7 +167,7 @@ export function HousekeepingView() {
     const take = () => {
       const id = takeFocus()
       if (!id) return
-      setWith(null)
+      pick({})
       setArchive(false)
       setFocus(id)
     }
@@ -194,7 +210,7 @@ export function HousekeepingView() {
     if (sending || (!text.trim() && !shots.length)) return
     setSending(true)
     const images = await Promise.all(shots.map(shrink))
-    const res = await fetch("/api/housekeeping", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: "message", text, to: withEmail, images }) })
+    const res = await fetch("/api/housekeeping", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: "message", text, to: adminChan ? null : withEmail, images, ...(adminChan ? { channel: "admin" } : {}) }) })
     setSending(false)
     if (!res.ok) return setError((await res.json().catch(() => ({}))).error ?? "That did not send.")
     setText("")
@@ -430,7 +446,7 @@ export function HousekeepingView() {
   /** A bookmarked reply's thread: the stream or the direct messages it is in, its message in view. */
   const openThread = (p: Message) => {
     const other = p.pk.startsWith("DM#") ? p.pk.slice(3).split("|").find((e) => e !== me?.email) ?? null : null
-    setWith(other)
+    pick(p.pk === ADMIN ? { admin: true } : { email: other })
     setArchive(p.status === "resolved")
     setCollapsed((c) => {
       const n = new Set(c)
@@ -442,21 +458,25 @@ export function HousekeepingView() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {/* The threads: everyone's stream, then one-to-one with each person; the pointer and the archive at the right. */}
+      {/* The threads (Brendan's mock, 2026-11-01): Admin (the super admin and Claude) first and his alone, All
+          (everyone's stream), then one-to-one with each person; the archive at the right. Point and Click's switch owns
+          the pointer, so the crosshair that sat here is gone. */}
       {/* pt-4: room under the panel header, which the row sat wedged against (Brendan, 2026-11-01). */}
       <div className="flex shrink-0 flex-wrap items-center gap-1.5 px-5 pt-4 pb-3">
-        <ThreadChip on={!withEmail} onClick={() => setWith(null)}>
-          Everyone
+        {me?.superAdmin && (
+          <ThreadChip on={adminChan} onClick={() => pick({ admin: true })}>
+            Admin
+          </ThreadChip>
+        )}
+        <ThreadChip on={!adminChan && !withEmail} onClick={() => pick({})}>
+          All
         </ThreadChip>
         {others.map((p) => (
-          <ThreadChip key={p.email} on={withEmail === p.email} onClick={() => setWith(p.email)}>
+          <ThreadChip key={p.email} on={!adminChan && withEmail === p.email} onClick={() => pick({ email: p.email })}>
             {p.name.split(" ")[0]}
           </ThreadChip>
         ))}
         <span className="ml-auto flex gap-1.5">
-          <button type="button" onClick={() => void togglePointer()} className="flex size-8 items-center justify-center rounded-full bg-pax2-lift text-pax2-blue shadow-e1 transition-colors hover:bg-pax2-lavender" aria-label="Point at something on the page" title="Point at something on the page">
-            <Crosshair className="size-4" />
-          </button>
           <button
             type="button"
             onClick={() => setArchive((a) => !a)}
@@ -476,12 +496,12 @@ export function HousekeepingView() {
         {!thread && !error && <Loader2 className="mx-auto mt-6 size-5 animate-spin text-pax2-blue" />}
         {thread && list.length === 0 && (
           <p className="mt-6 text-center text-sm text-slate-500">
-            {archive ? "Nothing resolved here yet." : partner ? `No messages with ${partner.name} yet.` : "Nothing open. Point at something on any page, or write below."}
+            {archive ? "Nothing resolved here yet." : adminChan ? "Nothing open." : partner ? `No messages with ${partner.name} yet.` : "Nothing open. Point at something on any page, or write below."}
           </p>
         )}
         <div className="flex flex-col gap-4">
           {/* The Bookmarks thread: every reply of Claude's the super admin bookmarked, a live view (GET ?bookmarks=1), pinned at the top of everyone's stream. */}
-          {me?.superAdmin && !withEmail && !archive && marks && marks.length > 0 && (
+          {me?.superAdmin && !withEmail && !adminChan && !archive && marks && marks.length > 0 && (
             <div key={BOOKMARKS}>
               <div className="relative -mx-2 flex gap-3 rounded-xl px-2 py-1">
                 {line(BOOKMARKS, collapsed.has(BOOKMARKS) ? "top-10 bottom-[13px]" : "-bottom-2 top-10")}
@@ -549,8 +569,10 @@ export function HousekeepingView() {
                 )}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline gap-2">
-                    <span className="text-sm font-semibold text-slate-900">{m.authorName}</span>
-                    <span className="text-[11px] text-slate-400">{when(m.createdAt)}</span>
+                    {/* The name alone at the head of a thread; the date on hover. Replies keep theirs. */}
+                    <span className="text-sm font-semibold text-slate-900" title={fullDate(m.createdAt)}>
+                      {m.authorName}
+                    </span>
                     {m.editedAt && <span className="text-[11px] text-slate-400">edited</span>}
                     {me?.superAdmin && (m.status === "claude" || m.status === "answered") && (
                       <span className="rounded-full bg-pax2-lavender px-1.5 py-px text-[10px] font-semibold text-pax2-blue">{m.status === "claude" ? "With Claude" : "Answered"}</span>
@@ -692,9 +714,9 @@ export function HousekeepingView() {
                             </div>
                           </div>
                         </li>
-                        {/* Open, the diff breaks out of the thread's column to the panel's full width. */}
+                        {/* Open, the diff breaks out of the thread's indent to the list's width, 20px in from each edge of the panel, in its own bordered box. */}
                         {opened && (
-                          <li className="-mx-5 my-2">
+                          <li className="my-2 overflow-hidden rounded-xl border border-slate-200">
                             <UnifiedDiff text={r.diff!} anchor={`hk-${r.id}`} flush />
                           </li>
                         )}
@@ -813,7 +835,7 @@ export function HousekeepingView() {
               }
             }}
             rows={2}
-            placeholder={partner ? `Message ${partner.name}…` : "Message everyone…"}
+            placeholder={adminChan ? "Message Claude…" : partner ? `Message ${partner.name}…` : "Message everyone…"}
             className="max-h-[40vh] w-full resize-none overflow-y-auto bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
           />
           <div className="flex items-center justify-between">
