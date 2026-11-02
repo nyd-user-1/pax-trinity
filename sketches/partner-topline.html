@@ -1,0 +1,137 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Partner topline — sketch</title><style>
+  :root{--ink:#0f172a;--mut:#64748b;--rule:#e2e8f0;--mist:#f6f7f9;--blue:#0f1b4d}
+  *{box-sizing:border-box}body{margin:0;background:var(--mist);color:var(--ink);font:15px/1.55 "Plus Jakarta Sans",-apple-system,"Segoe UI",sans-serif}
+  .wrap{max-width:1180px;margin:0 auto;padding:36px 32px 72px}
+  h1{font-size:26px;margin:0 0 4px}
+  .sub{color:var(--mut);margin:0 0 22px;font-size:14px}
+  .tabs{display:flex;gap:6px;margin:0 0 24px;border-bottom:1px solid var(--rule)}
+  .tabs button{appearance:none;border:0;background:none;font:600 14px/1 inherit;color:var(--mut);padding:10px 14px;cursor:pointer;border-bottom:2.5px solid transparent}
+  .tabs button.on{color:var(--blue);border-bottom-color:#2563eb}
+  .tab{display:none}.tab.on{display:block}
+
+  /* The public page, in a partner's dress: --brand the partner's ground, --accent its second colour. */
+  .page{--brand:#475a68;--accent:#0f766e;--on-brand:#fff;background:#fff;border:1px solid var(--rule);border-radius:20px;overflow:hidden;box-shadow:0 1px 2px rgb(15 23 42/.06),0 10px 30px rgb(15 23 42/.06)}
+  .page.ua{--brand:#475a68;--accent:#0f766e}
+  .page.y3{--brand:#13307a;--accent:#f26b21}
+  .bar{display:flex;align-items:center;gap:12px;padding:14px 28px;background:var(--brand);color:var(--on-brand)}
+  .bar img{width:40px;height:40px;border-radius:10px;object-fit:cover;background:#fff}
+  .bar .who{font-weight:700;font-size:15px;flex:1}
+  .bar .pwr{display:inline-flex;align-items:center;gap:8px;font-size:12px;letter-spacing:.04em;opacity:.92}
+  .bar .pwr img{width:22px;height:22px;border-radius:999px}
+  .body{padding:28px;display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:24px}
+  @media (max-width:880px){.body{grid-template-columns:1fr}}
+
+  /* The head: the PAX Series card's register (title, its byline, what it is). */
+  .head{border:1px solid var(--rule);border-radius:18px;background:var(--mist);padding:4px}
+  .head .t{display:flex;align-items:center;gap:12px;padding:10px 16px 12px}
+  .head .t i{display:flex;width:32px;height:32px;border-radius:9px;background:var(--brand);color:#fff;font:700 13px/32px sans-serif;font-style:normal;justify-content:center}
+  .head h2{margin:0;font-size:22px;letter-spacing:-.01em}
+  .head .by{font-size:13px;color:var(--mut)}
+  .head .in{background:#fff;border:1px solid var(--rule);border-radius:14px;padding:14px 18px;font-size:14.5px;color:#334155}
+  .figs{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--rule);margin-top:14px;padding-top:14px}
+  .figs div{padding-right:10px}
+  .figs b{display:block;font-size:24px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .figs span{font-size:12px;color:var(--mut)}
+
+  .poster{position:relative;aspect-ratio:16/9;border-radius:16px;overflow:hidden;background:linear-gradient(135deg,var(--brand),color-mix(in oklab,var(--brand) 55%,#000));display:flex;align-items:flex-end;padding:16px;color:#fff}
+  .poster .play{position:absolute;inset:0;margin:auto;width:58px;height:58px;border-radius:999px;background:rgb(255 255 255/.92);display:flex;align-items:center;justify-content:center}
+  .poster .play:before{content:"";border-left:16px solid var(--brand);border-top:10px solid transparent;border-bottom:10px solid transparent;margin-left:4px}
+  .poster .cap{font-size:13px;font-weight:600;text-shadow:0 1px 2px rgb(0 0 0/.35)}
+  .poster .cap small{display:block;font-weight:500;opacity:.85}
+  .slot{font-size:11.5px;color:var(--mut);margin-top:6px}
+
+  h3{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:26px 0 10px}
+  .st{border:1px solid var(--rule);border-radius:14px;padding:12px 16px;margin-bottom:10px;background:#fff}
+  .st p{margin:0 0 8px;font-size:14.5px;color:var(--ink)}
+  .split{display:flex;height:10px;border-radius:999px;overflow:hidden;background:#eef2f6}
+  .split .a{background:var(--accent)}.split .d{background:#334155}.split .p{background:#cbd5e1}
+  .nums{display:flex;gap:14px;margin-top:6px;font-size:12px;color:var(--mut);font-variant-numeric:tabular-nums}
+  .nums b{color:var(--ink);font-weight:600}
+  .code{margin-left:auto;font-family:ui-monospace,monospace;font-size:11px}
+
+  .cite{margin:0 28px 28px;border-top:1px solid var(--rule);padding-top:16px;display:flex;gap:16px;align-items:flex-start}
+  .cite .l{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);flex:0 0 auto;padding-top:2px}
+  .cite p{margin:0;font-size:13px;color:#334155;flex:1}
+  .cite button{flex:0 0 auto;appearance:none;border:1px solid var(--rule);background:#fff;border-radius:999px;padding:4px 12px;font:600 12px/1.4 inherit;cursor:pointer}
+  .notes{margin-top:26px;font-size:13px;color:#334155}
+  .notes li{margin:4px 0}
+</style></head><body><div class="wrap">
+<h1>Partner topline</h1>
+<p class="sub">The /r/ readout given a public face a partner can put its name on. Figures: the Open primaries Consensus survey as seeded (its votes are invented). Marks: public/partners; Unite America's is a placeholder until its real mark is on file.</p>
+<div class="tabs" role="tablist"><button class="on" data-tab="ua">Unite America</button><button data-tab="y3">Yes on 3</button></div>
+
+<!-- One page, two dresses: the same markup, the partner's colours from --brand and --accent. -->
+<template id="page">
+  <div class="bar"><img alt=""><span class="who"></span><span class="pwr">powered by <img src="../public/pax-avatar.svg" alt=""> PAX</span></div>
+  <div class="body">
+    <div>
+      <div class="head">
+        <div class="t"><i>P</i><div><h2>Open primaries</h2><div class="by"></div></div></div>
+        <div class="in">Who may vote in a party primary, and who should pay for it. People answered short statements one at a time, agree, disagree or pass, and the answers sorted them into opinion groups.
+          <div class="figs"><div><b>412</b><span>participants</span></div><div><b>24</b><span>statements</span></div><div><b>8,250</b><span>votes</span></div><div><b>3</b><span>opinion groups</span></div></div>
+        </div>
+      </div>
+
+      <h3>Where every group agreed</h3>
+      <div class="list agreed"></div>
+      <h3>Where it split</h3>
+      <div class="list split-list"></div>
+    </div>
+    <div>
+      <div class="poster"><span class="play" aria-label="Play"></span><span class="cap">Open primaries: the result</span></div>
+      <div class="slot">The result video's poster, from the readout's render (lib/results/video.ts).</div>
+      <h3>How to read the bars</h3>
+      <div class="st"><div class="split"><span class="a" style="width:56%"></span><span class="d" style="width:31%"></span><span class="p" style="width:13%"></span></div><div class="nums"><span><b>Agree</b></span><span><b>Disagree</b></span><span><b>Pass</b></span></div></div>
+      <h3>Method</h3>
+      <div class="st" style="font-size:13px;color:#334155">Self-selected, unweighted. "Every group agreed" is scored on the least-agreeing opinion group, so a large group can't carry a small one.</div>
+    </div>
+  </div>
+  <div class="cite"><span class="l">Cite this</span><p></p><button type="button">Copy</button></div>
+</template>
+
+<div class="tab on" id="ua"><div class="page ua"></div></div>
+<div class="tab" id="y3"><div class="page y3"></div></div>
+
+<ol class="notes">
+  <li>One page per survey at a public address (/r/&lt;slug&gt; today is the reader's own results; this is its face for anyone).</li>
+  <li>The partner sets two colours and a mark; everything else is the survey's own.</li>
+  <li>What it leaves out on purpose: opinion groups' make-up, raw counts per statement, anything about the respondents.</li>
+  <li>The address in the citation (pax.nysgpt.com) is a stand-in; the public one isn't chosen.</li>
+</ol>
+</div>
+<script>
+  const AGREED = [
+    [18, "Allowing unaffiliated voters to choose one party's ballot is a fair middle ground.", 61, 26, 13, 375, 38],
+    [17, "Letting a voter change party registration at the polling place invites strategic voting.", 56, 31, 13, 351, 38],
+    [5, "If a party wants a closed primary, the party should pay for it rather than the public.", 61, 29, 11, 342, 34],
+  ]
+  const SPLIT = [
+    [14, "Congress should require states to let unaffiliated voters vote in federal primaries.", 41, 42, 17, 316],
+    [20, "The current system protects incumbents more than it protects parties.", 46, 39, 15, 343],
+    [3, "Closing a primary to party members is a reasonable way to stop rival voters from meddling.", 53, 32, 14, 329],
+  ]
+  const PARTNERS = {
+    ua: { name: "Unite America", mark: "../public/partners/unite-america.jpg" },
+    y3: { name: "Yes on 3", mark: "../public/partners/yeson3.jpg" },
+  }
+  const code = (n) => `1${String(n).padStart(2, "0")}26.200126`
+  const statement = ([n, text, a, d, p, seen, low]) => `<div class="st"><p>${text}</p><div class="split"><span class="a" style="width:${a}%"></span><span class="d" style="width:${d}%"></span><span class="p" style="width:${p}%"></span></div><div class="nums"><span><b>${a}%</b> agree</span><span><b>${d}%</b> disagree</span><span><b>${p}%</b> pass</span>${low ? `<span>least-agreeing group <b>${low}%</b></span>` : ""}<span class="code">${code(n)}</span></div></div>`
+  for (const [key, p] of Object.entries(PARTNERS)) {
+    const page = document.querySelector(`.page.${key}`)
+    page.append(document.getElementById("page").content.cloneNode(true))
+    page.querySelector(".bar img").src = p.mark
+    page.querySelector(".bar .who").textContent = p.name
+    page.querySelector(".by").textContent = `A Consensus survey for ${p.name}`
+    page.querySelector(".agreed").innerHTML = AGREED.map(statement).join("")
+    page.querySelector(".split-list").innerHTML = SPLIT.map(statement).join("")
+    const cite = `${p.name} and PAX. 2026. "Open primaries." Consensus survey 200126: 412 participants, 24 statements, 8,250 votes. https://pax.nysgpt.com/r/open-primaries`
+    page.querySelector(".cite p").textContent = cite
+    page.querySelector(".cite button").onclick = (e) => (navigator.clipboard?.writeText(cite), (e.target.textContent = "Copied"))
+  }
+  for (const b of document.querySelectorAll(".tabs button"))
+    b.onclick = () => {
+      for (const x of document.querySelectorAll(".tabs button")) x.classList.toggle("on", x === b)
+      for (const t of document.querySelectorAll(".tab")) t.classList.toggle("on", t.id === b.dataset.tab)
+    }
+</script>
+</body></html>
