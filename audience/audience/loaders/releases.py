@@ -24,7 +24,8 @@ The gate, per release:
     "tive") and are not mapped.
   - VoteHub. At least one of the release's questions must match a VoteHub topline of the same
     poll (two or more answers by name) and agree within 2 points in some one column (the Total,
-    or the population VoteHub reports), and none may disagree.
+    or the population VoteHub reports), and none may disagree. A release with no topline to
+    match is out, except YouGov's, admitted in hand-checked tranches (UNCHECKED).
   Per question: verbatim wording (a question, or a statement of eight words or more; not a
   heading in capitals or a battery item that lost its stem), with its numbering stripped; not
   a question about the sample itself (gender, age, race, education, party, past vote, mode);
@@ -140,6 +141,8 @@ SCREENERS = re.compile(
     r"are you a democrat|lean democrat|what area do you live|local television news|"
     r"in what (county|city|state) do you live|what is your (education|race|gender|age|party)|"
     r"\bdid you vote for\b|think of yourself as a (republican|democrat)|are you registered to vote|"
+    r"marital status|present religion|born-again|family(\W?s)? (annual )?income|employment status|"
+    r"^family income|^ideology( \(\d category\))?$|"
     r"who did you vote for in the 20\d\d presidential|^(age|mode|education|gender|party|race|"
     r"20\d\d vote)$)", re.I)
 # A question's number or variable code before its wording: "1* ", "Q12. ", "(A1). ", "CURY2. ".
@@ -356,8 +359,23 @@ def verify(questions: list[dict], polls: list[dict]) -> str:
     return "disagrees" if disagree else "verified" if agree else "unmatched"
 
 
-def gate(surveys: list[dict]) -> tuple[list[dict], dict[str, str]]:
-    passed, why = [], {}
+# Releases VoteHub can't check, admitted by layout (the lead's ruling, 2026-11-02): YouGov's
+# crosstabs only, after 20 of 20 sampled releases read clean against their PDFs, in tranches
+# of TRANCHE, newest first, each after its own 10-release spot check. The number is how many
+# tranches are in; the other pollsters' unchecked releases stay out.
+UNCHECKED = {"YouGov": 1}
+TRANCHE = 100
+
+
+def unchecked_order(surveys: list[dict], why: dict[str, str], pollster: str) -> list[dict]:
+    """A pollster's releases the VoteHub check can't reach, newest first: tranche k is the
+    k-th run of TRANCHE."""
+    return sorted((s for s in surveys if s["pollster"] == pollster and why.get(s["sha"]) == "VoteHub unmatched"),
+                  key=lambda s: (s["end"], s["sha"]), reverse=True)
+
+
+def gate(surveys: list[dict], unchecked: dict[str, int] | None = None) -> tuple[list[dict], dict[str, str]]:
+    passed, why, cleaned = [], {}, {}
     for s in surveys:
         rel = s["release"]
         raw = rel.get("questions") or []
@@ -368,12 +386,17 @@ def gate(surveys: list[dict]) -> tuple[list[dict], dict[str, str]]:
         if not qs:
             why[s["sha"]] = "no question clears the per-question checks"
             continue
+        cleaned[s["sha"]] = qs
         verdict = verify(qs, s["polls"])
         if verdict != "verified":
             why[s["sha"]] = f"VoteHub {verdict}"
             continue
         why[s["sha"]] = "passed"
         passed.append({**s, "questions": qs})
+    for pollster, tranches in (UNCHECKED if unchecked is None else unchecked).items():
+        for i, s in enumerate(unchecked_order(surveys, why, pollster)[: tranches * TRANCHE]):
+            why[s["sha"]] = f"passed unchecked, tranche {i // TRANCHE + 1}"
+            passed.append({**s, "questions": cleaned[s["sha"]]})
     return passed, why
 
 
