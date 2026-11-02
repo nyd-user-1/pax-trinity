@@ -3,7 +3,7 @@
 import { addressFor } from "@/lib/agents/inbox"
 import { RailToggle } from "@/components/bank/bank-frame"
 import { TEMPLATE_KINDS, TEMPLATES, type Template } from "@/lib/agents/templates"
-import { Face } from "@/registry/blocks/sidebar-09/components/compose"
+import { Face } from "@/registry/blocks/sidebar-09/components/face"
 import { ScrollArea } from "@govblock/ui/components/ny4/scroll-area"
 
 // The Templates folder: the messages kept in Resend (lib/agents/templates.ts),

@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import dynamic from "next/dynamic"
 import { ArrowLeft, Check, ChevronLeft, ChevronRight, Clock, Copy, ExternalLink, Forward as ForwardIcon, PenSquare, Reply as ReplyIcon, RotateCcw, Star, Trash2 } from "lucide-react"
 
 import { ADDRESSES, PEOPLE_ADDRESSES, addressFor, keptThread, recipientsOf, loadDrafts, nameOf, newThread, saveDrafts, shownRecipients, snippet, when, type Attached, type Folder, type Message, type Thread } from "@/lib/agents/inbox"
@@ -19,8 +20,7 @@ import { ArchiveIcon, MailList, MarkUnreadIcon, SplitToggle, UnarchiveIcon, type
 import { InboxRail, THREAD_DRAG } from "@/registry/blocks/sidebar-09/components/app-sidebar"
 import { SnoozeMenu } from "@/registry/blocks/sidebar-09/components/snooze-menu"
 import { BoxMark, MailboxChip, ownersFor, type Owner } from "@/registry/blocks/sidebar-09/components/mailbox-chip"
-import { Compose, EMPTY_DRAFT, type Draft } from "@/registry/blocks/sidebar-09/components/compose"
-import { ComposeWindow } from "@/registry/blocks/sidebar-09/components/compose-window"
+import { EMPTY_DRAFT, type Draft } from "@/registry/blocks/sidebar-09/components/draft"
 import { TemplateList } from "@/registry/blocks/sidebar-09/components/template-list"
 import type { Template } from "@/lib/agents/templates"
 import { requestOf } from "@/lib/agents/requests"
@@ -107,6 +107,12 @@ function Tip({ label, children }: { label: string; children: React.ReactNode }) 
 
 /** An address as the composer's lines hold it: the book's handle where it knows it, else the address. */
 const handleOf = (email: string) => ADDRESSES.find((a) => a.email.toLowerCase() === email.toLowerCase())?.agent ?? email
+
+// Compose and its editor (tiptap, ProseMirror, markdown-it) load apart from the list and the reading pane: the
+// page warms the chunk once the folder has drawn (below), so Compose still opens at once. The popped-out
+// window (its controls come from the notes' sheet, editor and all) loads when it is first popped.
+const Compose = dynamic(() => import("@/registry/blocks/sidebar-09/components/compose").then((m) => m.Compose), { ssr: false })
+const ComposeWindow = dynamic(() => import("@/registry/blocks/sidebar-09/components/compose-window").then((m) => m.ComposeWindow), { ssr: false })
 
 /** Who a reply goes to, Gmail's Reply: the sender of the latest message the mailbox received, else whom its own latest went to. */
 function replyLines(t: Kept): string[] {
@@ -241,6 +247,13 @@ export default function Page() {
   React.useEffect(() => {
     void load()
   }, [load])
+  // Compose's chunk, warmed when the browser is idle after the folder draws (the import is cached after the first).
+  React.useEffect(() => {
+    if (loading) return
+    const warm = () => void import("@/registry/blocks/sidebar-09/components/compose")
+    if (typeof window.requestIdleCallback === "function") window.requestIdleCallback(warm)
+    else window.setTimeout(warm, 1500)
+  }, [loading])
   // The sends' tick (app/api/sends/tick): the reminders and closes that fell due, the flows' next steps, and what
   // people sent the agents' AgentMail inboxes. An admin's Inbox runs it when it opens and every minute while it is
   // open, as it has since the sends began; nothing else calls it yet. The open folder is read again after it.
