@@ -133,7 +133,7 @@ export function HomeMasthead({ ledger }: { ledger: LedgerEntry[] }) {
                     },
                   }
                 : {})}
-              className={`@container group/fig relative grid min-h-[7.5rem] items-center border-r border-[var(--paper-rule)] px-5 py-6 sm:px-7 transition-colors hover:bg-[var(--kind-tint)] ${i < 2 ? 'border-b' : ''} ${i === 0 || i === 1 || i === 3 ? 'cursor-pointer' : ''}`}
+              className={`@container group/fig relative grid min-h-[7.5rem] min-w-0 items-center overflow-hidden border-r border-[var(--paper-rule)] px-5 py-6 sm:px-7 transition-colors hover:bg-[var(--kind-tint)] ${i < 2 ? 'border-b' : ''} ${i === 0 || i === 1 || i === 3 ? 'cursor-pointer' : ''}`}
               /* The word's kind colour, as the boxes of that kind wear it on hover. */
               style={{ '--kind': l.color, '--kind-tint': `color-mix(in oklab, ${l.color} 5%, var(--paper))` } as React.CSSProperties}
             >
@@ -141,7 +141,7 @@ export function HomeMasthead({ ledger }: { ledger: LedgerEntry[] }) {
                   grid cell, so the box keeps its size as they swap. */}
               <p
                 data-inspect="LedgerWord"
-                className={`[grid-area:1/1] m-0 text-[clamp(1.8rem,3.4vw,3rem)] leading-none text-[var(--paper-text)] ${FADE} group-hover/fig:opacity-0`}
+                className={`[grid-area:1/1] m-0 text-[clamp(1.3rem,14cqw,3rem)] leading-none text-[var(--paper-text)] ${FADE} group-hover/fig:opacity-0`}
                 style={{ ...SERIF, letterSpacing: '-0.02em' }}
               >
                 {l.word}
@@ -153,7 +153,7 @@ export function HomeMasthead({ ledger }: { ledger: LedgerEntry[] }) {
               <div aria-hidden className={`[grid-area:1/1] opacity-0 ${FADE} group-hover/fig:opacity-100`}>
                 <p
                   data-inspect="LedgerFigure"
-                  className={`m-0 text-[clamp(1.8rem,3.4vw,3rem)] leading-none text-[var(--kind)] tabular-nums ${l.exact ? short : ''}`}
+                  className={`m-0 text-[clamp(1.3rem,14cqw,3rem)] leading-none text-[var(--kind)] tabular-nums ${l.exact ? short : ''}`}
                   style={MONO}
                 >
                   <CountUp value={fig.count} decimals={fig.decimals} suffix={fig.suffix} duration={1400} trigger="hover" />
