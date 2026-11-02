@@ -60,6 +60,7 @@ from ..db import Store
 SOURCE = "POLL"
 VERSION_PREFIX = "Release "
 CACHE = Path(os.path.expanduser("~/.cache/govblock/poll-releases"))
+MAX_QUESTION_BYTES = 3_900_000   # a question's export file, under the ~4 MB the lead set
 MIN_WAVES = 2   # the lead's growth ruling, step 3 (2026-11-02); the first batch took 3
 CREDIT = "Read from the pollster's release by govblock's release reader (2026-09-25)"
 NOTES = ("Read from the pollster's own releases (audience/loaders/releases.py); each row's "
@@ -363,7 +364,7 @@ def verify(questions: list[dict], polls: list[dict]) -> str:
 # crosstabs only, after 20 of 20 sampled releases read clean against their PDFs, in tranches
 # of TRANCHE, newest first, each after its own 10-release spot check. The number is how many
 # tranches are in; the other pollsters' unchecked releases stay out.
-UNCHECKED = {"YouGov": 2}
+UNCHECKED = {"YouGov": 3}
 TRANCHE = 100
 
 
@@ -423,11 +424,34 @@ def repeats(surveys: list[dict], min_waves: int = MIN_WAVES) -> list[dict]:
         if construct in ids:
             raise RuntimeError(f"two repeated questions share the id {construct}")
         ids.add(construct)
-        out.append({"construct": construct, "pollster": pollster, "state": state or None,
-                    "title": q0["title"],
-                    "wording": q0["wording"], "waves": len(by_end),
-                    "items": sorted(by_end.values(), key=lambda x: x[0]["end"])})
+        rep = {"construct": construct, "pollster": pollster, "state": state or None,
+               "title": q0["title"], "wording": q0["wording"],
+               "items": sorted(by_end.values(), key=lambda x: x[0]["end"])}
+        rep["held"] = cap(rep)
+        rep["waves"] = len(rep["items"])
+        out.append(rep)
     return out
+
+
+def cap(rep: dict, limit: int = MAX_QUESTION_BYTES) -> int:
+    """Keep a question's file (q/poll/<id>.json) under limit: its oldest waves wait, newest
+    kept. Returns how many were held back. The page reads a question's file whole when it
+    opens; the lead's ruling (2026-11-02) keeps each under about 4 MB."""
+    def line(r: dict) -> list:   # the row as export.py writes it
+        dim, value = (None, None) if r["subgroup_dim"] == "all" else (r["subgroup_dim"], r["subgroup_value"])
+        return [r["construct"], r["geo_code"], str(r["period_start"]), str(r["period_end"]),
+                r["response_option"], dim, value, round(r["estimate"], 1), "pct", None,
+                r["item_text"], r["n"], r["provenance_url"]]
+
+    sizes = [sum(len(json.dumps(line(r), ensure_ascii=False, separators=(",", ":")).encode()) + 2
+                     for r in rows_of({**rep, "items": [item]}))
+             for item in rep["items"]]
+    held = 0
+    while sum(sizes) > limit and len(sizes) > 1:
+        sizes.pop(0)
+        rep["items"].pop(0)
+        held += 1
+    return held
 
 
 def rows_of(rep: dict) -> list[dict]:
@@ -506,9 +530,10 @@ def run(store: Store, refresh: bool = False, cache: Path | None = None) -> int:
         where = f" ({names[rep['state']]})" if rep["state"] else ""
         entry = {"construct": rep["construct"], "label": f"{label}{where}",
                  "definition": f"{rep['pollster']}'s question, asked in the same wording in "
-                               f"{rep['waves']} of its releases"
+                               f"{rep['waves'] + rep['held']} of its releases"
                                + (f" of {names[rep['state']]} voters." if rep["state"] else "."),
-                 "notes": NOTES}
+                 "notes": NOTES + (f" Its {rep['held']} oldest waves are held back to keep its file "
+                                   "under 4 MB." if rep["held"] else "")}
         if store.column_exists("concordance", "gss_wording"):
             entry["gss_wording"] = rep["wording"]
         store.upsert_concordance(entry)
@@ -517,12 +542,15 @@ def run(store: Store, refresh: bool = False, cache: Path | None = None) -> int:
 
     removed = prune_owned(store, SOURCE, VERSION_PREFIX, rows)
     # Concordance rows this loader wrote whose question it no longer produces, and no source uses.
-    store.execute("DELETE FROM concordance WHERE notes = ? AND construct NOT IN "
+    store.execute("DELETE FROM concordance WHERE notes LIKE ? || '%' AND construct NOT IN "
                   "(SELECT DISTINCT construct FROM norms)", [NOTES])
     store.touch_source(SOURCE)
     describe(store)
     outcomes = Counter(why.values())
     print(f"releases ({raw_name}): {stats['releases']} linked; "
           + ", ".join(f"{k} {v}" for k, v in outcomes.most_common()))
+    for rep in reps:
+        if rep["held"]:
+            print(f"  {rep['construct']}: {rep['waves']} newest waves in, {rep['held']} oldest held (4 MB cap)")
     print(f"releases: {total} rows in {len(reps)} repeated questions; {removed} stale rows removed")
     return total

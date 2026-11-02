@@ -75,3 +75,15 @@ def test_verify_and_repeats():
         ("all", "all"), ("sex", "Male"), ("sex", "Female"), ("party", "Democrat")}
     assert all(R.owns(r["source_version"]) for r in rows)
     assert polls.owned_elsewhere("POLL", rows[0]["source_version"])
+
+
+def test_cap_holds_oldest_waves():
+    qs = [R.clean_question(q(), {})]
+    surveys = [{"sha": f"{i:064x}", "pollster": "YouGov", "state": None, "start": f"2026-0{i}-01",
+                "end": f"2026-0{i}-03", "url": "https://example.org/r.pdf",
+                "release": {"name": "CBS News Poll"}, "questions": qs} for i in (1, 2, 3, 4)]
+    rep = R.repeats(surveys)[0]
+    one = len(R.rows_of({**rep, "items": rep["items"][:1]}))
+    rep = {**rep, "items": list(rep["items"])}
+    held = R.cap(rep, limit=1)                 # nothing fits: the newest wave alone stays
+    assert held == 3 and [s["end"] for s, _ in rep["items"]] == ["2026-04-03"] and one > 0
