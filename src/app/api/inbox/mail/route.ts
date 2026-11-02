@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server"
 
 import { currentUser } from "@/lib/auth"
-import { isFolderView, mailboxRows, patchThread, personMailbox, threadPatchOf, threadsOf } from "@/lib/mail/store"
+import { isFolderView, mailboxRows, patchThread, personMailbox, threadPatchOf, threadsOf, unreadCounts } from "@/lib/mail/store"
 
 // The Inbox's kept mail (lib/mail/store.ts, Brendan 2026-11-02): a mailbox's folder as threads.
 //
 //   GET /api/inbox/mail?mailbox=<me|email|slug>&folder=<inbox|sent|drafts|starred|snoozed|trash|all>
-//   → { mailbox, threads: [{ threadId, messages: [rows], latest, unreadCount }] }, newest latest first
+//   → { mailbox, threads: [{ threadId, messages: [rows], latest, unreadCount }], counts }, newest latest
+//   first; counts is each folder's unread threads, so one call refreshes the folder list too
 //
-//   PATCH /api/inbox/mail { mailbox, threadId, read?, starred?, trashed?, archived?, snoozedUntil? }
+//   PATCH /api/inbox/mail { mailbox, threadId, read?, starred?, important?, trashed?, archived?, snoozedUntil? }
 //   → { mailbox, threadId, updated }: the thread's rows in that mailbox take the change (opening a
 //   thread is what marks it read); snoozedUntil null clears a snooze. 404 when the mailbox holds no such thread.
 //
@@ -37,7 +38,9 @@ export async function GET(request: Request) {
   const folder = params.get("folder") ?? "inbox"
   if (!isFolderView(folder)) return NextResponse.json({ error: "folder is inbox, sent, drafts, starred, snoozed, trash or all" }, { status: 400 })
   try {
-    return NextResponse.json({ mailbox, threads: threadsOf(await mailboxRows(mailbox), folder) })
+    const rows = await mailboxRows(mailbox)
+    const now = new Date().toISOString()
+    return NextResponse.json({ mailbox, threads: threadsOf(rows, folder, now), counts: unreadCounts(rows, now) })
   } catch (error) {
     console.error("inbox mail: unreadable", error)
     return NextResponse.json({ error: "The mail could not be read just now." }, { status: 503 })

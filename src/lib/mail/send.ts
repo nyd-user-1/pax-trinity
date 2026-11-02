@@ -2,7 +2,7 @@ import "server-only"
 
 import { screen } from "@/lib/mail/allowlist"
 import { designedHtml } from "@/lib/mail/design"
-import { AGENT_MAILBOX, personMailbox, recordMessage } from "@/lib/mail/store"
+import { AGENT_MAILBOX, personMailbox, platformMailbox, recordMessage } from "@/lib/mail/store"
 
 // Real mail, one place for it (2026-10-29). An agent sends from its own
 // AgentMail inbox; a person through Resend from their nysgpt.com address. Every
@@ -80,12 +80,20 @@ function senderOf(from: string): { mailbox: string; party: { name: string; email
  *  signed-in person as "email|name" (the route derives it from the session, never from the client).
  *  A reply passes its thread's id; a template's id rides along to the kept message. */
 export async function sendMail({ from, to, cc = [], subject, markdown, base, threadId, templateId }: { from: string; to: string[]; cc?: string[]; subject: string; markdown: string; base: string; threadId?: string; templateId?: string }): Promise<Sent> {
+  // An agent among the recipients (its slug or its AgentMail address) is the platform's own mailbox: the
+  // message is kept in it and never mailed, so a send to an agent alone goes out to no one (2026-11-02).
+  const agent = (a: string) => !!AGENT_MAILBOX[platformMailbox(a) ?? ""]
+  const internalTo = [...new Set(to.filter(agent).map((a) => AGENT_MAILBOX[platformMailbox(a)!].email))]
+  const internalCc = [...new Set(cc.filter(agent).map((a) => AGENT_MAILBOX[platformMailbox(a)!].email))].filter((a) => !internalTo.includes(a))
+  to = to.filter((a) => !agent(a))
+  cc = cc.filter((a) => !agent(a))
   const a = screen(to)
   const b = screen(cc.filter((x) => !a.allowed.includes(x.toLowerCase())))
   const held = [...a.held, ...b.held]
   const primary = a.allowed.length ? a.allowed : b.allowed
   const copied = a.allowed.length && b.allowed.length ? b.allowed : undefined
-  if (!primary.length) return { sent: [], held }
+  if (!primary.length && !internalTo.length && !internalCc.length) return { sent: [], held }
+  const internal = [...internalTo, ...internalCc]
   const text = markdown.replace(/\*\*|<\/?u>/g, "")
   const body = designedHtml(markdown, base, subject.replace(/^(re|fwd?):\s*/i, ""))
   const inbox = AGENT_INBOX[from]
@@ -93,7 +101,9 @@ export async function sendMail({ from, to, cc = [], subject, markdown, base, thr
   // Resend from the agent's nysgpt.com name with replies routed back to its AgentMail inbox.
   let relay = false
   try {
-    if (inbox) {
+    if (!primary.length) {
+      // Only agents: nothing to mail.
+    } else if (inbox) {
       const key = process.env.AGENTMAILORG_API_KEY
       if (!key) return { sent: [], held, error: "AGENTMAILORG_API_KEY is not set." }
       const res = await postWithRetry(`https://api.agentmail.to/v0/inboxes/${encodeURIComponent(inbox)}/messages/send`, {
@@ -107,7 +117,7 @@ export async function sendMail({ from, to, cc = [], subject, markdown, base, thr
         relay = true
       }
     }
-    if (!inbox || relay) {
+    if (primary.length && (!inbox || relay)) {
       const key = process.env.RESEND_FULL_API_KEY ?? process.env.RESEND_API_KEY
       if (!key) return { sent: [], held, error: "No Resend key is set." }
       const res = await postWithRetry("https://api.resend.com/emails", {
@@ -124,9 +134,11 @@ export async function sendMail({ from, to, cc = [], subject, markdown, base, thr
   let kept: string | undefined
   try {
     const sender = senderOf(from)
-    kept = (await recordMessage({ mailbox: sender.mailbox, from: sender.party, to: primary, cc: copied, subject, markdown, html: body, threadId, templateId, held })).threadId
+    const keptTo = [...primary, ...internalTo]
+    const keptCc = [...(copied ?? []), ...internalCc]
+    kept = (await recordMessage({ mailbox: sender.mailbox, from: sender.party, to: keptTo.length ? keptTo : keptCc, cc: keptTo.length && keptCc.length ? keptCc : undefined, subject, markdown, html: body, threadId, templateId, held })).threadId
   } catch (error) {
     console.error("mail: sent but not kept", error)
   }
-  return { sent: [...primary, ...(copied ?? [])], held, ...(kept ? { threadId: kept } : {}) }
+  return { sent: [...primary, ...(copied ?? []), ...internal], held, ...(kept ? { threadId: kept } : {}) }
 }

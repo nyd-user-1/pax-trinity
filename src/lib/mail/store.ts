@@ -38,6 +38,8 @@ export type MailRow = {
   createdAt: string
   read: boolean
   starred: boolean
+  /** Gmail's importance marker, set by hand. */
+  important?: boolean
   trashed: boolean
   archived: boolean
   snoozedUntil?: string
@@ -228,12 +230,12 @@ export function threadsOf(rows: MailRow[], folder: FolderView, now = new Date().
 }
 
 /** What filing may change on a thread's rows; null clears a snooze. */
-export type ThreadPatch = { read?: boolean; starred?: boolean; trashed?: boolean; archived?: boolean; snoozedUntil?: string | null }
+export type ThreadPatch = { read?: boolean; starred?: boolean; important?: boolean; trashed?: boolean; archived?: boolean; snoozedUntil?: string | null }
 
 /** A patch from a request body, or the reason it is not one. */
 export function threadPatchOf(body: Record<string, unknown>): { ok: true; patch: ThreadPatch } | { ok: false; error: string } {
   const patch: ThreadPatch = {}
-  for (const k of ["read", "starred", "trashed", "archived"] as const) {
+  for (const k of ["read", "starred", "important", "trashed", "archived"] as const) {
     if (body[k] === undefined) continue
     if (typeof body[k] !== "boolean") return { ok: false, error: `${k} must be true or false` }
     patch[k] = body[k] as boolean
@@ -243,7 +245,7 @@ export function threadPatchOf(body: Record<string, unknown>): { ok: true; patch:
     if (v !== null && (typeof v !== "string" || Number.isNaN(Date.parse(v)))) return { ok: false, error: "snoozedUntil must be a date and time, or null" }
     patch.snoozedUntil = v === null ? null : new Date(v as string).toISOString()
   }
-  if (!Object.keys(patch).length) return { ok: false, error: "nothing to change: read, starred, trashed, archived or snoozedUntil" }
+  if (!Object.keys(patch).length) return { ok: false, error: "nothing to change: read, starred, important, trashed, archived or snoozedUntil" }
   return { ok: true, patch }
 }
 
@@ -261,4 +263,9 @@ export async function patchThread(mailbox: string, threadId: string, patch: Thre
     }),
   )
   return rows.length
+}
+
+/** Each folder's unread threads (a thread with an unread message showing in it), for the Inbox's counts. */
+export function unreadCounts(rows: MailRow[], now = new Date().toISOString()): Record<FolderView, number> {
+  return Object.fromEntries(FOLDERS.map((f) => [f, threadsOf(rows, f, now).filter((t) => t.unreadCount > 0).length])) as Record<FolderView, number>
 }
