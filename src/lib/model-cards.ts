@@ -7,7 +7,8 @@ import { VIDEO_MODEL_OPTIONS } from "@/lib/video-model-options"
 // and appear only where they are known. Original is the PAX Series 1.0 cards, word for word.
 
 export type Fact = [label: string, value: string]
-export type CommercialCard = { id: string; name: string; maker: string; logo: string | null; badge?: { label: string; tone: "blue" | "amber" }; facts: Fact[] }
+/** `sub` stands in for the maker under the name; an original card's is its tagline. */
+export type CommercialCard = { id: string; kind: "llm" | "visual" | "original"; name: string; maker: string; sub?: string; logo: string | null; badge?: { label: string; tone: "blue" | "amber" }; facts: Fact[] }
 export type OriginalCard = { id: string; name: string; tagline: string; what: string; who: string; proof: string; uses: string[] }
 
 const CLOSED: Fact = ["Weights", "Closed"]
@@ -42,6 +43,7 @@ export const LLM_CARDS: CommercialCard[] = MODEL_OPTIONS.map((m, i): CommercialC
   const known = LLM_FACTS[m.id]
   return {
     id: m.id,
+    kind: "llm",
     // The cards name no model Claude (Brendan, 2026-10-31): Sonnet 4.6, not Claude Sonnet 4.6.
     name: m.label.replace(/^Claude /, ""),
     maker: known?.maker ?? m.description,
@@ -66,6 +68,7 @@ export const VISUAL_CARDS: CommercialCard[] = [
     const facts = known?.facts ?? []
     return {
       id: m.id,
+      kind: "visual",
       name: known?.name ?? m.label,
       maker: known?.maker ?? m.description,
       logo: m.logo ? encodeURI(m.logo) : null,
@@ -77,6 +80,7 @@ export const VISUAL_CARDS: CommercialCard[] = [
   // The enhance flow's clean-up pass (app/video-gen-actions.ts), outside the picker.
   {
     id: "runway-aleph",
+    kind: "visual",
     name: "Runway Aleph",
     maker: "Runway",
     logo: "/logos/RUNWAY.jpeg",
@@ -172,3 +176,30 @@ export const ORIGINAL_CARDS: OriginalCard[] = [
     uses: ["Match a draft to what is taking off across channels this week", "Find this week's closest breakouts before a rapid response", "Feed a weekly “what's catching on” briefing"],
   },
 ]
+
+// The originals as the other cards read (Brendan, 2026-11-02): each one's inputs and hit rate, from its
+// card above, and the series' two facts. Lift and Sticky state no hit rate.
+const ORIGINAL_FACTS: Record<string, Fact[]> = {
+  affinity: [["Inputs", "Title, description, transcript"], ["Hit rate", "58 in 100"]],
+  craft: [["Inputs", "Cuts, loudness, on-screen text, speech"], ["Hit rate", "60 in 100"]],
+  duel: [["Inputs", "Two headlines"], ["Hit rate", "67 in 100"]],
+  lift: [["Built on", "146 randomized ad tests"]],
+  lookalikes: [["Inputs", "Title, description, transcript"], ["Hit rate", "61 in 100"]],
+  "odds-are": [["Inputs", "Title, description, tags, length, posting time, thumbnail, transcript"], ["Hit rate", "59 in 100"]],
+  sticky: [["Inputs", "Length, format, tags"]],
+  surge: [["Inputs", "Views at one, three and six hours"], ["Hit rate", "73 in 100"]],
+  wave: [["Inputs", "Title, description, transcript"], ["Hit rate", "62 in 100"]],
+}
+
+export const ORIGINAL_FACT_CARDS: CommercialCard[] = ORIGINAL_CARDS.map((m) => ({
+  id: m.id,
+  kind: "original",
+  name: m.name,
+  maker: PAX_SERIES[0]![1],
+  sub: m.tagline,
+  logo: null,
+  facts: [...(ORIGINAL_FACTS[m.id] ?? []), ["Series", "PAX Series 1.0"], ...PAX_SERIES],
+}))
+
+/** Every model, A to Z (Brendan, 2026-11-02: one list, no tabs). */
+export const MODEL_CARDS: CommercialCard[] = [...LLM_CARDS, ...VISUAL_CARDS, ...ORIGINAL_FACT_CARDS].sort((a, b) => a.name.localeCompare(b.name, "en", { numeric: true, sensitivity: "base" }))
