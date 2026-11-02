@@ -5,14 +5,14 @@ import { Search } from "lucide-react"
 
 import { ModelCard } from "@/components/models/model-card"
 import { FIELD } from "@/components/settings/blocks"
-import type { CommercialCard } from "@/lib/model-cards"
+import { cardRows, type CommercialCard } from "@/lib/model-cards"
 import { cn } from "@/ui/lib/utils"
 
-/** Every model card A to Z under a search, which matches a name, a maker, a tagline or any fact's value. */
+/** Every model card A to Z under a search, which matches what a card shows: its name, the line under it and its rows. */
 export function ModelList({ cards }: { cards: CommercialCard[] }) {
   const [q, setQ] = React.useState("")
   const words = q.trim().toLowerCase().split(/\s+/).filter(Boolean)
-  const shown = words.length ? cards.filter((m) => words.every((w) => [m.name, m.maker, m.sub ?? "", ...m.facts.map(([, v]) => v)].join(" ").toLowerCase().includes(w))) : cards
+  const shown = words.length ? cards.filter((m) => words.every((w) => [m.name, m.sub ?? m.maker, ...cardRows(m).map(([, v]) => v)].join(" ").toLowerCase().includes(w))) : cards
   return (
     <>
       <label className={cn(FIELD, "flex h-10 items-center gap-2 px-3")}>

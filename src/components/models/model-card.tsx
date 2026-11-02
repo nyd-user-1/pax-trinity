@@ -1,7 +1,7 @@
 import { CardTools, UnlessDeleted } from "@/components/dash/card-tools"
 import { PaxMark } from "@/components/pax-mark"
 import { Badge, Block, Fact, Passage } from "@/components/settings/blocks"
-import type { CommercialCard, OriginalCard } from "@/lib/model-cards"
+import { cardRows, type CommercialCard, type OriginalCard } from "@/lib/model-cards"
 
 // The model cards (Brendan, 2026-10-29), out of app/models/page.tsx (2026-11-02) so the survey's results
 // can carry one. ModelCard is every card on /models; SeriesCard is the old Original tab's prose card.
@@ -35,13 +35,14 @@ const shortId = (id: string) =>
 // A card's anchor, from its name: the LLMs' ids (us.amazon.nova-pro-v1:0) don't make one.
 export const anchorOf = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")
 
-/** A model's card, with the standard three-dot menu in its top right (Brendan, 2026-10-31). */
+/** A model's card, with the standard three-dot menu in its top right (Brendan, 2026-10-31), and the same five rows
+ *  as every other card (2026-11-02). */
 export function ModelCard({ m }: { m: CommercialCard }) {
   const anchor = anchorOf(m.name)
   return (
     <UnlessDeleted anchor={anchor}>
       <Block stretch id={anchor} className="lift" title={m.name} sub={m.sub ?? m.maker} lead={m.kind === "original" ? <PaxTile /> : <Logo src={m.logo} />} badge={m.badge && <Badge tone={m.badge.tone}>{m.badge.label}</Badge>} action={<CardTools title={m.name} anchor={anchor} className="self-start" />}>
-        {m.facts.map(([label, value]) => (
+        {cardRows(m).map(([label, value]) => (
           <Fact key={label} label={label} mono={label === "Model ID"}>
             {label === "Model ID" && m.kind === "llm" ? <span title={value}>{shortId(value)}</span> : value}
           </Fact>

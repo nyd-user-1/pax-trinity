@@ -4,7 +4,8 @@ import { VIDEO_MODEL_OPTIONS } from "@/lib/video-model-options"
 // /models' cards (Brendan, 2026-10-29). LLM and Visual read the chat's two pickers (model-options.ts,
 // video-model-options.ts), so a model added there gets a card here; FACTS holds each one's basics, from
 // the makers' release notes as of 2026-10-29. Prices are Bedrock's us-east-1 list (lib/agents/models.ts)
-// and appear only where they are known. Original is the PAX Series 1.0 cards, word for word.
+// and appear only where they are known. Original is the PAX Series 1.0 cards, word for word. A card shows five of
+// its facts (CARD_ROWS); the rest stay here.
 
 export type Fact = [label: string, value: string]
 /** `sub` stands in for the maker under the name; an original card's is its number in the series. */
@@ -14,22 +15,28 @@ export type OriginalCard = { id: string; name: string; tagline: string; what: st
 const CLOSED: Fact = ["Weights", "Closed"]
 const IMAGES: Fact = ["Inputs", "Text, images"]
 const TEXT: Fact = ["Inputs", "Text"]
+const UNDISCLOSED: Fact = ["Size", "Undisclosed"]
+
+/** The rows every card shows, in this order (Brendan, 2026-11-02: the same five on all of them). The data keeps the
+ *  rest (context windows, prices, a model's job in PAX, hit rates, the series' facts); a row with no value reads —. */
+export const CARD_ROWS = ["Released", "Inputs", "Weights", "Size", "Model ID"] as const
+export const cardRows = (m: CommercialCard): Fact[] => CARD_ROWS.map((label) => [label, m.facts.find(([k]) => k === label)?.[1] ?? "—"])
 
 // Keyed by the picker's id. "In PAX" appears only where a model does more than sit in the picker.
 const LLM_FACTS: Record<string, { maker: string; facts: Fact[] }> = {
-  "us.anthropic.claude-sonnet-4-6": { maker: "Anthropic", facts: [["Released", "Feb 17, 2026"], ["Context window", "200K tokens, 1M in beta"], IMAGES, CLOSED, ["Price", "$3 in, $15 out per 1M tokens"], ["In PAX", "The chat's default; the agents' grounded tier"]] },
-  "us.anthropic.claude-haiku-4-5-20251001-v1:0": { maker: "Anthropic", facts: [["Released", "Oct 15, 2025"], ["Context window", "200K tokens"], IMAGES, CLOSED, ["Price", "$1 in, $5 out per 1M tokens"], ["In PAX", "The agents' routing tier"]] },
-  "us.anthropic.claude-opus-4-6-v1": { maker: "Anthropic", facts: [["Released", "Feb 5, 2026"], ["Context window", "200K tokens, 1M in beta"], IMAGES, CLOSED, ["Price", "$5 in, $25 out per 1M tokens"], ["In PAX", "The agents' reasoning tier"]] },
-  "us.anthropic.claude-opus-4-5-20251101-v1:0": { maker: "Anthropic", facts: [["Released", "Nov 24, 2025"], ["Context window", "200K tokens"], IMAGES, CLOSED, ["Price", "$5 in, $25 out per 1M tokens"]] },
-  "us.anthropic.claude-sonnet-4-5-20250929-v1:0": { maker: "Anthropic", facts: [["Released", "Sep 29, 2025"], ["Context window", "200K tokens, 1M in beta"], IMAGES, CLOSED, ["Price", "$3 in, $15 out per 1M tokens"]] },
+  "us.anthropic.claude-sonnet-4-6": { maker: "Anthropic", facts: [["Released", "Feb 17, 2026"], ["Context window", "200K tokens, 1M in beta"], IMAGES, CLOSED, UNDISCLOSED, ["Price", "$3 in, $15 out per 1M tokens"], ["In PAX", "The chat's default; the agents' grounded tier"]] },
+  "us.anthropic.claude-haiku-4-5-20251001-v1:0": { maker: "Anthropic", facts: [["Released", "Oct 15, 2025"], ["Context window", "200K tokens"], IMAGES, CLOSED, UNDISCLOSED, ["Price", "$1 in, $5 out per 1M tokens"], ["In PAX", "The agents' routing tier"]] },
+  "us.anthropic.claude-opus-4-6-v1": { maker: "Anthropic", facts: [["Released", "Feb 5, 2026"], ["Context window", "200K tokens, 1M in beta"], IMAGES, CLOSED, UNDISCLOSED, ["Price", "$5 in, $25 out per 1M tokens"], ["In PAX", "The agents' reasoning tier"]] },
+  "us.anthropic.claude-opus-4-5-20251101-v1:0": { maker: "Anthropic", facts: [["Released", "Nov 24, 2025"], ["Context window", "200K tokens"], IMAGES, CLOSED, UNDISCLOSED, ["Price", "$5 in, $25 out per 1M tokens"]] },
+  "us.anthropic.claude-sonnet-4-5-20250929-v1:0": { maker: "Anthropic", facts: [["Released", "Sep 29, 2025"], ["Context window", "200K tokens, 1M in beta"], IMAGES, CLOSED, UNDISCLOSED, ["Price", "$3 in, $15 out per 1M tokens"]] },
   "openai.gpt-oss-120b-1:0": { maker: "OpenAI", facts: [["Released", "Aug 5, 2025"], ["Context window", "128K tokens"], TEXT, ["Weights", "Open, Apache 2.0"], ["Size", "117B, 5.1B active"]] },
   "us.meta.llama4-maverick-17b-instruct-v1:0": { maker: "Meta", facts: [["Released", "Apr 5, 2025"], ["Context window", "Up to 1M tokens"], IMAGES, ["Weights", "Open, Llama 4 license"], ["Size", "400B, 17B active"]] },
   "us.meta.llama4-scout-17b-instruct-v1:0": { maker: "Meta", facts: [["Released", "Apr 5, 2025"], ["Context window", "Up to 10M tokens"], IMAGES, ["Weights", "Open, Llama 4 license"], ["Size", "109B, 17B active"]] },
   "us.meta.llama3-3-70b-instruct-v1:0": { maker: "Meta", facts: [["Released", "Dec 6, 2024"], ["Context window", "128K tokens"], TEXT, ["Weights", "Open, Llama 3.3 license"], ["Size", "70B"]] },
   "us.mistral.pixtral-large-2502-v1:0": { maker: "Mistral AI", facts: [["Released", "Feb 2025"], ["Context window", "128K tokens"], IMAGES, ["Weights", "Open, Mistral Research License"], ["Size", "124B"]] },
   "mistral.mistral-large-3-675b-instruct": { maker: "Mistral AI", facts: [["Released", "Dec 2, 2025"], ["Context window", "256K tokens"], IMAGES, ["Weights", "Open, Apache 2.0"], ["Size", "675B, 41B active"]] },
-  "us.amazon.nova-pro-v1:0": { maker: "Amazon", facts: [["Released", "Dec 3, 2024"], ["Context window", "300K tokens"], ["Inputs", "Text, images, video"], CLOSED] },
-  "us.amazon.nova-2-lite-v1:0": { maker: "Amazon", facts: [["Released", "Dec 2, 2025"], ["Context window", "1M tokens"], ["Inputs", "Text, images, video"], CLOSED] },
+  "us.amazon.nova-pro-v1:0": { maker: "Amazon", facts: [["Released", "Dec 3, 2024"], ["Context window", "300K tokens"], ["Inputs", "Text, images, video"], CLOSED, UNDISCLOSED] },
+  "us.amazon.nova-2-lite-v1:0": { maker: "Amazon", facts: [["Released", "Dec 2, 2025"], ["Context window", "1M tokens"], ["Inputs", "Text, images, video"], CLOSED, UNDISCLOSED] },
   "us.deepseek.r1-v1:0": { maker: "DeepSeek", facts: [["Released", "Jan 20, 2025"], ["Context window", "128K tokens"], TEXT, ["Weights", "Open, MIT"], ["Size", "671B, 37B active"]] },
   "us.moonshotai.kimi-k3": { maker: "Moonshot AI", facts: [["Released", "Jul 16, 2026"], ["Context window", "1M tokens"], IMAGES, ["Size", "2.8T"]] },
   "moonshotai.kimi-k2.5": { maker: "Moonshot AI", facts: [["Released", "Jan 27, 2026"], ["Context window", "256K tokens"], IMAGES, ["Weights", "Open, modified MIT"], ["Size", "1T, 32B active"]] },
@@ -55,10 +62,10 @@ export const LLM_CARDS: CommercialCard[] = MODEL_OPTIONS.map((m, i): CommercialC
 
 // The video models in the picker's order, which is also the order a failed generation falls back down.
 const VIDEO_FACTS: Record<string, { name?: string; maker: string; facts: Fact[]; badge?: CommercialCard["badge"] }> = {
-  kling: { maker: "Kuaishou", facts: [["Released", "Jun 17, 2026"], ["Makes", "Video from text"], ["Clips in PAX", "3 to 15 seconds, 720p"], ["Model ID", "kling-3.0-turbo"]] },
-  veo: { maker: "Google", badge: { label: "Preview", tone: "amber" }, facts: [["Released", "Oct 15, 2025"], ["Makes", "Video from text"], ["Clips in PAX", "4, 6 or 8 seconds, 720p"], ["Shutdown", "Oct 22, 2026"], ["Model ID", "veo-3.1-generate-preview"]] },
-  higgsfield: { maker: "ByteDance, through Higgsfield", facts: [["Makes", "Video from text"], ["Clips in PAX", "4 to 30 seconds, 720p"], ["Model ID", "bytedance/seedance-2.5/text-to-video"]] },
-  elevenlabs: { name: "Seedance 2.0", maker: "ByteDance, through ElevenLabs", facts: [["Released", "Feb 2026"], ["Makes", "Video from text"], ["Clips in PAX", "3 to 12 seconds, 720p"], ["Model ID", "bytedance-seedance-v2"]] },
+  kling: { maker: "Kuaishou", facts: [["Inputs", "Text"], CLOSED, UNDISCLOSED, ["Released", "Jun 17, 2026"], ["Makes", "Video from text"], ["Clips in PAX", "3 to 15 seconds, 720p"], ["Model ID", "kling-3.0-turbo"]] },
+  veo: { maker: "Google", badge: { label: "Preview", tone: "amber" }, facts: [["Inputs", "Text"], CLOSED, UNDISCLOSED, ["Released", "Oct 15, 2025"], ["Makes", "Video from text"], ["Clips in PAX", "4, 6 or 8 seconds, 720p"], ["Shutdown", "Oct 22, 2026"], ["Model ID", "veo-3.1-generate-preview"]] },
+  higgsfield: { maker: "ByteDance, through Higgsfield", facts: [["Inputs", "Text"], CLOSED, UNDISCLOSED, ["Makes", "Video from text"], ["Clips in PAX", "4 to 30 seconds, 720p"], ["Model ID", "bytedance/seedance-2.5/text-to-video"]] },
+  elevenlabs: { name: "Seedance 2.0", maker: "ByteDance, through ElevenLabs", facts: [["Inputs", "Text"], CLOSED, UNDISCLOSED, ["Released", "Feb 2026"], ["Makes", "Video from text"], ["Clips in PAX", "3 to 12 seconds, 720p"], ["Model ID", "bytedance-seedance-v2"]] },
 }
 const ORDINAL = ["First", "Second", "Third", "Fourth", "Fifth"]
 
@@ -84,7 +91,7 @@ export const VISUAL_CARDS: CommercialCard[] = [
     name: "Runway Aleph",
     maker: "Runway",
     logo: "/logos/RUNWAY.jpeg",
-    facts: [["Released", "Jul 25, 2025"], ["Makes", "Video from video"], ["In PAX", "Cleans up a recorded take: steadies the camera, evens the light"], ["Clips in PAX", "Portrait, 720 × 1280"], ["Model ID", "gen4_aleph"]],
+    facts: [["Released", "Jul 25, 2025"], ["Inputs", "Video, text"], CLOSED, UNDISCLOSED, ["Makes", "Video from video"], ["In PAX", "Cleans up a recorded take: steadies the camera, evens the light"], ["Clips in PAX", "Portrait, 720 × 1280"], ["Model ID", "gen4_aleph"]],
   },
 ]
 
