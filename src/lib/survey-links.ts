@@ -7,11 +7,16 @@ export type ConsensusTab = (typeof CONSENSUS_TABS)[number]
 export const TEST_SURFACES = ["tests", "new-test", "test", "edit-test"] as const
 export type TestSurface = (typeof TEST_SURFACES)[number]
 
-export type Surface = ConsensusTab | TestSurface
+/** The Question Bank (2026-11-02): every question from every survey, test and pretraining. */
+export const BANK = "bank"
 
-export const isSurface = (s: unknown): s is Surface => typeof s === "string" && ([...CONSENSUS_TABS, ...TEST_SURFACES] as readonly string[]).includes(s)
+export type Surface = ConsensusTab | TestSurface | typeof BANK
+
+export const isSurface = (s: unknown): s is Surface => typeof s === "string" && ([...CONSENSUS_TABS, ...TEST_SURFACES, BANK] as readonly string[]).includes(s)
 
 export const consensusHref = (tab: ConsensusTab, c?: string | null) => `/survey?s=${tab}${c ? `&c=${encodeURIComponent(c)}` : ""}`
+
+export const bankHref = () => `/survey?s=${BANK}`
 
 export const testsHref = () => "/survey?s=tests"
 export const newTestHref = () => "/survey?s=new-test"

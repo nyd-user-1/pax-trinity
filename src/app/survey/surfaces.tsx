@@ -16,11 +16,16 @@ import { StatusControls } from "@/app/message-tests/status-controls"
 import { TestsTable } from "@/app/message-tests/tests-table"
 import { currentUser } from "@/lib/auth"
 import { armRecordings } from "@/lib/clips/recorded"
+import { PRETRAININGS } from "@/lib/consensus/pretrainings"
 import { conversation, conversations } from "@/lib/consensus/store"
-import { CONSENSUS_TABS, editTestHref, newTestHref, testHref, testsHref, type ConsensusTab, type Surface } from "@/lib/survey-links"
+import { BANK, CONSENSUS_TABS, editTestHref, newTestHref, testHref, testsHref, type ConsensusTab, type Surface } from "@/lib/survey-links"
+import { consensusOrigin, pretrainingOrigin, surveyOrigin, testOrigin } from "@/lib/surveys/question-bank"
+import { SURVEYS } from "@/lib/surveys/catalog"
 import { getTest, listTests } from "@/lib/tests/store"
 import { blankTest } from "@/lib/tests/types"
 import { buttonVariants } from "@/ui/components/nova/button"
+
+import { QuestionBank } from "./question-bank"
 
 // The pages /survey's rail opens inside its inbox (Brendan, 2026-10-31): Consensus's four surfaces (Questions,
 // where a conversation is voted on; Surveys, the conversations as a directory; Results, what it thought; Admin,
@@ -46,6 +51,14 @@ export async function surfacePage({ s, c, id }: { s: Surface; c?: string; id?: s
     if (s === "surveys") return <SurveysPanel all={all} admin={admin} />
     if (s === "results") return <ResultsPanel conversation={open} survey={survey} />
     return <AdminPanel conversation={open} survey={survey} />
+  }
+
+  // The Question Bank: the topline surveys, the Consensus surveys, the pretrainings and, for an admin, the
+  // message tests (theirs alone, as their pages are). The browser adds its own draft.
+  if (s === BANK) {
+    const admin = !!(await currentUser())?.admin
+    const [all, tests] = await Promise.all([conversations(), admin ? listTests().then((r) => r.tests) : []])
+    return <QuestionBank origins={[...SURVEYS.map(surveyOrigin), ...all.map(consensusOrigin), ...tests.map(testOrigin), ...PRETRAININGS.map(pretrainingOrigin)]} />
   }
 
   // The message tests are admins' alone; anyone else goes to sign in, and comes back here.
