@@ -190,18 +190,21 @@ export const ORIGINAL_CARDS: OriginalCard[] = [
 // Lift the persuasion reference, Lookalikes the encoder and its reranker, Odds Are the classifier (v3 beside a
 // transcript, v1 without), Sticky the retention regressor, Surge the velocity classifier at six hours, Wave the
 // resonance encoder's full arm. Sizes are the repos' parameter counts, or a small model's feature count; a token
-// window is the model's max sequence length; Surge's cap is the views it reads. No repo is public, so the weights
-// are closed. A row with no true value stays off. The hit rates are the cards' own.
+// window is the model's max sequence length; Surge's cap is the views it reads. The weights read Open (Brendan,
+// 2026-11-02: the series is in development). A row with no true value stays off. The hit rates are the cards' own,
+// but for Odds Are's: 65, the served v3's held-out AUC (0.648), where the card's 59 traced to no served model
+// (Brendan's ruling, 2026-11-02).
+const OPEN: Fact = ["Weights", "Open"]
 const ORIGINAL_FACTS: Record<string, Fact[]> = {
-  affinity: [["Released", "Oct 20, 2026"], ["Context window", "256 tokens"], TEXT, CLOSED, ["Size", "568M"], ["Model ID", "affinity"], ["Hit rate", "58 in 100"]],
-  craft: [["Released", "Oct 20, 2026"], ["Inputs", "Video"], CLOSED, ["Size", "25 features"], ["Model ID", "craft"], ["Hit rate", "60 in 100"]],
-  duel: [["Released", "Oct 18, 2026"], ["Context window", "40 tokens"], TEXT, CLOSED, ["Size", "110M"], ["Model ID", "duel"], ["Hit rate", "67 in 100"]],
-  lift: [["Released", "Oct 3, 2026"], ["Inputs", "Coded ad traits"], CLOSED, ["Size", "28 traits"], ["Model ID", "lift"]],
-  lookalikes: [["Released", "Oct 19, 2026"], ["Context window", "256 tokens"], TEXT, CLOSED, ["Size", "568M, with a 150M reranker"], ["Model ID", "lookalikes"], ["Hit rate", "61 in 100"]],
-  "odds-are": [["Released", "Oct 20, 2026"], IMAGES, CLOSED, ["Size", "472 features, 47 without a transcript"], ["Model ID", "odds-are"], ["Hit rate", "59 in 100"]],
-  sticky: [["Released", "Oct 18, 2026"], ["Inputs", "Length, upload type, tags"], CLOSED, ["Size", "67 features"], ["Model ID", "sticky"]],
-  surge: [["Released", "Oct 19, 2026"], ["Input cap", "First 6 hours"], ["Inputs", "Views, likes, comments, text"], CLOSED, ["Size", "45 features"], ["Model ID", "surge"], ["Hit rate", "73 in 100"]],
-  wave: [["Released", "Oct 20, 2026"], ["Context window", "256 tokens"], TEXT, CLOSED, ["Size", "568M"], ["Model ID", "wave"], ["Hit rate", "62 in 100"]],
+  affinity: [["Released", "Oct 20, 2026"], ["Context window", "256 tokens"], TEXT, OPEN, ["Size", "568M"], ["Model ID", "affinity"], ["Hit rate", "58 in 100"]],
+  craft: [["Released", "Oct 20, 2026"], ["Inputs", "Video"], OPEN, ["Size", "25 features"], ["Model ID", "craft"], ["Hit rate", "60 in 100"]],
+  duel: [["Released", "Oct 18, 2026"], ["Context window", "40 tokens"], TEXT, OPEN, ["Size", "110M"], ["Model ID", "duel"], ["Hit rate", "67 in 100"]],
+  lift: [["Released", "Oct 3, 2026"], ["Inputs", "Coded ad traits"], OPEN, ["Size", "28 traits"], ["Model ID", "lift"]],
+  lookalikes: [["Released", "Oct 19, 2026"], ["Context window", "256 tokens"], TEXT, OPEN, ["Size", "568M, with a 150M reranker"], ["Model ID", "lookalikes"], ["Hit rate", "61 in 100"]],
+  "odds-are": [["Released", "Oct 20, 2026"], IMAGES, OPEN, ["Size", "472 features, 47 without a transcript"], ["Model ID", "odds-are"], ["Hit rate", "65 in 100"]],
+  sticky: [["Released", "Oct 18, 2026"], ["Inputs", "Length, upload type, tags"], OPEN, ["Size", "67 features"], ["Model ID", "sticky"]],
+  surge: [["Released", "Oct 19, 2026"], ["Input cap", "First 6 hours"], ["Inputs", "Views, likes, comments, text"], OPEN, ["Size", "45 features"], ["Model ID", "surge"], ["Hit rate", "73 in 100"]],
+  wave: [["Released", "Oct 20, 2026"], ["Context window", "256 tokens"], TEXT, OPEN, ["Size", "568M"], ["Model ID", "wave"], ["Hit rate", "62 in 100"]],
 }
 
 // Under the name, where a maker sits, each is numbered in the series in the catalog's order (Brendan, 2026-11-02);
