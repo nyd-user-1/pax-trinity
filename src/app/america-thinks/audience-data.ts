@@ -89,7 +89,7 @@ export const SEGMENT_SEED: Record<string, number> = {
   LIFT_ARCHIVE: 3,
   MA_ENROLLMENT: 1,
   PAX_TEST: 2,
-  POLL: 241,
+  POLL: 284,
 }
 
 // The rail's topics (Brendan, 2026-10-27): the publishers' tags — GSS's 155,
@@ -269,7 +269,7 @@ export function scaleOf(options: string[]): string | null {
 export const weightOf = (source: string | null, y: string) => (source === "GSS" ? (Number(y) >= 2004 ? "WTSSNRPS" : "WTSSPS") : null)
 
 /** The names breakdown dimensions print under; a dim outside the list prints as itself. */
-export const DIM_LABELS: Record<string, string> = { age: "Age", age_5: "Age", educ: "Education", party: "Party", race: "Race", race_eth: "Race and ethnicity", sex: "Sex", income: "Income" }
+export const DIM_LABELS: Record<string, string> = { age: "Age", age_5: "Age", age_6: "Age", educ: "Education", party: "Party", race: "Race", race_eth: "Race and ethnicity", sex: "Sex", income: "Income", white_by_educ: "White adults by education" }
 export const dimLabel = (d: string) => DIM_LABELS[d] ?? d.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase())
 
 const LEVEL_RANK: Record<string, number> = { US: 0, STATE: 1, COUNTY: 2, TOWN: 3 }

@@ -15,9 +15,13 @@ A release cited by polls of two pollsters is left out.
 
 The gate, per release:
   - Headers. Each crosstab column's group and label must map onto the store's subgroups
-    (HEADERS: sex, party, age, race_eth, ideology, presidential vote). A label found under the
-    wrong group ("2016 Vote / Liberal", "Gender / 18-29") is the shift fault, and the whole
-    release is refused. A column the map doesn't know (region, income, "Ind Rep") is dropped.
+    (HEADERS: sex, party, age, race_eth, educ, ideology, presidential vote; Emerson's six age
+    bands as age_6; white adults by education as white_by_educ). A label found under the wrong
+    group ("2016 Vote / Liberal", "Gender / 18-29") is the shift fault, and the whole release is
+    refused. A column the map doesn't know (region, income, "Ind Rep") is dropped. Quinnipiac's
+    banners are lost in the parse, so its abbreviations are read by label alone under its
+    population banners (BY_LABEL). Gallup's two-line headers parse into fragments ("conserva" /
+    "tive") and are not mapped.
   - VoteHub. At least one of the release's questions must match a VoteHub topline of the same
     poll (two or more answers by name) and agree within 2 points in some one column (the Total,
     or the population VoteHub reports), and none may disagree.
@@ -61,7 +65,15 @@ _PARTY = {"dem": "Democrat", "democrat": "Democrat", "rep": "Republican",
 _AGE = {"18-29": "18-29", "under 30": "18-29", "30-44": "30-44", "45-64": "45-64", "65+": "65+"}
 _RACE = {"white": "White", "black": "Black", "hispanic": "Hispanic or Latino",
          "white or caucasian": "White", "black or african american": "Black",
-         "hispanic or latino of any race": "Hispanic or Latino"}
+         "hispanic or latino of any race": "Hispanic or Latino", "asian": "Asian",
+         "other or multiple races": "Other or multiracial"}
+# The store's four education bands; Emerson's "Vocational/technical school" fits none and drops.
+_EDUC = {"high school or less": "HS or less", "associate degree/some college": "Some college",
+         "college graduate": "BA", "postgraduate or higher": "Grad"}
+# Emerson's six age bands match neither age nor age_5, so they stand as their own dim.
+_AGE_6 = {"18-29 years": "18-29", "30-39 years": "30-39", "40-49 years": "40-49",
+          "50-59 years": "50-59", "60-69 years": "60-69", "70 or more years": "70+"}
+_WHITE_EDUC = {"no degree": "White, no 4-year degree", "4yr degree+": "White, 4-year degree"}
 _IDEO = {"lib": "Liberal", "liberal": "Liberal", "mod": "Moderate", "moderate": "Moderate",
          "con": "Conservative", "conservative": "Conservative"}
 HEADERS = {
@@ -77,7 +89,28 @@ HEADERS = {
     "2024 vote": ("presidential_vote_2024", {"harris": "Voted Dem", "trump": "Voted Rep"}),
     "2020 vote": ("presidential_vote_2020", {"biden": "Voted Dem", "trump": "Voted Rep"}),
     "2016 vote": ("presidential_vote_2016", {"clinton": "Voted Dem", "trump": "Voted Rep"}),
+    # Emerson prints the question as the group: "The highest level of education you have ..."
+    "the highest level of education you have": ("educ", _EDUC),
+    "age range": ("age_6", _AGE_6),
+    "the 2024 presidential election": ("presidential_vote_2024", {
+        "kamala harris": "Voted Dem", "donald trump": "Voted Rep", "someone else": "Voted Other",
+        "did not vote": "Did not vote"}),
+    "white by education": ("white_by_educ", _WHITE_EDUC),
 }
+# Pollsters whose banners the parse loses: their own abbreviations, read by label alone, but
+# only under the groups named (under Quinnipiac's WHITE banner "Men" means white men).
+BY_LABEL = {
+    "Quinnipiac University": {
+        "groups": {"", "registered voters", "adults", "likely voters"},
+        "labels": {"men": ("sex", "Male"), "wom": ("sex", "Female"),
+                   "rep": ("party", "Republican"), "dem": ("party", "Democrat"),
+                   "ind": ("party", "Independent"), "wht": ("race_eth", "White"),
+                   "blk": ("race_eth", "Black"), "hsp": ("race_eth", "Hispanic or Latino")},
+        "grouped": {"4 yr coll deg": {"yes": ("white_by_educ", "White, 4-year degree"),
+                                      "no": ("white_by_educ", "White, no 4-year degree")}},
+    },
+}
+TOTALS = {"total", "tot"}
 # Labels that belong to groups the map drops; under a mapped group they signal a shift too.
 _OTHER_HOMES = {
     "income": {"<50k", "50-100k", "100k +", "under $50k", "$50-100k", "$100k or more", "< $50k",
@@ -187,14 +220,20 @@ def link(polls: list[dict], cache: Path = CACHE) -> tuple[list[dict], Counter]:
 
 # The gate -----------------------------------------------------------------------------------
 
-def column_map(columns: list[dict]) -> tuple[list[tuple[str, str] | None], bool]:
+def column_map(columns: list[dict], pollster: str = "") -> tuple[list[tuple[str, str] | None], bool]:
     """Each column's (dim, value) — ("all", "all") for Total, None when dropped — and whether
     a label sits under the wrong group (the shift fault)."""
     out, shifted = [], False
+    own = BY_LABEL.get(pollster)
     for i, c in enumerate(columns):
         group, label = _norm(c.get("group")), _norm(c.get("label"))
         if i == 0:
-            out.append(("all", "all") if (group, label) == ("", "total") else None)
+            out.append(("all", "all") if group == "" and label in TOTALS else None)
+            continue
+        if own:
+            hit = (own["labels"].get(label) if group in own["groups"]
+                   else own["grouped"].get(group, {}).get(label))
+            out.append(hit)
             continue
         mapped = HEADERS.get(group)
         if mapped and label in mapped[1]:
@@ -206,7 +245,7 @@ def column_map(columns: list[dict]) -> tuple[list[tuple[str, str] | None], bool]
     return out, shifted
 
 
-def clean_question(q: dict, release: dict) -> dict | None:
+def clean_question(q: dict, release: dict, pollster: str = "") -> dict | None:
     wording = NUMBERING.sub("", re.sub(r"\s+", " ", q.get("wording") or "")).strip()
     title = NUMBERING.sub("", re.sub(r"\s+", " ", q.get("title") or "")).strip() or None
     if title and title.upper() == title:
@@ -214,7 +253,7 @@ def clean_question(q: dict, release: dict) -> dict | None:
     if not worded(wording) or SCREENERS.search(wording) or (title and SCREENERS.search(title)):
         return None
     columns = q.get("columns") or release.get("columns") or [{"group": "", "label": "Total"}]
-    cmap, _ = column_map(columns)
+    cmap, _ = column_map(columns, pollster)
     if cmap[0] != ("all", "all"):
         return None
     rows = []
@@ -283,10 +322,10 @@ def gate(surveys: list[dict]) -> tuple[list[dict], dict[str, str]]:
     for s in surveys:
         rel = s["release"]
         raw = rel.get("questions") or []
-        if any(column_map(q.get("columns") or rel.get("columns") or [])[1] for q in raw):
+        if any(column_map(q.get("columns") or rel.get("columns") or [], s["pollster"])[1] for q in raw):
             why[s["sha"]] = "header shift"
             continue
-        qs = [c for c in (clean_question(q, rel) for q in raw) if c]
+        qs = [c for c in (clean_question(q, rel, s["pollster"]) for q in raw) if c]
         if not qs:
             why[s["sha"]] = "no question clears the per-question checks"
             continue
