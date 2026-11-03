@@ -29,9 +29,11 @@ export function liftCardProps(rs: ResultSet, partnerOf: (clipId: string) => stri
     treatment: { title: arm.name.length > 60 ? `${arm.name.slice(0, 59).trimEnd()}…` : arm.name, ...(partner ? { partner } : {}) },
     segment: "Everyone",
     metrics: metrics.slice(0, 3),
-    // A seeded demo run is no trial: its card says it is simulated (ResultSet.simulated).
+    // A seeded demo run is no trial: its card says it is simulated (ResultSet.simulated). Always said outright: Remotion
+    // lays the props over the composition's defaults, and the card's fixture is the simulated Wave 3, so a result that left
+    // it out rendered "Simulated data".
     rct: !rs.simulated,
-    ...(rs.simulated ? { simulated: true } : {}),
+    simulated: rs.simulated === true,
     n: Math.round(arm.nWeighted),
   }
 }

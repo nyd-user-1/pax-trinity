@@ -29,6 +29,7 @@ describe("liftCardProps", () => {
         { name: "Comprehension", control: 43.7, lift: 12.6, significant: true },
       ],
       rct: true,
+      simulated: false,
       n: 485,
     })
     const v = validate("lift-card", props)
