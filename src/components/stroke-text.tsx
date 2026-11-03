@@ -1,17 +1,15 @@
 "use client"
 
 // Stroke text, pasted from its gallery source 2026-10-16; only types were
-// added for this repo's strict TypeScript — the logic is untouched.
+// added for this repo's strict TypeScript — the logic is untouched, apart from
+// ScrollTrigger: it loads only when a caller asks for trigger="scroll" (perf
+// round 2, 2026-11-02). No caller does, and importing it eagerly put 15 KB br on
+// the front door's first load for nothing; the mount timeline never touches it.
 
 import { useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react"
 import { gsap } from "gsap"
-import { ScrollTrigger } from "gsap/ScrollTrigger"
 
 import "./stroke-text.css"
-
-if (typeof window !== "undefined") {
-  gsap.registerPlugin(ScrollTrigger)
-}
 
 const DEFAULT_TEXT = "Draw Attention"
 const SHADOW_OPACITY = 0.5
@@ -268,7 +266,8 @@ const StrokeText = ({
     }
 
     let timeline: gsap.core.Timeline | null = null
-    let scrollTrigger: ScrollTrigger | null = null
+    let scrollTrigger: { kill: () => void } | null = null
+    let disposed = false
     let redraw: gsap.core.Timeline | null = null
     const listeners: (() => void)[] = []
 
@@ -287,11 +286,15 @@ const StrokeText = ({
     } else {
       timeline = build()
       if (trigger === "scroll") {
-        scrollTrigger = ScrollTrigger.create({
-          trigger: root,
-          start: "top 82%",
-          once: true,
-          onEnter: () => timeline?.play(0),
+        void import("gsap/ScrollTrigger").then(({ ScrollTrigger }) => {
+          if (disposed) return
+          gsap.registerPlugin(ScrollTrigger)
+          scrollTrigger = ScrollTrigger.create({
+            trigger: root,
+            start: "top 82%",
+            once: true,
+            onEnter: () => timeline?.play(0),
+          })
         })
       } else {
         timeline.play(0)
@@ -320,6 +323,7 @@ const StrokeText = ({
         : null
 
     return () => {
+      disposed = true
       listeners.forEach((handler) => root.removeEventListener("pointerenter", handler))
       scrollTrigger?.kill()
       timeline?.kill()
