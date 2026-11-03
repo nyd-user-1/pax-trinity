@@ -1,0 +1,13 @@
+/* ClassicSpinner's spokes (ClassicSpinner.tsx): each fades from full to a fifth, linear, over a second, and starts again. */
+@keyframes classic-spinner-spoke {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.2;
+  }
+}
+
+.classic-spinner-spoke {
+  animation: classic-spinner-spoke 1s linear infinite;
+}
