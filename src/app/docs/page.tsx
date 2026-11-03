@@ -9,11 +9,17 @@ import { DOCS_MEDIA, GUIDES } from "@/lib/docs/media"
 export const metadata = { title: "Docs" }
 
 
-// The first three to read, each with its picture.
+// The first nine to read, each with its picture.
 const START = [
   { slug: "welcome", shot: "lift" },
   { slug: "lift-analysis", shot: "lift-analysis" },
   { slug: "find-your-way", shot: "sidebar" },
+  { slug: "america-thinks", shot: "america-thinks" },
+  { slug: "chat", shot: "chat" },
+  { slug: "answer-a-survey", shot: "survey-questions" },
+  { slug: "message-tests", shot: "survey-tests" },
+  { slug: "inbox", shot: "inbox" },
+  { slug: "clips", shot: "clips" },
 ]
 
 // /docs: the Help Center's front page (Notion's, Brendan 2026-10-31): start here, the categories, the video

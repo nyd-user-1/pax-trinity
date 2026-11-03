@@ -46,7 +46,7 @@ export const TEMPLATES: Template[] = [
     "name": "Question card ready",
     "from": "bill-reader",
     "subject": "Question card: {{CLIP_NAME}}",
-    "body": "**Question card: {{CLIP_NAME}}**\n\nI turned the Consensus results into closed-ended questions, each matched to America Thinks wording so it reads against the norm.\n\n![The question card, as a test request to the Pollster](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/inbox-new-test.jpg)\n\n**Clip:** {{CLIP_NAME}}\n\n**Questions:** {{QUESTION_COUNT}}\n\n**Next:** your approval hands the test to the Pollster\n\n[Review the card]({{CARD_URL}})\n\nAnalyst"
+    "body": "**Question card: {{CLIP_NAME}}**\n\nI turned the Consensus results into closed-ended questions, each matched to America Thinks wording so it reads against the norm.\n\n![The question card, as a test request to the Pollster](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/inbox.jpg)\n\n**Clip:** {{CLIP_NAME}}\n\n**Questions:** {{QUESTION_COUNT}}\n\n**Next:** your approval hands the test to the Pollster\n\n[Review the card]({{CARD_URL}})\n\nAnalyst"
   },
   {
     "id": "58307e18-6c0e-4040-88d1-a1e7debfef38",
@@ -54,7 +54,7 @@ export const TEMPLATES: Template[] = [
     "name": "Survey invitation",
     "from": "tracker",
     "subject": "A few questions about {{TOPIC}}",
-    "body": "**A few questions about {{TOPIC}}**\n\nHi {{RECIPIENT_NAME}},\n\nI'm asking a few short questions about {{TOPIC}}, and your answers stay anonymous.\n\n![The survey's questions](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/survey-topline.jpg)\n\n**Questions:** {{QUESTION_COUNT}}\n\n**Time:** about {{MINUTES}} minutes\n\n[Start the survey]({{SURVEY_URL}})\n\nPollster"
+    "body": "**A few questions about {{TOPIC}}**\n\nHi {{RECIPIENT_NAME}},\n\nI'm asking a few short questions about {{TOPIC}}, and your answers stay anonymous.\n\n![The survey's questions](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/survey.jpg)\n\n**Questions:** {{QUESTION_COUNT}}\n\n**Time:** about {{MINUTES}} minutes\n\n[Start the survey]({{SURVEY_URL}})\n\nPollster"
   },
   {
     "id": "b0372255-e04e-436f-8ac4-0657ccc4c345",
@@ -62,7 +62,7 @@ export const TEMPLATES: Template[] = [
     "name": "Survey reminder",
     "from": "tracker",
     "subject": "Still time to answer: {{SURVEY_NAME}}",
-    "body": "**Still time to answer: {{SURVEY_NAME}}**\n\nHi {{RECIPIENT_NAME}},\n\nThe survey on {{TOPIC}} I sent on {{SENT_DATE}} is still open. If you've started, your answers are saved.\n\n![The survey's questions](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/survey-topline.jpg)\n\n**Closes:** {{CLOSE_DATE}}\n\n**Time:** about {{MINUTES}} minutes\n\n[Pick up where you left off]({{SURVEY_URL}})\n\nPollster"
+    "body": "**Still time to answer: {{SURVEY_NAME}}**\n\nHi {{RECIPIENT_NAME}},\n\nThe survey on {{TOPIC}} I sent on {{SENT_DATE}} is still open. If you've started, your answers are saved.\n\n![The survey's questions](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/survey.jpg)\n\n**Closes:** {{CLOSE_DATE}}\n\n**Time:** about {{MINUTES}} minutes\n\n[Pick up where you left off]({{SURVEY_URL}})\n\nPollster"
   },
   {
     "id": "4fb703cd-dab5-45f4-a1ce-63b17c4c27a1",
@@ -70,7 +70,7 @@ export const TEMPLATES: Template[] = [
     "name": "Survey thank-you",
     "from": "tracker",
     "subject": "Thanks for answering, {{RECIPIENT_NAME}}",
-    "body": "**Thanks for answering**\n\nHi {{RECIPIENT_NAME}},\n\nYour answers are in. I've added you to a panel, so I may ask you to watch a short video and answer a few questions in the coming weeks.\n\n![A study: one video, then its questions](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/test.jpg)\n\n**Panel:** {{GROUP_NAME}}\n\nYou can leave it any time from [your settings]({{SETTINGS_URL}}).\n\nPollster"
+    "body": "**Thanks for answering**\n\nHi {{RECIPIENT_NAME}},\n\nYour answers are in. I've added you to a panel, so I may ask you to watch a short video and answer a few questions in the coming weeks.\n\n![A study: one video, then its questions](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/survey-tests.jpg)\n\n**Panel:** {{GROUP_NAME}}\n\nYou can leave it any time from [your settings]({{SETTINGS_URL}}).\n\nPollster"
   },
   {
     "id": "00a24180-a1b3-46a7-ad53-5b1bc496964d",
@@ -78,7 +78,7 @@ export const TEMPLATES: Template[] = [
     "name": "Test invitation",
     "from": "tracker",
     "subject": "Watch a short video and answer {{QUESTION_COUNT}} questions",
-    "body": "**Watch a short video and answer {{QUESTION_COUNT}} questions**\n\nHi {{RECIPIENT_NAME}},\n\nI have a short study for you: one video, then a few questions about it.\n\n![The study: one video, then its questions](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/test.jpg)\n\n**Video:** under a minute\n\n**Questions:** {{QUESTION_COUNT}}\n\n**Time:** about {{MINUTES}} minutes\n\n[Start the study]({{TEST_URL}})\n\nPollster"
+    "body": "**Watch a short video and answer {{QUESTION_COUNT}} questions**\n\nHi {{RECIPIENT_NAME}},\n\nI have a short study for you: one video, then a few questions about it.\n\n![The study: one video, then its questions](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/survey-tests.jpg)\n\n**Video:** under a minute\n\n**Questions:** {{QUESTION_COUNT}}\n\n**Time:** about {{MINUTES}} minutes\n\n[Start the study]({{TEST_URL}})\n\nPollster"
   },
   {
     "id": "7ff83159-240a-46af-b3d7-5ecdb1641a8e",
@@ -94,7 +94,7 @@ export const TEMPLATES: Template[] = [
     "name": "Test reminder",
     "from": "tracker",
     "subject": "Your study closes {{CLOSE_DATE}}",
-    "body": "**Your study closes {{CLOSE_DATE}}**\n\nHi {{RECIPIENT_NAME}},\n\nThe study I sent on {{SENT_DATE}} is still waiting for you: one short video, then a few questions.\n\n![The study: one video, then its questions](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/test.jpg)\n\n**Closes:** {{CLOSE_DATE}}\n\n**Time:** about {{MINUTES}} minutes\n\n[Start the study]({{TEST_URL}})\n\nPollster"
+    "body": "**Your study closes {{CLOSE_DATE}}**\n\nHi {{RECIPIENT_NAME}},\n\nThe study I sent on {{SENT_DATE}} is still waiting for you: one short video, then a few questions.\n\n![The study: one video, then its questions](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/survey-tests.jpg)\n\n**Closes:** {{CLOSE_DATE}}\n\n**Time:** about {{MINUTES}} minutes\n\n[Start the study]({{TEST_URL}})\n\nPollster"
   },
   {
     "id": "3afa6c38-97b1-4877-8b0e-59703da5bdd9",
@@ -142,7 +142,7 @@ export const TEMPLATES: Template[] = [
     "name": "Clip ready to test",
     "from": "assistant",
     "subject": "{{CLIP_NAME}} is ready to test",
-    "body": "**{{CLIP_NAME}} is ready to test**\n\nIt passed review and its question card is approved. Approve the test and the Pollster sends it.\n\n![The clip, open in Clips](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/clip.jpg)\n\n**Clip:** {{CLIP_NAME}}\n\n**Goes to:** {{GROUP_NAME}}\n\n[Approve the test]({{APPROVE_URL}})\n\nAssistant"
+    "body": "**{{CLIP_NAME}} is ready to test**\n\nIt passed review and its question card is approved. Approve the test and the Pollster sends it.\n\n![The clip, open in Clips](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/clips.jpg)\n\n**Clip:** {{CLIP_NAME}}\n\n**Goes to:** {{GROUP_NAME}}\n\n[Approve the test]({{APPROVE_URL}})\n\nAssistant"
   },
   {
     "id": "60a17086-59b0-4d40-8b4a-225349dab33a",
@@ -198,7 +198,7 @@ export const TEMPLATES: Template[] = [
     "name": "Your login",
     "from": "assistant",
     "subject": "Your PAX login",
-    "body": "**Your PAX login**\n\nHi {{RECIPIENT_NAME}},\n\nYour account is ready.\n\n![The sign-in page](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/signin.jpg)\n\n**Username:** {{USERNAME}}\n\n**Password:** the one you set, or choose Forgot password on the sign-in page to set one\n\n[Sign in]({{SIGNIN_URL}})\n\nIf you didn't expect this, reply and I'll close the account.\n\nAssistant"
+    "body": "**Your PAX login**\n\nHi {{RECIPIENT_NAME}},\n\nYour account is ready.\n\n![The sign-in page](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/home.jpg)\n\n**Username:** {{USERNAME}}\n\n**Password:** the one you set, or choose Forgot password on the sign-in page to set one\n\n[Sign in]({{SIGNIN_URL}})\n\nIf you didn't expect this, reply and I'll close the account.\n\nAssistant"
   },
   {
     "id": "b61002fc-f16c-468f-90e2-fcc80b521b17",
@@ -206,7 +206,7 @@ export const TEMPLATES: Template[] = [
     "name": "Password reset",
     "from": "assistant",
     "subject": "Reset your PAX password",
-    "body": "**Reset your PAX password**\n\nSomeone asked to reset the password for this account. If it wasn't you, ignore this and nothing changes.\n\n![The sign-in page](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/signin.jpg)\n\n**Username:** {{USERNAME}}\n\n**The link works for:** one hour\n\n[Choose a new password]({{RESET_URL}})\n\nAssistant"
+    "body": "**Reset your PAX password**\n\nSomeone asked to reset the password for this account. If it wasn't you, ignore this and nothing changes.\n\n![The sign-in page](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/home.jpg)\n\n**Username:** {{USERNAME}}\n\n**The link works for:** one hour\n\n[Choose a new password]({{RESET_URL}})\n\nAssistant"
   },
   {
     "id": "local-chat-flow-1-ask-in-plain-words",
@@ -222,7 +222,7 @@ export const TEMPLATES: Template[] = [
     "name": "Chat flow 2: Write and record a video",
     "from": "assistant",
     "subject": "Write and record a video in Chat",
-    "body": "**Write and record a video in Chat**\n\nHi {{RECIPIENT_NAME}},\n\nThe road from an idea to a video on file runs through one chat:\n\n1. Press the camera beside the box. I ask a few short questions, one at a time: who you are, your town, and why open primaries matter to you.\n2. I draft a script in your words: a hook under 12 words, one concrete number, about 25 seconds spoken, ending with what the viewer should do. Each line that leans on evidence carries its source.\n3. Revise it with me until it sounds like you.\n4. Press **Record** on the script card. The camera opens in the chat with a teleprompter that scrolls at your pace.\n5. Watch it back, give it a title and send it.\n\n![Recording in Chat](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/chat-record.jpg)\n\nThe take is kept in Clips, in Your library, where only you see it. Once it's kept, I show it inside two Yes on 3 templates; pick one to play your take in it.\n\n[Record a video]({{PAGE_URL}}?record=1)\n\nAssistant"
+    "body": "**Write and record a video in Chat**\n\nHi {{RECIPIENT_NAME}},\n\nThe road from an idea to a video on file runs through one chat:\n\n1. Press the camera beside the box. I ask a few short questions, one at a time: who you are, your town, and why open primaries matter to you.\n2. I draft a script in your words: a hook under 12 words, one concrete number, about 25 seconds spoken, ending with what the viewer should do. Each line that leans on evidence carries its source.\n3. Revise it with me until it sounds like you.\n4. Press **Record** on the script card. The camera opens in the chat with a teleprompter that scrolls at your pace.\n5. Watch it back, give it a title and send it.\n\n![Recording in Chat](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/chat.jpg)\n\nThe take is kept in Clips, in Your library, where only you see it. Once it's kept, I show it inside two Yes on 3 templates; pick one to play your take in it.\n\n[Record a video]({{PAGE_URL}}?record=1)\n\nAssistant"
   },
   {
     "id": "local-chat-flow-3-skills",
@@ -230,7 +230,7 @@ export const TEMPLATES: Template[] = [
     "name": "Chat flow 3: Skills",
     "from": "assistant",
     "subject": "Set how I work for a whole chat",
-    "body": "**Set how I work for a whole chat**\n\nHi {{RECIPIENT_NAME}},\n\nThe top of the + menu holds **Skills**. Pick one and it rides the chat as a chip in the box, shaping every answer after it until you drop it.\n\n![The + menu, Skills at its top](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/chat-plus.jpg)\n\n- **Script doctor** tightens a script to the house rules and lists each change.\n- **Read a test** explains a message test's result to someone who has never read one.\n- **Pick the audience** proposes video and audience pairings to test next.\n- **Draft a survey question** writes a neutral question, matched to America Thinks.\n- **Brief a partner** turns what the chat found into a short update.\n- **Make a video** turns a result into a video from a template.\n\nTry **Read a test** and name a report, then ask your follow-ups in the same chat.\n\n[Pick a skill]({{PAGE_URL}})\n\nAssistant"
+    "body": "**Set how I work for a whole chat**\n\nHi {{RECIPIENT_NAME}},\n\nThe top of the + menu holds **Skills**. Pick one and it rides the chat as a chip in the box, shaping every answer after it until you drop it.\n\n![The + menu, Skills at its top](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/chat.jpg)\n\n- **Script doctor** tightens a script to the house rules and lists each change.\n- **Read a test** explains a message test's result to someone who has never read one.\n- **Pick the audience** proposes video and audience pairings to test next.\n- **Draft a survey question** writes a neutral question, matched to America Thinks.\n- **Brief a partner** turns what the chat found into a short update.\n- **Make a video** turns a result into a video from a template.\n\nTry **Read a test** and name a report, then ask your follow-ups in the same chat.\n\n[Pick a skill]({{PAGE_URL}})\n\nAssistant"
   },
   {
     "id": "local-chat-flow-4-ask-about-the-page-on-screen",
@@ -238,7 +238,7 @@ export const TEMPLATES: Template[] = [
     "name": "Chat flow 4: Ask about the page on screen",
     "from": "assistant",
     "subject": "Ask about the page in front of you",
-    "body": "**Ask about the page in front of you**\n\nHi {{RECIPIENT_NAME}},\n\nHold Shift and drag across a blank part of any page, and a note opens where you drew it, as large as you drew it. Switch it from **Note** to **Chat** in its header, type your question, and press Shift Enter.\n\n![A note drawn on America Thinks](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/note.jpg)\n\nEach question carries the page you have open, and the one beside it in the second panel, so I answer from the numbers on show: a question's Crosstab in America Thinks, a row in Lift, a report. The chat stays with the note, and the note keeps itself under **My notes** in the Inbox.\n\nThe rest of Chat, from the + menu to recording, is in the guide.\n\n[Read the Chat guide]({{SITE_URL}}/docs/chat)\n\nAssistant"
+    "body": "**Ask about the page in front of you**\n\nHi {{RECIPIENT_NAME}},\n\nHold Shift and drag across a blank part of any page, and a note opens where you drew it, as large as you drew it. Switch it from **Note** to **Chat** in its header, type your question, and press Shift Enter.\n\n![A note drawn on America Thinks](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/block-menu.jpg)\n\nEach question carries the page you have open, and the one beside it in the second panel, so I answer from the numbers on show: a question's Crosstab in America Thinks, a row in Lift, a report. The chat stays with the note, and the note keeps itself under **My notes** in the Inbox.\n\nThe rest of Chat, from the + menu to recording, is in the guide.\n\n[Read the Chat guide]({{SITE_URL}}/docs/chat)\n\nAssistant"
   },
   {
     "id": "local-lift-flow-1-read-a-lift",
@@ -334,7 +334,7 @@ export const TEMPLATES: Template[] = [
     "name": "Studio flow 4: Studio beside Chat",
     "from": "assistant",
     "subject": "Keep Studio open beside Chat",
-    "body": "**Keep Studio open beside Chat**\n\nHi {{RECIPIENT_NAME}},\n\nOpen **Tools** at the top right of any page and choose **Studio**: it sits beside the page you're on. Keep it there while you work in Chat, and every version Chat saves loads into it as it lands, so each change is checked the moment it's made.\n\n![Studio beside Chat](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/tools-studio.jpg)\n\nWhen a version is right, **Get MP4** under the video in Chat renders the file.\n\n[Read the Studio guide]({{SITE_URL}}/docs/studio)\n\nAssistant"
+    "body": "**Keep Studio open beside Chat**\n\nHi {{RECIPIENT_NAME}},\n\nOpen **Tools** at the top right of any page and choose **Studio**: it sits beside the page you're on. Keep it there while you work in Chat, and every version Chat saves loads into it as it lands, so each change is checked the moment it's made.\n\n![Studio beside Chat](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/studio.jpg)\n\nWhen a version is right, **Get MP4** under the video in Chat renders the file.\n\n[Read the Studio guide]({{SITE_URL}}/docs/studio)\n\nAssistant"
   },
   {
     "id": "local-inbox-flow-1-three-agents",
@@ -350,7 +350,7 @@ export const TEMPLATES: Template[] = [
     "name": "Inbox flow 2: Field a survey or a test",
     "from": "assistant",
     "subject": "Run a survey or a test",
-    "body": "**Run a survey or a test**\n\nHi {{RECIPIENT_NAME}},\n\nA survey or test runs end to end on one thread:\n\n1. Under **Templates** in the Agentic Inbox's sidebar, **New test** or **New survey** opens a request to the Pollster.\n2. Fill in the test or survey, a quota and a close date, and add a group from the address book as a recipient.\n3. The Pollster mails each member a link of their own, tracks who opened, started and finished, and reminds whoever hasn't.\n4. It closes at the quota or the deadline, and the Analyst's readout lands on the same thread.\n\n![A test request to the Pollster](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/inbox-new-test.jpg)\n\nSending a task needs a staff account.\n\n[Open the Agentic Inbox]({{PAGE_URL}})\n\nAssistant"
+    "body": "**Run a survey or a test**\n\nHi {{RECIPIENT_NAME}},\n\nA survey or test runs end to end on one thread:\n\n1. Under **Templates** in the Agentic Inbox's sidebar, **New test** or **New survey** opens a request to the Pollster.\n2. Fill in the test or survey, a quota and a close date, and add a group from the address book as a recipient.\n3. The Pollster mails each member a link of their own, tracks who opened, started and finished, and reminds whoever hasn't.\n4. It closes at the quota or the deadline, and the Analyst's readout lands on the same thread.\n\n![A test request to the Pollster](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/inbox.jpg)\n\nSending a task needs a staff account.\n\n[Open the Agentic Inbox]({{PAGE_URL}})\n\nAssistant"
   },
   {
     "id": "local-inbox-flow-3-templates",
@@ -358,7 +358,7 @@ export const TEMPLATES: Template[] = [
     "name": "Inbox flow 3: Templates",
     "from": "assistant",
     "subject": "Start from a template",
-    "body": "**Start from a template**\n\nHi {{RECIPIENT_NAME}},\n\nEvery message that goes out more than once has a template: invitations, reminders, updates, results and account mail. Open **Templates** in the Agentic Inbox's sidebar and pick one, and the composer fills with it. The parts in capitals between double braces are the ones you fill in.\n\n![Templates in the Agentic Inbox](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/inbox-templates.jpg)\n\nEach goes out in the same design: the mark, a white card headed by the message's first line, and its details in a pale panel. This mail started as one.\n\n[Open the Agentic Inbox]({{PAGE_URL}})\n\nAssistant"
+    "body": "**Start from a template**\n\nHi {{RECIPIENT_NAME}},\n\nEvery message that goes out more than once has a template: invitations, reminders, updates, results and account mail. Open **Templates** in the Agentic Inbox's sidebar and pick one, and the composer fills with it. The parts in capitals between double braces are the ones you fill in.\n\n![Templates in the Agentic Inbox](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/inbox.jpg)\n\nEach goes out in the same design: the mark, a white card headed by the message's first line, and its details in a pale panel. This mail started as one.\n\n[Open the Agentic Inbox]({{PAGE_URL}})\n\nAssistant"
   },
   {
     "id": "local-inbox-flow-4-from-a-conversation-to-a-test",
@@ -398,6 +398,6 @@ export const TEMPLATES: Template[] = [
     "name": "Survey flow 4: Toplines",
     "from": "assistant",
     "subject": "Ask everyone the same questions",
-    "body": "**Ask everyone the same questions**\n\nHi {{RECIPIENT_NAME}},\n\nBeside the conversations, Survey keeps **Toplines**: surveys that ask everyone the same questions, with no video and no comparison group. The Open Primaries topline sets out its methodology and each question's shares, and its questions are America Thinks' own primaries items, worded the same way.\n\n![The topline's answer page](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/survey-topline.jpg)\n\n**Copy link** on the topline carries its answer page. Share it yourself, or ask the Pollster in the Agentic Inbox to mail it to a group, a link for each member.\n\n[Read about toplines]({{SITE_URL}}/docs/survey-toplines)\n\nAssistant"
+    "body": "**Ask everyone the same questions**\n\nHi {{RECIPIENT_NAME}},\n\nBeside the conversations, Survey keeps **Toplines**: surveys that ask everyone the same questions, with no video and no comparison group. The Open Primaries topline sets out its methodology and each question's shares, and its questions are America Thinks' own primaries items, worded the same way.\n\n![The topline's answer page](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/survey.jpg)\n\n**Copy link** on the topline carries its answer page. Share it yourself, or ask the Pollster in the Agentic Inbox to mail it to a group, a link for each member.\n\n[Read about toplines]({{SITE_URL}}/docs/survey-toplines)\n\nAssistant"
   }
 ]

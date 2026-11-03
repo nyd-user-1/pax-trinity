@@ -45,6 +45,18 @@ npx remotion render scripts/docs-media/index.ts ClipCut $M/edits/dustin-cut.mp4 
 
 The first two (Dustin Cathcart and Danielle Allen, Massachusetts Wave 1) are at the CDN's `docs/edits/`.
 
+## A poster for the mail
+
+Mail clients play no video, so a guide rides in a mail as its poster with a play badge drawn in, linking to the
+article that plays it (lib/agents/templates.ts, 2026-11-02). `capture/play-badge.py` draws the badge at the bottom
+right of each poster, clear of the title card's words:
+
+```
+python3 capture/play-badge.py capture/videos guide-tools      # capture/videos/guide-tools.play.jpg beside guide-tools.jpg
+```
+
+Upload it beside the poster (`docs/videos/`), then invalidate `/docs/videos/*.play.jpg` on the distribution.
+
 ## Narration
 
 `capture/narrate.mjs` voices each video's title and captions with Amazon Polly's neural voices (in the old AWS

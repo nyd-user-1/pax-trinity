@@ -15,8 +15,9 @@ const errors = []
 page.on("pageerror", (e) => errors.push(e.message))
 
 const settle = (ms = 900) => page.waitForTimeout(ms)
-async function go(path, wait) {
-  await page.goto(BASE + path, { waitUntil: "networkidle", timeout: 240000 }).catch(() => {})
+// until: "load" where a page's videos keep the network busy (Clips), so it never goes idle.
+async function go(path, wait, until = "networkidle") {
+  await page.goto(BASE + path, { waitUntil: until, timeout: 240000 }).catch(() => {})
   const dismiss = page.locator('button[aria-label="Dismiss"]').first()
   if (await dismiss.isVisible().catch(() => false)) await dismiss.click().catch(() => {})
   if (wait) await page.waitForSelector(wait, { timeout: 120000 }).catch(() => {})
@@ -26,6 +27,9 @@ const tools = async () => (await page.click('button[aria-label="Open Tools"]'), 
 const row = async (name) => (await page.getByRole("button", { name: new RegExp("^" + name) }).first().click(), settle(700))
 const lift = async () => go("/lift?source=PAX_TEST", "tbody tr")
 const cell = async (n = 0) => (await page.locator("tbody button:not([aria-label])").nth(n).click(), settle(2500))
+// The panel at half the page (Brendan, 2026-11-02: "you could have gone half screen on lift analysis"). The analysis
+// docks in the shell's aside, whose button reads Widen the panel; a take panel's reads Half the page.
+const half = async () => (await page.getByRole("button", { name: /^(Half the page|Widen the panel)$/ }).first().click(), settle(1200))
 
 const SHOTS = {
   "home": async () => go("/"),
@@ -37,8 +41,8 @@ const SHOTS = {
   "lift-menu": async () => (await lift(), await page.click('[data-shell-main] button[aria-label="More"]'), settle(500)),
   "lift-search": async () => (await lift(), await page.mouse.click(760, 140), await page.keyboard.type("Allen"), settle(800)),
   "lift-heatmap": async () => go("/lift?source=PAX_TEST&view=heatmap", "tbody tr"),
-  "lift-analysis": async () => (await lift(), cell(0)),
-  "lift-explainer": async () => (await lift(), await cell(0), await page.getByRole("button", { name: "Explainer" }).click(), settle(600)),
+  "lift-analysis": async () => (await lift(), await cell(0), half()),
+  "lift-explainer": async () => (await lift(), await cell(0), await half(), await page.getByRole("button", { name: "Explainer" }).click(), settle(600)),
   "lift-archive": async () => go("/lift?source=LIFT_ARCHIVE", "tbody tr"),
   "tools": async () => (await go("/lift?source=PAX_TEST", "tbody tr"), tools()),
   "tools-lift-cards": async () => (await lift(), await tools(), row("Lift Analysis")),
@@ -73,6 +77,30 @@ const SHOTS = {
   "settings": async () => go("/settings"),
   "dashboard": async () => go("/dashboard"),
   "page-switcher": async () => (await go("/lift?source=PAX_TEST", "tbody tr"), await page.locator("[data-shell-main] [data-chrome] button").nth(1).click(), settle(600)),
+  "signin": async () => go("/signin"),
+  "signup": async () => go("/signup"),
+  "test": async () => go("/test/open-primaries-1"),
+  "survey-topline": async () => go("/s/open-primaries"),
+  // The + beside the box, Skills at the top of its menu.
+  "chat-plus": async () => (await go("/chat"), await page.locator("button:has(svg.lucide-plus)").last().click(), settle(600)),
+  // No camera in headless Chrome: the record flow's own screen for that is the picture.
+  "chat-record": async () => (await go("/chat?record=1"), settle(2500)),
+  "inbox-templates": async () => (await go("/agentic-inbox"), await page.getByText("Templates", { exact: true }).first().click(), settle(800)),
+  "inbox-new-test": async () => (await SHOTS["inbox-templates"](), await page.locator("li").filter({ has: page.getByText("New test", { exact: true }) }).first().click(), settle(800)),
+  "tools-studio": async () => (await go("/chat"), await tools(), await row("Studio"), settle(6000)),
+  "clip": async () => (await go("/clips", "[data-tile]", "load"), await page.locator("[data-tile]").first().click(), settle(2500)),
+  "constructs": async () => go("/constructs"),
+  // A drawn note: Shift and a drag across a blank part of the page.
+  "note": async () => {
+    await go("/america-thinks")
+    await page.keyboard.down("Shift")
+    await page.mouse.move(880, 300)
+    await page.mouse.down()
+    await page.mouse.move(1320, 620, { steps: 12 })
+    await page.mouse.up()
+    await page.keyboard.up("Shift")
+    await settle(900)
+  },
 }
 
 for (const [name, run] of Object.entries(SHOTS)) {
