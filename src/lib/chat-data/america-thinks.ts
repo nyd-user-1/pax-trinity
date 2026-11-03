@@ -1,6 +1,7 @@
 import "server-only"
 
 import fs from "node:fs"
+import { brotliDecompressSync } from "node:zlib"
 
 import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3"
 
@@ -38,7 +39,11 @@ export async function readExport(parts: string[]): Promise<string | null> {
   s3 ??= new S3Client({ region: process.env.PAX2_BUCKET_REGION ?? "us-east-2" })
   try {
     const r = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: `exports/${parts.join("/")}` }))
-    return (await r.Body?.transformToString()) ?? null
+    if (!r.Body) return null
+    // index.json and the q/ files can be stored brotli (scripts/exports/sync.mjs). S3 hands the stored bytes over as
+    // they are, so they are decoded here; a plain object reads as before.
+    if (r.ContentEncoding === "br") return brotliDecompressSync(await r.Body.transformToByteArray()).toString("utf8")
+    return r.Body.transformToString()
   } catch (e) {
     if ((e as { name?: string }).name === "NoSuchKey") return null
     throw e

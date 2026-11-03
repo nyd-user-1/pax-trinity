@@ -20,7 +20,6 @@
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import { execFileSync } from "node:child_process"
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "../..")
 const argv = process.argv.slice(2)
@@ -85,14 +84,13 @@ const local = merge(path.join(ROOT, "public/audience-data/pax_test.json"), path.
 console.log(`export (local): ${local.replaced} earlier row(s) of this test replaced, ${rows.length} written, ${local.total} PAX_TEST rows`)
 
 if (argv.includes("--sync")) {
-  for (const [bucket, profile] of [["pax-trinity-audience-613473203863", "pax-new"]]) {
-    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "publish-"))
-    const aws = (...a) => execFileSync("aws", [...a, "--profile", profile, "--only-show-errors"], { stdio: "inherit" })
-    aws("s3", "cp", `s3://${bucket}/exports/pax_test.json`, path.join(tmp, "pax_test.json"))
-    aws("s3", "cp", `s3://${bucket}/exports/index.json`, path.join(tmp, "index.json"))
-    const r = merge(path.join(tmp, "pax_test.json"), path.join(tmp, "index.json"))
-    aws("s3", "cp", path.join(tmp, "pax_test.json"), `s3://${bucket}/exports/pax_test.json`, "--content-type", "application/json")
-    aws("s3", "cp", path.join(tmp, "index.json"), `s3://${bucket}/exports/index.json`, "--content-type", "application/json")
-    console.log(`export (${bucket}): ${r.replaced} replaced, ${r.total} PAX_TEST rows`)
-  }
+  // Through the export's one way in and out (scripts/exports/sync.mjs): read decoded, written back with the
+  // Cache-Control and the encoding the bucket already uses.
+  const { DEFAULTS, getExports, pushExports } = await import("../exports/sync.mjs")
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "publish-"))
+  const keys = ["pax_test.json", "index.json"]
+  await getExports(tmp, keys)
+  const r = merge(path.join(tmp, "pax_test.json"), path.join(tmp, "index.json"))
+  await pushExports(tmp, keys)
+  console.log(`export (${DEFAULTS.bucket}): ${r.replaced} replaced, ${r.total} PAX_TEST rows`)
 }

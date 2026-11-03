@@ -37,6 +37,7 @@
 import fs from "node:fs"
 import path from "node:path"
 import { createRequire } from "node:module"
+import { brotliDecompressSync } from "node:zlib"
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "../..")
 const require = createRequire(path.join(ROOT, "package.json"))
@@ -108,7 +109,9 @@ async function get(key) {
       const s3 = new S3Client({ region: b.region, profile: b.profile })
       const r = await s3.send(new GetObjectCommand({ Bucket: b.bucket, Key: key }))
       store = b
-      return JSON.parse(await r.Body.transformToString())
+      // index.json and the q/ files can be stored brotli (scripts/exports/sync.mjs); S3 hands those bytes over as they are.
+      const bytes = Buffer.from(await r.Body.transformToByteArray())
+      return JSON.parse((r.ContentEncoding === "br" ? brotliDecompressSync(bytes) : bytes).toString("utf8"))
     } catch (e) {
       if (store) throw e
       console.error(`  ${b.bucket} (${b.profile}): ${e.name}: ${e.message}`)

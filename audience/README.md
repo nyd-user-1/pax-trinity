@@ -66,6 +66,14 @@ DATABASE_URL=postgresql://...         # optional: use Postgres instead of store/
 .venv/bin/python -m pytest
 ```
 
+The export reaches the site through the bucket's `exports/`, and only through `scripts/exports/sync.mjs` (`pull`, `get`, `push`), which decodes what it reads and uploads with the bucket's Cache-Control and encoding. One source, merged into the bucket's own index.json:
+
+```sh
+T=$(mktemp -d) && node ../scripts/exports/sync.mjs get $T index.json && \
+.venv/bin/python -c "from pathlib import Path; from audience.db import connect; from audience.export import export_source; s = connect(); export_source(s, 'POLL', Path('$T')); s.close()" && \
+node ../scripts/exports/sync.mjs push $T && rm -rf $T
+```
+
 `load` applies pending migrations itself and rebuilds the `geographies` table afterwards (`python -m audience.geographies` does it alone). A loader whose raw data is absent prints how to get it and exits 0 without writing. A DuckDB file another process holds is retried every 30 s, up to 20 times.
 
 Set `AUDIENCE_TEST_DATABASE_URL` to also run the Postgres test; it works in a throwaway schema.
