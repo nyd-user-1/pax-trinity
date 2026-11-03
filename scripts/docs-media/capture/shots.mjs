@@ -108,6 +108,11 @@ for (const [name, run] of Object.entries(SHOTS)) {
   const t = Date.now()
   try {
     await run()
+    // Chrome's own error page (the server dropped the connection mid-compile) is no picture: keep the last good one.
+    if (page.url().startsWith("chrome-error:")) {
+      console.log("ERR", name, "no page: the server dropped the connection")
+      continue
+    }
     const check = await page.evaluate(() => ({ text: (document.querySelector("[data-shell-main]") ?? document.body).innerText.length, overlay: !!document.querySelector("nextjs-portal")?.shadowRoot?.querySelector("[data-nextjs-dialog], [data-nextjs-error-overlay-nav]") }))
     if (check.overlay || check.text < 80) console.log("WARN", name, JSON.stringify(check))
     await page.screenshot({ path: `${OUT}${name}.jpg`, type: "jpeg", quality: 78 })
