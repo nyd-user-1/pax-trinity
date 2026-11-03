@@ -54,7 +54,7 @@ export const TEMPLATES: Template[] = [
     "name": "Survey invitation",
     "from": "tracker",
     "subject": "A few questions about {{TOPIC}}",
-    "body": "**A few questions about {{TOPIC}}**\n\nHi {{RECIPIENT_NAME}},\n\nI'm asking a few short questions about {{TOPIC}}, and your answers stay anonymous.\n\n![The survey's questions](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/survey.jpg)\n\n**Questions:** {{QUESTION_COUNT}}\n\n**Time:** about {{MINUTES}} minutes\n\n[Start the survey]({{SURVEY_URL}})\n\nPollster"
+    "body": "**A few questions about {{TOPIC}}**\n\nHi {{RECIPIENT_NAME}},\n\nI'm asking a few short questions about {{TOPIC}}, and your answers stay anonymous.\n\n![The survey's questions](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/survey-topline.jpg)\n\n**Questions:** {{QUESTION_COUNT}}\n\n**Time:** about {{MINUTES}} minutes\n\n[Start the survey]({{SURVEY_URL}})\n\nPollster"
   },
   {
     "id": "b0372255-e04e-436f-8ac4-0657ccc4c345",
@@ -62,7 +62,7 @@ export const TEMPLATES: Template[] = [
     "name": "Survey reminder",
     "from": "tracker",
     "subject": "Still time to answer: {{SURVEY_NAME}}",
-    "body": "**Still time to answer: {{SURVEY_NAME}}**\n\nHi {{RECIPIENT_NAME}},\n\nThe survey on {{TOPIC}} I sent on {{SENT_DATE}} is still open. If you've started, your answers are saved.\n\n![The survey's questions](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/survey.jpg)\n\n**Closes:** {{CLOSE_DATE}}\n\n**Time:** about {{MINUTES}} minutes\n\n[Pick up where you left off]({{SURVEY_URL}})\n\nPollster"
+    "body": "**Still time to answer: {{SURVEY_NAME}}**\n\nHi {{RECIPIENT_NAME}},\n\nThe survey on {{TOPIC}} I sent on {{SENT_DATE}} is still open. If you've started, your answers are saved.\n\n![The survey's questions](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/survey-topline.jpg)\n\n**Closes:** {{CLOSE_DATE}}\n\n**Time:** about {{MINUTES}} minutes\n\n[Pick up where you left off]({{SURVEY_URL}})\n\nPollster"
   },
   {
     "id": "4fb703cd-dab5-45f4-a1ce-63b17c4c27a1",
@@ -70,7 +70,7 @@ export const TEMPLATES: Template[] = [
     "name": "Survey thank-you",
     "from": "tracker",
     "subject": "Thanks for answering, {{RECIPIENT_NAME}}",
-    "body": "**Thanks for answering**\n\nHi {{RECIPIENT_NAME}},\n\nYour answers are in. I've added you to a panel, so I may ask you to watch a short video and answer a few questions in the coming weeks.\n\n![A study: one video, then its questions](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/survey-tests.jpg)\n\n**Panel:** {{GROUP_NAME}}\n\nYou can leave it any time from [your settings]({{SETTINGS_URL}}).\n\nPollster"
+    "body": "**Thanks for answering**\n\nHi {{RECIPIENT_NAME}},\n\nYour answers are in. I've added you to a panel, so I may ask you to watch a short video and answer a few questions in the coming weeks.\n\n![A study: one video, then its questions](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/test.jpg)\n\n**Panel:** {{GROUP_NAME}}\n\nYou can leave it any time from [your settings]({{SETTINGS_URL}}).\n\nPollster"
   },
   {
     "id": "00a24180-a1b3-46a7-ad53-5b1bc496964d",
@@ -78,7 +78,7 @@ export const TEMPLATES: Template[] = [
     "name": "Test invitation",
     "from": "tracker",
     "subject": "Watch a short video and answer {{QUESTION_COUNT}} questions",
-    "body": "**Watch a short video and answer {{QUESTION_COUNT}} questions**\n\nHi {{RECIPIENT_NAME}},\n\nI have a short study for you: one video, then a few questions about it.\n\n![The study: one video, then its questions](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/survey-tests.jpg)\n\n**Video:** under a minute\n\n**Questions:** {{QUESTION_COUNT}}\n\n**Time:** about {{MINUTES}} minutes\n\n[Start the study]({{TEST_URL}})\n\nPollster"
+    "body": "**Watch a short video and answer {{QUESTION_COUNT}} questions**\n\nHi {{RECIPIENT_NAME}},\n\nI have a short study for you: one video, then a few questions about it.\n\n![The study: one video, then its questions](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/test.jpg)\n\n**Video:** under a minute\n\n**Questions:** {{QUESTION_COUNT}}\n\n**Time:** about {{MINUTES}} minutes\n\n[Start the study]({{TEST_URL}})\n\nPollster"
   },
   {
     "id": "7ff83159-240a-46af-b3d7-5ecdb1641a8e",
@@ -94,7 +94,7 @@ export const TEMPLATES: Template[] = [
     "name": "Test reminder",
     "from": "tracker",
     "subject": "Your study closes {{CLOSE_DATE}}",
-    "body": "**Your study closes {{CLOSE_DATE}}**\n\nHi {{RECIPIENT_NAME}},\n\nThe study I sent on {{SENT_DATE}} is still waiting for you: one short video, then a few questions.\n\n![The study: one video, then its questions](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/survey-tests.jpg)\n\n**Closes:** {{CLOSE_DATE}}\n\n**Time:** about {{MINUTES}} minutes\n\n[Start the study]({{TEST_URL}})\n\nPollster"
+    "body": "**Your study closes {{CLOSE_DATE}}**\n\nHi {{RECIPIENT_NAME}},\n\nThe study I sent on {{SENT_DATE}} is still waiting for you: one short video, then a few questions.\n\n![The study: one video, then its questions](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/test.jpg)\n\n**Closes:** {{CLOSE_DATE}}\n\n**Time:** about {{MINUTES}} minutes\n\n[Start the study]({{TEST_URL}})\n\nPollster"
   },
   {
     "id": "3afa6c38-97b1-4877-8b0e-59703da5bdd9",
@@ -238,7 +238,7 @@ export const TEMPLATES: Template[] = [
     "name": "Chat flow 4: Ask about the page on screen",
     "from": "assistant",
     "subject": "Ask about the page in front of you",
-    "body": "**Ask about the page in front of you**\n\nHi {{RECIPIENT_NAME}},\n\nHold Shift and drag across a blank part of any page, and a note opens where you drew it, as large as you drew it. Switch it from **Note** to **Chat** in its header, type your question, and press Shift Enter.\n\n![A note drawn on America Thinks](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/block-menu.jpg)\n\nEach question carries the page you have open, and the one beside it in the second panel, so I answer from the numbers on show: a question's Crosstab in America Thinks, a row in Lift, a report. The chat stays with the note, and the note keeps itself under **My notes** in the Inbox.\n\nThe rest of Chat, from the + menu to recording, is in the guide.\n\n[Read the Chat guide]({{SITE_URL}}/docs/chat)\n\nAssistant"
+    "body": "**Ask about the page in front of you**\n\nHi {{RECIPIENT_NAME}},\n\nHold Shift and drag across a blank part of any page, and a note opens where you drew it, as large as you drew it. Switch it from **Note** to **Chat** in its header, type your question, and press Shift Enter.\n\n![A note drawn on America Thinks](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/note.jpg)\n\nEach question carries the page you have open, and the one beside it in the second panel, so I answer from the numbers on show: a question's Crosstab in America Thinks, a row in Lift, a report. The chat stays with the note, and the note keeps itself under **My notes** in the Inbox.\n\nThe rest of Chat, from the + menu to recording, is in the guide.\n\n[Read the Chat guide]({{SITE_URL}}/docs/chat)\n\nAssistant"
   },
   {
     "id": "local-lift-flow-1-read-a-lift",
@@ -398,6 +398,6 @@ export const TEMPLATES: Template[] = [
     "name": "Survey flow 4: Toplines",
     "from": "assistant",
     "subject": "Ask everyone the same questions",
-    "body": "**Ask everyone the same questions**\n\nHi {{RECIPIENT_NAME}},\n\nBeside the conversations, Survey keeps **Toplines**: surveys that ask everyone the same questions, with no video and no comparison group. The Open Primaries topline sets out its methodology and each question's shares, and its questions are America Thinks' own primaries items, worded the same way.\n\n![The topline's answer page](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/survey.jpg)\n\n**Copy link** on the topline carries its answer page. Share it yourself, or ask the Pollster in the Agentic Inbox to mail it to a group, a link for each member.\n\n[Read about toplines]({{SITE_URL}}/docs/survey-toplines)\n\nAssistant"
+    "body": "**Ask everyone the same questions**\n\nHi {{RECIPIENT_NAME}},\n\nBeside the conversations, Survey keeps **Toplines**: surveys that ask everyone the same questions, with no video and no comparison group. The Open Primaries topline sets out its methodology and each question's shares, and its questions are America Thinks' own primaries items, worded the same way.\n\n![The topline's answer page](https://d19bx9wfmnrb34.cloudfront.net/docs/shots/survey-topline.jpg)\n\n**Copy link** on the topline carries its answer page. Share it yourself, or ask the Pollster in the Agentic Inbox to mail it to a group, a link for each member.\n\n[Read about toplines]({{SITE_URL}}/docs/survey-toplines)\n\nAssistant"
   }
 ]
