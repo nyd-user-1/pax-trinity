@@ -2,8 +2,9 @@
 // (Resend, 2026-10-15) with the PAX mark of the Alpha Launch invitation (2026-10-19). A pale page,
 // the mark, a white card headed in navy by the message's bold first line (else its subject), slate paragraphs, a navy pill for a
 // link that stands alone on its line (pax2's layout() buttons), "**Label:** value" lines and lists
-// in the card's pale details panel, an image (a result video's poster, linking to the video) at a phone thumbnail's width, and
-// the site's address beneath. Tables and inline styles, so every mail client draws it.
+// in the card's pale details panel, an image at a phone thumbnail's width (a result video's poster, linking to the video) or,
+// for the docs' pictures and the guides' posters (16:10 screens, lib/docs/media.ts), at the card's width, the poster's play badge
+// drawn in and linking to the article that plays it (Brendan, 2026-11-02), and the site's address beneath. Tables and inline styles, so every mail client draws it.
 // The input is the composer's markdown, the subset it writes; relative links resolve against `base`.
 
 const FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif"
@@ -13,13 +14,19 @@ const SLATE = "#475569"
 const PAGE = "#f5f7fb"
 const MARK = "https://pax.nysgpt.com/brand/pax-mark.png"
 const IMAGE_WIDTH = 240
+/** The docs' pictures and the guides' posters: 16:10 screens, drawn at the card's width with a hairline edge. */
+const WIDE = /\/docs\/(shots|videos)\//
+const WIDE_WIDTH = 480
 
 const escape = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")
 
 export function designedHtml(markdown: string, base: string, subject?: string) {
   const href = (h: string) => (h.startsWith("/") ? base + h : h)
-  const img = (alt: string, src: string) =>
-    `<img src="${href(src)}" alt="${alt}" width="${IMAGE_WIDTH}" style="display:block;border:0;width:${IMAGE_WIDTH}px;max-width:100%;height:auto;border-radius:12px">`
+  const img = (alt: string, src: string) => {
+    const wide = WIDE.test(src)
+    const w = wide ? WIDE_WIDTH : IMAGE_WIDTH
+    return `<img src="${href(src)}" alt="${alt}" width="${w}" style="display:block;border:${wide ? "1px solid #e2e8f0" : "0"};width:${w}px;max-width:100%;height:auto;border-radius:12px">`
+  }
   const inline = (s: string) =>
     escape(s)
       // Images first, a linked one whole, so the link rule below never sees their brackets.
@@ -70,8 +77,8 @@ export function designedHtml(markdown: string, base: string, subject?: string) {
     if (i === blocks.length - 1 && i > 0 && /^[A-Z][\w.'-]*( [A-Z][\w.'-]*)?$/.test(block.trim())) return p(escape(block.trim()), `margin:8px 0 0;color:${INK};font-weight:500`)
     return p(lines.map(inline).join("<br>"))
   }
-  // The inbox's preview line: the first paragraph past the greeting, as plain text.
-  const preview = blocks.find((b) => !/^Hi\b/.test(b) && !/^\[/.test(b) && !LABEL.test(b.trim()))?.replace(/\[([^\]]+)\]\([^)]*\)/g, "$1").replace(/[*_]|<\/?u>/g, "").slice(0, 160) ?? ""
+  // The inbox's preview line: the first paragraph past the greeting, as plain text; never a button or a picture.
+  const preview = blocks.find((b) => !/^Hi\b/.test(b) && !/^!?\[/.test(b) && !LABEL.test(b.trim()))?.replace(/\[([^\]]+)\]\([^)]*\)/g, "$1").replace(/[*_]|<\/?u>/g, "").slice(0, 160) ?? ""
   const host = base.replace(/^https?:\/\//, "")
   return `<!doctype html>
 <html>
@@ -94,13 +101,16 @@ ${heading ? `<h1 style="margin:0 0 18px;font-family:${FONT};font-size:23px;line-
 
 /**
  * A person's mail, as plain email (Brendan, 2026-11-02): their markdown as simple HTML, a paragraph per
- * block with its line breaks, links, bold and italics, and a list where every line is an item. No frame:
- * no mark, no card, no footer, no styling. The designed frame above is the agents' templated mail alone.
+ * block with its line breaks, links, bold and italics, a picture as itself, and a list where every line is an
+ * item. No frame: no mark, no card, no footer, no styling. The designed frame above is the agents' templated mail alone.
  */
 export function plainHtml(markdown: string, base: string) {
   const href = (h: string) => (h.startsWith("/") ? base + h : h)
+  const img = (alt: string, src: string) => `<img src="${href(src)}" alt="${alt}" style="max-width:100%;height:auto">`
   const inline = (s: string) =>
     escape(s)
+      .replace(/\[!\[([^\]]*)\]\(([^)\s]+)\)\]\(([^)\s]+)\)/g, (_, alt, src, h: string) => `<a href="${href(h)}">${img(alt, src)}</a>`)
+      .replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (_, alt, src) => img(alt, src))
       .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, text, h: string) => `<a href="${href(h)}">${text}</a>`)
       .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
       .replace(/(^|[^*])\*([^*]+)\*/g, "$1<em>$2</em>")

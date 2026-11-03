@@ -80,8 +80,18 @@ describe.each(flowTemplates.map((t) => [t.name, t] as const))("%s", (name, t) =>
     const doc = href.match(/^\{\{SITE_URL\}\}\/docs\/([a-z0-9-]+)$/)?.[1]
     if (doc) expect(DOC_SLUGS.has(doc), href).toBe(true)
     else expect(href).toMatch(/^\{\{PAGE_URL\}\}(\?[a-z]+=[a-z0-9]+)?$/)
-    // Every link in the mail, the button's included, is one the engine can fill.
-    for (const m of t.body.matchAll(/\]\(([^)\s]+)\)/g)) expect(m[1], m[1]).toMatch(/^\{\{(PAGE_URL|SITE_URL)\}\}/)
+    // Every link in the mail, the button's included, is one the engine can fill; a picture's address is the CDN's.
+    for (const m of t.body.replace(/!\[[^\]]*\]\([^)\s]+\)/g, "").matchAll(/\]\(([^)\s]+)\)/g)) expect(m[1], m[1]).toMatch(/^\{\{(PAGE_URL|SITE_URL)\}\}/)
+  })
+
+  it("carries one picture or guide from the docs' media (Brendan, 2026-11-02)", () => {
+    const media = t.body.split("\n\n").filter((b) => /^\[?!\[/.test(b))
+    expect(media).toHaveLength(1)
+    const [block] = media
+    expect(block).toMatch(/^\[?!\[[^\]]+\]\(https:\/\/d19bx9wfmnrb34\.cloudfront\.net\/docs\/(shots\/[a-z0-9-]+\.jpg|videos\/[a-z0-9-]+\.play\.jpg)\)/)
+    // A guide's poster links to the article that plays it.
+    const article = block.match(/\]\(\{\{SITE_URL\}\}\/docs\/([a-z0-9-]+)\)$/)?.[1]
+    if (block.startsWith("[")) expect(article && DOC_SLUGS.has(article), block).toBe(true)
   })
 
   it("speaks as I, never we, and draws no arrow", () => {
